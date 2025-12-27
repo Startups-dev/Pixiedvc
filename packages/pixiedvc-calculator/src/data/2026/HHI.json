@@ -1,0 +1,94 @@
+{
+  "resortCode": "HHI",
+  "year": 2026,
+  "periods": [
+    {
+      "id": 1,
+      "name": "Travel Period 1",
+      "ranges": [
+        { "start": "2026-01-01", "end": "2026-01-31" },
+        { "start": "2026-12-01", "end": "2026-12-17" }
+      ],
+      "points": {
+        "STUDIO": {
+          "S": { "sunThu": 6, "friSat": 12 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 14, "friSat": 19 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 20, "friSat": 23 }
+        },
+        "GRANDVILLA": {
+          "S": { "sunThu": 27, "friSat": 39 }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "Travel Period 2",
+      "ranges": [
+        { "start": "2026-02-01", "end": "2026-03-31" },
+        { "start": "2026-11-01", "end": "2026-11-30" },
+        { "start": "2026-12-18", "end": "2026-12-31" }
+      ],
+      "points": {
+        "STUDIO": {
+          "S": { "sunThu": 10, "friSat": 15 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 20, "friSat": 29 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 24, "friSat": 36 }
+        },
+        "GRANDVILLA": {
+          "S": { "sunThu": 47, "friSat": 60 }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "Travel Period 3",
+      "ranges": [
+        { "start": "2026-04-01", "end": "2026-06-10" },
+        { "start": "2026-08-28", "end": "2026-10-31" }
+      ],
+      "points": {
+        "STUDIO": {
+          "S": { "sunThu": 14, "friSat": 23 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 27, "friSat": 44 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 33, "friSat": 56 }
+        },
+        "GRANDVILLA": {
+          "S": { "sunThu": 59, "friSat": 95 }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "name": "Travel Period 4",
+      "ranges": [
+        { "start": "2026-06-11", "end": "2026-08-27" }
+      ],
+      "points": {
+        "STUDIO": {
+          "S": { "sunThu": 15, "friSat": 27 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 31, "friSat": 52 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 41, "friSat": 66 }
+        },
+        "GRANDVILLA": {
+          "S": { "sunThu": 71, "friSat": 111 }
+        }
+      }
+    }
+  ]
+}

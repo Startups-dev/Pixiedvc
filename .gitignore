@@ -19,9 +19,11 @@
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
+._*
 *.pem
 
 # debug
@@ -32,6 +34,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+
+# pnpm
+package-lock.json
 
 # vercel
 .vercel

@@ -1,0 +1,16 @@
+PixieDVC Owner Agreement
+Date: {{DATE}}
+Owner: {{OWNER_NAME}}
+Home Resort: {{HOME_RESORT}}
+Use Year: {{USE_YEAR}}
+Points Available: {{POINTS_AVAILABLE}}
+Price Per Point: ${{PRICE_PER_POINT}}
+
+This agreement confirms that {{OWNER_NAME}} agrees to rent the available DVC points listed above through PixieDVC. The owner certifies that they hold the necessary rights to use these points, that the points are free of other reservations, and that they will cooperate with the PixieDVC concierge team to fulfill guest matches.
+
+PixieDVC will notify the owner as soon as a guest match is confirmed. The owner agrees to place the reservation in the guest’s name within 24 hours of notification and to provide confirmation details to PixieDVC.
+
+All communication with the guest will occur through PixieDVC unless otherwise agreed. PixieDVC will remit payment according to the standard payout schedule once the reservation confirmation number is received.
+
+Signed,
+{{OWNER_NAME}}

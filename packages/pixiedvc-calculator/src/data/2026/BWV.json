@@ -1,0 +1,181 @@
+{
+  "resortCode": "BWV",
+  "year": 2026,
+  "periods": [
+    {
+      "id": 1,
+      "name": "Travel Period 1",
+      "ranges": [
+        { "start": "2026-09-01", "end": "2026-09-30" }
+      ],
+      "points": {
+        "STUDIO": {
+          "S": { "sunThu": 9, "friSat": 13 },
+          "P": { "sunThu": 14, "friSat": 16 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 19, "friSat": 27 },
+          "P": { "sunThu": 26, "friSat": 29 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 29, "friSat": 35 },
+          "P": { "sunThu": 35, "friSat": 40 }
+        },
+        "GRANDVILLA": {
+          "P": { "sunThu": 76, "friSat": 88 }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "Travel Period 2",
+      "ranges": [
+        { "start": "2026-01-01", "end": "2026-01-31" },
+        { "start": "2026-05-01", "end": "2026-05-14" }
+      ],
+      "points": {
+        "STUDIO": {
+          "S": { "sunThu": 9, "friSat": 14 },
+          "P": { "sunThu": 15, "friSat": 16 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 23, "friSat": 28 },
+          "P": { "sunThu": 29, "friSat": 34 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 32, "friSat": 38 },
+          "P": { "sunThu": 39, "friSat": 45 }
+        },
+        "GRANDVILLA": {
+          "P": { "sunThu": 81, "friSat": 91 }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "Travel Period 3",
+      "ranges": [
+        { "start": "2026-05-15", "end": "2026-06-10" },
+        { "start": "2026-12-01", "end": "2026-12-23" }
+      ],
+      "points": {
+        "STUDIO": {
+          "S": { "sunThu": 10, "friSat": 15 },
+          "P": { "sunThu": 16, "friSat": 17 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 24, "friSat": 30 },
+          "P": { "sunThu": 32, "friSat": 37 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 31, "friSat": 41 },
+          "P": { "sunThu": 41, "friSat": 47 }
+        },
+        "GRANDVILLA": {
+          "P": { "sunThu": 88, "friSat": 97 }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "name": "Travel Period 4",
+      "ranges": [
+        { "start": "2026-02-01", "end": "2026-02-15" },
+        { "start": "2026-06-11", "end": "2026-08-31" }
+      ],
+      "points": {
+        "STUDIO": {
+          "S": { "sunThu": 12, "friSat": 16 },
+          "P": { "sunThu": 16, "friSat": 18 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 25, "friSat": 31 },
+          "P": { "sunThu": 35, "friSat": 39 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 33, "friSat": 44 },
+          "P": { "sunThu": 43, "friSat": 47 }
+        },
+        "GRANDVILLA": {
+          "P": { "sunThu": 91, "friSat": 102 }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "name": "Travel Period 5",
+      "ranges": [
+        { "start": "2026-10-01", "end": "2026-11-24" },
+        { "start": "2026-11-28", "end": "2026-11-30" }
+      ],
+      "points": {
+        "STUDIO": {
+          "S": { "sunThu": 14, "friSat": 17 },
+          "P": { "sunThu": 18, "friSat": 20 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 28, "friSat": 33 },
+          "P": { "sunThu": 35, "friSat": 41 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 39, "friSat": 45 },
+          "P": { "sunThu": 45, "friSat": 51 }
+        },
+        "GRANDVILLA": {
+          "P": { "sunThu": 101, "friSat": 114 }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "name": "Travel Period 6",
+      "ranges": [
+        { "start": "2026-02-16", "end": "2026-03-28" },
+        { "start": "2026-04-06", "end": "2026-04-30" },
+        { "start": "2026-11-25", "end": "2026-11-27" }
+      ],
+      "points": {
+        "STUDIO": {
+          "S": { "sunThu": 15, "friSat": 19 },
+          "P": { "sunThu": 19, "friSat": 22 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 31, "friSat": 36 },
+          "P": { "sunThu": 39, "friSat": 43 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 43, "friSat": 49 },
+          "P": { "sunThu": 51, "friSat": 55 }
+        },
+        "GRANDVILLA": {
+          "P": { "sunThu": 110, "friSat": 124 }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "name": "Travel Period 7",
+      "ranges": [
+        { "start": "2026-03-29", "end": "2026-04-05" },
+        { "start": "2026-12-24", "end": "2026-12-31" }
+      ],
+      "points": {
+        "STUDIO": {
+          "S": { "sunThu": 22, "friSat": 24 },
+          "P": { "sunThu": 28, "friSat": 29 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 42, "friSat": 48 },
+          "P": { "sunThu": 50, "friSat": 56 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 60, "friSat": 67 },
+          "P": { "sunThu": 68, "friSat": 77 }
+        },
+        "GRANDVILLA": {
+          "P": { "sunThu": 133, "friSat": 145 }
+        }
+      }
+    }
+  ]
+}

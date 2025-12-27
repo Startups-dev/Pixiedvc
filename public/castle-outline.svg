@@ -1,0 +1,32 @@
+<svg viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PixieDVC Castle Silhouette">
+  <defs>
+    <linearGradient id="castleFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#27315B" />
+      <stop offset="100%" stop-color="#111632" />
+    </linearGradient>
+    <linearGradient id="turretFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3A4A7F" />
+      <stop offset="100%" stop-color="#1F2A4D" />
+    </linearGradient>
+  </defs>
+  <g fill="url(#castleFill)">
+    <path d="M20 210V120h18V96l16 10V76l14 8V58l16 10V40l16 10V22l14 8v42l18-12v26l14-8v24l12-6v24h18v100H20z" />
+    <rect x="70" y="138" width="26" height="72" rx="2" />
+    <rect x="104" y="138" width="26" height="72" rx="2" />
+  </g>
+  <g fill="url(#turretFill)">
+    <path d="M20 120l9-24 9 24H20zM94 80l9-24 9 24H94zM154 120l10-26 10 26h-20z" />
+    <path d="M60 92l8-18 8 18H60zM126 60l8-18 8 18h-16z" />
+  </g>
+  <g fill="#F5C76E" opacity="0.9">
+    <path d="M150 40l6-18 6 18h-12z" />
+    <circle cx="156" cy="32" r="5" />
+    <circle cx="44" cy="48" r="4" opacity="0.6" />
+    <circle cx="178" cy="70" r="3.5" opacity="0.6" />
+  </g>
+  <g stroke="#F8D784" stroke-width="2" stroke-linecap="round" opacity="0.85">
+    <path d="M34 32c4 4 6 6 12 6M32 48c6 0 8 2 10 6" />
+    <path d="M178 54c-4 4-6 6-12 6M180 70c-6 0-8 2-10 6" />
+    <path d="M60 24l8 4-8 4" />
+  </g>
+</svg>

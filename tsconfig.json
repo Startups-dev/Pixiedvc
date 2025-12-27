@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,9 +23,42 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@pixiedvc/design-system": [
+        "packages/design-system/src"
+      ],
+      "@pixiedvc/design-system/*": [
+        "packages/design-system/src/*"
+      ],
+      "@pixiedvc/data": [
+        "packages/data/src"
+      ],
+      "@pixiedvc/data/*": [
+        "packages/data/src/*"
+      ],
+      "@pixiedvc/booking-form": [
+        "packages/booking-form/src"
+      ],
+      "@pixiedvc/booking-form/*": [
+        "packages/booking-form/src/*"
+      ],
+      "pixiedvc-calculator": [
+        "packages/pixiedvc-calculator/src"
+      ],
+      "pixiedvc-calculator/*": [
+        "packages/pixiedvc-calculator/src/*"
+      ]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

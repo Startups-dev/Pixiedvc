@@ -1,5 +1,7 @@
-const config = {
-  plugins: ["@tailwindcss/postcss"],
-};
+export default () => {
+  const isTest = process.env.NODE_ENV === 'test' || Boolean(process.env.VITEST);
 
-export default config;
+  return {
+    plugins: isTest ? [] : ["@tailwindcss/postcss"],
+  };
+};

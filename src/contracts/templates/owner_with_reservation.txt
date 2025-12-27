@@ -1,0 +1,17 @@
+PixieDVC Reservation Contract
+Date: {{DATE}}
+Owner: {{OWNER_NAME}}
+Guest: {{GUEST_NAME}}
+Reservation Window: {{CHECK_IN}} to {{CHECK_OUT}}
+Resort: {{HOME_RESORT}}
+Use Year: {{USE_YEAR}}
+Points Required: {{POINTS_NEEDED}}
+Price Per Point: ${{PRICE_PER_POINT}}
+Booking Reference: {{BOOKING_REFERENCE}}
+
+By signing this contract, {{OWNER_NAME}} agrees to reserve the stay described above for the PixieDVC guest. The owner will confirm the reservation in the guest’s name within 24 hours of receiving this contract and will share the official confirmation number with PixieDVC.
+
+PixieDVC commits to remitting the rental payment once the confirmation number is received and verified. Both parties acknowledge that any changes or cancellations will be coordinated through PixieDVC concierge.
+
+Signed,
+{{OWNER_NAME}}

@@ -1,0 +1,136 @@
+{
+  "resortCode": "VB",
+  "year": 2026,
+  "periods": [
+    {
+      "id": 1,
+      "name": "Travel Period 1",
+      "ranges": [
+        { "start": "2026-09-01", "end": "2026-11-24" }
+      ],
+      "points": {
+        "INNROOM": {
+          "S": { "sunThu": 10, "friSat": 16 },
+          "O": { "sunThu": 14, "friSat": 17 }
+        },
+        "STUDIO": {
+          "S": { "sunThu": 12, "friSat": 17 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 21, "friSat": 29 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 30, "friSat": 39 }
+        },
+        "COTTAGE": {
+          "S": { "sunThu": 60, "friSat": 72 }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "Travel Period 2",
+      "ranges": [
+        { "start": "2026-05-01", "end": "2026-05-31" },
+        { "start": "2026-11-28", "end": "2026-12-23" }
+      ],
+      "points": {
+        "INNROOM": {
+          "S": { "sunThu": 10, "friSat": 17 },
+          "O": { "sunThu": 15, "friSat": 19 }
+        },
+        "STUDIO": {
+          "S": { "sunThu": 13, "friSat": 18 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 24, "friSat": 31 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 33, "friSat": 42 }
+        },
+        "COTTAGE": {
+          "S": { "sunThu": 61, "friSat": 74 }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "Travel Period 3",
+      "ranges": [
+        { "start": "2026-01-01", "end": "2026-01-31" },
+        { "start": "2026-06-01", "end": "2026-08-31" },
+        { "start": "2026-11-25", "end": "2026-11-27" }
+      ],
+      "points": {
+        "INNROOM": {
+          "S": { "sunThu": 14, "friSat": 17 },
+          "O": { "sunThu": 18, "friSat": 21 }
+        },
+        "STUDIO": {
+          "S": { "sunThu": 16, "friSat": 19 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 29, "friSat": 37 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 36, "friSat": 47 }
+        },
+        "COTTAGE": {
+          "S": { "sunThu": 73, "friSat": 88 }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "name": "Travel Period 4",
+      "ranges": [
+        { "start": "2026-02-01", "end": "2026-02-21" },
+        { "start": "2026-04-12", "end": "2026-04-30" }
+      ],
+      "points": {
+        "INNROOM": {
+          "S": { "sunThu": 15, "friSat": 20 },
+          "O": { "sunThu": 19, "friSat": 23 }
+        },
+        "STUDIO": {
+          "S": { "sunThu": 17, "friSat": 21 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 31, "friSat": 40 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 44, "friSat": 52 }
+        },
+        "COTTAGE": {
+          "S": { "sunThu": 81, "friSat": 99 }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "name": "Travel Period 5",
+      "ranges": [
+        { "start": "2026-02-22", "end": "2026-04-11" },
+        { "start": "2026-12-24", "end": "2026-12-31" }
+      ],
+      "points": {
+        "INNROOM": {
+          "S": { "sunThu": 21, "friSat": 27 },
+          "O": { "sunThu": 26, "friSat": 31 }
+        },
+        "STUDIO": {
+          "S": { "sunThu": 23, "friSat": 29 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 43, "friSat": 53 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 61, "friSat": 72 }
+        },
+        "COTTAGE": {
+          "S": { "sunThu": 105, "friSat": 126 }
+        }
+      }
+    }
+  ]
+}

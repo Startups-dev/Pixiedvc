@@ -1,0 +1,97 @@
+{
+  "resortCode": "VGC",
+  "year": 2026,
+  "periods": [
+    {
+      "id": 1,
+      "name": "Travel Period 1",
+      "ranges": [
+        { "start": "2026-01-04", "end": "2026-02-21" },
+        { "start": "2026-09-06", "end": "2026-10-01" }
+      ],
+      "points": {
+        "STUDIO": {
+          "S": { "sunThu": 17, "friSat": 22 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 31, "friSat": 40 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 46, "friSat": 56 }
+        },
+        "GRANDVILLA": {
+          "S": { "sunThu": 94, "friSat": 119 }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "Travel Period 2",
+      "ranges": [
+        { "start": "2026-04-12", "end": "2026-06-28" },
+        { "start": "2026-10-02", "end": "2026-11-23" },
+        { "start": "2026-11-29", "end": "2026-12-17" }
+      ],
+      "points": {
+        "STUDIO": {
+          "S": { "sunThu": 20, "friSat": 24 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 39, "friSat": 48 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 52, "friSat": 65 }
+        },
+        "GRANDVILLA": {
+          "S": { "sunThu": 106, "friSat": 133 }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "Travel Period 3",
+      "ranges": [
+        { "start": "2026-02-22", "end": "2026-03-26" },
+        { "start": "2026-06-29", "end": "2026-09-05" }
+      ],
+      "points": {
+        "STUDIO": {
+          "S": { "sunThu": 26, "friSat": 32 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 52, "friSat": 64 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 70, "friSat": 88 }
+        },
+        "GRANDVILLA": {
+          "S": { "sunThu": 152, "friSat": 188 }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "name": "Travel Period 4",
+      "ranges": [
+        { "start": "2026-01-01", "end": "2026-01-03" },
+        { "start": "2026-03-27", "end": "2026-04-11" },
+        { "start": "2026-11-24", "end": "2026-11-28" },
+        { "start": "2026-12-18", "end": "2026-12-31" }
+      ],
+      "points": {
+        "STUDIO": {
+          "S": { "sunThu": 30, "friSat": 37 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 62, "friSat": 76 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 86, "friSat": 108 }
+        },
+        "GRANDVILLA": {
+          "S": { "sunThu": 182, "friSat": 224 }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,377 @@
+// src/data/resorts.ts
+import type { ResortMeta } from "../engine/types.js";
+
+export const resortsData: ResortMeta[] = [
+  {
+    code: "AKV",
+    name: "Animal Kingdom Villas",
+    category: "REGULAR",
+    roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
+    viewsByRoom: {
+      STUDIO: ["V", "R", "SV", "C"],
+      ONEBR: ["V", "R", "SV", "C"],
+      TWOBR: ["V", "R", "SV", "C"],
+      GRANDVILLA: ["R", "SV"]
+    },
+    viewNames: {
+      V: "Value Accommodation",
+      R: "Resort View",
+      SV: "Savanna View",
+      C: "Kilimanjaro Club Concierge"
+    },
+    occupancy: {
+      STUDIO: 4,
+      ONEBR: 5,
+      TWOBR: 9,
+      GRANDVILLA: 12
+    }
+  },
+  {
+    code: "AUL",
+    name: "Aulani, Ko Olina, Hawai'i",
+    category: "PREMIUM",
+    roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
+    viewsByRoom: {
+      STUDIO: ["S", "I", "P", "O"],
+      ONEBR: ["S", "I", "P", "O"],
+      TWOBR: ["S", "I", "P", "O"],
+      GRANDVILLA: ["S", "O"]
+    },
+    viewNames: {
+      S: "Standard View",
+      I: "Island Gardens View",
+      P: "Poolside Gardens View",
+      O: "Ocean View"
+    },
+    occupancy: {
+      STUDIO: 4,
+      ONEBR: 5,
+      TWOBR: 9,
+      GRANDVILLA: 12
+    }
+  },
+  {
+    code: "BLT",
+    name: "Bay Lake Tower at Contemporary Resort",
+    category: "REGULAR",
+    roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
+    viewsByRoom: {
+      STUDIO: ["S", "L", "T"],
+      ONEBR: ["S", "L", "T"],
+      TWOBR: ["S", "L", "T"],
+      GRANDVILLA: ["L", "T"]
+    },
+    viewNames: {
+      S: "Standard View",
+      L: "Lake View",
+      T: "Theme Park View"
+    },
+    occupancy: {
+      STUDIO: 4,
+      ONEBR: 5,
+      TWOBR: 9,
+      GRANDVILLA: 12
+    }
+  },
+  {
+    code: "BCV",
+    name: "Beach Club Villas",
+    category: "PREMIUM",
+    roomTypes: ["STUDIO", "ONEBR", "TWOBR"],
+    viewsByRoom: {
+      STUDIO: ["S"],
+      ONEBR: ["S"],
+      TWOBR: ["S"]
+    },
+    viewNames: {
+      S: "Standard"
+    },
+    occupancy: {
+      STUDIO: 4,
+      ONEBR: 5,
+      TWOBR: 9
+    }
+  },
+  {
+    code: "BWV",
+    name: "Boardwalk Villas",
+    category: "PREMIUM",
+    roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
+    viewsByRoom: {
+      STUDIO: ["S", "P"],
+      ONEBR: ["S", "P"],
+      TWOBR: ["S", "P"],
+      GRANDVILLA: ["P"]
+    },
+    viewNames: {
+      S: "Standard View",
+      P: "Boardwalk/Preferred View"
+    },
+    occupancy: {
+      STUDIO: 4,
+      ONEBR: 5,
+      TWOBR: 9,
+      GRANDVILLA: 12
+    }
+  },
+  {
+    code: "BRV",
+    name: "Boulder Ridge Villas at Disney's Wilderness Lodge",
+    category: "REGULAR",
+    roomTypes: ["STUDIO", "ONEBR", "TWOBR"],
+    viewsByRoom: {
+      STUDIO: ["S"],
+      ONEBR: ["S"],
+      TWOBR: ["S"]
+    },
+    viewNames: {
+      S: "Standard"
+    },
+    occupancy: {
+      STUDIO: 4,
+      ONEBR: 5,
+      TWOBR: 9
+    }
+  },
+  {
+    code: "HHI",
+    name: "Disney's Hilton Head Island Resort",
+    category: "ADVANTAGE",
+    roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
+    viewsByRoom: {
+      STUDIO: ["S"],
+      ONEBR: ["S"],
+      TWOBR: ["S"],
+      GRANDVILLA: ["S"]
+    },
+    viewNames: {
+      S: "Standard"
+    },
+    occupancy: {
+      STUDIO: 4,
+      ONEBR: 5,
+      TWOBR: 8,
+      GRANDVILLA: 12
+    }
+  },
+  {
+    code: "OKW",
+    name: "Disney's Old Key West Resort",
+    category: "ADVANTAGE",
+    roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
+    viewsByRoom: {
+      STUDIO: ["S"],
+      ONEBR: ["S"],
+      TWOBR: ["S"],
+      GRANDVILLA: ["S"]
+    },
+    viewNames: {
+      S: "Standard"
+    },
+    occupancy: {
+      STUDIO: 4,
+      ONEBR: 5,
+      TWOBR: 9,
+      GRANDVILLA: 12
+    }
+  },
+  {
+    code: "PVB",
+    name: "Disney's Polynesian Villas & Bungalows",
+    category: "PREMIUM",
+    roomTypes: ["STUDIO", "DUOSTUDIO", "DELUXESTUDIO", "ONEBR", "TWOBR", "TWOBRBUNGALOW", "PENTHOUSE"],
+    viewsByRoom: {
+      STUDIO: ["R"],
+      DUOSTUDIO: ["R", "P", "PM"],
+      DELUXESTUDIO: ["R", "P", "TP"],
+      ONEBR: ["R", "P", "TP"],
+      TWOBR: ["R", "P", "TP"],
+      TWOBRBUNGALOW: ["P"],
+      PENTHOUSE: ["P", "TP"]
+    },
+    viewNames: {
+      R: "Resort View",
+      P: "Preferred View",
+      TP: "Theme Park View",
+      PM: "Premium View"
+    },
+    occupancy: {
+      STUDIO: 4,
+      DUOSTUDIO: 2,
+      DELUXESTUDIO: 5,
+      ONEBR: 5,
+      TWOBR: 9,
+      TWOBRBUNGALOW: 8,
+      PENTHOUSE: 8
+    }
+  },
+  {
+    code: "RVA",
+    name: "Disney's Riviera Resort",
+    category: "PREMIUM",
+    roomTypes: ["TOWERSTUDIO", "DELUXESTUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
+    viewsByRoom: {
+      TOWERSTUDIO: ["S"],
+      DELUXESTUDIO: ["S", "P"],
+      ONEBR: ["S", "P"],
+      TWOBR: ["S", "P"],
+      GRANDVILLA: ["P"]
+    },
+    viewNames: {
+      S: "Standard View",
+      P: "Preferred View"
+    },
+    occupancy: {
+      TOWERSTUDIO: 2,
+      DELUXESTUDIO: 5,
+      ONEBR: 5,
+      TWOBR: 9,
+      GRANDVILLA: 12
+    }
+  },
+  {
+    code: "SSR",
+    name: "Saratoga Springs Resort & Spa",
+    category: "ADVANTAGE",
+    roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA", "TREEHOUSE"],
+    viewsByRoom: {
+      STUDIO: ["S", "P"],
+      ONEBR: ["S", "P"],
+      TWOBR: ["S", "P"],
+      GRANDVILLA: ["S", "P"],
+      TREEHOUSE: ["S"]
+    },
+    viewNames: {
+      S: "Standard",
+      P: "Preferred"
+    },
+    occupancy: {
+      STUDIO: 4,
+      ONEBR: 5,
+      TWOBR: 9,
+      GRANDVILLA: 12,
+      TREEHOUSE: 9
+    }
+  },
+  {
+    code: "VB",
+    name: "Disney's Vero Beach Resort",
+    category: "ADVANTAGE",
+    roomTypes: ["INNROOM", "STUDIO", "ONEBR", "TWOBR", "COTTAGE"],
+    viewsByRoom: {
+      INNROOM: ["S", "O"],
+      STUDIO: ["S"],
+      ONEBR: ["S"],
+      TWOBR: ["S"],
+      COTTAGE: ["S"]
+    },
+    viewNames: {
+      S: "Standard View",
+      O: "Ocean View"
+    },
+    occupancy: {
+      INNROOM: 4,
+      STUDIO: 4,
+      ONEBR: 5,
+      TWOBR: 8,
+      COTTAGE: 8
+    }
+  },
+  {
+    code: "CCV",
+    name: "Copper Creek Villas & Cabins at Disney's Wilderness Lodge",
+    category: "REGULAR",
+    roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA", "CABIN"],
+    viewsByRoom: {
+      STUDIO: ["S"],
+      ONEBR: ["S"],
+      TWOBR: ["S"],
+      GRANDVILLA: ["S"],
+      CABIN: ["S"]
+    },
+    viewNames: {
+      S: "Standard"
+    },
+    occupancy: {
+      STUDIO: 4,
+      ONEBR: 5,
+      TWOBR: 9,
+      GRANDVILLA: 12,
+      CABIN: 8
+    }
+  },
+  {
+    code: "VDH",
+    name: "The Villas at Disneyland Hotel",
+    category: "PREMIUM",
+    roomTypes: ["DUOSTUDIO", "DELUXESTUDIO", "GARDENDUOSTUDIO", "GARDENDELUXESTUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
+    viewsByRoom: {
+      DUOSTUDIO: ["S", "P"],
+      DELUXESTUDIO: ["S", "P"],
+      GARDENDUOSTUDIO: ["S"],
+      GARDENDELUXESTUDIO: ["S"],
+      ONEBR: ["S", "P"],
+      TWOBR: ["S", "P"],
+      GRANDVILLA: ["S", "P"]
+    },
+    viewNames: {
+      S: "Standard View",
+      P: "Preferred View"
+    },
+    occupancy: {
+      DUOSTUDIO: 2,
+      DELUXESTUDIO: 5,
+      GARDENDUOSTUDIO: 2,
+      GARDENDELUXESTUDIO: 5,
+      ONEBR: 5,
+      TWOBR: 9,
+      GRANDVILLA: 12
+    }
+  },
+  {
+    code: "VGC",
+    name: "The Villas at Disney's Grand Californian Hotel & Spa",
+    category: "PREMIUM",
+    roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
+    viewsByRoom: {
+      STUDIO: ["S"],
+      ONEBR: ["S"],
+      TWOBR: ["S"],
+      GRANDVILLA: ["S"]
+    },
+    viewNames: {
+      S: "Standard"
+    },
+    occupancy: {
+      STUDIO: 4,
+      ONEBR: 5,
+      TWOBR: 9,
+      GRANDVILLA: 12
+    }
+  },
+  {
+    code: "VGF",
+    name: "The Villas at Disney's Grand Floridian Resort & Spa",
+    category: "PREMIUM",
+    roomTypes: ["RESORTSTUDIO", "STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
+    viewsByRoom: {
+      RESORTSTUDIO: ["R", "P", "TP"],
+      STUDIO: ["R", "P"],
+      ONEBR: ["R", "P"],
+      TWOBR: ["R", "P"],
+      GRANDVILLA: ["P"]
+    },
+    viewNames: {
+      R: "Resort View",
+      P: "Preferred View",
+      TP: "Theme Park View"
+    },
+    occupancy: {
+      RESORTSTUDIO: 2,
+      STUDIO: 5,
+      ONEBR: 5,
+      TWOBR: 9,
+      GRANDVILLA: 12
+    }
+  }
+];

@@ -1,0 +1,202 @@
+{
+  "resortCode": "RVA",
+  "year": 2025,
+  "periods": [
+    {
+      "id": 1,
+      "name": "Travel Period 1",
+      "ranges": [
+        { "start": "2025-09-01", "end": "2025-09-30" }
+      ],
+      "points": {
+        "TOWERSTUDIO": {
+          "S": { "sunThu": 10, "friSat": 13 }
+        },
+        "DELUXESTUDIO": {
+          "S": { "sunThu": 14, "friSat": 17 },
+          "P": { "sunThu": 17, "friSat": 22 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 29, "friSat": 34 },
+          "P": { "sunThu": 36, "friSat": 46 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 38, "friSat": 47 },
+          "P": { "sunThu": 47, "friSat": 58 }
+        },
+        "GRANDVILLA": {
+          "P": { "sunThu": 103, "friSat": 120 }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "Travel Period 2",
+      "ranges": [
+        { "start": "2025-01-01", "end": "2025-01-31" },
+        { "start": "2025-05-01", "end": "2025-05-14" }
+      ],
+      "points": {
+        "TOWERSTUDIO": {
+          "S": { "sunThu": 12, "friSat": 14 }
+        },
+        "DELUXESTUDIO": {
+          "S": { "sunThu": 16, "friSat": 18 },
+          "P": { "sunThu": 19, "friSat": 24 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 34, "friSat": 39 },
+          "P": { "sunThu": 41, "friSat": 50 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 44, "friSat": 49 },
+          "P": { "sunThu": 52, "friSat": 61 }
+        },
+        "GRANDVILLA": {
+          "P": { "sunThu": 108, "friSat": 127 }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "Travel Period 3",
+      "ranges": [
+        { "start": "2025-05-15", "end": "2025-06-10" },
+        { "start": "2025-12-01", "end": "2025-12-23" }
+      ],
+      "points": {
+        "TOWERSTUDIO": {
+          "S": { "sunThu": 13, "friSat": 15 }
+        },
+        "DELUXESTUDIO": {
+          "S": { "sunThu": 17, "friSat": 19 },
+          "P": { "sunThu": 20, "friSat": 26 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 35, "friSat": 42 },
+          "P": { "sunThu": 44, "friSat": 54 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 47, "friSat": 53 },
+          "P": { "sunThu": 55, "friSat": 67 }
+        },
+        "GRANDVILLA": {
+          "P": { "sunThu": 116, "friSat": 135 }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "name": "Travel Period 4",
+      "ranges": [
+        { "start": "2025-02-01", "end": "2025-02-15" },
+        { "start": "2025-06-11", "end": "2025-08-31" }
+      ],
+      "points": {
+        "TOWERSTUDIO": {
+          "S": { "sunThu": 14, "friSat": 17 }
+        },
+        "DELUXESTUDIO": {
+          "S": { "sunThu": 17, "friSat": 20 },
+          "P": { "sunThu": 21, "friSat": 26 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 36, "friSat": 48 },
+          "P": { "sunThu": 48, "friSat": 58 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 50, "friSat": 59 },
+          "P": { "sunThu": 59, "friSat": 70 }
+        },
+        "GRANDVILLA": {
+          "P": { "sunThu": 120, "friSat": 141 }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "name": "Travel Period 5",
+      "ranges": [
+        { "start": "2025-10-01", "end": "2025-11-25" },
+        { "start": "2025-11-29", "end": "2025-11-30" }
+      ],
+      "points": {
+        "TOWERSTUDIO": {
+          "S": { "sunThu": 16, "friSat": 18 }
+        },
+        "DELUXESTUDIO": {
+          "S": { "sunThu": 19, "friSat": 22 },
+          "P": { "sunThu": 24, "friSat": 28 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 39, "friSat": 50 },
+          "P": { "sunThu": 49, "friSat": 59 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 52, "friSat": 63 },
+          "P": { "sunThu": 65, "friSat": 74 }
+        },
+        "GRANDVILLA": {
+          "P": { "sunThu": 129, "friSat": 154 }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "name": "Travel Period 6",
+      "ranges": [
+        { "start": "2025-02-16", "end": "2025-04-12" },
+        { "start": "2025-04-21", "end": "2025-04-30" },
+        { "start": "2025-11-26", "end": "2025-11-28" }
+      ],
+      "points": {
+        "TOWERSTUDIO": {
+          "S": { "sunThu": 17, "friSat": 20 }
+        },
+        "DELUXESTUDIO": {
+          "S": { "sunThu": 21, "friSat": 25 },
+          "P": { "sunThu": 27, "friSat": 30 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 43, "friSat": 53 },
+          "P": { "sunThu": 53, "friSat": 63 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 56, "friSat": 65 },
+          "P": { "sunThu": 71, "friSat": 79 }
+        },
+        "GRANDVILLA": {
+          "P": { "sunThu": 140, "friSat": 166 }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "name": "Travel Period 7",
+      "ranges": [
+        { "start": "2025-04-13", "end": "2025-04-20" },
+        { "start": "2025-12-24", "end": "2025-12-31" }
+      ],
+      "points": {
+        "TOWERSTUDIO": {
+          "S": { "sunThu": 24, "friSat": 27 }
+        },
+        "DELUXESTUDIO": {
+          "S": { "sunThu": 29, "friSat": 32 },
+          "P": { "sunThu": 35, "friSat": 40 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 58, "friSat": 68 },
+          "P": { "sunThu": 68, "friSat": 81 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 77, "friSat": 90 },
+          "P": { "sunThu": 88, "friSat": 103 }
+        },
+        "GRANDVILLA": {
+          "P": { "sunThu": 172, "friSat": 204 }
+        }
+      }
+    }
+  ]
+}
