@@ -8,6 +8,7 @@ import { isAdminEmail } from "@/lib/admin";
 
 const NAV_LINKS = [
   { href: "/resorts", label: "Resorts" },
+  { href: "/our-story", label: "Our Story" },
   { href: "/owners", label: "Owners" },
   { href: "/guests", label: "Guests" },
   { href: "/about", label: "Get to Know" },
