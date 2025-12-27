@@ -298,6 +298,9 @@ export async function getResortSummaries(): Promise<ResortSummary[]> {
 export async function getResortPhotos(
   slug: string,
 ): Promise<Array<{ src: string; alt?: string; caption?: string }>> {
+  const allowedPrefix = SUPABASE_PUBLIC_URL
+    ? `${SUPABASE_PUBLIC_URL}/storage/v1/object/public/${RESORT_PHOTO_BUCKET}/`
+    : null;
   const { data, error } = await supabase
     .from("resort_photos")
     .select("url, alt, caption, sort_order")
@@ -315,8 +318,18 @@ export async function getResortPhotos(
     caption: photo.caption ?? undefined,
   }));
 
-  if (mapped.length > 0) {
-    return mapped;
+  const filtered = mapped.filter((photo) => {
+    if (!photo.src) {
+      return false;
+    }
+    if (photo.src.startsWith("/")) {
+      return true;
+    }
+    return Boolean(allowedPrefix && photo.src.startsWith(allowedPrefix));
+  });
+
+  if (filtered.length > 0) {
+    return filtered;
   }
 
   return buildResortPhotoUrls(slug).map((photo) => ({
