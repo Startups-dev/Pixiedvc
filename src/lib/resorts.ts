@@ -299,6 +299,11 @@ export async function getResortSummaries(): Promise<ResortSummary[]> {
 export async function getResortPhotos(
   slug: string,
 ): Promise<Array<{ src: string; alt?: string; caption?: string }>> {
+  const override = PHOTO_FOLDER_OVERRIDES[slug];
+  const expectedPrefix =
+    override && SUPABASE_PUBLIC_URL
+      ? `${SUPABASE_PUBLIC_URL}/storage/v1/object/public/${RESORT_PHOTO_BUCKET}/${override.folder}/${override.prefix}`
+      : null;
   const { data, error } = await supabase
     .from("resort_photos")
     .select("url, alt, caption, sort_order")
@@ -316,7 +321,15 @@ export async function getResortPhotos(
     caption: photo.caption ?? undefined,
   }));
 
-  const filtered = mapped.filter((photo) => Boolean(photo.src));
+  const filtered = mapped.filter((photo) => {
+    if (!photo.src) {
+      return false;
+    }
+    if (!expectedPrefix) {
+      return true;
+    }
+    return photo.src.startsWith(expectedPrefix);
+  });
 
   if (filtered.length > 0) {
     return filtered;
