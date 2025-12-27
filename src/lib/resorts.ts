@@ -94,6 +94,7 @@ const PHOTO_FOLDER_OVERRIDES: Record<string, { folder: string; prefix?: string }
   "animal-kingdom-kidani": { folder: "animal-kingdom-lodge", prefix: "AKL" },
   "animal-kingdom-villas": { folder: "animal-kingdom-lodge", prefix: "AKL" },
   "animal-kingdom-lodge": { folder: "animal-kingdom-lodge", prefix: "AKL" },
+  "beach-club-villas": { folder: "beach-club-villa", prefix: "BCV" },
 };
 
 type JsonRecord = Record<string, unknown>;
