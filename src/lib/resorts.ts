@@ -1,5 +1,4 @@
 import { supabase } from "@pixiedvc/data";
-import resortPhotoPrefixes from "@/lib/resort-photo-prefixes.json";
 
 export type Resort = {
   slug: string;
@@ -89,11 +88,13 @@ const DEFAULT_IMAGE = "/images/castle-hero.png";
 const BAY_LAKE_TOWER_NIGHT_IMAGE = "/images/Bay Lake tower night.png";
 const RESORT_PHOTO_BUCKET = "resorts";
 const SUPABASE_PUBLIC_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const PHOTO_FOLDER_OVERRIDES: Record<string, { folder: string; prefix?: string }> = {
-  "animal-kingdom-jambo": { folder: "animal-kingdom-lodge", prefix: "AKL" },
-  "animal-kingdom-kidani": { folder: "animal-kingdom-lodge", prefix: "AKL" },
-  "animal-kingdom-villas": { folder: "animal-kingdom-lodge", prefix: "AKL" },
-  "animal-kingdom-lodge": { folder: "animal-kingdom-lodge", prefix: "AKL" },
+const PHOTO_URL_OVERRIDES: Record<string, string> = {
+  "animal-kingdom-jambo": "animal-kingdom-lodge/AKL1.png",
+  "animal-kingdom-kidani": "animal-kingdom-lodge/AKL1.png",
+  "animal-kingdom-villas": "animal-kingdom-lodge/AKL1.png",
+  "animal-kingdom-lodge": "animal-kingdom-lodge/AKL1.png",
+  "bay-lake-tower": "Bay1.png",
+  "beach-club-villas": "beach-club-villa/BCV1.png",
 };
 
 type JsonRecord = Record<string, unknown>;
@@ -134,38 +135,21 @@ type ResortPhotoRow = {
   sort_order?: number | null;
 };
 
-function derivePhotoPrefix(slug: string) {
-  const compact = slug.replace(/[^a-z0-9]/g, "");
-  return compact.slice(0, 4);
-}
-
-function getPhotoPrefix(slug: string) {
-  const override = PHOTO_FOLDER_OVERRIDES[slug];
-  if (override?.prefix) {
-    return override.prefix;
-  }
-  const prefix = (resortPhotoPrefixes as Record<string, string>)[slug];
-  return prefix || derivePhotoPrefix(slug);
-}
-
 function buildResortPhotoUrls(slug: string) {
   if (!SUPABASE_PUBLIC_URL) {
     return [];
   }
-  const override = PHOTO_FOLDER_OVERRIDES[slug];
-  const folder = override?.folder ?? slug;
-  const prefix = getPhotoPrefix(slug);
-  if (!prefix) {
+  const objectPath = PHOTO_URL_OVERRIDES[slug];
+  if (!objectPath) {
     return [];
   }
-  return Array.from({ length: 5 }, (_, index) => {
-    const order = index + 1;
-    return {
-      src: `${SUPABASE_PUBLIC_URL}/storage/v1/object/public/${RESORT_PHOTO_BUCKET}/${folder}/${prefix}${order}.png`,
-      caption: `Resort photo ${order}`,
+  return [
+    {
+      src: `${SUPABASE_PUBLIC_URL}/storage/v1/object/public/${RESORT_PHOTO_BUCKET}/${objectPath}`,
+      caption: "Resort photo 1",
       alt: null,
-    };
-  });
+    },
+  ];
 }
 
 function normalizeResortPhotos(raw: unknown, slug: string) {
