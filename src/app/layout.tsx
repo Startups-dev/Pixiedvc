@@ -7,6 +7,7 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/header";
+import SiteFooter from "@/components/SiteFooter";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -59,8 +60,11 @@ export default function RootLayout({
       <body
         className={`${playfair.variable} ${dmSans.variable} ${geistMono.variable} ${dmSerif.variable} bg-surface text-ink antialiased`}
       >
-        <Header />
-        <main>{children}</main>
+        <div className="flex min-h-screen flex-col">
+          <Header />
+          <main className="flex-1">{children}</main>
+          <SiteFooter />
+        </div>
       </body>
     </html>
   );
