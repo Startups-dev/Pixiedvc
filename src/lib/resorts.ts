@@ -153,6 +153,9 @@ function buildResortPhotoUrls(slug: string) {
     return [];
   }
   const override = PHOTO_FOLDER_OVERRIDES[slug];
+  if (!override) {
+    return [];
+  }
   const folder = override?.folder ?? slug;
   const prefix = getPhotoPrefix(slug);
   if (!prefix) {
