@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@pixiedvc/design-system";
 
 const navLinks = [
+  { name: "Our Story", href: "/our-story" },
   { name: "Resorts", href: "/resorts" },
   { name: "Owners", href: "/owners" },
   { name: "Guests", href: "/guests" },

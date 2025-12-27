@@ -408,6 +408,9 @@ export default function Home() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted">
+              <Link href="/our-story" className="transition hover:text-brand">
+                Our Story
+              </Link>
               <Link href="#" className="transition hover:text-brand">
                 Privacy
               </Link>
