@@ -329,8 +329,10 @@ export async function getResortPhotos(
     caption: photo.caption ?? undefined,
   }));
 
-  if (mapped.length > 0) {
-    return mapped;
+  const filtered = mapped.filter((photo) => Boolean(photo.src));
+
+  if (filtered.length > 0) {
+    return filtered;
   }
 
   return buildResortPhotoUrls(slug).map((photo) => ({
