@@ -100,6 +100,14 @@ const PHOTO_FOLDER_OVERRIDES: Record<string, { folder: string; prefix: string }>
 
 type JsonRecord = Record<string, unknown>;
 
+function normalizeImageUrl(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : null;
+}
+
 function toObjectArray<T extends JsonRecord>(value: unknown): T[] {
   if (!Array.isArray(value)) {
     return [];
@@ -160,6 +168,11 @@ function normalizeResortPhotos(raw: unknown, slug: string) {
   const sorted = items.some((item) => typeof item.sort_order === "number")
     ? [...items].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     : items;
+  const override = PHOTO_FOLDER_OVERRIDES[slug];
+  const expectedPrefix =
+    override && SUPABASE_PUBLIC_URL
+      ? `${SUPABASE_PUBLIC_URL}/storage/v1/object/public/${RESORT_PHOTO_BUCKET}/${override.folder}/${override.prefix}`
+      : null;
 
   const mapped = sorted
     .map((photo, index) => {
@@ -175,8 +188,18 @@ function normalizeResortPhotos(raw: unknown, slug: string) {
     })
     .filter((photo): photo is { src: string; caption: string; alt?: string | null } => Boolean(photo));
 
-  if (mapped.length > 0) {
-    return mapped;
+  const filtered = mapped.filter((photo) => {
+    if (!photo.src) {
+      return false;
+    }
+    if (!expectedPrefix) {
+      return true;
+    }
+    return photo.src.startsWith(expectedPrefix);
+  });
+
+  if (filtered.length > 0) {
+    return filtered;
   }
 
   return buildResortPhotoUrls(slug);
@@ -204,7 +227,7 @@ function mapResortRow(row: ResortRow | null): Resort | null {
   const noticesArray = toStringArray(row.essentials?.notices);
 
   const heroImage =
-    row.hero_image ??
+    normalizeImageUrl(row.hero_image) ??
     photos[0]?.src ??
     (row.slug === "bay-lake-tower" ? BAY_LAKE_TOWER_NIGHT_IMAGE : DEFAULT_IMAGE);
 
@@ -242,6 +265,8 @@ function mapResortRow(row: ResortRow | null): Resort | null {
 function mapResortSummary(row: ResortSummaryRow): ResortSummary {
   const photos = normalizeResortPhotos(row.photos, row.slug);
   const photoFallback = photos[0]?.src ?? null;
+  const cardImage = normalizeImageUrl(row.card_image);
+  const heroImage = normalizeImageUrl(row.hero_image);
 
   return {
     slug: row.slug,
@@ -249,8 +274,8 @@ function mapResortSummary(row: ResortSummaryRow): ResortSummary {
     location: row.location,
     tags: toTextArray(row.chips),
     pointsRange: row.points_range ?? null,
-    cardImage: row.card_image ?? row.hero_image ?? photoFallback,
-    heroImage: row.hero_image ?? photoFallback,
+    cardImage: photoFallback ?? cardImage ?? heroImage,
+    heroImage: photoFallback ?? heroImage,
   };
 }
 
