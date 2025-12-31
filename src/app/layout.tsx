@@ -1,36 +1,25 @@
 import type { Metadata } from "next";
 import {
-  Playfair_Display,
-  DM_Sans,
+  Inter,
   Geist_Mono,
-  DM_Serif_Display,
 } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/header";
+import SiteFooterClient from "@/components/layout/SiteFooterClient";
+import AffiliateTracker from "@/components/affiliate/AffiliateTracker";
+import ReferralCapture from "@/components/referral/ReferralCapture";
 
-const playfair = Playfair_Display({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-playfair",
+  variable: "--font-inter",
   display: "swap",
-});
-
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-dm-sans",
-  display: "swap",
+  weight: ["400", "500", "600"],
 });
 
 const geistMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-geist-mono",
   display: "swap",
-});
-
-const dmSerif = DM_Serif_Display({
-  subsets: ["latin"],
-  variable: "--font-dm-serif",
-  display: "swap",
-  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -57,10 +46,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${playfair.variable} ${dmSans.variable} ${geistMono.variable} ${dmSerif.variable} bg-surface text-ink antialiased`}
+        className={`${inter.variable} ${geistMono.variable} bg-surface text-ink antialiased`}
       >
-        <Header />
-        <main>{children}</main>
+        <div className="flex min-h-screen flex-col">
+          <Header />
+          <main className="flex-1">{children}</main>
+          <SiteFooterClient />
+        </div>
+        <AffiliateTracker />
+        <ReferralCapture />
       </body>
     </html>
   );

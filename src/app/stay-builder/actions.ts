@@ -1,7 +1,9 @@
 'use server';
 
+import { cookies } from 'next/headers';
 import { supabaseServer } from '@/lib/supabase-server';
 import { sendBookingConfirmationEmail } from '@/lib/email';
+import { attachAffiliateLead } from '@/lib/affiliate-leads';
 import { resolveCalculatorCode } from '@/lib/resort-calculator';
 import { quoteStay } from 'pixiedvc-calculator/engine/calc';
 import type { RoomCode, ViewCode } from 'pixiedvc-calculator/engine/types';
@@ -197,6 +199,7 @@ export async function saveGuestRoster(input: {
 
 export async function submitStayRequest(input: { bookingId: string; acceptTerms: boolean; acknowledgeInsurance: boolean }) {
   const sb = supabaseServer();
+  const cookieStore = await cookies();
   const {
     data: { user },
   } = await sb.auth.getUser();
@@ -223,6 +226,23 @@ export async function submitStayRequest(input: { bookingId: string; acceptTerms:
   if (error) {
     throw new Error(error.message);
   }
+
+  const referralCode = cookieStore.get('pixiedvc_ref')?.value ?? null;
+  if (referralCode) {
+    try {
+      await sb
+        .from('booking_requests')
+        .update({
+          referral_code: referralCode,
+        })
+        .eq('id', input.bookingId)
+        .eq('renter_id', user.id);
+    } catch (err) {
+      console.warn('[referral] Unable to save referral_code on booking_requests', err);
+    }
+  }
+
+  await attachAffiliateLead(input.bookingId);
 
   const { data: booking, error: bookingError } = await sb
     .from('booking_requests')

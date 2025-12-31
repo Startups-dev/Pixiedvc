@@ -42,6 +42,7 @@ export const bookingFlowSchema = z.object({
   trip: tripDetailsSchema,
   guest: guestInfoSchema,
   agreement: agreementSchema,
+  referralCode: z.string().optional(),
 });
 
 export type TripDetailsInput = z.infer<typeof tripDetailsSchema>;
