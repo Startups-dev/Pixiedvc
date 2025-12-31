@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 import { Button, Card } from "@pixiedvc/design-system";
-import { withRef } from "@/lib/referral";
+import { appendRefToUrl } from "@/lib/referral";
 
 type CopyBlock = {
   title: string;
@@ -19,7 +19,7 @@ const COPY_BLOCKS: CopyBlock[] = [
   },
   {
     title: "Short paragraph",
-    body: "PixieDVC is a concierge-style DVC rental platform. Guests share dates and room preferences, then we match them with verified owners and confirm availability. We focus on clarity, premium resorts, and a calmer planning experience from quote to confirmation.",
+    body: "PixieDVC is a concierge-style DVC rental platform. Guests share dates and room preferences, then we match them with verified owners and confirm availability. We focus on clarity, premium resorts, and a calmer planning experience from estimate to confirmation.",
   },
   {
     title: "Long-form (email/blog)",
@@ -45,36 +45,40 @@ const CTA_SUGGESTIONS = [
 const FAQS = [
   {
     q: "How do I share my link?",
-    a: "Use the links below. They automatically add your ref parameter so tracking stays intact.",
+    a: "Use the links below. They automatically include your ref parameter so tracking stays intact.",
   },
   {
     q: "Do I need a coupon code?",
-    a: "No. Tracking is based on your unique ref parameter, not a coupon.",
+    a: "No. Tracking is based on your ref parameter, not a discount code.",
   },
   {
     q: "How long does tracking last?",
     a: "Referrals are stored for 90 days unless the guest clears cookies.",
   },
   {
+    q: "Is pricing guaranteed?",
+    a: "No. We provide estimates first, then confirm pricing once availability is secured.",
+  },
+  {
+    q: "Is availability guaranteed?",
+    a: "No. Availability is confirmed only after a verified owner match.",
+  },
+  {
+    q: "Is PixieDVC affiliated with Disney?",
+    a: "No. PixieDVC is an independent platform and is not affiliated with Disney.",
+  },
+  {
+    q: "What about refunds or cancellations?",
+    a: "Policies are explained during the request flow. Always direct guests to the official policy page.",
+  },
+  {
     q: "When do I get paid?",
     a: "Commissions are paid monthly after a stay is completed.",
-  },
-  {
-    q: "What counts as a referral?",
-    a: "Any booking created after a guest arrives through your ref link and submits a request.",
-  },
-  {
-    q: "Can I use paid ads?",
-    a: "Please follow your affiliate agreement. Ask concierge before running ads.",
-  },
-  {
-    q: "Who do I contact with questions?",
-    a: "Email concierge or use the contact page and mention Affiliate Support.",
   },
 ];
 
 function buildFullUrl(path: string, ref: string | null, origin: string) {
-  const withTracking = withRef(path, ref);
+  const withTracking = appendRefToUrl(path, ref);
   if (!origin) return withTracking;
   return new URL(withTracking, origin).toString();
 }
@@ -91,11 +95,11 @@ async function copyText(value: string, onDone: () => void, onError: (message: st
 export default function AffiliateGuidesClient() {
   const searchParams = useSearchParams();
   const defaultAffiliate = searchParams.get("affiliate") ?? "";
-  const [affiliateId, setAffiliateId] = useState(defaultAffiliate);
+  const [affiliateSlug, setAffiliateSlug] = useState(defaultAffiliate);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
-  const refValue = affiliateId.trim() || null;
+  const refValue = affiliateSlug.trim() || null;
 
   const links = useMemo(() => {
     return {
@@ -144,12 +148,12 @@ export default function AffiliateGuidesClient() {
         <p className="text-xs uppercase tracking-[0.3em] text-muted">Your affiliate link</p>
         <div className="grid gap-4 md:grid-cols-[1.2fr_2fr]">
           <label className="space-y-2 text-sm font-semibold text-ink/80">
-            Affiliate ID
+            Affiliate slug
             <input
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-ink shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-              placeholder="Paste your affiliate id"
-              value={affiliateId}
-              onChange={(event) => setAffiliateId(event.target.value)}
+              placeholder="your-slug"
+              value={affiliateSlug}
+              onChange={(event) => setAffiliateSlug(event.target.value)}
             />
           </label>
           <div className="grid gap-3 md:grid-cols-3">
@@ -172,8 +176,33 @@ export default function AffiliateGuidesClient() {
             ))}
           </div>
         </div>
+        <p className="text-xs text-muted">
+          Referral links use <strong>?ref=</strong> and track for 90 days on first touch.
+        </p>
         {copyStatus ? <p className="text-xs text-emerald-700">{copyStatus}</p> : null}
       </Card>
+
+      <section className="grid gap-6 md:grid-cols-3">
+        <Card className="space-y-3">
+          <p className="text-xs uppercase tracking-[0.3em] text-muted">What PixieDVC is</p>
+          <p className="text-sm text-muted">
+            PixieDVC is a concierge-style DVC rental platform that matches guests with verified owners and confirms
+            availability before booking.
+          </p>
+        </Card>
+        <Card className="space-y-3">
+          <p className="text-xs uppercase tracking-[0.3em] text-muted">What affiliates should say</p>
+          <p className="text-sm text-muted">
+            We provide pricing estimates first, then confirm availability once an owner match is secured.
+          </p>
+        </Card>
+        <Card className="space-y-3">
+          <p className="text-xs uppercase tracking-[0.3em] text-muted">How referral links work</p>
+          <p className="text-sm text-muted">
+            Referrals are first-touch, last 90 days, and never overwrite an existing ref once set.
+          </p>
+        </Card>
+      </section>
 
       <section className="space-y-6">
         <h2 className="text-lg font-semibold text-ink">What to say</h2>

@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 
 import { Button, Card, SectionHeader } from "@pixiedvc/design-system";
 import { useReferral } from "@/hooks/useReferral";
-import { withRef } from "@/lib/referral";
+import { appendRefToUrl } from "@/lib/referral";
 
 const resortCatalog = [
   {
@@ -146,7 +146,7 @@ function buildCalculatorLink(slug: string, checkIn: string, nights: number, ref:
   const params = new URLSearchParams({ resort: slug });
   if (checkIn) params.set("checkIn", checkIn);
   if (nights) params.set("nights", String(nights));
-  return withRef(`/calculator?${params.toString()}`, ref);
+  return appendRefToUrl(`/calculator?${params.toString()}`, ref);
 }
 
 export default function GuidedPlannerClient() {

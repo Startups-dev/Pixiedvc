@@ -1,8 +1,21 @@
 "use client";
 
-import { useReferral } from "@/hooks/useReferral";
+import { useEffect } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+
+import { getRefFromUrl, isValidReferral, setReferral } from "@/lib/referral";
 
 export default function ReferralCapture() {
-  useReferral();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const ref = getRefFromUrl(searchParams);
+    if (!ref || !isValidReferral(ref)) {
+      return;
+    }
+    setReferral(ref, pathname);
+  }, [searchParams, pathname]);
+
   return null;
 }

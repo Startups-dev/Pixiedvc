@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { useReferral } from "@/hooks/useReferral";
-import { withRef } from "@/lib/referral";
+import { appendRefToUrl } from "@/lib/referral";
 
 type Props = {
   resortName: string;
@@ -15,7 +15,7 @@ export default function StickyCTA({ resortName, resortSlug }: Props) {
   const [visible, setVisible] = useState(false);
   const { ref } = useReferral();
   const baseHref = resortSlug ? `/plan?resort=${encodeURIComponent(resortSlug)}` : "/plan";
-  const href = withRef(baseHref, ref);
+  const href = appendRefToUrl(baseHref, ref);
 
   useEffect(() => {
     const onScroll = () => {

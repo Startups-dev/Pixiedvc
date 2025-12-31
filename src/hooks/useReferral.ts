@@ -1,21 +1,21 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { getRefFromUrl, persistRef, readPersistedRef } from "@/lib/referral";
+import { getRefFromUrl, getReferral, isValidReferral } from "@/lib/referral";
 
 export function useReferral() {
   const searchParams = useSearchParams();
-  const refFromUrl = useMemo(() => getRefFromUrl(searchParams), [searchParams]);
-  const persisted = useMemo(() => readPersistedRef(), []);
-  const ref = refFromUrl ?? persisted;
+  const [ref, setRef] = useState<string | null>(() => getReferral());
 
   useEffect(() => {
-    if (refFromUrl) {
-      persistRef(refFromUrl);
+    const fromUrl = getRefFromUrl(searchParams);
+    const next = getReferral() ?? (isValidReferral(fromUrl) ? fromUrl : null);
+    if (next !== ref) {
+      setRef(next);
     }
-  }, [refFromUrl]);
+  }, [ref, searchParams]);
 
   return { ref };
 }

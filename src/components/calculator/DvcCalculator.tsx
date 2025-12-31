@@ -27,7 +27,7 @@ import {
   suggestNextVillaType,
 } from "@/lib/occupancy";
 import { useReferral } from "@/hooks/useReferral";
-import { withRef } from "@/lib/referral";
+import { appendRefToUrl } from "@/lib/referral";
 
 export default function DvcCalculator() {
   const router = useRouter();
@@ -518,7 +518,7 @@ export default function DvcCalculator() {
                       setErr("Please choose a villa that accommodates your party size.");
                       return;
                     }
-                    router.push(withRef("/stay-builder", ref));
+                    router.push(appendRefToUrl("/stay-builder", ref));
                   }}
                   className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-[#0F2148] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#1a2b5e]"
                 >

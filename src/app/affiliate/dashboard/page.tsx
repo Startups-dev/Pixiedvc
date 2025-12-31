@@ -54,7 +54,7 @@ export default async function AffiliateDashboardPage() {
   const payoutSeries = buildSixMonthPayoutSeries(payouts);
   const maxPayout = Math.max(1, ...payoutSeries.map((entry) => entry.total));
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "";
-  const referralLink = baseUrl ? `${baseUrl}/?ref=${affiliate.id}` : `/?ref=${affiliate.id}`;
+  const referralLink = baseUrl ? `${baseUrl}/?ref=${affiliate.slug}` : `/?ref=${affiliate.slug}`;
 
   return (
     <div className="mx-auto max-w-6xl space-y-12 px-6 py-16">
@@ -72,7 +72,7 @@ export default async function AffiliateDashboardPage() {
             <Link href="/affiliate/guides">Guides</Link>
           </Button>
           <Button asChild>
-            <Link href={`/calculator?ref=${affiliate.id}`}>Share the calculator</Link>
+            <Link href={`/calculator?ref=${affiliate.slug}`}>Share the calculator</Link>
           </Button>
         </div>
       </header>

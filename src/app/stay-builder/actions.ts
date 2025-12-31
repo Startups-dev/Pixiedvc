@@ -228,15 +228,20 @@ export async function submitStayRequest(input: { bookingId: string; acceptTerms:
   }
 
   const referralCode = cookieStore.get('pixiedvc_ref')?.value ?? null;
+  const referralSetAt = cookieStore.get('pixiedvc_ref_set_at')?.value ?? null;
+  const referralLanding = cookieStore.get('pixiedvc_ref_landing')?.value ?? null;
   if (referralCode) {
     try {
       await sb
         .from('booking_requests')
         .update({
           referral_code: referralCode,
+          referral_set_at: referralSetAt,
+          referral_landing: referralLanding,
         })
         .eq('id', input.bookingId)
-        .eq('renter_id', user.id);
+        .eq('renter_id', user.id)
+        .is('referral_code', null);
     } catch (err) {
       console.warn('[referral] Unable to save referral_code on booking_requests', err);
     }

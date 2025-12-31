@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { useReferral } from "@/hooks/useReferral";
-import { withRef } from "@/lib/referral";
+import { appendRefToUrl } from "@/lib/referral";
 
 type Props = {
   name: string;
@@ -27,8 +27,8 @@ export default function ResortChoiceCard({
   const router = useRouter();
   const { ref } = useReferral();
   const isRelative = image.startsWith("/");
-  const resolvedPickHref = withRef(pickHref, ref);
-  const resolvedDetailsHref = withRef(detailsHref, ref);
+  const resolvedPickHref = appendRefToUrl(pickHref, ref);
+  const resolvedDetailsHref = appendRefToUrl(detailsHref, ref);
 
   function handleCardClick() {
     router.push(resolvedPickHref);

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
 import { useReferral } from "@/hooks/useReferral";
-import { withRef } from "@/lib/referral";
+import { appendRefToUrl } from "@/lib/referral";
 
 type Props = {
   slug: string;
@@ -13,7 +13,7 @@ type Props = {
 
 export default function ResortAvailabilityCta({ slug, name }: Props) {
   const { ref } = useReferral();
-  const href = withRef(`/plan?resort=${encodeURIComponent(slug)}`, ref);
+  const href = appendRefToUrl(`/plan?resort=${encodeURIComponent(slug)}`, ref);
 
   return (
     <section className="mx-auto max-w-6xl px-6 pb-12">
