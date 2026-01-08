@@ -6,7 +6,7 @@ export function FieldLabel({ htmlFor, children }: { htmlFor?: string; children: 
   return (
     <label
       htmlFor={htmlFor}
-      className="text-sm font-semibold uppercase tracking-[0.18em] text-muted"
+      className="text-xs font-semibold uppercase tracking-wide text-slate-700"
     >
       {children}
     </label>
@@ -18,7 +18,7 @@ type InputProps = InputHTMLAttributes<HTMLInputElement>;
 type TextAreaProps = TextareaHTMLAttributes<HTMLTextAreaElement>;
 
 const baseFieldStyles =
-  "mt-2 w-full rounded-2xl border border-ink/10 bg-white/80 px-4 py-3 text-sm text-ink shadow-[0_12px_30px_rgba(15,23,42,0.08)] focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20";
+  "mt-1 w-full rounded-2xl border border-slate-400 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 shadow-none focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500";
 
 export const TextInput = forwardRef<HTMLInputElement, InputProps>(
   ({ className, type = "text", ...props }, ref) => (
@@ -37,5 +37,5 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
 TextArea.displayName = "TextArea";
 
 export function HelperText({ children }: { children: React.ReactNode }) {
-  return <p className="mt-1 text-xs text-muted">{children}</p>;
+  return <p className="mt-1 text-xs text-slate-600">{children}</p>;
 }

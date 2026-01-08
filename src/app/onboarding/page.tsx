@@ -19,6 +19,7 @@ export default function OnboardingPage() {
   const [roleError, setRoleError] = useState<string | null>(null);
   const [rolePending, setRolePending] = useState(false);
   const [resorts, setResorts] = useState<{ id: string; name: string }[]>([]);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
@@ -27,7 +28,19 @@ export default function OnboardingPage() {
       .from('resorts')
       .select('id,name')
       .order('name')
-      .then(({ data }) => setResorts(data ?? []));
+      .then(({ data }) => {
+        const unique = new Map<string, { id: string; name: string }>();
+        for (const resort of data ?? []) {
+          if (!unique.has(resort.name)) {
+            unique.set(resort.name, resort);
+          }
+        }
+        setResorts([...unique.values()]);
+      });
+
+    supabase.auth.getUser().then(({ data }) => {
+      setUserEmail(data.user?.email ?? null);
+    });
   }, [supabase]);
 
   return (
@@ -58,6 +71,8 @@ export default function OnboardingPage() {
 
       {step === 2 ? (
         <ProfileStep
+          role={role}
+          userEmail={userEmail}
           onNext={async (payload) => {
             await saveProfile(payload);
             setStep(3);
@@ -86,6 +101,7 @@ export default function OnboardingPage() {
 
       {step === 4 ? (
         <FinishStep
+          role={role}
           onFinish={async () => {
             const { next } = await completeOnboarding();
             router.replace(next || '/');
@@ -155,26 +171,92 @@ function RoleStep({
   );
 }
 
-function ProfileStep({ onNext }: { onNext: (payload: { display_name?: string; phone?: string }) => void }) {
+function ProfileStep({
+  onNext,
+  role,
+  userEmail,
+}: {
+  onNext: (payload: {
+    display_name?: string;
+    full_name?: string;
+    phone?: string;
+    address_line1?: string;
+    address_line2?: string;
+    city?: string;
+    region?: string;
+    postal_code?: string;
+    country?: string;
+    payout_email?: string;
+    payout_email_same_as_login?: boolean;
+    dvc_member_last4?: string;
+  }) => void;
+  role: 'owner' | 'guest' | null;
+  userEmail: string | null;
+}) {
+  const isOwner = role === 'owner';
   const [displayName, setDisplayName] = useState('');
+  const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [address1, setAddress1] = useState('');
+  const [address2, setAddress2] = useState('');
+  const [city, setCity] = useState('');
+  const [region, setRegion] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [country, setCountry] = useState('');
+  const [payoutEmail, setPayoutEmail] = useState(userEmail ?? '');
+  const [sameAsLogin, setSameAsLogin] = useState(true);
+  const [dvcLast4, setDvcLast4] = useState('');
+
+  useEffect(() => {
+    if (sameAsLogin && userEmail) {
+      setPayoutEmail(userEmail);
+    }
+  }, [sameAsLogin, userEmail]);
+
+  const last4 = dvcLast4.trim();
+  const last4Valid = !last4 || /^[0-9]{4}$/.test(last4);
 
   return (
     <form
-      className="space-y-4"
+      className="space-y-5"
       onSubmit={(event) => {
         event.preventDefault();
-        onNext({ display_name: displayName, phone });
+        if (!last4Valid) {
+          return;
+        }
+        onNext({
+          display_name: displayName || undefined,
+          full_name: fullName || undefined,
+          phone: phone || undefined,
+          address_line1: address1 || undefined,
+          address_line2: address2 || undefined,
+          city: city || undefined,
+          region: region || undefined,
+          postal_code: postalCode || undefined,
+          country: country || undefined,
+          payout_email: payoutEmail || undefined,
+          payout_email_same_as_login: sameAsLogin,
+          dvc_member_last4: last4 || undefined,
+        });
       }}
     >
       <div>
-        <label className="text-sm text-slate-600">Display name</label>
+        <label className="text-sm text-slate-600">Display name (optional)</label>
         <input
           className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
           placeholder="Jane Pixie"
           value={displayName}
           onChange={(event) => setDisplayName(event.target.value)}
-          required
+        />
+      </div>
+      <div>
+        <label className="text-sm text-slate-600">Full legal name</label>
+        <input
+          className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
+          placeholder="Jane Rivera"
+          value={fullName}
+          onChange={(event) => setFullName(event.target.value)}
+          required={isOwner}
         />
       </div>
       <div>
@@ -184,8 +266,110 @@ function ProfileStep({ onNext }: { onNext: (payload: { display_name?: string; ph
           placeholder="(407) 555-0199"
           value={phone}
           onChange={(event) => setPhone(event.target.value)}
+          required={isOwner}
         />
       </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <label className="text-sm text-slate-600">Address line 1</label>
+          <input
+            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
+            placeholder="123 Dream St"
+            value={address1}
+            onChange={(event) => setAddress1(event.target.value)}
+            required={isOwner}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="text-sm text-slate-600">Address line 2</label>
+          <input
+            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
+            placeholder="Unit, suite, building"
+            value={address2}
+            onChange={(event) => setAddress2(event.target.value)}
+          />
+        </div>
+        <div>
+          <label className="text-sm text-slate-600">City</label>
+          <input
+            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
+            value={city}
+            onChange={(event) => setCity(event.target.value)}
+            required={isOwner}
+          />
+        </div>
+        <div>
+          <label className="text-sm text-slate-600">State / Region</label>
+          <input
+            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
+            value={region}
+            onChange={(event) => setRegion(event.target.value)}
+            required={isOwner}
+          />
+        </div>
+        <div>
+          <label className="text-sm text-slate-600">Postal code</label>
+          <input
+            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
+            value={postalCode}
+            onChange={(event) => setPostalCode(event.target.value)}
+            required={isOwner}
+          />
+        </div>
+        <div>
+          <label className="text-sm text-slate-600">Country</label>
+          <input
+            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
+            value={country}
+            onChange={(event) => setCountry(event.target.value)}
+            required={isOwner}
+          />
+        </div>
+      </div>
+
+      {isOwner ? (
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Payout email</p>
+          <div className="mt-2 space-y-3">
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-slate-300"
+                checked={sameAsLogin}
+                onChange={(event) => setSameAsLogin(event.target.checked)}
+              />
+              Same as login email
+            </label>
+            <input
+              className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+              value={payoutEmail}
+              onChange={(event) => setPayoutEmail(event.target.value)}
+              disabled={sameAsLogin}
+              required={isOwner}
+            />
+            <p className="text-xs text-slate-500">
+              We’ll send rental agreements and payout notices here. Change it if you want a dedicated payout email.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {isOwner ? (
+        <div>
+          <label className="text-sm text-slate-600">DVC member ID (last 4 digits, optional)</label>
+          <input
+            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
+            maxLength={4}
+            value={dvcLast4}
+            onChange={(event) => setDvcLast4(event.target.value.replace(/\D/g, ''))}
+          />
+          {!last4Valid ? (
+            <p className="mt-1 text-xs text-rose-500">Enter exactly 4 digits or leave blank.</p>
+          ) : null}
+        </div>
+      ) : null}
+
       <button className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white" type="submit">
         Continue
       </button>
@@ -259,6 +443,7 @@ function OwnerContractsStep({
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
+      <HowToFindContractInfo />
       {contracts.map((contract, index) => (
         <div key={index} className="rounded-2xl border border-slate-200 p-4 shadow-sm">
           <div className="flex items-center justify-between">
@@ -348,6 +533,40 @@ function OwnerContractsStep({
   );
 }
 
+function HowToFindContractInfo() {
+  const steps = [
+    {
+      title: 'Step 1: Open your DVC member dashboard',
+      description: 'Log in to the DVC member site and open your contract summary.',
+    },
+    {
+      title: 'Step 2: Locate Use Year and Contract Year',
+      description: 'Find the month your points reset and the contract year listed.',
+    },
+    {
+      title: 'Step 3: Confirm points owned and available',
+      description: 'Use the points balance summary to fill in totals.',
+    },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-slate-900">
+        How to find your Use Year, Contract Year, and Points in the DVC Member site
+      </h3>
+      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        {steps.map((step) => (
+          <div key={step.title} className="rounded-2xl border border-dashed border-slate-200 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Tutorial</p>
+            <p className="mt-2 text-sm font-semibold text-slate-900">{step.title}</p>
+            <p className="mt-1 text-xs text-slate-500">{step.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function GuestPrefsStep({ onNext }: { onNext: (payload: GuestPrefsInput) => void }) {
   const [dates, setDates] = useState('');
   const [resorts, setResorts] = useState('');
@@ -385,10 +604,58 @@ function GuestPrefsStep({ onNext }: { onNext: (payload: GuestPrefsInput) => void
   );
 }
 
-function FinishStep({ onFinish }: { onFinish: () => void }) {
+function FinishStep({
+  onFinish,
+  role,
+}: {
+  onFinish: () => void;
+  role: 'owner' | 'guest' | null;
+}) {
+  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
+  const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    if (role !== 'owner') return;
+    supabase
+      .from('owner_verifications')
+      .select('status')
+      .maybeSingle()
+      .then(({ data }) => {
+        setVerificationStatus(data?.status ?? 'not_started');
+      });
+  }, [role, supabase]);
+
+  const statusLabel =
+    verificationStatus === 'approved'
+      ? 'Approved'
+      : verificationStatus === 'submitted'
+        ? 'Submitted'
+        : verificationStatus === 'rejected'
+          ? 'Rejected'
+          : 'Not started';
+
   return (
     <div className="space-y-4">
       <p className="text-lg text-slate-700">All set! We’ll tailor the app to your role.</p>
+      {role === 'owner' ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Verification required</p>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+              {statusLabel}
+            </span>
+            {verificationStatus === 'approved' ? (
+              <span className="text-sm text-emerald-600">Verified ✅ You can now receive matches.</span>
+            ) : verificationStatus === 'submitted' ? (
+              <span className="text-sm text-slate-600">Verification submitted — we’ll review shortly.</span>
+            ) : (
+              <a href="/owner/verification" className="text-sm font-semibold text-indigo-600 hover:underline">
+                Submit verification
+              </a>
+            )}
+          </div>
+        </div>
+      ) : null}
       <button className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white" onClick={onFinish}>
         Finish onboarding
       </button>

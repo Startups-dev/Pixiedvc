@@ -20,7 +20,6 @@ export default function ResortCarousel({ photos }: Props) {
   const current = safePhotos[activeIndex] ?? safePhotos[0];
 
   useEffect(() => {
-    console.log("ResortCarousel hydrated");
     if (!safePhotos.length) {
       return;
     }
@@ -58,33 +57,33 @@ export default function ResortCarousel({ photos }: Props) {
             <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_20%,transparent_30%,rgba(8,12,30,0.65)_100%)]" />
           </div>
 
-          <div className="absolute inset-0 z-20 pointer-events-auto">
-            <button
-              type="button"
-              onClick={() => goTo(activeIndex - 1)}
-              className="absolute top-1/2 z-[9999] -translate-y-1/2 rounded-full border border-white/20 bg-black/30 p-2 text-white/90 backdrop-blur transition hover:bg-black/40"
-              style={{ left: "104px" }}
-              aria-label="Previous resort photo"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
+          {safePhotos.length > 1 ? (
+            <div className="absolute inset-0 z-20 pointer-events-auto">
+              <button
+                type="button"
+                onClick={() => goTo(activeIndex - 1)}
+                className="absolute top-1/2 z-[9999] -translate-y-1/2 rounded-full border border-white/20 bg-black/30 p-2 text-white/90 backdrop-blur transition hover:bg-black/40"
+                style={{ left: "104px" }}
+                aria-label="Previous resort photo"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
 
-            <button
-              type="button"
-              onClick={() => goTo(activeIndex + 1)}
-              className="absolute top-1/2 z-[9999] -translate-y-1/2 rounded-full border border-white/20 bg-black/30 p-2 text-white/90 backdrop-blur transition hover:bg-black/40"
-              style={{ right: "104px" }}
-              aria-label="Next resort photo"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
+              <button
+                type="button"
+                onClick={() => goTo(activeIndex + 1)}
+                className="absolute top-1/2 z-[9999] -translate-y-1/2 rounded-full border border-white/20 bg-black/30 p-2 text-white/90 backdrop-blur transition hover:bg-black/40"
+                style={{ right: "104px" }}
+                aria-label="Next resort photo"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
 
-            {safePhotos.length > 1 ? (
               <div className="absolute bottom-4 right-4 z-10 pointer-events-none rounded-full bg-black/35 px-3 py-1 text-xs text-white/90 backdrop-blur">
                 {activeIndex + 1} / {safePhotos.length}
               </div>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
 
           {current.caption ? (
             <div className="absolute bottom-4 left-4 z-10 rounded-full bg-white/15 px-4 py-2 text-xs text-white/90 backdrop-blur">

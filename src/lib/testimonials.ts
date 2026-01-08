@@ -7,62 +7,68 @@ export type Testimonial = {
 export const TESTIMONIALS: Testimonial[] = [
   {
     quote:
-      "We wanted clarity without the pressure. PixieDVC made the process feel calm and grounded from the first message.",
-    author: "Maya L.",
-    location: "Orlando, FL",
+      "Wonderful experience with Pixie! Everything was straightforward and easy, and whenever I had a question, the team responded quickly. I’d absolutely book with Pixie again.",
+    author: "Mark T.",
+    location: "United States",
   },
   {
     quote:
-      "The guidance was honest and practical, like talking with a friend who really knows DVC.",
-    author: "Ethan R.",
-    location: "Charlotte, NC",
+      "Our trip was amazing thanks to Pixie. The entire process was simple and stress-free, and everyone we worked with was fantastic. We’re already planning to use Pixie again.",
+    author: "Sarah L.",
+    location: "United States",
   },
   {
     quote:
-      "Every question got a real answer. We never felt rushed, and our stay fit perfectly.",
-    author: "Grace T.",
-    location: "Austin, TX",
+      "Truly a stress-free booking experience. Pixie handled everything smoothly from start to finish. I’ll definitely be using them again in the future.",
+    author: "Emily R.",
+    location: "United States",
   },
   {
     quote:
-      "It felt personal, not transactional. The team understood how much this trip meant to our family.",
-    author: "Jorge A.",
-    location: "Chicago, IL",
+      "Pixie helped us experience something truly special. We did two short stays while hopping between resorts, and Pixie made it effortless. Staying at both Animal Kingdom Lodge and the Polynesian was a dream come true. We’ll absolutely book again for our next trip.",
+    author: "Jason M.",
+    location: "United States",
   },
   {
     quote:
-      "We’re not DVC experts, but they made it simple and reassuring. The whole experience was smooth.",
-    author: "Natalie S.",
-    location: "Denver, CO",
+      "Outstanding service all around. Working with Pixie was easy and enjoyable. I wouldn’t hesitate to use them again for future Disney vacations.",
+    author: "Daniel K.",
+    location: "United States",
   },
   {
     quote:
-      "A calm, friendly process with real people on the other side. That mattered to us.",
-    author: "Priya K.",
-    location: "San Diego, CA",
+      "Another great experience with Pixie. This was my second time renting points, and once again everything went smoothly. Excellent customer service and a very easy process.",
+    author: "Rachel P.",
+    location: "United States",
   },
   {
     quote:
-      "They helped us sort options without overwhelm. That made all the difference.",
-    author: "Alex M.",
-    location: "Nashville, TN",
+      "We had a fantastic stay at BoardWalk Villas thanks to Pixie, this was our third time renting points, and once again the process was smooth and stress-free. Every question was answered quickly, and the team was incredibly helpful throughout the entire experience.",
+    author: "Michelle S.",
+    location: "United States",
   },
   {
     quote:
-      "The experience felt boutique and thoughtful, not like a booking engine.",
-    author: "Sophie W.",
-    location: "Seattle, WA",
+      "An amazing stay made easy with Pixie, we rented points for a stay at the Polynesian after our Disney cruise, and everything went perfectly. The process was seamless and simple, and I’ve already recommended Pixie to several Disney-loving friends. We’re also using Pixie again soon for a stay at the Grand Floridian.",
+    author: "Amanda R.",
+    location: "United States",
   },
   {
     quote:
-      "Clear communication and no surprises. We felt confident every step of the way.",
-    author: "Marcus D.",
-    location: "Boston, MA",
+      "Everything about our experience with Pixie was outstanding, booking was simple, pricing was excellent, and it allowed us to stay at Riviera, something we likely wouldn’t have done otherwise. When we needed to add a guest before the trip, Pixie handled it quickly and smoothly. Check-in, the stay, and check-out were all flawless.",
+    author: "Natalie C.",
+    location: "United States",
   },
   {
     quote:
-      "Everything was handled with care. We’ll be back for our next trip.",
-    author: "Lina P.",
-    location: "Phoenix, AZ",
+      "We had a lovely stay at Saratoga Springs, there were a couple of small hiccups at check-in with room access, but the issue was handled promptly and professionally. The resort was beautiful, transportation was efficient, and our room near Disney Springs was perfect. The staff throughout the resort was friendly and helpful.",
+    author: "Erica W.",
+    location: "United States",
+  },
+  {
+    quote:
+      "Despite the crowds, our stay was incredibly relaxing, Kidani Village at Animal Kingdom Lodge was peaceful, comfortable, and a wonderful place to unwind after busy park days. We couldn’t have asked for a better experience.",
+    author: "Denise H.",
+    location: "United States",
   },
 ];

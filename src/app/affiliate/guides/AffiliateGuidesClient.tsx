@@ -73,7 +73,15 @@ const FAQS = [
   },
   {
     q: "When do I get paid?",
-    a: "Commissions are paid monthly after a stay is completed.",
+    a: "Payouts are processed manually each month after bookings are confirmed.",
+  },
+  {
+    q: "What counts as a qualified booking?",
+    a: "Qualified bookings are confirmed requests (status: confirmed) within your referral window.",
+  },
+  {
+    q: "How do I get paid?",
+    a: "We send payouts manually via PayPal or Wise. Set your payout email in the affiliate dashboard.",
   },
 ];
 
@@ -348,9 +356,10 @@ Estimate your stay: ${links.calculator}`}
         <Card className="space-y-3">
           <h2 className="text-lg font-semibold text-ink">How you get paid</h2>
           <ul className="space-y-2 text-sm text-muted">
-            <li>• Commission is based on PixieDVC’s service fee, not room price.</li>
-            <li>• Paid after the guest’s stay is completed.</li>
-            <li>• Payouts run monthly.</li>
+            <li>• Payouts are processed manually each month.</li>
+            <li>• We send payments via PayPal or Wise.</li>
+            <li>• Set your payout email in the affiliate dashboard.</li>
+            <li>• Qualified bookings are confirmed requests.</li>
             <li>• Exact rates are defined in your affiliate agreement.</li>
           </ul>
         </Card>

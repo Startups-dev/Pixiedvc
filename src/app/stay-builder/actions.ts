@@ -17,7 +17,7 @@ export async function saveStayBuilderStepOne(input: {
   roomType?: RoomCode;
   viewCode?: ViewCode;
 }) {
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
   const {
     data: { user },
   } = await sb.auth.getUser();
@@ -100,7 +100,7 @@ export async function saveTravelerDetails(input: {
   marketingSource?: string;
   notes?: string;
 }) {
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
   const {
     data: { user },
   } = await sb.auth.getUser();
@@ -150,9 +150,10 @@ export async function saveGuestRoster(input: {
     email?: string;
     phone?: string;
     ageCategory: 'adult' | 'youth';
+    age?: number | null;
   }[];
 }) {
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
   const {
     data: { user },
   } = await sb.auth.getUser();
@@ -162,6 +163,12 @@ export async function saveGuestRoster(input: {
   }
 
   const filtered = input.guests.filter((guest) => guest.firstName && guest.lastName);
+  const missingChildAge = filtered.find(
+    (guest) => guest.ageCategory === 'youth' && (!guest.age || guest.age <= 0),
+  );
+  if (missingChildAge) {
+    throw new Error('Please enter the age for each child guest.');
+  }
 
   const adults = filtered.filter((guest) => guest.ageCategory === 'adult').length;
   const youths = filtered.filter((guest) => guest.ageCategory === 'youth').length;
@@ -187,6 +194,7 @@ export async function saveGuestRoster(input: {
       email: guest.email ?? null,
       phone: guest.phone ?? null,
       age_category: guest.ageCategory,
+      age: guest.age ?? null,
     }));
     const { error } = await sb.from('booking_request_guests').insert(rows);
     if (error) {
@@ -198,7 +206,7 @@ export async function saveGuestRoster(input: {
 }
 
 export async function submitStayRequest(input: { bookingId: string; acceptTerms: boolean; acknowledgeInsurance: boolean }) {
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
   const cookieStore = await cookies();
   const {
     data: { user },

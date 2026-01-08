@@ -23,7 +23,7 @@ type FormState = {
 
 export default function TestimonialsSection({
   title = "What Guests Are Saying",
-  subtitle = "Families who wanted clarity, calm, and confidence.",
+  subtitle,
   initialCount = 9,
   showForm = true,
   testimonials = TESTIMONIALS,
@@ -111,7 +111,7 @@ export default function TestimonialsSection({
 
       <div className="mt-10 flex flex-col gap-4 rounded-3xl border border-slate-200/70 bg-white p-6">
         <p className="text-sm text-slate-700">
-          Have a great stay? Share your experience — every submission is reviewed before being published.
+          Have a great stay? Share your experience.
         </p>
         {showForm ? (
           <button

@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/run-match-bookings",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

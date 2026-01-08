@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { createServer } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { isAdminEmailStrict } from "@/lib/admin-emails";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminTestimonialsPage() {
   const cookieStore = await cookies();
-  const supabase = createServer(cookieStore);
+  const supabase = createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

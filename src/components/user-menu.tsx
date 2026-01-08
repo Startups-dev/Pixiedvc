@@ -9,15 +9,18 @@ import { createClient } from '@/lib/supabase';
 type UserMenuProps = {
   label: string;
   isAdmin?: boolean;
+  userRole?: string | null;
 };
 
-export default function UserMenu({ label, isAdmin = false }: UserMenuProps) {
+export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const isOwner = userRole?.startsWith('owner') || userRole === 'admin';
+  const dashboardHref = userRole === 'owner' ? '/owner' : userRole === 'guest' ? '/guest' : '/profile';
 
   useEffect(() => {
     if (!open) {
@@ -82,9 +85,16 @@ export default function UserMenu({ label, isAdmin = false }: UserMenuProps) {
       {open ? (
         <div
           ref={menuRef}
-          className="absolute right-0 mt-2 w-48 rounded-2xl border border-white/15 bg-[#0f2148]/95 p-2 text-sm text-white/80 shadow-[0_18px_36px_rgba(15,33,72,0.42)] backdrop-blur"
+          className="absolute right-0 mt-2 w-64 rounded-2xl border border-white/15 bg-[#0f2148]/95 p-3 text-sm text-white/80 shadow-[0_18px_36px_rgba(15,33,72,0.42)] backdrop-blur"
         >
           <div className="px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/50">Account</div>
+          <Link
+            href={dashboardHref}
+            className="block rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
+            onClick={() => setOpen(false)}
+          >
+            Dashboard
+          </Link>
           <Link
             href="/profile"
             className="block rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
@@ -92,6 +102,46 @@ export default function UserMenu({ label, isAdmin = false }: UserMenuProps) {
           >
             Profile
           </Link>
+          <Link
+            href="/profile"
+            className="block rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
+            onClick={() => setOpen(false)}
+          >
+            Settings
+          </Link>
+
+          {isOwner ? (
+            <>
+              <div className="mt-2 px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/50">Owners</div>
+              <Link
+                href="/owner"
+                className="block rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
+                onClick={() => setOpen(false)}
+              >
+                Owner Dashboard
+              </Link>
+              <span className="block cursor-not-allowed rounded-xl px-3 py-2 text-white/45">
+                My Listings
+                <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/50">
+                  Coming soon
+                </span>
+              </span>
+              <span className="block cursor-not-allowed rounded-xl px-3 py-2 text-white/45">
+                Payouts &amp; History
+                <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/50">
+                  Coming soon
+                </span>
+              </span>
+              <span className="block cursor-not-allowed rounded-xl px-3 py-2 text-white/45">
+                Documents &amp; Agreements
+                <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/50">
+                  Coming soon
+                </span>
+              </span>
+            </>
+          ) : null}
+
+          <div className="mt-2 px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/50">System</div>
           {isAdmin ? (
             <Link
               href="/admin"

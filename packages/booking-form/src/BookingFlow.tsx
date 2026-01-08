@@ -62,16 +62,23 @@ export function BookingFlow({ prefill, onComplete }: BookingFlowProps) {
         altResortId: prefill.altResortId,
       },
       guest: {
-        leadGuest: "",
+        leadTitle: "Mr.",
+        leadFirstName: "",
+        leadMiddleInitial: "",
+        leadLastName: "",
+        leadSuffix: "",
         email: "",
         phone: "",
-        adults: 2,
+        adults: 1,
         youths: 0,
         address: "",
         city: "",
         region: "",
         postalCode: "",
         country: "United States",
+        adultGuests: [],
+        childGuests: [],
+        leadGuest: "",
         additionalGuests: [],
         referralSource: "",
         comments: "",
@@ -106,13 +113,63 @@ export function BookingFlow({ prefill, onComplete }: BookingFlowProps) {
         roomLabel: values.trip.villaType,
         resortCode: values.trip.resortId,
       });
-      const totalGuests = (Number(values.guest.adults) || 0) + (Number(values.guest.youths) || 0);
+      const totalGuests =
+        1 + (values.guest.adultGuests?.length ?? 0) + (values.guest.childGuests?.length ?? 0);
       if (totalGuests > maxOccupancy) {
         setStepIndex(stepOrder.indexOf("guest"));
         setError("Please choose a guest count that fits the villa’s maximum occupancy.");
         return;
       }
       const parsed = bookingFlowSchema.parse(values);
+      const middleInitial = parsed.guest.leadMiddleInitial?.trim() ?? "";
+      const middleToken = middleInitial ? (middleInitial.endsWith(".") ? middleInitial : `${middleInitial}.`) : "";
+      const leadGuestName = [
+        parsed.guest.leadTitle,
+        parsed.guest.leadFirstName,
+        middleToken,
+        parsed.guest.leadLastName,
+        parsed.guest.leadSuffix,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+      const adultNames = (parsed.guest.adultGuests ?? []).map((guest) =>
+        [
+          guest.title,
+          guest.firstName,
+          guest.middleInitial
+            ? guest.middleInitial.endsWith(".")
+              ? guest.middleInitial
+              : `${guest.middleInitial}.`
+            : null,
+          guest.lastName,
+          guest.suffix,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim(),
+      );
+      const childNames = (parsed.guest.childGuests ?? []).map((guest) =>
+        [
+          guest.title,
+          guest.firstName,
+          guest.middleInitial
+            ? guest.middleInitial.endsWith(".")
+              ? guest.middleInitial
+              : `${guest.middleInitial}.`
+            : null,
+          guest.lastName,
+          guest.suffix,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim(),
+      );
+      const adults = 1 + (parsed.guest.adultGuests?.length ?? 0);
+      const youths = parsed.guest.childGuests?.length ?? 0;
       const response = await fetch("/api/booking/create", {
         method: "POST",
         headers: {
@@ -120,6 +177,13 @@ export function BookingFlow({ prefill, onComplete }: BookingFlowProps) {
         },
         body: JSON.stringify({
           ...parsed,
+          guest: {
+            ...parsed.guest,
+            leadGuest: leadGuestName,
+            additionalGuests: [...adultNames, ...childNames].filter(Boolean),
+            adults,
+            youths,
+          },
           depositAmount,
           referral_code: ref ?? null,
         }),

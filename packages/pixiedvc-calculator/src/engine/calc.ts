@@ -21,8 +21,8 @@ function calculatePricePerPoint(resortCode: string, checkInDate: string, booking
   const bookingDateParsed = bookingDate ? parseISO(bookingDate) : new Date();
   const monthsInAdvance = differenceInMonths(checkIn, bookingDateParsed);
 
-  // 0-7 months in advance: REGULAR rate ($23) - Dream Tier
-  // 7-11 months in advance: PREMIUM rate ($25) - Wish Tier
+  // 0-7 months in advance: REGULAR rate ($23) - Regular tier
+  // 7-11 months in advance: PREMIUM rate ($25) - Premium tier
   if (monthsInAdvance < 7) {
     return {
       ppp: RATE_BY_CATEGORY.REGULAR,

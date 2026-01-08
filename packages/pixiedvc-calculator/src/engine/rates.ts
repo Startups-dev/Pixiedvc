@@ -1,14 +1,12 @@
 // src/engine/rates.ts
-export const RATE_BY_CATEGORY = {
-  PREMIUM: 25.0,
-  REGULAR: 23.0,
-  ADVANTAGE: 20.0,
-} as const;
+import { POINT_RATE_BY_TIER } from "./pointRates";
+
+export const RATE_BY_CATEGORY = POINT_RATE_BY_TIER;
 
 export const TIER_DISPLAY_NAMES = {
-  PREMIUM: "Wish Tier",
-  REGULAR: "Dream Tier",
-  ADVANTAGE: "Pixie Tier",
+  PREMIUM: "Premium",
+  REGULAR: "Regular",
+  ADVANTAGE: "Advantage",
 } as const;
 
 export const SERVICE_FEE_PCT = 0; // No additional fee - markup already included in per-point price

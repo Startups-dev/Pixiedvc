@@ -85,18 +85,111 @@ type ResortSummaryRow = {
   photos?: unknown;
 };
 
-const DEFAULT_IMAGE = "/images/castle-hero.png";
-const BAY_LAKE_TOWER_NIGHT_IMAGE = "/images/Bay Lake tower night.png";
+const PLACEHOLDER_IMAGE = "/images/castle-hero.png";
+const PHOTOS_COMING_SOON = "Photos coming soon";
 const RESORT_PHOTO_BUCKET = "resorts";
 const SUPABASE_PUBLIC_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const REACHABILITY_CACHE = new Map<string, boolean>();
+const CANONICAL_RESORT_SLUGS = new Set([
+  "animal-kingdom-jambo",
+  "animal-kingdom-kidani",
+  "aulani",
+  "bay-lake-tower",
+  "beach-club-villas",
+  "boardwalk-villas",
+  "boulder-ridge-villas",
+  "copper-creek-villas",
+  "disneyland-hotel-villas",
+  "grand-californian-villas",
+  "grand-floridian-villas",
+  "hilton-head-island",
+  "old-key-west",
+  "polynesian-villas",
+  "riviera-resort",
+  "saratoga-springs",
+  "vero-beach",
+]);
+const RESORT_SLUG_ALIASES = new Map<string, string>([
+  ["beach-club-villas", "beach-club-villa"],
+  ["boardwalk-villas", "boardwalk"],
+  ["disneyland-hotel-villas", "villas-at-disneyland-hotel"],
+  ["grand-californian-villas", "grand-californian"],
+  ["riviera-resort", "riviera"],
+  ["saratoga-springs", "saratoga-springs-resort"],
+]);
 const PHOTO_FOLDER_OVERRIDES: Record<string, { folder: string; prefix?: string }> = {
   "animal-kingdom-jambo": { folder: "animal-kingdom-lodge", prefix: "AKL" },
-  "animal-kingdom-kidani": { folder: "animal-kingdom-lodge", prefix: "AKL" },
+  "animal-kingdom-kidani": { folder: "Kidani", prefix: "AKV" },
   "animal-kingdom-villas": { folder: "animal-kingdom-lodge", prefix: "AKL" },
   "animal-kingdom-lodge": { folder: "animal-kingdom-lodge", prefix: "AKL" },
+  "bay-lake-tower": { folder: "bay-lake-tower", prefix: "BTC" },
+  "beach-club-villas": { folder: "beach-club-villa", prefix: "BCV" },
+  "grand-floridian-villas": { folder: "grand-floridian-villas", prefix: "GFV" },
+  "aulani": { folder: "Aulani", prefix: "Aul" },
+  "vero-beach": { folder: "vero-beach", prefix: "VBR" },
+  "boardwalk-villas": { folder: "Boardwalk", prefix: "BDW" },
+  "hilton-head-island": { folder: "Hilton-head", prefix: "HH" },
+  "riviera-resort": { folder: "Riviera", prefix: "RR" },
+  "grand-californian-villas": { folder: "grand-californian", prefix: "VGC" },
+  "copper-creek-villas": { folder: "Copper-creek-villas-and-cabins", prefix: "CCV" },
+  "boulder-ridge-villas": { folder: "boulder-ridge-villas", prefix: "BRV" },
+  "saratoga-springs": { folder: "saratoga-springs-resort", prefix: "SSR" },
+  "old-key-west": { folder: "old-key-west", prefix: "OKW" },
+  "polynesian-villas": { folder: "Polynesian-villas-and-bungalows", prefix: "PVB" },
+  "disneyland-hotel-villas": { folder: "villas-at-disneyland-hotel", prefix: "VDH" },
 };
 
 type JsonRecord = Record<string, unknown>;
+
+function normalizeImageUrl(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : null;
+}
+
+async function isReachable(url: string | null | undefined) {
+  if (!url) {
+    return false;
+  }
+  if (url.startsWith("/")) {
+    return true;
+  }
+  if (REACHABILITY_CACHE.has(url)) {
+    return REACHABILITY_CACHE.get(url) ?? false;
+  }
+  try {
+    const response = await fetch(url, { method: "HEAD" });
+    const ok = response.ok;
+    REACHABILITY_CACHE.set(url, ok);
+    return ok;
+  } catch {
+    REACHABILITY_CACHE.set(url, false);
+    return false;
+  }
+}
+
+async function firstReachableUrl(urls: Array<string | null | undefined>) {
+  for (const url of urls) {
+    if (url && (await isReachable(url))) {
+      return url;
+    }
+  }
+  return null;
+}
+
+async function filterReachablePhotos(
+  photos: { src: string; caption: string; alt?: string | null }[],
+) {
+  const keep: { src: string; caption: string; alt?: string | null }[] = [];
+  for (const photo of photos) {
+    if (await isReachable(photo.src)) {
+      keep.push(photo);
+    }
+  }
+  return keep;
+}
 
 function toObjectArray<T extends JsonRecord>(value: unknown): T[] {
   if (!Array.isArray(value)) {
@@ -168,12 +261,15 @@ function buildResortPhotoUrls(slug: string) {
   });
 }
 
-function normalizeResortPhotos(raw: unknown, slug: string) {
+function normalizeResortPhotos(raw: unknown, slug: string, options?: { ignoreOverride?: boolean }) {
   const items = toObjectArray<ResortPhotoRow>(raw);
   const sorted = items.some((item) => typeof item.sort_order === "number")
     ? [...items].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     : items;
-
+  const override = options?.ignoreOverride ? null : PHOTO_FOLDER_OVERRIDES[slug];
+  if (override && !options?.ignoreOverride) {
+    return buildResortPhotoUrls(slug);
+  }
   const mapped = sorted
     .map((photo, index) => {
       const src = photo.src ?? photo.url ?? null;
@@ -188,14 +284,24 @@ function normalizeResortPhotos(raw: unknown, slug: string) {
     })
     .filter((photo): photo is { src: string; caption: string; alt?: string | null } => Boolean(photo));
 
-  if (mapped.length > 0) {
-    return mapped;
-  }
-
-  return buildResortPhotoUrls(slug);
+  return mapped;
 }
 
-function mapResortRow(row: ResortRow | null): Resort | null {
+function canonicalizeResortSlug(slug: string) {
+  for (const [canonical, alias] of RESORT_SLUG_ALIASES.entries()) {
+    if (alias === slug) {
+      return canonical;
+    }
+  }
+  return slug;
+}
+
+function getResortSlugVariants(slug: string) {
+  const alias = RESORT_SLUG_ALIASES.get(slug);
+  return alias ? [slug, alias] : [slug];
+}
+
+async function mapResortRow(row: ResortRow | null): Promise<Resort | null> {
   if (!row) {
     return null;
   }
@@ -207,7 +313,8 @@ function mapResortRow(row: ResortRow | null): Resort | null {
     return [{ title: fact.title, value: fact.value }];
   });
 
-  const photos = normalizeResortPhotos(row.photos, row.slug);
+  const rawPhotos = normalizeResortPhotos(row.photos, row.slug);
+  const photos = await filterReachablePhotos(rawPhotos);
 
   const layout = row.layout ?? {};
   const layoutBullets = toStringArray(layout.bullets);
@@ -217,13 +324,23 @@ function mapResortRow(row: ResortRow | null): Resort | null {
   const noticesArray = toStringArray(row.essentials?.notices);
 
   const heroImage =
-    row.hero_image ??
-    photos[0]?.src ??
-    (row.slug === "bay-lake-tower" ? BAY_LAKE_TOWER_NIGHT_IMAGE : DEFAULT_IMAGE);
+    (await firstReachableUrl([photos[0]?.src, normalizeImageUrl(row.hero_image), normalizeImageUrl(row.card_image)])) ??
+    PLACEHOLDER_IMAGE;
 
   const nearby = toObjectArray<{ name?: string | null; slug?: string | null; tagline?: string | null }>(row.nearby).filter(
     (item): item is { name: string; slug: string; tagline?: string | null } => Boolean(item.name && item.slug),
   );
+
+  const finalPhotos =
+    photos.length > 0
+      ? photos
+      : [
+          {
+            src: PLACEHOLDER_IMAGE,
+            caption: PHOTOS_COMING_SOON,
+            alt: PHOTOS_COMING_SOON,
+          },
+        ];
 
   return {
     slug: row.slug,
@@ -239,7 +356,7 @@ function mapResortRow(row: ResortRow | null): Resort | null {
       notes: layout.notes ?? null,
       image: layout.image ?? null,
     },
-    photos,
+    photos: finalPhotos,
     essentials: {
       transportation: typeof row.essentials?.transportation === "string" ? row.essentials?.transportation : "",
       amenities,
@@ -255,6 +372,8 @@ function mapResortRow(row: ResortRow | null): Resort | null {
 function mapResortSummary(row: ResortSummaryRow): ResortSummary {
   const photos = normalizeResortPhotos(row.photos, row.slug);
   const photoFallback = photos[0]?.src ?? null;
+  const cardImage = normalizeImageUrl(row.card_image);
+  const heroImage = normalizeImageUrl(row.hero_image);
 
   return {
     slug: row.slug,
@@ -262,26 +381,28 @@ function mapResortSummary(row: ResortSummaryRow): ResortSummary {
     location: row.location,
     tags: toTextArray(row.chips),
     pointsRange: row.points_range ?? null,
-    cardImage: row.card_image ?? row.hero_image ?? photoFallback,
-    heroImage: row.hero_image ?? photoFallback,
+    cardImage: photoFallback ?? cardImage ?? heroImage,
+    heroImage: photoFallback ?? heroImage,
   };
 }
 
 export async function getResortBySlug(slug: string): Promise<Resort | null> {
+  const variants = getResortSlugVariants(slug);
   const { data, error } = await supabase
     .from("resort_full")
     .select(
       "slug, name, location, tagline, hero_image, card_image, chips, points_range, facts, layout, layouts, photos, essentials, essentials_sections, map, nearby",
     )
-    .eq("slug", slug)
-    .maybeSingle();
+    .in("slug", variants);
 
   if (error) {
     console.error(`[resort_full] Failed to fetch resort ${slug}`, error);
     return null;
   }
 
-  return mapResortRow(data as ResortRow);
+  const rows = Array.isArray(data) ? data : data ? [data] : [];
+  const exact = rows.find((row) => row.slug === slug);
+  return await mapResortRow((exact ?? rows[0] ?? null) as ResortRow | null);
 }
 
 export async function getAllResortSlugs(): Promise<string[]> {
@@ -292,7 +413,16 @@ export async function getAllResortSlugs(): Promise<string[]> {
     return [];
   }
 
-  return (data ?? []).map((row) => row.slug).filter(Boolean);
+  const normalized = new Set<string>();
+  for (const row of data ?? []) {
+    const slug = row.slug;
+    if (!slug) continue;
+    const canonical = canonicalizeResortSlug(slug);
+    if (CANONICAL_RESORT_SLUGS.has(canonical)) {
+      normalized.add(canonical);
+    }
+  }
+  return Array.from(normalized);
 }
 
 export async function getResortSummaries(): Promise<ResortSummary[]> {
@@ -306,16 +436,86 @@ export async function getResortSummaries(): Promise<ResortSummary[]> {
     return [];
   }
 
-  return (data ?? []).map((row) => mapResortSummary(row as ResortSummaryRow));
+  const filtered = new Map<string, ResortSummaryRow>();
+  for (const row of data ?? []) {
+    const canonical = canonicalizeResortSlug(row.slug);
+    if (!CANONICAL_RESORT_SLUGS.has(canonical)) {
+      continue;
+    }
+    const existing = filtered.get(canonical);
+    if (!existing || row.slug === canonical) {
+      filtered.set(canonical, { ...(row as ResortSummaryRow), slug: canonical });
+    }
+  }
+
+  const entries = Array.from(filtered.values());
+  const slugs = entries.flatMap((row) => getResortSlugVariants(row.slug));
+  const { data: resortPhotos } = await supabase
+    .from("resort_photos")
+    .select("resort_slug, url, sort_order")
+    .in("resort_slug", slugs);
+
+  const photosBySlug = new Map<string, { url: string; sort_order?: number | null }[]>();
+  for (const row of resortPhotos ?? []) {
+    const canonical = canonicalizeResortSlug(row.resort_slug);
+    const list = photosBySlug.get(canonical) ?? [];
+    list.push({ url: row.url, sort_order: row.sort_order });
+    photosBySlug.set(canonical, list);
+  }
+
+  const summaries = await Promise.all(
+    entries.map(async (row) => {
+      const override = PHOTO_FOLDER_OVERRIDES[row.slug];
+      let listImage: string | null = null;
+
+      if (override) {
+        const overrideUrls = buildResortPhotoUrls(row.slug).map((photo) => photo.src);
+        listImage = await firstReachableUrl(overrideUrls);
+      }
+
+      if (!listImage) {
+        const resortRows = photosBySlug.get(row.slug) ?? [];
+        const sorted = resortRows.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        listImage = await firstReachableUrl(sorted.map((item) => item.url));
+      }
+
+      if (!listImage) {
+        listImage = await firstReachableUrl([normalizeImageUrl(row.card_image), normalizeImageUrl(row.hero_image)]);
+      }
+
+      const safeImage = listImage ?? PLACEHOLDER_IMAGE;
+      const summary = mapResortSummary(row as ResortSummaryRow);
+      return {
+        ...summary,
+        cardImage: safeImage,
+        heroImage: safeImage,
+      };
+    }),
+  );
+
+  return summaries;
 }
 
 export async function getResortPhotos(
   slug: string,
 ): Promise<Array<{ src: string; alt?: string; caption?: string }>> {
+  const overridePhotos = buildResortPhotoUrls(slug).map((photo) => ({
+    src: photo.src,
+    alt: photo.alt ?? photo.caption ?? "Resort image",
+    caption: photo.caption ?? undefined,
+  }));
+  const overrideReachable = await filterReachablePhotos(
+    overridePhotos as { src: string; caption: string; alt?: string | null }[],
+  );
+  if (overrideReachable.length > 0) {
+    return overrideReachable;
+  }
+
+  const slugVariants = getResortSlugVariants(slug);
   const { data, error } = await supabase
     .from("resort_photos")
     .select("url, alt, caption, sort_order")
-    .eq("resort_slug", slug)
+    .in("resort_slug", slugVariants)
     .order("sort_order", { ascending: true });
 
   if (error) {
@@ -329,13 +529,28 @@ export async function getResortPhotos(
     caption: photo.caption ?? undefined,
   }));
 
-  if (mapped.length > 0) {
-    return mapped;
+  const reachable = await filterReachablePhotos(mapped as { src: string; caption: string; alt?: string | null }[]);
+  if (reachable.length > 0) {
+    return reachable;
   }
 
-  return buildResortPhotoUrls(slug).map((photo) => ({
-    src: photo.src,
-    alt: photo.alt ?? photo.caption ?? "Resort image",
-    caption: photo.caption ?? undefined,
-  }));
+  const { data: resortRow } = await supabase
+    .from("resort_full")
+    .select("photos")
+    .in("slug", slugVariants)
+    .maybeSingle();
+
+  const fallbackPhotos = normalizeResortPhotos(resortRow?.photos, slug, { ignoreOverride: true });
+  const fallbackReachable = await filterReachablePhotos(fallbackPhotos);
+  if (fallbackReachable.length > 0) {
+    return fallbackReachable;
+  }
+
+  return [
+    {
+      src: PLACEHOLDER_IMAGE,
+      alt: PHOTOS_COMING_SOON,
+      caption: PHOTOS_COMING_SOON,
+    },
+  ];
 }

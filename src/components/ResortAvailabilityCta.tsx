@@ -5,6 +5,7 @@ import { ChevronRight } from "lucide-react";
 
 import { useReferral } from "@/hooks/useReferral";
 import { appendRefToUrl } from "@/lib/referral";
+import PrimaryCtaLink from "@/components/ui/PrimaryCtaLink";
 
 type Props = {
   slug: string;
@@ -34,13 +35,10 @@ export default function ResortAvailabilityCta({ slug, name }: Props) {
             </p>
           </div>
           <div data-cta-button className="mt-5 md:mt-0 md:justify-self-end md:pl-6">
-            <Link
-              href={href}
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 text-sm font-semibold text-white backdrop-blur-md transition hover:border-white/30 hover:bg-white/16"
-            >
+            <PrimaryCtaLink href={href}>
               Check availability
               <ChevronRight className="h-4 w-4" />
-            </Link>
+            </PrimaryCtaLink>
           </div>
         </div>
       </div>

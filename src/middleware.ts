@@ -8,6 +8,7 @@ const PUBLIC_PATHS = [
   /^\/login/,
   /^\/register/,
   /^\/onboarding/,
+  /^\/auth\/callback/,
   /^\/api\/public/,
   /^\/_next/,
   /^\/favicon\.ico$/,
@@ -41,6 +42,10 @@ export async function middleware(req: NextRequest) {
       url.pathname = '/';
       return NextResponse.redirect(url);
     }
+  }
+
+  if (url.pathname.startsWith('/affiliate')) {
+    return res;
   }
 
   let onboardingComplete = user.user_metadata?.onboarding_completed === true;

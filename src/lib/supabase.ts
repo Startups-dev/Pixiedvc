@@ -1,9 +1,4 @@
-import { createClientComponentClient, createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import type { RequestCookies } from 'next/dist/compiled/@edge-runtime/cookies';
+// src/lib/supabase.ts
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export const createClient = () => createClientComponentClient();
-
-export const createServer = (cookieStore: RequestCookies) =>
-  createServerComponentClient({
-    cookies: () => cookieStore,
-  });

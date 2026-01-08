@@ -2,6 +2,92 @@
 
 :root {
   color-scheme: light;
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 221 70% 18%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 215 20.2% 65.1%;
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 222.2 84% 4.9%;
+  --sidebar-primary: 221 82% 54%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 210 40% 96.1%;
+  --sidebar-accent-foreground: 222.2 47.4% 11.2%;
+  --sidebar-border: 214.3 31.8% 91.4%;
+  --sidebar-ring: 215 20.2% 65.1%;
+}
+
+.pixie-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #1a2c57 #0f2148;
+}
+
+.pixie-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  background-color: #0f2148;
+}
+
+.pixie-scrollbar::-webkit-scrollbar-track {
+  background-color: #0f2148 !important;
+}
+
+.pixie-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #1a2c57 !important;
+  border-radius: 999px;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 210 40% 98%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 212.7 26.8% 83.9%;
+  --sidebar-background: 222.2 84% 4.9%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-primary: 210 40% 98%;
+  --sidebar-primary-foreground: 222.2 47.4% 11.2%;
+  --sidebar-accent: 217.2 32.6% 17.5%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-border: 217.2 32.6% 17.5%;
+  --sidebar-ring: 212.7 26.8% 83.9%;
 }
 
 @theme inline {
@@ -14,18 +100,42 @@
   --color-ink: #1f2937;
   --color-muted: #6b7280;
   --color-deep: #0b0e1a;
-  --font-display: var(--font-playfair);
-  --font-cinematic: var(--font-dm-serif);
-  --font-sans: var(--font-dm-sans);
+  --text-strong: #0f2148;
+  --text-body: rgba(15, 33, 72, 0.86);
+  --text-muted: rgba(15, 33, 72, 0.7);
+  --text-faint: rgba(15, 33, 72, 0.58);
+  --font-display: var(--font-inter);
+  --font-cinematic: var(--font-inter);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
   margin: 0;
   background-color: var(--color-surface);
-  color: var(--color-ink);
+  color: var(--text-body);
   font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 500;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+strong,
+b {
+  color: var(--text-strong);
+  font-weight: 600;
 }
 
 ::selection {
@@ -39,7 +149,7 @@ a {
 }
 
 .font-cinematic {
-  font-family: var(--font-cinematic), var(--font-display), serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
   letter-spacing: -0.02em;
 }
 
@@ -271,7 +381,7 @@ a {
 }
 
 .headline-accent {
-  font-family: var(--font-playfair), serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
   font-style: italic;
 }
 
@@ -290,7 +400,37 @@ a {
 }
 
 .font-dm-sans {
-  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+.font-display,
+.font-serif {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+h1.font-display,
+h2.font-display,
+h3.font-display,
+h1.font-serif,
+h2.font-serif,
+h3.font-serif {
+  font-size: 0.92em;
+}
+
+.text-strong {
+  color: var(--text-strong);
+}
+
+.text-body {
+  color: var(--text-body);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-faint {
+  color: var(--text-faint);
 }
 
 @keyframes castle-parallax {
@@ -359,6 +499,13 @@ a {
   filter:
     drop-shadow(0 5px 16px rgba(0, 0, 0, 0.14))
     drop-shadow(0 0 22px rgba(246, 198, 77, 0.32));
+}
+
+@media (max-width: 640px) {
+  .logo-overlay {
+    margin-bottom: -18px;
+    transform: translateY(0);
+  }
 }
 
 .logo-sparkle {

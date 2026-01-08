@@ -1,7 +1,7 @@
 import Link from "next/link";
+import ReferralLink from "@/components/referral/ReferralLink";
 
 import { Button, Card, SectionHeader } from "@pixiedvc/design-system";
-import { SiteHeader } from "@/components/site-header";
 
 const reasons = [
   {
@@ -21,7 +21,6 @@ const reasons = [
 export default function GuestsPage() {
   return (
     <div className="min-h-screen bg-surface text-ink">
-      <SiteHeader variant="solid" />
       <div className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0 -z-10 opacity-70">
           <div className="absolute left-[35%] top-[-12%] h-[360px] w-[360px] rounded-full bg-brand/20 blur-3xl" />
@@ -43,7 +42,7 @@ export default function GuestsPage() {
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button asChild>
-                  <Link href="/trip-builder">Launch the Trip Builder</Link>
+                  <ReferralLink href="/calculator">Launch the Trip Builder</ReferralLink>
                 </Button>
                 <Button asChild variant="ghost">
                   <Link href="/info/guests/rental-process">See How Rentals Work</Link>
@@ -60,7 +59,7 @@ export default function GuestsPage() {
                 </p>
               </div>
               <Button asChild variant="secondary">
-                <Link href="/booking/start">Start a Reservation</Link>
+                <ReferralLink href="/plan">Start a Reservation</ReferralLink>
               </Button>
               <p className="text-xs uppercase tracking-[0.2em] text-muted">
                 Deposits stay refundable until we match you.

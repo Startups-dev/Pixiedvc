@@ -1,12 +1,25 @@
 // src/ui/DvcCalculator.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import { Resorts } from "../engine/charts.js";
-import { quoteStay } from "../engine/calc.js";
-import type { RoomCode, ViewCode } from "../engine/types.js";
-import { ResultsTable } from "./ResultsTable.js";
+import { Resorts } from "../engine/charts";
+import { quoteStay } from "../engine/calc";
+import type { RoomCode, ViewCode } from "../engine/types";
+import { ResultsTable } from "./ResultsTable";
 import { BuildingOffice2Icon, CalendarDaysIcon, HomeIcon, SparklesIcon, BanknotesIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 
 export function DvcCalculator() {
+  const RESORT_SLUG_TO_CODE: Record<string, string> = {
+    "animal-kingdom-villas": "AKV",
+    "aulani": "AUL",
+    "bay-lake-tower": "BLT",
+    "beach-club-villas": "BCV",
+    "boardwalk-villas": "BWV",
+    "grand-floridian-villas": "VGF",
+    "old-key-west": "OKW",
+    "polynesian-villas": "PVB",
+    "riviera-resort": "RVA",
+    "saratoga-springs": "SSR",
+  };
+
   const [mode, setMode] = useState<"single" | "compare">("single");
 
   // shared inputs
@@ -19,24 +32,94 @@ export function DvcCalculator() {
   const [room, setRoom] = useState<RoomCode>(meta.roomTypes[0]);
   const roomViews = meta.viewsByRoom[room] ?? [];
   const [view, setView] = useState<ViewCode>((roomViews[0] || "S") as ViewCode);
+  const [prefillRoom, setPrefillRoom] = useState<RoomCode | null>(null);
+  const [prefillView, setPrefillView] = useState<ViewCode | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const resortParam = params.get("resort")?.toLowerCase().trim();
+    const checkInParam = params.get("checkIn")?.trim();
+    const nightsParam = params.get("nights")?.trim();
+    const roomParam = params.get("room")?.trim() as RoomCode | null;
+    const viewParam = params.get("view")?.trim() as ViewCode | null;
+
+    if (checkInParam) {
+      setCheckIn(checkInParam);
+    }
+    if (nightsParam) {
+      const nightsValue = Number.parseInt(nightsParam, 10);
+      if (Number.isFinite(nightsValue) && nightsValue > 0) {
+        setNights(nightsValue);
+      }
+    }
+    if (roomParam) {
+      setPrefillRoom(roomParam);
+    }
+    if (viewParam) {
+      setPrefillView(viewParam);
+    }
+
+    if (resortParam) {
+      const codeMatch = Resorts.find((res) => res.code.toLowerCase() === resortParam);
+      if (codeMatch) {
+        setResort(codeMatch.code);
+        return;
+      }
+
+      const slugMatch = RESORT_SLUG_TO_CODE[resortParam];
+      if (slugMatch) {
+        setResort(slugMatch);
+        return;
+      }
+
+      const slugified = (value: string) =>
+        value
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "");
+
+      const nameMatch = Resorts.find((res) => slugified(res.name) === resortParam);
+      if (nameMatch) {
+        setResort(nameMatch.code);
+      }
+    }
+  }, []);
 
   // Reset room and view when resort changes
   useEffect(() => {
-    const firstRoom = meta.roomTypes[0];
-    setRoom(firstRoom);
-    const firstView = (meta.viewsByRoom[firstRoom]?.[0] || "S") as ViewCode;
-    setView(firstView);
-  }, [resort, meta]);
+    const fallbackRoom = meta.roomTypes[0];
+    const nextRoom =
+      prefillRoom && meta.roomTypes.includes(prefillRoom) ? prefillRoom : fallbackRoom;
+    setRoom(nextRoom);
+
+    const viewsForRoom = meta.viewsByRoom[nextRoom] ?? [];
+    const fallbackView = (viewsForRoom[0] || "S") as ViewCode;
+    const nextView =
+      prefillView && viewsForRoom.includes(prefillView) ? prefillView : fallbackView;
+    setView(nextView);
+
+    if (prefillRoom) {
+      setPrefillRoom(null);
+    }
+    if (prefillView) {
+      setPrefillView(null);
+    }
+  }, [resort, meta, prefillRoom, prefillView]);
 
   // Reset view when room changes
   useEffect(() => {
+    if (prefillView) return;
     const firstView = (meta.viewsByRoom[room]?.[0] || "S") as ViewCode;
     setView(firstView);
-  }, [room, meta]);
+  }, [room, meta, prefillView]);
 
   const [loading, setLoading] = useState(false);
   const [res, setRes] = useState<any>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [diningInterested, setDiningInterested] = useState(false);
+  const [diningPlan, setDiningPlan] = useState<"quick" | "standard">("quick");
+  const [diningAdults, setDiningAdults] = useState(2);
+  const [diningChildren, setDiningChildren] = useState(0);
 
   function runSingle() {
     setLoading(true); setErr(null); setRes(null);
@@ -130,6 +213,9 @@ export function DvcCalculator() {
           <button onClick={() => setMode("compare")} className={`px-3 py-1 rounded ${mode === "compare" ? "bg-indigo-600 text-white" : "bg-slate-100"}`}>Compare</button>
         </div>
       </div>
+      <div className="mt-2 text-sm text-slate-600">
+        Estimates do not reflect live availability. Our concierge team confirms availability before any booking.
+      </div>
 
       {/* Shared inputs */}
       <div className="grid md:grid-cols-4 gap-3 mt-4">
@@ -176,7 +262,117 @@ export function DvcCalculator() {
             <>
               <div className="mt-6 grid md:grid-cols-2 gap-3">
                 <Stat label="Total Points" value={res.totalPoints} />
-                <Stat label={`${res.pricingTier} @ $${res.pppUSD}/pt`} value={`$${res.totalUSD.toLocaleString()}`} />
+                <Stat
+                  label={`${res.pricingTier} @ ${formatPointRate(res.pppUSD)}/pt`}
+                  value={formatCurrency(res.totalUSD)}
+                />
+              </div>
+
+              <div className="mt-6 rounded-2xl border bg-white p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Dining Plan (Optional)</div>
+                    <div className="text-sm text-slate-600">
+                      Would you be interested in adding a dining plan to your reservation?
+                    </div>
+                  </div>
+                  <a href="/dining-plan" className="text-sm text-slate-600 hover:underline">
+                    What is the Dining Plan?
+                  </a>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDiningInterested(false)}
+                    className={`px-3 py-1 rounded border text-sm ${
+                      diningInterested ? "border-slate-200 text-slate-500" : "border-slate-800 text-slate-800"
+                    }`}
+                  >
+                    No, not interested
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDiningInterested(true)}
+                    className={`px-3 py-1 rounded border text-sm ${
+                      diningInterested ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-200 text-slate-500"
+                    }`}
+                  >
+                    Yes, show dining plan options
+                  </button>
+                </div>
+
+                {diningInterested && (
+                  <div className="mt-4 grid gap-3 md:grid-cols-4">
+                    <div className="md:col-span-2">
+                      <label className="text-sm font-medium">Plan</label>
+                      <select
+                        className="w-full border rounded p-2 mt-1"
+                        value={diningPlan}
+                        onChange={(e) => setDiningPlan(e.target.value as "quick" | "standard")}
+                      >
+                        <option value="quick">Quick-Service Dining Plan</option>
+                        <option value="standard">Disney Dining Plan (includes table service)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Adults (10+)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        className="w-full border rounded p-2 mt-1"
+                        value={diningAdults}
+                        onChange={(e) => setDiningAdults(Math.max(0, Number(e.target.value)))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Children (3–9)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        className="w-full border rounded p-2 mt-1"
+                        value={diningChildren}
+                        onChange={(e) => setDiningChildren(Math.max(0, Number(e.target.value)))}
+                      />
+                    </div>
+                    <div className="md:col-span-4 text-sm text-slate-600">
+                      <div>
+                        Estimated dining plan cost:{" "}
+                        <span className="font-semibold text-slate-900">
+                          {formatCurrency(
+                            nights *
+                              (diningPlan === "quick"
+                                ? diningAdults * 57.01 + diningChildren * 23.83
+                                : diningAdults * 94.28 + diningChildren * 29.69),
+                          )}
+                        </span>{" "}
+                        <span className="text-xs text-slate-500">(to be confirmed)</span>
+                      </div>
+                      <div className="mt-1">
+                        Estimated stay total:{" "}
+                        <span className="font-semibold text-slate-900">
+                          {formatCurrency(res.totalUSD)}
+                        </span>
+                      </div>
+                      <div className="mt-1">
+                        Estimated stay + dining total:{" "}
+                        <span className="font-semibold text-slate-900">
+                          {formatCurrency(
+                            res.totalUSD +
+                              nights *
+                                (diningPlan === "quick"
+                                  ? diningAdults * 57.01 + diningChildren * 23.83
+                                  : diningAdults * 94.28 + diningChildren * 29.69),
+                          )}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-500 mt-2">
+                        Dining Plans are added after your reservation is secured; final pricing is set by Disney and may
+                        change.
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Floating Summary Card */}
@@ -227,7 +423,24 @@ export function DvcCalculator() {
                     <BanknotesIcon className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
                       <div className="font-semibold text-gray-700">Cost</div>
-                      <div className="text-gray-900">{res.totalPoints} points × ${res.pppUSD} = <span className="font-bold text-indigo-600 text-lg">${res.totalUSD.toLocaleString()}</span></div>
+                      <div className="text-gray-900">
+                        {res.totalPoints} points × {formatPointRate(res.pppUSD)} ={" "}
+                        <span className="font-bold text-indigo-600 text-lg">{formatCurrency(res.totalUSD)}</span>
+                      </div>
+                      {diningInterested ? (
+                        <div className="mt-1 text-sm text-gray-600">
+                          Stay + dining estimate (to be confirmed):{" "}
+                          <span className="font-semibold text-gray-900">
+                            {formatCurrency(
+                              res.totalUSD +
+                                nights *
+                                  (diningPlan === "quick"
+                                    ? diningAdults * 57.01 + diningChildren * 23.83
+                                    : diningAdults * 94.28 + diningChildren * 29.69),
+                            )}
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -283,6 +496,23 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
       <div className="text-xl font-bold">{value}</div>
     </div>
   );
+}
+
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function formatPointRate(amount: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
 }
 
 function label(room: string) {

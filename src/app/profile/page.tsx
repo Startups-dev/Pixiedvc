@@ -4,11 +4,11 @@ import { redirect } from "next/navigation";
 
 import DisplayNameForm from "@/components/profile/display-name-form";
 import ContactForm from "@/components/profile/contact-form";
-import { createServer } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export default async function ProfilePage() {
   const cookieStore = await cookies();
-  const supabase = createServer(cookieStore);
+  const supabase = createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -73,6 +73,10 @@ export default async function ProfilePage() {
           <div>
             <dt className="text-xs uppercase tracking-[0.2em] text-slate-500">Role</dt>
             <dd className="text-base font-medium text-slate-900">{roleLabel}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-[0.2em] text-slate-500">Email</dt>
+            <dd className="text-base font-medium text-slate-900">{user.email ?? "—"}</dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-[0.2em] text-slate-500">Onboarding status</dt>

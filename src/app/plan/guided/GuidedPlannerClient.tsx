@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import ReferralLink from "@/components/referral/ReferralLink";
 import { useMemo, useState } from "react";
 
 import { Button, Card, SectionHeader } from "@pixiedvc/design-system";
@@ -362,9 +363,9 @@ export default function GuidedPlannerClient() {
             <Button variant="ghost" onClick={() => setStep(3)}>
               Back
             </Button>
-            <Link href="/plan" className="text-sm font-semibold text-brand hover:text-brand/80">
+            <ReferralLink href="/plan" className="text-sm font-semibold text-brand hover:text-brand/80">
               Start over
-            </Link>
+            </ReferralLink>
           </div>
         </Card>
       ) : null}

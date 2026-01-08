@@ -8,6 +8,9 @@ import Header from "@/components/header";
 import SiteFooterClient from "@/components/layout/SiteFooterClient";
 import AffiliateTracker from "@/components/affiliate/AffiliateTracker";
 import ReferralCapture from "@/components/referral/ReferralCapture";
+import IntercomProvider from "@/components/chat/IntercomProvider";
+import RecoveryRedirect from "@/components/auth/RecoveryRedirect";
+import SupportWidget from "@/components/support/SupportWidget";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -55,6 +58,9 @@ export default function RootLayout({
         </div>
         <AffiliateTracker />
         <ReferralCapture />
+        <IntercomProvider />
+        <RecoveryRedirect />
+        <SupportWidget />
       </body>
     </html>
   );

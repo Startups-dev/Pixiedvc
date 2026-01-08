@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   }
 
   const cookieStore = await cookies();
-  const supabase = createServer(cookieStore);
+  const supabase = createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

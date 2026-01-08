@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import QuickFacts from "@/components/resort/QuickFacts";
-import RoomLayout from "@/components/resort/RoomLayout";
 import ResortEssentials from "@/components/resort/ResortEssentials";
 import StickyCTA from "@/components/resort/StickyCTA";
 import ResortCarouselClient from "@/components/ResortCarouselClient";
@@ -12,8 +11,11 @@ import ResortSectionNav from "@/components/ResortSectionNav";
 import ResortSections from "@/components/ResortSections";
 import ResortHero from "@/components/resort/ResortHero";
 import ResortChip from "@/components/resort/ResortChip";
+import ResortRoomLayouts from "@/components/resorts/ResortRoomLayouts";
+import ContextualGuides from "@/components/guides/ContextualGuides";
 import { getAllResortSlugs, getResortBySlug, getResortPhotos } from "@/lib/resorts";
 import { getHighlightsForResort, getResortSections } from "@/lib/resort-sections";
+import { resolveCalculatorCode } from "@/lib/resort-calculator";
 
 import type { Resort } from "@/lib/resorts";
 
@@ -24,6 +26,10 @@ export const dynamicParams = true;
 type Props = {
   params: {
     slug: string;
+  };
+  searchParams?: {
+    from?: string;
+    selected?: string;
   };
 };
 
@@ -64,8 +70,8 @@ export default async function ResortPage({ params }: Props) {
 
   const photos = await getResortPhotos(slug);
   const sections = getResortSections(slug);
-
   const resortData = resort;
+  const resortCode = resolveCalculatorCode({ slug: resortData.slug });
   const highlightChips = getHighlightsForResort({
     slug,
     location: resortData.location,
@@ -75,6 +81,27 @@ export default async function ResortPage({ params }: Props) {
 
   return (
     <main className="bg-white text-[#0F2148]">
+      <section className="mx-auto max-w-6xl px-6 pb-4 pt-6 font-sans">
+        <div className="space-y-2">
+          <Link
+            href="/plan/resorts"
+            className="text-sm font-medium text-[#0F2148]/70 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F2148]/30"
+          >
+            ← Back to resort selection
+          </Link>
+          <div className="text-xs text-[#0F2148]/60">
+            <Link href="/plan" className="hover:underline">
+              Plan your stay
+            </Link>
+            <span className="px-2">→</span>
+            <Link href="/plan/resorts" className="hover:underline">
+              Resorts
+            </Link>
+            <span className="px-2">→</span>
+            <span className="text-[#0F2148]/80">{resortData.name}</span>
+          </div>
+        </div>
+      </section>
       {photos.length > 0 ? (
         <ResortCarouselClient photos={photos} />
       ) : (
@@ -93,10 +120,10 @@ export default async function ResortPage({ params }: Props) {
         />
       ) : null}
 
+      <ResortRoomLayouts resortCode={resortCode} />
+
       <QuickFacts id="availability" facts={resortData.facts} />
       <ResortAvailabilityCta slug={resortData.slug} name={resortData.name} />
-
-      <RoomLayout id="layout" layout={resortData.layout} />
 
       <ResortSectionNav sections={sections} />
       <ResortSections slug={slug} sections={sections} />
@@ -105,8 +132,25 @@ export default async function ResortPage({ params }: Props) {
 
       <MapSection resort={resortData} />
       <CompareSection currentResort={resortData} />
+      <section className="mx-auto max-w-6xl px-6">
+        <ContextualGuides
+          title="Helpful Guides"
+          description="Quick reads to help you plan around this resort."
+          tags={[slug, "resorts"]}
+          limit={3}
+        />
+      </section>
 
-      <StickyCTA resortName={resortData.name} />
+      <section className="mx-auto max-w-6xl px-6 pb-8 font-sans">
+        <Link
+          href="/plan/resorts"
+          className="inline-flex items-center text-sm font-medium text-[#0F2148]/70 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F2148]/30"
+        >
+          Still deciding? ← Back to resort selection
+        </Link>
+      </section>
+
+      <StickyCTA resortName={resortData.name} resortSlug={resortData.slug} />
     </main>
   );
 }

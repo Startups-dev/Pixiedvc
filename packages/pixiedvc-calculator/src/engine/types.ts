@@ -64,5 +64,5 @@ export type QuoteResult = {
   baseUSD: number;
   feeUSD: number;
   totalUSD: number;
-  pricingTier: string; // Display name like "Wish Tier" or "Dream Tier"
+  pricingTier: string; // Display name like "Premium" or "Regular"
 };

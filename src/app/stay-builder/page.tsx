@@ -12,11 +12,12 @@ type GuestRow = {
   email: string | null;
   phone: string | null;
   age_category: 'adult' | 'youth' | null;
+  age: number | null;
 };
 
 export default async function StayBuilderPage() {
   const cookieStore = await cookies();
-  const supabase = createServer(cookieStore);
+  const supabase = createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -56,7 +57,7 @@ export default async function StayBuilderPage() {
   const { data: guestRows } = draft
     ? await supabase
         .from('booking_request_guests')
-        .select('id, title, first_name, last_name, email, phone, age_category')
+        .select('id, title, first_name, last_name, email, phone, age_category, age')
         .eq('booking_id', draft.id)
         .order('created_at', { ascending: true })
     : { data: [] };

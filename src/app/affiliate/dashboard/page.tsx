@@ -3,14 +3,13 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 import { Button, Card } from "@pixiedvc/design-system";
-import { createServer } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import {
-  buildSixMonthPayoutSeries,
-  getAffiliateDashboardMetrics,
   getAffiliateForUser,
-  getAffiliatePayouts,
-  getAffiliateRecentConversions,
+  getAffiliatePayoutHistory,
+  getAffiliatePayoutSummary,
 } from "@/lib/affiliates";
+import AffiliatePayoutEmailForm from "@/components/affiliate/PayoutEmailForm";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(value);
@@ -18,7 +17,7 @@ function formatCurrency(value: number) {
 
 export default async function AffiliateDashboardPage() {
   const cookieStore = await cookies();
-  const supabase = createServer(cookieStore);
+  const supabase = createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -45,14 +44,10 @@ export default async function AffiliateDashboardPage() {
     );
   }
 
-  const [metrics, conversions, payouts] = await Promise.all([
-    getAffiliateDashboardMetrics(affiliate.id),
-    getAffiliateRecentConversions(affiliate.id),
-    getAffiliatePayouts(affiliate.id),
+  const [summary, payouts] = await Promise.all([
+    getAffiliatePayoutSummary(affiliate.id),
+    getAffiliatePayoutHistory(affiliate.id),
   ]);
-
-  const payoutSeries = buildSixMonthPayoutSeries(payouts);
-  const maxPayout = Math.max(1, ...payoutSeries.map((entry) => entry.total));
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "";
   const referralLink = baseUrl ? `${baseUrl}/?ref=${affiliate.slug}` : `/?ref=${affiliate.slug}`;
 
@@ -77,123 +72,76 @@ export default async function AffiliateDashboardPage() {
         </div>
       </header>
 
-      <section className="grid gap-6 md:grid-cols-4">
+      <section className="grid gap-6 md:grid-cols-3">
         <Card>
-          <p className="text-xs uppercase tracking-[0.3em] text-muted">Tracked clicks</p>
-          <p className="mt-3 text-3xl font-semibold text-ink">{metrics.clicks}</p>
-          <p className="text-xs text-muted">Last 30 days</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-muted">Pending owed</p>
+          <p className="mt-3 text-3xl font-semibold text-ink">{formatCurrency(summary.pendingOwed)}</p>
+          <p className="text-xs text-muted">Scheduled, unpaid commissions</p>
         </Card>
         <Card>
-          <p className="text-xs uppercase tracking-[0.3em] text-muted">Leads</p>
-          <p className="mt-3 text-3xl font-semibold text-ink">{metrics.leads}</p>
-          <p className="text-xs text-muted">Submitted requests</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-muted">Last paid</p>
+          <p className="mt-3 text-3xl font-semibold text-ink">{formatCurrency(summary.lastPaidAmount)}</p>
+          <p className="text-xs text-muted">
+            {summary.lastPaidAt ? `Paid ${new Date(summary.lastPaidAt).toLocaleDateString()}` : "No payouts yet"}
+          </p>
         </Card>
         <Card>
-          <p className="text-xs uppercase tracking-[0.3em] text-muted">Conversions</p>
-          <p className="mt-3 text-3xl font-semibold text-ink">{metrics.conversions}</p>
-          <p className="text-xs text-muted">Confirmed bookings</p>
-        </Card>
-        <Card>
-          <p className="text-xs uppercase tracking-[0.3em] text-muted">Pending earnings</p>
-          <p className="mt-3 text-3xl font-semibold text-ink">{formatCurrency(metrics.pendingEarnings)}</p>
-          <p className="text-xs text-muted">Awaiting approval</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-muted">Payout cadence</p>
+          <p className="mt-3 text-xl font-semibold text-ink">Manual, monthly</p>
+          <p className="text-xs text-muted">We review and send payouts manually.</p>
         </Card>
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <Card className="space-y-6">
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.3em] text-muted">Payouts</p>
-            <h2 className="font-display text-2xl text-ink">Last six months</h2>
-          </div>
-          <div className="flex items-end gap-4">
-            {payoutSeries.map((entry) => (
-              <div key={entry.label} className="flex flex-1 flex-col items-center gap-2">
-                <div className="w-full rounded-full bg-slate-100">
-                  <div
-                    className="rounded-full bg-brand"
-                    style={{ height: `${Math.max(12, (entry.total / maxPayout) * 120)}px` }}
-                    aria-hidden
-                  />
-                </div>
-                <span className="text-xs uppercase tracking-[0.2em] text-muted">{entry.label}</span>
-              </div>
-            ))}
-          </div>
+        <Card className="space-y-4">
+          <p className="text-xs uppercase tracking-[0.3em] text-muted">Payout email</p>
+          <AffiliatePayoutEmailForm initialEmail={affiliate.payoutEmail} />
+          <p className="text-xs text-muted">We send PayPal/Wise payouts to this address.</p>
         </Card>
 
         <Card className="space-y-4">
-          <p className="text-xs uppercase tracking-[0.3em] text-muted">Earnings</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-muted">Commission tier</p>
           <div className="space-y-2 text-sm text-muted">
             <div className="flex items-center justify-between">
-              <span>Approved</span>
-              <span className="font-semibold text-ink">{formatCurrency(metrics.approvedEarnings)}</span>
+              <span>Rate</span>
+              <span className="font-semibold text-ink">{(affiliate.commissionRate * 100).toFixed(0)}%</span>
             </div>
             <div className="flex items-center justify-between">
-              <span>Paid</span>
-              <span className="font-semibold text-ink">{formatCurrency(metrics.paidEarnings)}</span>
+              <span>Status</span>
+              <span className="font-semibold text-ink">{affiliate.status}</span>
             </div>
             <div className="mt-2 rounded-2xl bg-slate-50 p-4 text-xs text-slate-500">
-              Commission tier: {(affiliate.commissionRate * 100).toFixed(0)}% · Status: {affiliate.status}
+              Payouts are processed manually on a monthly schedule.
             </div>
           </div>
         </Card>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <Card className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-muted">Recent conversions</p>
-              <h2 className="font-display text-2xl text-ink">Latest bookings</h2>
-            </div>
-            <span className="text-xs uppercase tracking-[0.2em] text-muted">No guest PII</span>
-          </div>
-          <div className="space-y-3 text-sm text-slate-600">
-            {conversions.length === 0 ? (
-              <p>No confirmed bookings yet.</p>
-            ) : (
-              conversions.map((conversion) => (
-                <div key={conversion.id} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-100 p-3">
-                  <div className="space-y-1">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                      {conversion.confirmed_at ? new Date(conversion.confirmed_at).toLocaleDateString() : "Pending"}
-                    </p>
-                    <p className="font-semibold text-ink">
-                      {conversion.booking_amount_usd ? formatCurrency(conversion.booking_amount_usd) : "Booking total pending"}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      Commission {Math.round(conversion.commission_rate * 100)}%
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
-                    {conversion.status}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </Card>
-
+      <section className="grid gap-6">
         <Card className="space-y-4">
           <p className="text-xs uppercase tracking-[0.3em] text-muted">Payout history</p>
           {payouts.length === 0 ? (
             <p className="text-sm text-muted">No payouts yet.</p>
           ) : (
             <div className="space-y-3 text-sm text-slate-600">
-              {payouts.map((payout) => (
-                <div key={payout.id} className="rounded-2xl border border-slate-100 p-3">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                    {new Date(payout.period_start).toLocaleDateString()} – {new Date(payout.period_end).toLocaleDateString()}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-ink">{formatCurrency(Number(payout.total_amount_usd ?? 0))}</span>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
-                      {payout.status}
-                    </span>
+              {payouts.map((payout) => {
+                const run = payout.payout_run;
+                const periodLabel = run
+                  ? `${new Date(run.period_start).toLocaleDateString()} – ${new Date(run.period_end).toLocaleDateString()}`
+                  : new Date(payout.created_at).toLocaleDateString();
+
+                return (
+                  <div key={payout.id} className="rounded-2xl border border-slate-100 p-3">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{periodLabel}</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-semibold text-ink">{formatCurrency(Number(payout.amount_usd ?? 0))}</span>
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+                        {payout.status}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Card>

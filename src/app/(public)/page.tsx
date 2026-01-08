@@ -3,27 +3,29 @@ import Link from "next/link";
 import { Sparkles } from "lucide-react";
 
 import { Hero } from "@/components/hero";
+import ContextualGuides from "@/components/guides/ContextualGuides";
+import { STORIES } from "@/content/stories";
 
 const resortShowcase = [
   {
     name: "Bay Lake Tower",
     location: "Magic Kingdom Skyline",
     vibe: "Firework-view villas with monorail at your doorstep.",
-    points: "18-32 pts/night",
+    points: "18–32 nightly",
     slug: "bay-lake-tower",
   },
   {
     name: "Aulani",
     location: "Ko Olina, Hawai'i",
     vibe: "Island storytelling, lazy rivers, and oceanfront aloha.",
-    points: "22-40 pts/night",
+    points: "22–40 nightly",
     slug: "aulani",
   },
   {
     name: "Grand Floridian",
     location: "Victorian Splendor",
     vibe: "Five-star charm with spa rituals and pianist serenades.",
-    points: "24-38 pts/night",
+    points: "24–38 nightly",
     slug: "grand-floridian-villas",
   },
 ];
@@ -31,7 +33,7 @@ const resortShowcase = [
 const testimonials = [
   {
     quote:
-      "PixieDVC turned our wish list into a dream itinerary in minutes. The trip builder even rescued a few stray points!",
+      "PixieDVC turned our wish list into a dream itinerary in minutes. The trip builder even saved us a few surprises.",
     name: "Elena & Marco",
     role: "Founders | Park Hoppers",
   },
@@ -46,7 +48,7 @@ const testimonials = [
 const membershipPerks = [
   {
     title: "Live Member Snapshot",
-    detail: "Points balance, banking deadlines, and upcoming stays in a single enchanted view.",
+    detail: "Stay balances, banking deadlines, and upcoming trips in a single enchanted view.",
   },
   {
     title: "Concierge Chat",
@@ -55,30 +57,6 @@ const membershipPerks = [
   {
     title: "Family Collaboration",
     detail: "Invite loved ones to co-create itineraries and manage Club access with ease.",
-  },
-];
-
-const memberMoments = [
-  {
-    name: "The Rivera Family",
-    quote: "Stayed at Riviera using PixieDVC — concierge moved our dining to match fireworks!",
-    resort: "Disney's Riviera Resort",
-    image: "/images/member-rivera.svg",
-    slug: "riviera-resort",
-  },
-  {
-    name: "Elena & Marco",
-    quote: "Bay Lake Tower theme-park mornings, Animal Kingdom evenings — effortless magic.",
-    resort: "Bay Lake Tower",
-    image: "/images/member-elena.svg",
-    slug: "bay-lake-tower",
-  },
-  {
-    name: "The Nakamuras",
-    quote: "Aulani sunrise villa — PixieDVC handled every time zone and celebration detail.",
-    resort: "Aulani Resort",
-    image: "/images/member-nakamura.svg",
-    slug: "aulani",
   },
 ];
 
@@ -93,39 +71,44 @@ export default function Home() {
               <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.25em] text-muted">
-                    <Sparkles className="mr-2 inline-block h-3 w-3 align-middle text-brand" />
                     Real Members, Real Magic
                   </p>
                   <h2 className="font-display text-3xl text-ink sm:text-4xl">
                     Stories from families matching with PixieDVC every week.
                   </h2>
                 </div>
-                <p className="max-w-md text-sm text-muted">
-                  Concierge teams tailor every itinerary with character breakfasts, celebration surprises, and the perfect villa view.
-                </p>
+                <div className="max-w-md" />
               </div>
               <div className="mt-10 grid gap-6 md:grid-cols-3">
-                {memberMoments.map((moment) => (
-                  <Link
-                    key={moment.name}
-                    href={`/resorts/${moment.slug}#availability`}
-                    className="group overflow-hidden rounded-[28px] bg-white shadow-[0_28px_65px_rgba(15,23,42,0.12)] transition hover:-translate-y-1 hover:shadow-[0_36px_80px_rgba(15,23,42,0.18)]"
-                  >
-                    <div className="member-frame h-40 w-full">
-                      <Image
-                        src={moment.image}
-                        alt={`${moment.name} enjoying a PixieDVC stay`}
-                        fill
-                        sizes="(min-width: 768px) 33vw, 100vw"
-                      />
+                {STORIES.map((story) => {
+                  if (process.env.NODE_ENV === "development") {
+                    console.log("[stories] image url", story.imageUrl);
+                  }
+                  return (
+                    <div
+                      key={story.id}
+                      className="rounded-3xl border border-slate-200/60 bg-white shadow-[0_30px_80px_rgba(2,6,23,0.10)]"
+                    >
+                      <div className="relative h-44 w-full overflow-hidden rounded-3xl bg-slate-100 sm:h-52 md:h-56">
+                        <img
+                          src={story.imageUrl}
+                          alt={story.imageAlt}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/10 to-transparent" />
+                      </div>
+                      <div className="space-y-3 p-6">
+                        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+                          {story.resortLabel}
+                        </p>
+                        <p className="text-xl font-semibold text-[#0F2148]">{story.title}</p>
+                        <p className="text-sm leading-relaxed text-slate-600">“{story.quote}”</p>
+                        <p className="text-xs font-semibold text-slate-600">{story.proofLine}</p>
+                      </div>
                     </div>
-                    <div className="space-y-3 p-6">
-                      <p className="text-xs uppercase tracking-[0.2em] text-muted">{moment.resort}</p>
-                      <p className="font-display text-xl text-ink">{moment.name}</p>
-                      <p className="text-sm text-muted">“{moment.quote}”</p>
-                    </div>
-                  </Link>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </section>
@@ -162,13 +145,24 @@ export default function Home() {
                         {resort.name}
                       </h3>
                       <p className="text-sm text-muted">{resort.vibe}</p>
-                      <div className="inline-flex items-center gap-2 rounded-full bg-brand/10 px-4 py-2 text-xs font-semibold text-brand">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-brand/10 px-4 py-2 text-xs font-semibold text-brand">
                         {resort.points}
-                      </div>
+                  </div>
                     </div>
                   </Link>
                 ))}
               </div>
+            </div>
+          </section>
+
+        <section className="py-20">
+            <div className="mx-auto max-w-6xl px-6">
+              <ContextualGuides
+                title="New to DVC? Start Here"
+                description="Short, practical guides to help you book with confidence."
+                category="DVC Basics"
+                limit={3}
+              />
             </div>
           </section>
 
@@ -186,7 +180,7 @@ export default function Home() {
                   From wish list to booked stay in under five minutes.
                 </h2>
                 <p className="text-base text-white/75">
-                  Answer a few imaginative prompts - favorite characters, travel pace, celebration moments - and we orchestrate the perfect combination of villas, dining, and experiences matched to your points strategy.
+                  Answer a few imaginative prompts - favorite characters, travel pace, celebration moments - and we orchestrate the perfect combination of villas, dining, and experiences matched to your stay strategy.
                 </p>
           <ul className="space-y-4 text-sm text-white/80">
                 <li className="flex items-start gap-3">
@@ -195,20 +189,13 @@ export default function Home() {
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="mt-1 inline-block h-2 w-2 rounded-full bg-gold" aria-hidden="true" />
-                  <span>Points calculator that unlocks hidden value (hello, weeknight deals!).</span>
+                  <span>Price calculator that unlocks hidden value (hello, weeknight deals!).</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="mt-1 inline-block h-2 w-2 rounded-full bg-gold" aria-hidden="true" />
                   <span>Personalized itinerary with export-to-calendar and shareable storybook.</span>
                 </li>
               </ul>
-                <Link
-                  href="#waitlist"
-                  className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-deep shadow-lg transition hover:-translate-y-0.5"
-                >
-                  Get Early Access
-                  <span aria-hidden="true">-&gt;</span>
-                </Link>
               </div>
               <div className="grid gap-4 rounded-[32px] bg-white/10 p-6 shadow-[0_30px_70px_rgba(8,12,20,0.6)] backdrop-blur">
                 <div className="flex items-center justify-between rounded-2xl bg-white/10 p-4">
@@ -235,7 +222,7 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="rounded-2xl bg-white/10 p-4 text-sm text-white/75">
-                  Sparkle Tip: Shift one night midweek to save up to 4 points while keeping the same villa category.
+                  Sparkle Tip: Shift one night midweek to save up to four nights of value while keeping the same villa category.
                 </div>
               </div>
             </div>
@@ -252,7 +239,7 @@ export default function Home() {
                     Elevate your membership with concierge-grade insights.
                   </h2>
                   <p className="text-base text-muted">
-                    The PixieDVC dashboard centralizes every detail - from points strategy to reservation alerts - so seasoned members and newcomers alike stay in the glow.
+                    The PixieDVC dashboard centralizes every detail - from stay strategy to reservation alerts - so seasoned members and newcomers alike stay in the glow.
                   </p>
                   <div className="grid gap-5 sm:grid-cols-3">
                     {membershipPerks.map((perk) => (
@@ -288,20 +275,13 @@ export default function Home() {
                       </div>
                       <div className="flex items-center justify-between text-sm text-muted">
                         <span>Banked into 2026</span>
-                        <span className="font-semibold text-ink">38 pts</span>
+                        <span className="font-semibold text-ink">38 nights</span>
                       </div>
                       <div className="flex items-center justify-between text-sm text-muted">
                         <span>Exclusive Offers</span>
                         <span className="font-semibold text-brand">3 new</span>
                       </div>
                     </div>
-                    <Link
-                      href="#waitlist"
-                      className="inline-flex items-center gap-2 rounded-full bg-brand px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_45px_rgba(46,143,255,0.35)] transition hover:-translate-y-0.5"
-                    >
-                      Request a Concierge Demo
-                      <span aria-hidden="true">-&gt;</span>
-                    </Link>
                   </div>
                 </div>
               </div>
@@ -398,34 +378,6 @@ export default function Home() {
             </div>
           </section>
       </main>
-
-      <footer className="border-t border-white/50 bg-white/80 backdrop-blur">
-          <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xl font-display text-ink">PixieDVC</p>
-              <p className="mt-2 text-sm text-muted">
-                Disney magic meets boutique tech. Crafted with wonder in Orlando & beyond.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted">
-              <Link href="#" className="transition hover:text-brand">
-                Privacy
-              </Link>
-              <Link href="#" className="transition hover:text-brand">
-                Accessibility
-              </Link>
-              <Link href="#" className="transition hover:text-brand">
-                Careers
-              </Link>
-              <Link href="#" className="transition hover:text-brand">
-                Instagram
-              </Link>
-              <Link href="#" className="transition hover:text-brand">
-                Threads
-              </Link>
-            </div>
-          </div>
-      </footer>
     </>
   );
 }

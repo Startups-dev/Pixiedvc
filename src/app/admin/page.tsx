@@ -567,7 +567,7 @@ async function fetchLatestBookingRequests(supabase: AdminClient, filters: Bookin
     supabase
       .from('booking_requests')
       .select(
-        'id, lead_guest_name, lead_guest_email, check_in, check_out, status, created_at, primary_room, total_points, primary_resort:resorts(name)',
+        'id, lead_guest_name, lead_guest_email, check_in, check_out, status, created_at, primary_room, total_points, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)',
       )
       .order('created_at', { ascending: false }),
     filters,
