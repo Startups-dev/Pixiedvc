@@ -97,6 +97,10 @@ export type MatchRunResult = {
   ok: boolean;
   matchesCreated: number;
   matchIds: string[];
+  matchResults: Array<{
+    bookingId: string;
+    matchId: string;
+  }>;
   dryRun: boolean;
   eligibleBookings: string[];
   evaluatedBookings: EvaluatedBooking[];
@@ -522,6 +526,7 @@ export async function runMatchBookings(options: {
   });
 
   const matchIds: string[] = [];
+  const matchResults: MatchRunResult['matchResults'] = [];
   const errors: MatchRunResult['errors'] = [...evaluation.errors];
   const evaluatedBookings = [...evaluation.evaluatedBookings];
   const evaluatedMap = new Map(
@@ -542,6 +547,7 @@ export async function runMatchBookings(options: {
       ok: errors.length === 0,
       matchesCreated: 0,
       matchIds,
+      matchResults,
       dryRun,
       eligibleBookings: evaluation.eligibleBookings,
       evaluatedBookings,
@@ -550,7 +556,7 @@ export async function runMatchBookings(options: {
   }
 
   for (const plan of evaluation.matchPlans) {
-    const { data: matchId, error } = await client.rpc('apply_booking_match', {
+    const { data, error } = await client.rpc('apply_booking_match', {
       p_booking_id: plan.bookingId,
       p_owner_id: plan.ownerId,
       p_owner_membership_id: plan.ownerMembershipId,
@@ -566,10 +572,12 @@ export async function runMatchBookings(options: {
       p_owner_home_resort_premium_applied: plan.ownerPayout.owner_home_resort_premium_applied,
     });
 
+    const matchId = typeof data === 'string' ? data : data?.id ?? null;
+
     if (error || !matchId) {
       errors.push({
         bookingId: plan.bookingId,
-        step: 'apply_booking_match',
+        step: 'create_match',
         message: error?.message ?? 'Failed to create match',
         details: error ?? null,
       });
@@ -587,6 +595,7 @@ export async function runMatchBookings(options: {
     }
 
     matchIds.push(matchId);
+    matchResults.push({ bookingId: plan.bookingId, matchId });
 
     if (sendEmails && plan.ownerEmail) {
       const acceptUrl = `${origin}/api/matches/owner/accept?matchId=${matchId}`;
@@ -615,6 +624,7 @@ export async function runMatchBookings(options: {
     ok: errors.length === 0,
     matchesCreated: matchIds.length,
     matchIds,
+    matchResults,
     dryRun,
     eligibleBookings: evaluation.eligibleBookings,
     evaluatedBookings,

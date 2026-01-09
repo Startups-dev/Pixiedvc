@@ -139,8 +139,7 @@ async function handleMatchBookings(request: NextRequest) {
     sendEmails: !dryRun,
   });
 
-  const responseErrors: MatchRunResult['errors'] = [];
-  const createMatchFailures: MatchRunResult['errors'] = [];
+  const responseErrors: MatchRunResult['errors'] = [...result.errors];
   const evaluatedBookings = result.evaluatedBookings.map((booking) => ({
     ...booking,
     skipReasons: [...booking.skipReasons],
@@ -149,68 +148,34 @@ async function handleMatchBookings(request: NextRequest) {
     evaluatedBookings.map((booking, index) => [booking.bookingId, index]),
   );
 
-  for (const error of result.errors) {
-    if (error.step === 'apply_booking_match' || error.step === 'create_match') {
-      createMatchFailures.push(error);
+  const verifiedMatchIds: string[] = [];
+
+  for (const { matchId, bookingId } of result.matchResults) {
+    const { data: matchRow, error: matchError } = await client
+      .from('booking_matches')
+      .select('id')
+      .eq('id', matchId)
+      .maybeSingle();
+
+    if (matchError) {
+      responseErrors.push({
+        bookingId,
+        step: 'verify_match',
+        message: matchError.message,
+      });
       continue;
     }
-    responseErrors.push(error);
-  }
 
-  for (const failure of createMatchFailures) {
-    responseErrors.push({
-      bookingId: failure.bookingId,
-      step: 'create_match',
-      message: failure.message,
-    });
-    const index = evaluatedMap.get(failure.bookingId);
-    if (index !== undefined) {
-      evaluatedBookings[index] = {
-        ...evaluatedBookings[index],
-        finalDecision: 'skipped',
-        skipReasons: Array.from(
-          new Set([
-            ...evaluatedBookings[index].skipReasons,
-            'match_create_failed',
-          ]),
-        ),
-      };
+    if (!matchRow) {
+      responseErrors.push({
+        bookingId,
+        step: 'verify_match',
+        message: 'match_not_found',
+      });
+      continue;
     }
-  }
 
-  const verifiedMatchIds: string[] = [];
-  let verifyFailed = false;
-
-  if (createMatchFailures.length === 0) {
-    for (const matchId of result.matchIds) {
-      const { data: matchRow, error: matchError } = await client
-        .from('booking_matches')
-        .select('id')
-        .eq('id', matchId)
-        .maybeSingle();
-
-      if (matchError) {
-        responseErrors.push({
-          bookingId: matchId,
-          step: 'verify_match',
-          message: matchError.message,
-        });
-        verifyFailed = true;
-        continue;
-      }
-
-      if (!matchRow) {
-        responseErrors.push({
-          bookingId: matchId,
-          step: 'verify_match',
-          message: 'match_not_found',
-        });
-        verifyFailed = true;
-        continue;
-      }
-
-      verifiedMatchIds.push(matchId);
-    }
+    verifiedMatchIds.push(matchId);
   }
 
   const bookingMatchesCount = await countTableRows(
@@ -231,34 +196,47 @@ async function handleMatchBookings(request: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SERVICE_ROLE,
   );
   const adminProjectRef = parseProjectRef(process.env.NEXT_PUBLIC_SUPABASE_URL ?? null);
-  const persistenceFailed = createMatchFailures.length > 0 || verifyFailed;
 
-  if (persistenceFailed) {
-    for (let i = 0; i < evaluatedBookings.length; i += 1) {
-      if (evaluatedBookings[i].finalDecision === 'matched') {
-        evaluatedBookings[i] = {
-          ...evaluatedBookings[i],
-          finalDecision: 'skipped',
-          skipReasons: Array.from(
-            new Set([
-              ...evaluatedBookings[i].skipReasons,
-              createMatchFailures.length > 0
-                ? 'match_create_failed'
-                : 'match_verify_failed',
-            ]),
-          ),
-        };
+  for (const error of responseErrors) {
+    if (error.step !== 'verify_match') {
+      continue;
+    }
+    const index = evaluatedMap.get(error.bookingId);
+    if (index === undefined) {
+      continue;
+    }
+    evaluatedBookings[index] = {
+      ...evaluatedBookings[index],
+      finalDecision: 'skipped',
+      skipReasons: Array.from(
+        new Set([...evaluatedBookings[index].skipReasons, 'match_verify_failed']),
+      ),
+    };
+  }
+
+  for (const { matchId, bookingId } of result.matchResults) {
+    if (!verifiedMatchIds.includes(matchId)) {
+      const index = evaluatedMap.get(bookingId);
+      if (index === undefined) {
+        continue;
       }
+      evaluatedBookings[index] = {
+        ...evaluatedBookings[index],
+        finalDecision: 'skipped',
+        skipReasons: Array.from(
+          new Set([...evaluatedBookings[index].skipReasons, 'match_verify_failed']),
+        ),
+      };
     }
   }
 
   const payload = {
     ...result,
-    matchesCreated: persistenceFailed ? 0 : verifiedMatchIds.length,
-    matchIds: persistenceFailed ? [] : verifiedMatchIds,
+    matchesCreated: verifiedMatchIds.length,
+    matchIds: verifiedMatchIds,
     errors: responseErrors,
     dryRun: result.dryRun,
-    ok: result.ok && responseErrors.length === 0 && !persistenceFailed,
+    ok: responseErrors.length === 0,
     dbCounts: {
       bookingMatchesCount: bookingMatchesCount ?? 0,
       bookingRequestsCount: bookingRequestsCount ?? 0,
@@ -271,6 +249,7 @@ async function handleMatchBookings(request: NextRequest) {
     payload.debug = {
       adminHasServiceKey,
       adminProjectRef,
+      writePath: 'rpc:apply_booking_match',
     };
   }
 
