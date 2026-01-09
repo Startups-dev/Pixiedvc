@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import ApproveVerificationButton from '@/components/admin/ApproveVerificationButton';
+import dynamic from 'next/dynamic';
 
 import { requireAdminUser } from '@/lib/admin';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
@@ -65,6 +67,13 @@ export default async function OwnerVerificationDetailPage({ params }: Props) {
           ? 'Rejected'
           : 'Not started';
 
+  const statusClass =
+    verification.status === 'approved'
+      ? 'rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700'
+      : verification.status === 'rejected'
+        ? 'rounded-full border border-rose-200 bg-rose-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-rose-700'
+        : 'rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600';
+
   return (
     <div className="space-y-6">
       <Link href="/admin/owners/verifications" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
@@ -80,9 +89,7 @@ export default async function OwnerVerificationDetailPage({ params }: Props) {
             </h1>
             <p className="text-sm text-slate-500">{profile?.email ?? 'No email'}</p>
           </div>
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
-            {label}
-          </span>
+          <span className={statusClass}>{label}</span>
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -124,15 +131,7 @@ export default async function OwnerVerificationDetailPage({ params }: Props) {
         </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <form
-            action={`/api/admin/owners/verifications/${params.ownerId}/approve`}
-            method="post"
-          >
-            <input type="hidden" name="reviewed_by" value={user.id} />
-            <button className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
-              Approve
-            </button>
-          </form>
+          <ApproveVerificationButton ownerId={params.ownerId} />
           <form
             action={`/api/admin/owners/verifications/${params.ownerId}/reject`}
             method="post"

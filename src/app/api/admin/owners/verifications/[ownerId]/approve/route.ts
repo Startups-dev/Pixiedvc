@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 
-import { createServer } from '@/lib/supabase';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { emailIsAllowedForAdmin } from '@/lib/admin-emails';
 
@@ -9,7 +8,6 @@ export async function POST(
   request: Request,
   { params }: { params: { ownerId: string } },
 ) {
-  const cookieStore = await cookies();
   const supabase = createSupabaseServerClient();
   const {
     data: { user },

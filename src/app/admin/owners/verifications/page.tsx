@@ -53,6 +53,14 @@ export default async function OwnerVerificationQueuePage() {
                     : row.status === 'rejected'
                       ? 'Rejected'
                       : 'Not started';
+
+              const statusClass =
+                row.status === 'approved'
+                  ? 'rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700'
+                  : row.status === 'rejected'
+                    ? 'rounded-full border border-rose-200 bg-rose-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-rose-700'
+                    : 'rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600';
+
               return (
                 <div key={row.owner_id} className="flex flex-wrap items-center justify-between gap-4 px-3 py-4">
                   <div>
@@ -63,9 +71,7 @@ export default async function OwnerVerificationQueuePage() {
                     <p className="text-xs text-slate-400">Payout: {profile?.payout_email ?? 'Missing'}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
-                      {label}
-                    </span>
+                    <span className={statusClass}>{label}</span>
                     <Link
                       href={`/admin/owners/verifications/${row.owner_id}`}
                       className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-slate-300"
