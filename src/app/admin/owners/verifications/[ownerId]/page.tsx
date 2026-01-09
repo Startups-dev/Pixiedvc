@@ -31,7 +31,6 @@ export default async function OwnerVerificationDetailPage({ params }: Props) {
         id,
         full_name,
         display_name,
-        email,
         payout_email,
         phone,
         address_line1,
@@ -58,6 +57,10 @@ export default async function OwnerVerificationDetailPage({ params }: Props) {
   }
 
   const profile = verification.profile;
+  const payout = (profile?.payout_email ?? '').trim();
+  const isSeed =
+    !payout || payout.endsWith('@example.com') || payout.includes('owner.test+');
+  const displayEmail = isSeed ? '—' : payout;
   const label =
     verification.status === 'approved'
       ? 'Approved'
@@ -87,7 +90,7 @@ export default async function OwnerVerificationDetailPage({ params }: Props) {
             <h1 className="text-2xl font-semibold text-slate-900">
               {profile?.full_name ?? profile?.display_name ?? 'Owner'}
             </h1>
-            <p className="text-sm text-slate-500">{profile?.email ?? 'No email'}</p>
+            <p className="text-sm text-slate-500">{displayEmail}</p>
           </div>
           <span className={statusClass}>{label}</span>
         </div>
@@ -95,7 +98,7 @@ export default async function OwnerVerificationDetailPage({ params }: Props) {
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Contact</p>
-            <p className="mt-2 text-sm text-slate-700">Payout email: {profile?.payout_email ?? 'Missing'}</p>
+            <p className="mt-2 text-sm text-slate-700">Payout email: {displayEmail}</p>
             <p className="text-sm text-slate-700">Phone: {profile?.phone ?? '—'}</p>
             <p className="text-sm text-slate-700">
               Address: {profile?.address_line1 ?? '—'} {profile?.address_line2 ?? ''}

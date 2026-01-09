@@ -23,7 +23,6 @@ export default async function OwnerVerificationQueuePage() {
         id,
         full_name,
         display_name,
-        email,
         payout_email
       )
     `,
@@ -45,6 +44,10 @@ export default async function OwnerVerificationQueuePage() {
           ) : (
             (verifications ?? []).map((row) => {
               const profile = row.profile;
+              const payout = (profile?.payout_email ?? '').trim();
+              const isSeed =
+                !payout || payout.endsWith('@example.com') || payout.includes('owner.test+');
+              const displayEmail = isSeed ? '—' : payout;
               const label =
                 row.status === 'approved'
                   ? 'Approved'
@@ -67,8 +70,8 @@ export default async function OwnerVerificationQueuePage() {
                     <p className="text-base font-semibold text-slate-900">
                       {profile?.full_name ?? profile?.display_name ?? 'Owner'}
                     </p>
-                    <p className="text-xs text-slate-500">{profile?.email ?? 'No email'}</p>
-                    <p className="text-xs text-slate-400">Payout: {profile?.payout_email ?? 'Missing'}</p>
+                    <p className="text-xs text-slate-500">{displayEmail}</p>
+                    <p className="text-xs text-slate-400">Payout: {displayEmail}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className={statusClass}>{label}</span>
