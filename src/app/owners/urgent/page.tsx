@@ -23,7 +23,7 @@ type SubmissionRow = {
 
 export default async function OwnerUrgentPage() {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

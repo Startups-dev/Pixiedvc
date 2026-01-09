@@ -35,7 +35,7 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 
 export default async function GuestDashboard() {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

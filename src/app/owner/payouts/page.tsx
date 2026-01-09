@@ -9,7 +9,7 @@ import { formatCurrency } from "@/lib/owner-portal";
 
 export default async function OwnerPayoutsPage() {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

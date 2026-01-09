@@ -42,7 +42,7 @@ function endOfDay(date: Date) {
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
-  const authClient = createSupabaseServerClient();
+  const authClient = await createSupabaseServerClient();
   const {
     data: { user },
   } = await authClient.auth.getUser();
@@ -224,7 +224,7 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   const cookieStore = await cookies();
-  const authClient = createSupabaseServerClient();
+  const authClient = await createSupabaseServerClient();
   const {
     data: { user },
   } = await authClient.auth.getUser();

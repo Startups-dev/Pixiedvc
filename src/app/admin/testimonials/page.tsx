@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminTestimonialsPage() {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

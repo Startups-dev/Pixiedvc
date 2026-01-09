@@ -7,7 +7,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
 export async function GET() {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -36,7 +36,7 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

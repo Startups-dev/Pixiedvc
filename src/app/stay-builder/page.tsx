@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import StayBuilderClient from './stay-builder-client';
-import { createServer } from '@/lib/supabase';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 
 type GuestRow = {
   id: string;
@@ -17,7 +17,7 @@ type GuestRow = {
 
 export default async function StayBuilderPage() {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

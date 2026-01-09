@@ -17,7 +17,7 @@ function formatDate(value: string | null) {
 
 export default async function OwnerMatchesPage() {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

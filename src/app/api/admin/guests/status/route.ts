@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-import { createServer } from '@/lib/supabase';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { emailIsAllowedForAdmin } from '@/lib/admin-emails';
 
 const ALLOWED_STATUSES = ['submitted', 'pending', 'matched', 'confirmed', 'cancelled'];
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   }
 
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

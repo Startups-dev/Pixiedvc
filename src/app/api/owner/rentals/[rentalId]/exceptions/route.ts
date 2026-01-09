@@ -6,7 +6,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
 export async function POST(request: Request, { params }: { params: { rentalId: string } }) {
   const cookieStore = await cookies();
-  const authClient = createSupabaseServerClient();
+  const authClient = await createSupabaseServerClient();
   const {
     data: { user },
   } = await authClient.auth.getUser();

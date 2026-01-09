@@ -18,7 +18,7 @@ function toNumber(value: unknown) {
 
 export async function POST(request: Request, { params }: { params: { rentalId: string } }) {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

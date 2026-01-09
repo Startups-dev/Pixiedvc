@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from './supabase-server';
 import { emailIsAllowedForAdmin, isAdminEmailStrict } from './admin-emails';
 
 export async function requireAdminUser(redirectPath = '/admin/owners') {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

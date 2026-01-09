@@ -8,7 +8,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export default async function ProfilePage() {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

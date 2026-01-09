@@ -36,7 +36,7 @@ type PrivateInventoryRow = {
 
 export default async function PrivateInventoryAdminPage() {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

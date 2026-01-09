@@ -159,7 +159,7 @@ export type OwnerMatchRow = {
 
 async function getOwnerIdentity(userId: string, cookieStore?: RequestCookies) {
   const adminClient = getSupabaseAdminClient();
-  const supabase = adminClient ?? getServerClient(cookieStore);
+  const supabase = adminClient ?? (await getServerClient(cookieStore));
   const { data: owner } = await supabase
     .from("owners")
     .select("id, user_id")
@@ -168,12 +168,12 @@ async function getOwnerIdentity(userId: string, cookieStore?: RequestCookies) {
   return { owner, supabase, adminClient };
 }
 
-function getServerClient(cookieStore?: RequestCookies) {
+async function getServerClient(cookieStore?: RequestCookies) {
   return createSupabaseServerClient();
 }
 
 export async function getOwnerProfile(userId: string, cookieStore?: RequestCookies) {
-  const supabase = getServerClient(cookieStore);
+  const supabase = await getServerClient(cookieStore);
   const { data } = await supabase
     .from("owners")
     .select("id, user_id, display_name, payout_email, verification, profiles:profiles(display_name)")
@@ -209,7 +209,7 @@ export async function getOwnerMemberships(userId: string, cookieStore?: RequestC
 }
 
 export async function getOwnerRentals(userId: string, cookieStore?: RequestCookies) {
-  const supabase = getServerClient(cookieStore);
+  const supabase = await getServerClient(cookieStore);
   const { data } = await supabase
     .from("rentals")
     .select(
@@ -251,7 +251,7 @@ export async function getOwnerRentals(userId: string, cookieStore?: RequestCooki
 }
 
 export async function getOwnerRentalDetail(userId: string, rentalId: string, cookieStore?: RequestCookies) {
-  const supabase = getServerClient(cookieStore);
+  const supabase = await getServerClient(cookieStore);
   const { data } = await supabase
     .from("rentals")
     .select(
@@ -364,7 +364,7 @@ export async function getOwnerRentalDetail(userId: string, rentalId: string, coo
 }
 
 export async function getOwnerPayouts(userId: string, cookieStore?: RequestCookies) {
-  const supabase = getServerClient(cookieStore);
+  const supabase = await getServerClient(cookieStore);
   const { data } = await supabase
     .from("payout_ledger")
     .select("id, rental_id, owner_user_id, stage, amount_cents, status, eligible_at, released_at, created_at")
@@ -505,7 +505,7 @@ export async function getOwnerMatchDetail(userId: string, matchId: string, cooki
 }
 
 export async function getOwnerNotifications(userId: string, cookieStore?: RequestCookies) {
-  const supabase = getServerClient(cookieStore);
+  const supabase = await getServerClient(cookieStore);
   const { data } = await supabase
     .from("notifications")
     .select("id, type, title, body, link, read_at, created_at")
@@ -521,7 +521,7 @@ export async function getRentalDocumentUrls(
   cookieStore?: RequestCookies,
 ) {
   if (!documents.length) return documents;
-  const supabase = getServerClient(cookieStore);
+  const supabase = await getServerClient(cookieStore);
 
   const signed = await Promise.all(
     documents.map(async (doc) => {

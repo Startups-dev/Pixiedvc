@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
-import { createServer } from '@/lib/supabase';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { isAdminEmail } from '@/lib/admin';
 
 export type OwnerDetailRow = {
@@ -58,7 +58,7 @@ export async function fetchOwnerQueue(statusFilter: string) {
   const supabaseAdmin = getSupabaseAdminClient();
   if (!supabaseAdmin) {
     const cookieStore = await cookies();
-    const supabase = createSupabaseServerClient();
+    const supabase = await createSupabaseServerClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();

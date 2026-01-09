@@ -15,7 +15,7 @@ import NotificationList from "@/components/owner/NotificationList";
 
 export default async function OwnerNotificationsPage() {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

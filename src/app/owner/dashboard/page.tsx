@@ -70,7 +70,7 @@ function buildDisplayMilestones(rental: any) {
 
 export default async function OwnerDashboardPage() {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

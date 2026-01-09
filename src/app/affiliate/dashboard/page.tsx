@@ -17,7 +17,7 @@ function formatCurrency(value: number) {
 
 export default async function AffiliateDashboardPage() {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

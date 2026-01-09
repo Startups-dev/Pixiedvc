@@ -65,7 +65,7 @@ function formatAddress(matchBooking: OwnerMatchBooking | null | undefined) {
 
 export default async function OwnerMatchDetailPage({ params }: { params: { matchId: string } }) {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -3,7 +3,7 @@ import { isAdminEmail } from "@/lib/admin";
 import HeaderClient from "@/components/header-client";
 
 export default async function Header() {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

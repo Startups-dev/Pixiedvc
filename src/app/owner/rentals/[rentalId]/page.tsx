@@ -156,7 +156,7 @@ function statusPill(status: string) {
 export default async function OwnerRentalDetailPage({ params }: { params: { rentalId: string } }) {
   const isDev = process.env.NODE_ENV !== "production";
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

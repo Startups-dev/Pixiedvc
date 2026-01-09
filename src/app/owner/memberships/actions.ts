@@ -17,7 +17,10 @@ type MembershipInput = {
   points_reserved?: number | null;
 };
 
-async function getOwnerIdForUser(userId: string, client: ReturnType<typeof createServer>) {
+async function getOwnerIdForUser(
+  userId: string,
+  client: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+) {
   const { data } = await client
     .from("owners")
     .select("id, user_id")
@@ -28,7 +31,7 @@ async function getOwnerIdForUser(userId: string, client: ReturnType<typeof creat
 
 export async function upsertOwnerMembership(input: MembershipInput) {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -81,7 +84,7 @@ export async function upsertOwnerMembership(input: MembershipInput) {
 
 export async function adjustOwnerMembershipPoints(membershipId: string, delta: number) {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -136,7 +139,7 @@ export async function adjustOwnerMembershipPoints(membershipId: string, delta: n
 
 export async function fixMembershipResortMapping(membershipId: string) {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

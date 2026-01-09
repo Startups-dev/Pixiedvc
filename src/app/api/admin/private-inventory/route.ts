@@ -17,7 +17,7 @@ const allowedStatuses = new Set([
 
 async function requireStaffOrAdmin() {
   const cookieStore = await cookies();
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
