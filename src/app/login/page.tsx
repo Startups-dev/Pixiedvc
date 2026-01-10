@@ -48,6 +48,7 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loginErrorState, setLoginErrorState] = useState<{ primary: string; secondary?: string } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const adminNotice = searchParams.get('admin') === '1';
 
   useEffect(() => {
     const paramMode = searchParams.get('mode');
@@ -222,6 +223,12 @@ export default function LoginPage() {
         {mode === 'signup' && 'Create your PixieDVC account'}
         {mode === 'update' && 'Set a new password'}
       </h1>
+
+      {adminNotice ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          This area is restricted to administrators. Please sign in with an admin account.
+        </p>
+      ) : null}
 
       {mode !== 'update' ? (
         <div className="flex gap-2">

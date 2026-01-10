@@ -10,7 +10,7 @@ export async function requireAdminUser(redirectPath = '/admin/owners') {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/login?redirect=${encodeURIComponent(redirectPath)}`);
+    redirect(`/login?redirect=${encodeURIComponent(redirectPath)}&admin=1`);
   }
 
   if (!emailIsAllowedForAdmin(user.email ?? null)) {
