@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { expireMatchAndReleasePoints } from "@/lib/matches/expire";
 
 export async function POST(
   request: Request,
@@ -57,68 +58,11 @@ export async function POST(
     return NextResponse.json({ error: "not_expired" }, { status: 409 });
   }
 
-  await adminClient
-    .from("booking_matches")
-    .update({ status: "expired", responded_at: nowIso })
-    .eq("id", match.id);
-
-  const reservedCurrent = match.points_reserved_current ?? match.points_reserved ?? 0;
-  if (match.owner_membership_id && reservedCurrent) {
-    const { data: membership } = await adminClient
-      .from("owner_memberships")
-      .select("id, points_reserved")
-      .eq("id", match.owner_membership_id)
-      .maybeSingle();
-
-    if (membership) {
-      const newReserved = Math.max((membership.points_reserved ?? 0) - reservedCurrent, 0);
-      await adminClient
-        .from("owner_memberships")
-        .update({ points_reserved: newReserved })
-        .eq("id", match.owner_membership_id);
-    }
-  }
-
-  const reservedBorrowed = match.points_reserved_borrowed ?? 0;
-  if (reservedBorrowed > 0) {
-    const { data: booking } = await adminClient
-      .from("booking_requests")
-      .select("primary_resort_id, check_in")
-      .eq("id", match.booking_id)
-      .maybeSingle();
-
-    const { data: currentMembership } = await adminClient
-      .from("owner_memberships")
-      .select("owner_id, resort_id, contract_year")
-      .eq("id", match.owner_membership_id)
-      .maybeSingle();
-
-    const bookingYear = booking?.check_in ? new Date(booking.check_in).getUTCFullYear() : null;
-    const currentYear = currentMembership?.contract_year ?? bookingYear;
-
-    if (currentMembership?.owner_id && currentMembership?.resort_id && currentYear) {
-      const { data: nextMembership } = await adminClient
-        .from("owner_memberships")
-        .select("id, points_reserved")
-        .eq("owner_id", currentMembership.owner_id)
-        .eq("resort_id", currentMembership.resort_id)
-        .eq("contract_year", currentYear + 1)
-        .maybeSingle();
-
-      if (nextMembership) {
-        const newReserved = Math.max((nextMembership.points_reserved ?? 0) - reservedBorrowed, 0);
-        await adminClient
-          .from("owner_memberships")
-          .update({ points_reserved: newReserved })
-          .eq("id", nextMembership.id);
-      }
-    }
-  }
-
-  await adminClient
-    .from("booking_requests")
-    .update({ status: "pending_match", matched_owner_id: null, updated_at: nowIso })
-    .eq("id", match.booking_id);
+  await expireMatchAndReleasePoints({
+    adminClient,
+    match,
+    nowIso,
+  });
 
   return NextResponse.json({ ok: true });
 }
