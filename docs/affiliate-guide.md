@@ -23,6 +23,8 @@
 - Tracking is first-touch for 90 days and does not overwrite an existing referral.
 - Payouts are processed manually on a monthly schedule.
 
+> **Reminder:** Payout runs cannot overlap. Creating a run for the same or overlapping period now returns HTTP 400 with the conflicting run details, so rerun the same period only after voiding or deleting the prior run.
+
 ## Runbook (Manual Payouts)
 ### How to run tests
 ```

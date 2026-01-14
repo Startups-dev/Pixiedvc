@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { emailIsAllowedForAdmin } from "@/lib/admin-emails";
@@ -22,7 +21,12 @@ type BookingRow = {
 };
 
 const QUALIFIED_STATUSES = ["confirmed"];
-const AMOUNT_FIELD_CANDIDATES = ["booking_amount_usd", "total_amount_usd", "total_usd", "amount_usd"];
+const AMOUNT_FIELD_CANDIDATES = [
+  "booking_amount_usd",
+  "total_amount_usd",
+  "total_usd",
+  "amount_usd",
+];
 
 function normalizeCode(value: string | null) {
   return value?.trim().toLowerCase() ?? "";
@@ -40,8 +44,28 @@ function endOfDay(date: Date) {
   return copy;
 }
 
+function isoDateOnly(d: Date) {
+  // Always produce YYYY-MM-DD in UTC for DATE columns
+  return d.toISOString().slice(0, 10);
+}
+
+async function findOverlappingRuns(
+  client: any,
+  rangeStartValue: string,
+  rangeEndValue: string
+) {
+  // Inclusive overlap: existing.period_end >= new.start AND existing.period_start <= new.end
+  const { data, error } = await client
+    .from("affiliate_payout_runs")
+    .select("id, period_start, period_end, status, created_at")
+    .gte("period_end", rangeStartValue)
+    .lte("period_start", rangeEndValue)
+    .order("period_start", { ascending: true });
+
+  return { data: data ?? [], error };
+}
+
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
   const authClient = await createSupabaseServerClient();
   const {
     data: { user },
@@ -51,7 +75,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const payload = await request.json();
+  const payload = await request.json().catch(() => null);
   const { period_start, period_end } = payload ?? {};
 
   if (!period_start || !period_end) {
@@ -65,9 +89,38 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid date range" }, { status: 400 });
   }
 
+  // IMPORTANT: Normalize for DATE columns + consistency with overlap checks
+  const rangeStartValue = isoDateOnly(start);
+  const rangeEndValue = isoDateOnly(end);
+
   const client = getSupabaseAdminClient() ?? authClient;
 
-  let statusFilterApplied = true;
+  // First: pre-check overlap to give a nice error before we try insert
+  const { data: existingRuns, error: existingRunsError } =
+    await findOverlappingRuns(client, rangeStartValue, rangeEndValue);
+
+  if (existingRunsError) {
+    return NextResponse.json({ error: existingRunsError.message }, { status: 400 });
+  }
+
+  const exactMatch = existingRuns.find(
+    (r) => r.period_start === rangeStartValue && r.period_end === rangeEndValue
+  );
+  if (exactMatch) {
+    return NextResponse.json(
+      { error: "A payout run for this period already exists.", existing_run: exactMatch },
+      { status: 400 }
+    );
+  }
+
+  if (existingRuns.length > 0) {
+    return NextResponse.json(
+      { error: "This payout period overlaps an existing run.", overlapping_runs: existingRuns },
+      { status: 400 }
+    );
+  }
+
+  // Load affiliates
   const { data: affiliates, error: affiliateError } = await client
     .from("affiliates")
     .select("id, referral_code, slug, commission_rate");
@@ -75,6 +128,9 @@ export async function POST(request: Request) {
   if (affiliateError) {
     return NextResponse.json({ error: affiliateError.message }, { status: 400 });
   }
+
+  // Fetch bookings
+  let statusFilterApplied = true;
 
   const fetchBookings = async (select: string) => {
     const baseQuery = client
@@ -87,7 +143,8 @@ export async function POST(request: Request) {
       ? await baseQuery.in("status", QUALIFIED_STATUSES)
       : await baseQuery;
 
-    if (error && statusFilterApplied && error.message?.includes("status")) {
+    // If status column doesn't exist, retry without status filter
+    if (error && statusFilterApplied && error.message?.toLowerCase().includes("status")) {
       statusFilterApplied = false;
       return client
         .from("booking_requests")
@@ -104,13 +161,17 @@ export async function POST(request: Request) {
   let bookingError: { message: string } | null = null;
 
   for (const candidate of AMOUNT_FIELD_CANDIDATES) {
-    const { data, error } = await fetchBookings(`id, referral_code, created_at, status, ${candidate}`);
+    const { data, error } = await fetchBookings(
+      `id, referral_code, created_at, status, ${candidate}`
+    );
+
     if (!error) {
       bookings = (data ?? []).map((row) => {
         const rawAmount = (row as Record<string, number | null>)[candidate];
         return {
           ...(row as BookingRow),
-          booking_amount: rawAmount === null || rawAmount === undefined ? null : Number(rawAmount),
+          booking_amount:
+            rawAmount === null || rawAmount === undefined ? null : Number(rawAmount),
         };
       });
       amountField = candidate;
@@ -126,11 +187,8 @@ export async function POST(request: Request) {
 
   if (!amountField && !bookingError) {
     const { data, error } = await fetchBookings("id, referral_code, created_at, status");
-    if (error) {
-      bookingError = error;
-    } else {
-      bookings = (data ?? []) as BookingRow[];
-    }
+    if (error) bookingError = error;
+    else bookings = (data ?? []) as BookingRow[];
   }
 
   if (bookingError) {
@@ -152,14 +210,21 @@ export async function POST(request: Request) {
   (bookings ?? []).forEach((booking) => {
     const key = normalizeCode(booking.referral_code);
     if (!key) return;
+
     const affiliate = affiliateLookup.get(key);
     if (!affiliate) {
       unmatched += 1;
       return;
     }
 
-    const entry = grouped.get(affiliate.id) ?? { affiliate, bookingIds: [], totalAmount: 0 };
+    const entry = grouped.get(affiliate.id) ?? {
+      affiliate,
+      bookingIds: [],
+      totalAmount: 0,
+    };
+
     entry.bookingIds.push(booking.id);
+
     if (amountField) {
       if (booking.booking_amount === null || Number.isNaN(Number(booking.booking_amount))) {
         missingAmounts += 1;
@@ -167,32 +232,60 @@ export async function POST(request: Request) {
         entry.totalAmount += Number(booking.booking_amount);
       }
     }
+
     grouped.set(affiliate.id, entry);
   });
 
   const missingAmountField = !amountField;
-  const notes = [
-    missingAmountField ? "Missing booking amount field; amounts set to 0." : null,
-    missingAmounts > 0 ? `Missing booking amounts for ${missingAmounts} bookings; amounts set to 0.` : null,
-    statusFilterApplied ? null : "Status field missing; totals unverified.",
-  ]
-    .filter(Boolean)
-    .join(" ") || null;
+  const notes =
+    [
+      missingAmountField ? "Missing booking amount field; amounts set to 0." : null,
+      missingAmounts > 0
+        ? `Missing booking amounts for ${missingAmounts} bookings; amounts set to 0.`
+        : null,
+      statusFilterApplied ? null : "Status field missing; totals unverified.",
+    ]
+      .filter(Boolean)
+      .join(" ") || null;
+
   const runStatus = grouped.size > 0 ? "ready" : "draft";
 
   const { data: payoutRun, error: runError } = await client
     .from("affiliate_payout_runs")
     .insert({
-      period_start,
-      period_end,
+      period_start: rangeStartValue,
+      period_end: rangeEndValue,
       status: runStatus,
       notes,
     })
-    .select("id")
+    .select("id, period_start, period_end, status")
     .single();
 
-  if (runError || !payoutRun) {
-    return NextResponse.json({ error: runError?.message ?? "Unable to create payout run" }, { status: 400 });
+  if (runError) {
+    if (runError.code === "23505") {
+      const { data: conflicts } = await findOverlappingRuns(client, rangeStartValue, rangeEndValue);
+      const exact = (conflicts ?? []).find(
+        (r: any) => r.period_start === rangeStartValue && r.period_end === rangeEndValue
+      );
+      return NextResponse.json(
+        { error: "A payout run for this period already exists.", existing_run: exact ?? null },
+        { status: 400 }
+      );
+    }
+
+    if (runError.code === "23P01") {
+      const { data: overlaps } = await findOverlappingRuns(client, rangeStartValue, rangeEndValue);
+      return NextResponse.json(
+        { error: "Payout period overlaps an existing run.", overlapping_runs: overlaps ?? [] },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({ error: runError.message }, { status: 400 });
+  }
+
+  if (!payoutRun) {
+    return NextResponse.json({ error: "Unable to create payout run" }, { status: 400 });
   }
 
   if (grouped.size > 0) {
@@ -206,6 +299,7 @@ export async function POST(request: Request) {
     }));
 
     const { error: itemError } = await client.from("affiliate_payout_items").insert(items);
+
     if (itemError) {
       return NextResponse.json({ error: itemError.message }, { status: 400 });
     }
@@ -214,6 +308,8 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     payout_run_id: payoutRun.id,
+    period_start: rangeStartValue,
+    period_end: rangeEndValue,
     missing_amount_field: missingAmountField,
     missing_amount_count: missingAmounts,
     amount_field: amountField,
@@ -223,7 +319,6 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const cookieStore = await cookies();
   const authClient = await createSupabaseServerClient();
   const {
     data: { user },
@@ -233,7 +328,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const payload = await request.json();
+  const payload = await request.json().catch(() => null);
   const { action } = payload ?? {};
 
   const client = getSupabaseAdminClient() ?? authClient;

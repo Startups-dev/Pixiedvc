@@ -6,3 +6,5 @@ export function getPublicStorageUrl(bucket: string, path: string): string {
   const normalizedBase = baseUrl.replace(/\/$/, "");
   return `${normalizedBase}/storage/v1/object/public/${bucket}/${path}`;
 }
+
+export const buildSupabasePublicUrl = getPublicStorageUrl;

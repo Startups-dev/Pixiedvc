@@ -46,11 +46,18 @@ export async function GET(request: Request) {
     const result = await fetchAdminMatchList({
       authClient: supabase,
       filters: {
+        scope: params.get('scope') as
+          | 'matches'
+          | 'unmatched_guests'
+          | 'unmatched_owners'
+          | null,
         q: params.get('q'),
         matchStatus: params.get('matchStatus'),
         bookingStatus: params.get('bookingStatus'),
         checkInFrom: params.get('checkInFrom'),
         checkInTo: params.get('checkInTo'),
+        checkOutFrom: params.get('checkOutFrom'),
+        checkOutTo: params.get('checkOutTo'),
         matchCreatedFrom: params.get('matchCreatedFrom'),
         matchCreatedTo: params.get('matchCreatedTo'),
         matchExpiresFrom: params.get('matchExpiresFrom'),

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { emailIsAllowedForAdmin } from '@/lib/admin-emails';
-import { logAdminAuditEvent } from '@/lib/admin/audit';
+import { logAdminEvent } from '@/lib/admin/audit';
 import { fetchAdminMatchDetail } from '@/lib/admin/matching';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -132,21 +132,165 @@ export async function POST(
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
 
-  await logAdminAuditEvent(adminClient, {
-    adminUserId: user.id,
-    adminEmail: user.email ?? null,
-    action: 'admin.transaction.manual_create',
-    entityType: 'booking_match',
-    entityId: matchId,
-    before: null,
-    after: inserted,
+  let createdSplits: Array<{
+    recipient_type: string;
+    owner_id: number | null;
+    jurisdiction_id: string | null;
+    amount_cents: number;
+  }> = [];
+
+  const { data: existingSplits, error: existingSplitsError } = await adminClient
+    .from('transaction_splits')
+    .select('id')
+    .eq('transaction_id', inserted.id);
+
+  if (existingSplitsError) {
+    return NextResponse.json({ error: existingSplitsError.message }, { status: 500 });
+  }
+
+  if ((existingSplits ?? []).length === 0) {
+    const grandTotalCents = detail.paymentSchedule.grand_total_cents ?? null;
+    const taxExpectedCents = detail.paymentSchedule.total_tax_cents ?? 0;
+    const platformExpectedCents =
+      typeof detail.match.points_reserved === 'number' && detail.match.points_reserved > 0
+        ? Math.round(detail.match.points_reserved * 500)
+        : 0;
+    const ownerExpectedCents =
+      grandTotalCents !== null
+        ? Math.max(0, grandTotalCents - platformExpectedCents - taxExpectedCents)
+        : 0;
+
+    const baseTotal = grandTotalCents && grandTotalCents > 0 ? grandTotalCents : amountCents;
+    const safeBaseTotal = baseTotal > 0 ? baseTotal : amountCents;
+
+    const proportional = (expected: number) =>
+      Math.round((expected * amountCents) / safeBaseTotal);
+
+    let platformSplit = Math.max(0, proportional(platformExpectedCents));
+    let taxSplit = Math.max(0, proportional(taxExpectedCents));
+    if (platformSplit + taxSplit > amountCents) {
+      const overflow = platformSplit + taxSplit - amountCents;
+      if (taxSplit >= overflow) {
+        taxSplit -= overflow;
+      } else {
+        platformSplit = Math.max(0, platformSplit - (overflow - taxSplit));
+        taxSplit = 0;
+      }
+    }
+    const ownerSplit = Math.max(0, amountCents - platformSplit - taxSplit);
+
+    const { data: resortRow } = await adminClient
+      .from('resorts')
+      .select('tax_jurisdiction_id')
+      .eq('id', detail.booking?.primary_resort_id ?? '')
+      .maybeSingle();
+
+    const taxJurisdictionId = resortRow?.tax_jurisdiction_id ?? null;
+    let adjustedOwnerSplit = ownerSplit;
+    let adjustedTaxSplit = taxSplit;
+
+    if (!taxJurisdictionId && adjustedTaxSplit > 0) {
+      adjustedOwnerSplit += adjustedTaxSplit;
+      adjustedTaxSplit = 0;
+    }
+
+    const rawOwnerMembershipId = detail.match.owner_membership_id;
+    const ownerMembershipId =
+      typeof rawOwnerMembershipId === 'string'
+        ? Number(rawOwnerMembershipId)
+        : rawOwnerMembershipId ?? null;
+    const normalizedOwnerMembershipId =
+      typeof ownerMembershipId === 'number' && Number.isFinite(ownerMembershipId)
+        ? ownerMembershipId
+        : null;
+
+    let splitsSupportMeta = false;
+    const { data: metaColumnRows, error: metaColumnError } = await adminClient
+      .from('information_schema.columns')
+      .select('column_name')
+      .eq('table_schema', 'public')
+      .eq('table_name', 'transaction_splits')
+      .eq('column_name', 'meta');
+
+    if (!metaColumnError && (metaColumnRows ?? []).length > 0) {
+      splitsSupportMeta = true;
+    }
+
+    const splitMeta = splitsSupportMeta
+      ? {
+          source: 'admin_manual_auto_split',
+          match_id: matchId,
+          booking_request_id: detail.match.booking_id ?? null,
+          owner_membership_id: normalizedOwnerMembershipId,
+          owner_uuid: detail.match.owner_id ?? null,
+          expected_platform_cents: platformExpectedCents,
+          expected_owner_cents: ownerExpectedCents,
+          expected_tax_cents: taxExpectedCents,
+          allocation_basis_grand_total_cents: safeBaseTotal,
+          allocation_txn_amount_cents: amountCents,
+        }
+      : null;
+
+    const splitPayloads = [
+      {
+        transaction_id: inserted.id,
+        recipient_type: 'platform',
+        owner_id: null,
+        jurisdiction_id: null,
+        amount_cents: platformSplit,
+        ...(splitMeta ? { meta: splitMeta } : {}),
+      },
+      {
+        transaction_id: inserted.id,
+        recipient_type: 'owner',
+        owner_id: normalizedOwnerMembershipId,
+        jurisdiction_id: null,
+        amount_cents: adjustedOwnerSplit,
+        ...(splitMeta ? { meta: splitMeta } : {}),
+      },
+      {
+        transaction_id: inserted.id,
+        recipient_type: 'tax_authority',
+        owner_id: null,
+        jurisdiction_id: taxJurisdictionId,
+        amount_cents: adjustedTaxSplit,
+        ...(splitMeta ? { meta: splitMeta } : {}),
+      },
+    ].filter((split) => split.amount_cents > 0);
+
+    if (splitPayloads.length > 0) {
+      const { data: splitInsert, error: splitInsertError } = await adminClient
+        .from('transaction_splits')
+        .insert(splitPayloads)
+        .select('recipient_type, owner_id, jurisdiction_id, amount_cents');
+
+      if (splitInsertError) {
+        return NextResponse.json(
+          { error: splitInsertError.message ?? 'Failed to create splits' },
+          { status: 500 },
+        );
+      }
+
+      createdSplits = (splitInsert ?? []) as typeof createdSplits;
+    }
+  }
+
+  await logAdminEvent({
+    client: adminClient,
+    actorEmail: user.email ?? null,
+    actorUserId: user.id,
+    action: 'manual_payment.create',
+    entityType: 'transaction',
+    entityId: inserted.id,
     meta: {
-      bookingId: detail.match.booking_id ?? null,
+      match_id: matchId,
+      booking_request_id: detail.match.booking_id ?? null,
       txn_type: txnType,
       amount_cents: amountCents,
-      note: body.note ?? null,
-      source: 'admin_manual',
+      processor: 'manual',
+      status: 'succeeded',
     },
+    req: request,
   });
 
   return NextResponse.json({
@@ -155,5 +299,6 @@ export async function POST(
     bookingId: detail.match.booking_id ?? null,
     txnType,
     amount_cents: amountCents,
+    splits: createdSplits,
   });
 }

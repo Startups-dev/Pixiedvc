@@ -20,6 +20,8 @@ Schema sections are pending `information_schema` output from the database (see "
 - `src/app/api/admin/payouts/release/route.ts` — admin payout release and milestone update.
 - `src/app/api/admin/matching/[matchId]/route.ts` — admin match detail (GET) + delete (DELETE).
 - `src/app/api/admin/matching/[matchId]/expire/route.ts` — admin expire match (POST).
+- `src/app/api/admin/matching/[matchId]/rematch/route.ts` — admin rematch request (POST).
+- `src/app/api/admin/audit/route.ts` — admin audit events list (GET).
 
 ## Matching Logic (Code)
 - `src/lib/match-bookings.ts` — core evaluation and execution. Calls `apply_booking_match` RPC, returns match ids.
@@ -40,6 +42,10 @@ Schema sections are pending `information_schema` output from the database (see "
 - `rentals` — confirmed rentals (linked to booking_matches).
 - `rental_milestones` — milestone rows for rentals.
 - `payout_ledger` — owner payout stages.
+- `transactions` — unified ledger for incoming/outgoing payments.
+- `transaction_splits` — allocation of transaction amounts (platform/owner/tax).
+- `tax_jurisdictions` — tax configuration per country/region/city.
+- `tax_rates` — tax rate rows per jurisdiction.
 - `affiliate_payouts`, `affiliate_payout_runs`, `affiliate_payout_items` — affiliate payout tracking.
 
 ## Date Lens Fields (from code usage, not authoritative)

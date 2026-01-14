@@ -1,6 +1,4 @@
 import CopyButton from './CopyButton';
-import AdminMatchExpireButton from './AdminMatchExpireButton';
-import AdminMatchDeleteButton from './AdminMatchDeleteButton';
 
 function renderField(
   label: string,
@@ -22,8 +20,6 @@ export default function AdminMatchTiles({
   booking,
   match,
   owner,
-  canExpire,
-  canDelete,
 }: {
   booking: {
     id: string;
@@ -51,8 +47,6 @@ export default function AdminMatchTiles({
     display_name: string | null;
     email: string | null;
   } | null;
-  canExpire: boolean;
-  canDelete: boolean;
 }) {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -82,10 +76,6 @@ export default function AdminMatchTiles({
           {renderField('Responded at', match?.responded_at ?? null)}
           {renderField('Owner ID', match?.owner_id ?? null, match?.owner_id ?? null)}
           {renderField('Owner membership', match?.owner_membership_id ?? null)}
-        </div>
-        <div className="mt-4 space-y-3">
-          <AdminMatchExpireButton matchId={match?.id ?? ''} canExpire={canExpire} />
-          <AdminMatchDeleteButton matchId={match?.id ?? ''} disabled={!canDelete} />
         </div>
       </div>
 

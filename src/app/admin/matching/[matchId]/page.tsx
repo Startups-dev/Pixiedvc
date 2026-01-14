@@ -6,6 +6,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import AdminMatchHeader from './AdminMatchHeader';
 import AdminMatchTiles from './AdminMatchTiles';
 import AdminMatchRentalPanel from './AdminMatchRentalPanel';
+import AdminMatchControlPanel from './AdminMatchControlPanel';
+import AdminAuditTrail from './AdminAuditTrail';
 
 export default async function AdminMatchingDetailPage({
   params,
@@ -36,11 +38,6 @@ export default async function AdminMatchingDetailPage({
   const rental = detail.rental;
   const milestones = detail.milestones ?? [];
   const payouts = detail.payouts ?? [];
-  const canExpire =
-    ['pending_owner', 'pending', 'offered'].includes(match?.status ?? '') &&
-    !detail.flags.hasRental;
-  const canDelete = !detail.flags.hasRental;
-
   return (
     <div className="space-y-6">
       <Link href="/admin/matching" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
@@ -57,11 +54,18 @@ export default async function AdminMatchingDetailPage({
         booking={booking}
         match={match}
         owner={owner}
-        canExpire={canExpire}
-        canDelete={canDelete}
+      />
+
+      <AdminMatchControlPanel
+        matchId={match?.id ?? params.matchId}
+        matchStatus={match?.status ?? null}
+        hasRental={detail.flags.hasRental}
+        bookingId={booking?.id ?? null}
       />
 
       <AdminMatchRentalPanel rental={rental} milestones={milestones} payouts={payouts} />
+
+      <AdminAuditTrail entityType="booking_match" entityId={match?.id ?? params.matchId} />
     </div>
   );
 }

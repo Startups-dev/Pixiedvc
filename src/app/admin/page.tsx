@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { requireAdminUser } from '@/lib/admin';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
+import QuickLinksPanel from './QuickLinksPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -99,6 +100,8 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
         </p>
         <div className="text-xs text-slate-500">Live data · refreshed whenever you load this page</div>
       </header>
+
+      <QuickLinksPanel />
 
       <section className="grid gap-4 md:grid-cols-3">
         <SummaryCard
