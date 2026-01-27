@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { requireAdminUser } from '@/lib/admin';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
+import QuickLinksPanel from './QuickLinksPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -99,6 +100,8 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
         </p>
         <div className="text-xs text-slate-500">Live data · refreshed whenever you load this page</div>
       </header>
+
+      <QuickLinksPanel />
 
       <section className="grid gap-4 md:grid-cols-3">
         <SummaryCard
@@ -567,7 +570,7 @@ async function fetchLatestBookingRequests(supabase: AdminClient, filters: Bookin
     supabase
       .from('booking_requests')
       .select(
-        'id, lead_guest_name, lead_guest_email, check_in, check_out, status, created_at, primary_room, total_points, primary_resort:resorts(name)',
+        'id, lead_guest_name, lead_guest_email, check_in, check_out, status, created_at, primary_room, total_points, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)',
       )
       .order('created_at', { ascending: false }),
     filters,

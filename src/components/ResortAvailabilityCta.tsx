@@ -1,5 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+
+import { useReferral } from "@/hooks/useReferral";
+import { appendRefToUrl } from "@/lib/referral";
+import PrimaryCtaLink from "@/components/ui/PrimaryCtaLink";
 
 type Props = {
   slug: string;
@@ -7,6 +13,9 @@ type Props = {
 };
 
 export default function ResortAvailabilityCta({ slug, name }: Props) {
+  const { ref } = useReferral();
+  const href = appendRefToUrl(`/plan?resort=${encodeURIComponent(slug)}`, ref);
+
   return (
     <section className="mx-auto max-w-6xl px-6 pb-12">
       <div
@@ -26,13 +35,10 @@ export default function ResortAvailabilityCta({ slug, name }: Props) {
             </p>
           </div>
           <div data-cta-button className="mt-5 md:mt-0 md:justify-self-end md:pl-6">
-            <Link
-              href={`/stay-builder?resort=${encodeURIComponent(slug)}`}
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 text-sm font-semibold text-white backdrop-blur-md transition hover:border-white/30 hover:bg-white/16"
-            >
+            <PrimaryCtaLink href={href}>
               Check availability
               <ChevronRight className="h-4 w-4" />
-            </Link>
+            </PrimaryCtaLink>
           </div>
         </div>
       </div>

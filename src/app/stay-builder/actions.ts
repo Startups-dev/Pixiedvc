@@ -1,7 +1,9 @@
 'use server';
 
+import { cookies } from 'next/headers';
 import { supabaseServer } from '@/lib/supabase-server';
 import { sendBookingConfirmationEmail } from '@/lib/email';
+import { attachAffiliateLead } from '@/lib/affiliate-leads';
 import { resolveCalculatorCode } from '@/lib/resort-calculator';
 import { quoteStay } from 'pixiedvc-calculator/engine/calc';
 import type { RoomCode, ViewCode } from 'pixiedvc-calculator/engine/types';
@@ -15,7 +17,7 @@ export async function saveStayBuilderStepOne(input: {
   roomType?: RoomCode;
   viewCode?: ViewCode;
 }) {
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
   const {
     data: { user },
   } = await sb.auth.getUser();
@@ -98,7 +100,7 @@ export async function saveTravelerDetails(input: {
   marketingSource?: string;
   notes?: string;
 }) {
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
   const {
     data: { user },
   } = await sb.auth.getUser();
@@ -148,9 +150,10 @@ export async function saveGuestRoster(input: {
     email?: string;
     phone?: string;
     ageCategory: 'adult' | 'youth';
+    age?: number | null;
   }[];
 }) {
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
   const {
     data: { user },
   } = await sb.auth.getUser();
@@ -160,6 +163,12 @@ export async function saveGuestRoster(input: {
   }
 
   const filtered = input.guests.filter((guest) => guest.firstName && guest.lastName);
+  const missingChildAge = filtered.find(
+    (guest) => guest.ageCategory === 'youth' && (!guest.age || guest.age <= 0),
+  );
+  if (missingChildAge) {
+    throw new Error('Please enter the age for each child guest.');
+  }
 
   const adults = filtered.filter((guest) => guest.ageCategory === 'adult').length;
   const youths = filtered.filter((guest) => guest.ageCategory === 'youth').length;
@@ -185,6 +194,7 @@ export async function saveGuestRoster(input: {
       email: guest.email ?? null,
       phone: guest.phone ?? null,
       age_category: guest.ageCategory,
+      age: guest.age ?? null,
     }));
     const { error } = await sb.from('booking_request_guests').insert(rows);
     if (error) {
@@ -196,7 +206,8 @@ export async function saveGuestRoster(input: {
 }
 
 export async function submitStayRequest(input: { bookingId: string; acceptTerms: boolean; acknowledgeInsurance: boolean }) {
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
+  const cookieStore = await cookies();
   const {
     data: { user },
   } = await sb.auth.getUser();
@@ -223,6 +234,28 @@ export async function submitStayRequest(input: { bookingId: string; acceptTerms:
   if (error) {
     throw new Error(error.message);
   }
+
+  const referralCode = cookieStore.get('pixiedvc_ref')?.value ?? null;
+  const referralSetAt = cookieStore.get('pixiedvc_ref_set_at')?.value ?? null;
+  const referralLanding = cookieStore.get('pixiedvc_ref_landing')?.value ?? null;
+  if (referralCode) {
+    try {
+      await sb
+        .from('booking_requests')
+        .update({
+          referral_code: referralCode,
+          referral_set_at: referralSetAt,
+          referral_landing: referralLanding,
+        })
+        .eq('id', input.bookingId)
+        .eq('renter_id', user.id)
+        .is('referral_code', null);
+    } catch (err) {
+      console.warn('[referral] Unable to save referral_code on booking_requests', err);
+    }
+  }
+
+  await attachAffiliateLead(input.bookingId);
 
   const { data: booking, error: bookingError } = await sb
     .from('booking_requests')

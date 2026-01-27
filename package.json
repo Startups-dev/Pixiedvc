@@ -8,14 +8,23 @@
     "start": "next start",
     "lint": "eslint",
     "test": "VITEST=1 vitest",
-    "seed:resorts": "node scripts/seed-resorts.mjs"
+    "check:resort-images": "node scripts/check-resort-images.mjs",
+    "predeploy": "pnpm run check:resort-images",
+    "seed:resorts": "node scripts/seed-resorts.mjs",
+    "support:index": "node scripts/support-index.js",
+    "supabase:start": "supabase start",
+    "supabase:migrate": "supabase db reset",
+    "db:local": "supabase db reset",
+    "db:prod": "supabase db push",
+    "db:check": "supabase db query \"select table_name from information_schema.tables where table_schema='public' order by table_name;\""
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@mdx-js/mdx": "^3.0.1",
     "@mdx-js/react": "^3.0.1",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.76.1",
-    "@heroicons/react": "^2.2.0",
     "framer-motion": "^11.0.0",
     "gray-matter": "^4.0.3",
     "lucide-react": "^0.460.0",
@@ -42,6 +51,7 @@
     "eslint-config-next": "15.5.4",
     "jsdom": "^24.1.1",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^2.1.8"

@@ -1,5 +1,6 @@
 'use server';
 
+import { ensureOnboardingNotComplete } from './guards';
 import { supabaseServer } from '@/lib/supabase-server';
 
 async function ensureProfileRow(sb: ReturnType<typeof supabaseServer>, userId: string) {
@@ -13,7 +14,7 @@ async function ensureProfileRow(sb: ReturnType<typeof supabaseServer>, userId: s
 }
 
 export async function setRole(role: 'owner' | 'guest') {
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
   const {
     data: { user },
     error: authError,
@@ -23,6 +24,7 @@ export async function setRole(role: 'owner' | 'guest') {
     throw new Error('Not authenticated');
   }
 
+  await ensureOnboardingNotComplete(sb, user.id);
   await ensureProfileRow(sb, user.id);
 
   const { error } = await sb
@@ -44,8 +46,21 @@ export async function setRole(role: 'owner' | 'guest') {
   return { ok: true };
 }
 
-export async function saveProfile(input: { display_name?: string; phone?: string }) {
-  const sb = supabaseServer();
+export async function saveProfile(input: {
+  display_name?: string;
+  full_name?: string;
+  phone?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  region?: string;
+  postal_code?: string;
+  country?: string;
+  payout_email?: string;
+  payout_email_same_as_login?: boolean;
+  dvc_member_last4?: string;
+}) {
+  const sb = await supabaseServer();
   const {
     data: { user },
     error: authError,
@@ -55,13 +70,24 @@ export async function saveProfile(input: { display_name?: string; phone?: string
     throw new Error('Not authenticated');
   }
 
+  await ensureOnboardingNotComplete(sb, user.id);
   await ensureProfileRow(sb, user.id);
 
   const { error } = await sb
     .from('profiles')
     .update({
       display_name: input.display_name,
+      full_name: input.full_name,
       phone: input.phone,
+      address_line1: input.address_line1,
+      address_line2: input.address_line2,
+      city: input.city,
+      region: input.region,
+      postal_code: input.postal_code,
+      country: input.country,
+      payout_email: input.payout_email,
+      payout_email_same_as_login: input.payout_email_same_as_login ?? true,
+      dvc_member_last4: input.dvc_member_last4,
     })
     .eq('id', user.id);
 
@@ -81,7 +107,7 @@ export type ContractInput = {
 };
 
 export async function saveOwnerContracts(contracts: ContractInput[]) {
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
   const {
     data: { user },
     error: authError,
@@ -91,6 +117,7 @@ export async function saveOwnerContracts(contracts: ContractInput[]) {
     throw new Error('Not authenticated');
   }
 
+  await ensureOnboardingNotComplete(sb, user.id);
   const validContracts = contracts.filter((contract) => contract.resort_id);
   const totalOwned = validContracts.reduce((sum, contract) => sum + (contract.points_owned ?? 0), 0);
   const totalAvailable = validContracts.reduce((sum, contract) => sum + (contract.points_available ?? 0), 0);
@@ -110,11 +137,6 @@ export async function saveOwnerContracts(contracts: ContractInput[]) {
     throw new Error(ownerError.message);
   }
 
-  const { error: deleteError } = await sb.from('owner_memberships').delete().eq('owner_id', user.id);
-  if (deleteError) {
-    throw new Error(deleteError.message);
-  }
-
   if (validContracts.length) {
     const rows = validContracts.map((contract) => ({
       owner_id: user.id,
@@ -125,7 +147,9 @@ export async function saveOwnerContracts(contracts: ContractInput[]) {
       points_available: contract.points_available ?? null,
     }));
 
-    const { error } = await sb.from('owner_memberships').insert(rows);
+    const { error } = await sb
+      .from('owner_memberships')
+      .upsert(rows, { onConflict: 'owner_id,resort_id,use_year,contract_year' });
     if (error) {
       throw new Error(error.message);
     }
@@ -135,7 +159,7 @@ export async function saveOwnerContracts(contracts: ContractInput[]) {
 }
 
 export async function saveGuestPrefs(input: { dates_pref?: string; favorite_resorts?: string[] }) {
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
   const {
     data: { user },
     error: authError,
@@ -145,6 +169,7 @@ export async function saveGuestPrefs(input: { dates_pref?: string; favorite_reso
     throw new Error('Not authenticated');
   }
 
+  await ensureOnboardingNotComplete(sb, user.id);
   const { error } = await sb
     .from('guest_preferences')
     .upsert(
@@ -164,7 +189,7 @@ export async function saveGuestPrefs(input: { dates_pref?: string; favorite_reso
 }
 
 export async function completeOnboarding() {
-  const sb = supabaseServer();
+  const sb = await supabaseServer();
   const {
     data: { user },
     error: authError,
@@ -174,6 +199,7 @@ export async function completeOnboarding() {
     throw new Error('Not authenticated');
   }
 
+  await ensureOnboardingNotComplete(sb, user.id);
   await ensureProfileRow(sb, user.id);
 
   const { data: profile, error: profileError } = await sb
@@ -188,7 +214,10 @@ export async function completeOnboarding() {
 
   const { error } = await sb
     .from('profiles')
-    .update({ onboarding_completed: true })
+    .update({
+      onboarding_completed: true,
+      onboarding_completed_at: new Date().toISOString(),
+    })
     .eq('id', user.id);
 
   if (error) {
@@ -202,6 +231,15 @@ export async function completeOnboarding() {
       role: profile?.role ?? user.user_metadata?.role,
     },
   });
+
+  if (profile?.role === 'owner') {
+    await sb
+      .from('owner_verifications')
+      .upsert(
+        { owner_id: user.id, status: 'not_started' },
+        { onConflict: 'owner_id', ignoreDuplicates: true },
+      );
+  }
 
   return { ok: true, next: profile?.role === 'owner' ? '/owner' : '/guest' };
 }

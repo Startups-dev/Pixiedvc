@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FormProvider, useForm } from "react-hook-form";
 
@@ -9,6 +9,8 @@ import { Card } from "@pixiedvc/design-system";
 import { AgreementAndPayment } from "./steps/AgreementAndPayment";
 import { GuestInfo } from "./steps/GuestInfo";
 import { TripDetails } from "./steps/TripDetails";
+import { getMaxOccupancyForSelection } from "@/lib/occupancy";
+import { useReferral } from "@/hooks/useReferral";
 import type { Prefill, OnComplete } from "./types";
 import {
   AgreementInput,
@@ -17,7 +19,7 @@ import {
   bookingFlowSchema,
 } from "./schemas";
 
-const depositAmount = 105;
+const depositAmount = 99;
 
 type StepKey = "trip" | "guest" | "agreement";
 
@@ -27,6 +29,7 @@ type FormValues = {
   trip: TripDetailsInput;
   guest: GuestInfoInput;
   agreement: AgreementInput;
+  referralCode?: string;
 };
 
 const motionVariants = {
@@ -43,6 +46,7 @@ type BookingFlowProps = {
 export function BookingFlow({ prefill, onComplete }: BookingFlowProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const { ref } = useReferral();
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -58,16 +62,23 @@ export function BookingFlow({ prefill, onComplete }: BookingFlowProps) {
         altResortId: prefill.altResortId,
       },
       guest: {
-        leadGuest: "",
+        leadTitle: "Mr.",
+        leadFirstName: "",
+        leadMiddleInitial: "",
+        leadLastName: "",
+        leadSuffix: "",
         email: "",
         phone: "",
-        adults: 2,
+        adults: 1,
         youths: 0,
         address: "",
         city: "",
         region: "",
         postalCode: "",
         country: "United States",
+        adultGuests: [],
+        childGuests: [],
+        leadGuest: "",
         additionalGuests: [],
         referralSource: "",
         comments: "",
@@ -79,9 +90,16 @@ export function BookingFlow({ prefill, onComplete }: BookingFlowProps) {
         captchaToken: "",
         gateway: "stripe",
       },
+      referralCode: undefined,
     },
     mode: "onBlur",
   });
+
+  useEffect(() => {
+    if (ref) {
+      form.setValue("referralCode", ref, { shouldDirty: false });
+    }
+  }, [form, ref]);
 
   const currentStep = stepOrder[stepIndex];
 
@@ -91,7 +109,67 @@ export function BookingFlow({ prefill, onComplete }: BookingFlowProps) {
   const handleComplete = form.handleSubmit(async (values) => {
     setError(null);
     try {
+      const maxOccupancy = getMaxOccupancyForSelection({
+        roomLabel: values.trip.villaType,
+        resortCode: values.trip.resortId,
+      });
+      const totalGuests =
+        1 + (values.guest.adultGuests?.length ?? 0) + (values.guest.childGuests?.length ?? 0);
+      if (totalGuests > maxOccupancy) {
+        setStepIndex(stepOrder.indexOf("guest"));
+        setError("Please choose a guest count that fits the villa’s maximum occupancy.");
+        return;
+      }
       const parsed = bookingFlowSchema.parse(values);
+      const middleInitial = parsed.guest.leadMiddleInitial?.trim() ?? "";
+      const middleToken = middleInitial ? (middleInitial.endsWith(".") ? middleInitial : `${middleInitial}.`) : "";
+      const leadGuestName = [
+        parsed.guest.leadTitle,
+        parsed.guest.leadFirstName,
+        middleToken,
+        parsed.guest.leadLastName,
+        parsed.guest.leadSuffix,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+      const adultNames = (parsed.guest.adultGuests ?? []).map((guest) =>
+        [
+          guest.title,
+          guest.firstName,
+          guest.middleInitial
+            ? guest.middleInitial.endsWith(".")
+              ? guest.middleInitial
+              : `${guest.middleInitial}.`
+            : null,
+          guest.lastName,
+          guest.suffix,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim(),
+      );
+      const childNames = (parsed.guest.childGuests ?? []).map((guest) =>
+        [
+          guest.title,
+          guest.firstName,
+          guest.middleInitial
+            ? guest.middleInitial.endsWith(".")
+              ? guest.middleInitial
+              : `${guest.middleInitial}.`
+            : null,
+          guest.lastName,
+          guest.suffix,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim(),
+      );
+      const adults = 1 + (parsed.guest.adultGuests?.length ?? 0);
+      const youths = parsed.guest.childGuests?.length ?? 0;
       const response = await fetch("/api/booking/create", {
         method: "POST",
         headers: {
@@ -99,7 +177,15 @@ export function BookingFlow({ prefill, onComplete }: BookingFlowProps) {
         },
         body: JSON.stringify({
           ...parsed,
+          guest: {
+            ...parsed.guest,
+            leadGuest: leadGuestName,
+            additionalGuests: [...adultNames, ...childNames].filter(Boolean),
+            adults,
+            youths,
+          },
           depositAmount,
+          referral_code: ref ?? null,
         }),
       });
 
@@ -133,20 +219,20 @@ export function BookingFlow({ prefill, onComplete }: BookingFlowProps) {
   return (
     <FormProvider {...form}>
       <div className="space-y-6">
-        <Card className="bg-white/80">
+        <Card className="border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-muted">Booking Flow</p>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Booking Flow</p>
               <h2 className="font-display text-3xl text-ink">
                 {stepIndex + 1} / {stepOrder.length} — {stepLabel}
               </h2>
             </div>
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-muted">
+            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs uppercase tracking-[0.2em] text-slate-600 shadow-sm">
               <span className="inline-flex h-2 w-2 rounded-full bg-brand" aria-hidden />
               Deposit ${depositAmount}
             </div>
           </div>
-          <div className="mt-4 h-1 rounded-full bg-white/50">
+          <div className="mt-4 h-1 rounded-full bg-slate-100">
             <div
               className="h-full rounded-full bg-brand transition-all"
               style={{ width: `${((stepIndex + 1) / stepOrder.length) * 100}%` }}

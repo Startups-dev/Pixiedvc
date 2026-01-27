@@ -1,17 +1,10 @@
-const SUPABASE_PUBLIC_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-export function buildSupabasePublicUrl(bucket: string, objectPath: string) {
-  if (!SUPABASE_PUBLIC_URL) {
-    return "";
+export function getPublicStorageUrl(bucket: string, path: string): string {
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!baseUrl) {
+    throw new Error("NEXT_PUBLIC_SUPABASE_URL is required to build storage URLs.");
   }
-
-  let origin: string;
-  try {
-    origin = new URL(SUPABASE_PUBLIC_URL).origin;
-  } catch {
-    return "";
-  }
-
-  const cleanPath = objectPath.replace(/^\/+/, "");
-  return `${origin}/storage/v1/object/public/${bucket}/${cleanPath}`;
+  const normalizedBase = baseUrl.replace(/\/$/, "");
+  return `${normalizedBase}/storage/v1/object/public/${bucket}/${path}`;
 }
+
+export const buildSupabasePublicUrl = getPublicStorageUrl;

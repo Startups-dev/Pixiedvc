@@ -1,14 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { Button } from "@pixiedvc/design-system";
-
 const navLinks = [
   { name: "Our Story", href: "/our-story" },
   { name: "Resorts", href: "/resorts" },
   { name: "Owners", href: "/owners" },
   { name: "Guests", href: "/guests" },
-  { name: "Get to Know", href: "/get-to-know" },
+  { name: "How It Works", href: "/how-it-works" },
+  { name: "Guides", href: "/guides" },
+  { name: "Get to Know", href: "/our-story" },
   { name: "Contact", href: "/contact" },
 ];
 
@@ -39,9 +39,6 @@ export function SiteHeader({ variant = "transparent" }: { variant?: "transparent
           >
             Member Login
           </Link>
-          <Button asChild className="bg-gradient-to-r from-[#2b3a70] via-[#384b94] to-[#9aa7ff] text-white">
-            <Link href="/signup">Join the Waitlist</Link>
-          </Button>
         </div>
       </div>
     </header>

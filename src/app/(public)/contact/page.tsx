@@ -1,65 +1,97 @@
-import { Card, FieldLabel, TextArea, TextInput, Button } from "@pixiedvc/design-system";
-import { SiteHeader } from "@/components/site-header";
+import Link from "next/link";
+
+import { Button, Card, FieldLabel, TextArea, TextInput } from "@pixiedvc/design-system";
 
 export default function ContactPage() {
+  const control =
+    "mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 ring-1 ring-slate-200 shadow-sm " +
+    "placeholder:text-slate-400 transition-colors " +
+    "hover:border-slate-400 hover:ring-slate-300 " +
+    "focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 focus:ring-offset-0 " +
+    "disabled:cursor-not-allowed disabled:opacity-60";
+
   return (
     <div className="min-h-screen bg-surface text-ink">
-      <SiteHeader variant="solid" />
       <div className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0 -z-10 opacity-70">
           <div className="absolute left-[40%] top-[-15%] h-[360px] w-[360px] rounded-full bg-brand/20 blur-3xl" />
           <div className="absolute right-[-10%] top-[35%] h-[320px] w-[320px] rounded-full bg-lavender/40 blur-3xl" />
         </div>
-        <main className="relative z-10 mx-auto grid max-w-6xl gap-12 px-6 py-20 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="space-y-6">
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted shadow-sm backdrop-blur">
-              Concierge Team
-            </span>
-            <h1 className="font-display text-4xl leading-tight text-ink sm:text-5xl lg:text-6xl">
-              We are one message away from sprinkling pixie dust on your plans.
-            </h1>
-            <p className="max-w-xl text-lg text-muted">
-              Owners, guests, and partners receive responses within 24 hours (often much faster). Share a few
-              details and we will route your note to the right concierge.
-            </p>
-            <Card className="bg-white/85">
-              <p className="text-sm text-muted">Prefer email?</p>
-              <p className="mt-2 text-lg font-semibold text-ink">concierge@pixiedvc.com</p>
-              <p className="text-lg font-semibold text-ink">owners@pixiedvc.com</p>
-              <p className="text-xs uppercase tracking-[0.2em] text-muted">Mon–Sat · 8a – 8p ET</p>
+        <main className="relative z-10 mx-auto max-w-6xl px-6 py-20">
+          <div className="grid gap-12 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="space-y-6">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted shadow-sm backdrop-blur">
+                Concierge Team
+              </span>
+              <h1 className="font-display text-3xl leading-tight tracking-tight text-ink sm:text-4xl lg:text-5xl">
+                We’re one message away from your perfect DVC stay.
+              </h1>
+              <p className="max-w-prose text-base text-slate-600 sm:text-lg">
+                Owners, guests, and partners receive responses within 24 hours (often much faster). Share a few
+                details and we’ll route your note to the right concierge.
+              </p>
+              <div className="space-y-2 text-sm text-slate-600">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Prefer email?</p>
+                <p className="text-base font-semibold text-ink">concierge@pixiedvc.com</p>
+                <p className="text-base font-semibold text-ink">owners@pixiedvc.com</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Mon–Sat · 8a–8p ET</p>
+              </div>
+            </div>
+
+            <Card className="bg-white/90">
+              <form className="space-y-6">
+                <div>
+                  <FieldLabel htmlFor="name">Name</FieldLabel>
+                  <TextInput id="name" className={control} placeholder="Mickey Mouse" />
+                </div>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <FieldLabel htmlFor="email">Email</FieldLabel>
+                    <TextInput id="email" type="email" className={control} placeholder="mickey@pixiedvc.com" />
+                  </div>
+                  <div>
+                    <FieldLabel htmlFor="role">I am a</FieldLabel>
+                    <select id="role" className={`${control} appearance-none`}>
+                      <option value="guest">Guest</option>
+                      <option value="owner">Owner</option>
+                      <option value="partner">Partner</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <FieldLabel htmlFor="message">How can we help?</FieldLabel>
+                  <TextArea
+                    id="message"
+                    rows={5}
+                    className={control}
+                    placeholder="Tell us about your stay, dates, or what you’d like help with."
+                  />
+                </div>
+                <Button type="submit">Send Message</Button>
+              </form>
             </Card>
           </div>
-          <Card className="bg-white/90">
-            <form className="space-y-6">
-              <div>
-                <FieldLabel htmlFor="name">Name</FieldLabel>
-                <TextInput id="name" placeholder="Tiana Rivera" />
+
+          <section className="mt-12 rounded-[32px] bg-gradient-to-r from-[#0b1224] via-[#151c38] to-[#2b3a70] p-8 text-white shadow-[0_30px_70px_rgba(11,14,26,0.25)]">
+            <div className="grid gap-8 lg:grid-cols-[1.4fr_0.6fr] lg:items-center">
+              <div className="space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">
+                  Affiliates & Partners
+                </p>
+                <h2 className="font-display text-2xl sm:text-3xl">
+                  Earn up to 8% referring DVC bookings.
+                </h2>
+                <p className="max-w-prose text-sm text-white/75 sm:text-base">
+                  Transparent tracking. Monthly payouts. See every click, booking, and commission in real time.
+                </p>
               </div>
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div>
-                  <FieldLabel htmlFor="email">Email</FieldLabel>
-                  <TextInput id="email" type="email" placeholder="tiana@baylakeclub.com" />
-                </div>
-                <div>
-                  <FieldLabel htmlFor="role">Role</FieldLabel>
-                  <select
-                    id="role"
-                    className="mt-2 w-full rounded-2xl border border-ink/10 bg-white/80 px-4 py-3 text-sm text-ink shadow-[0_12px_30px_rgba(15,23,42,0.08)] focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
-                  >
-                    <option value="guest">Guest</option>
-                    <option value="owner">Owner</option>
-                    <option value="partner">Partner</option>
-                    <option value="press">Press</option>
-                  </select>
-                </div>
+              <div className="flex flex-col items-start gap-3 lg:items-end">
+                <Link href="/affiliate/login" className="text-sm font-semibold text-white/80 hover:text-white">
+                  Learn about our affiliate program →
+                </Link>
               </div>
-              <div>
-                <FieldLabel htmlFor="message">How can we help?</FieldLabel>
-                <TextArea id="message" rows={5} placeholder="Share details about your stay or question." />
-              </div>
-              <Button type="submit">Send Message</Button>
-            </form>
-          </Card>
+            </div>
+          </section>
         </main>
       </div>
     </div>

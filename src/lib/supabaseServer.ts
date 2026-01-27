@@ -1,5 +1,2 @@
-import { supabaseServer } from './supabase-server';
-
-export function createClient() {
-  return supabaseServer();
-}
+// src/lib/supabaseServer.ts
+export { supabaseServer, createSupabaseServerClient } from "./supabase-server";

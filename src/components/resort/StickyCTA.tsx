@@ -3,12 +3,19 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { useReferral } from "@/hooks/useReferral";
+import { appendRefToUrl } from "@/lib/referral";
+
 type Props = {
   resortName: string;
+  resortSlug?: string;
 };
 
-export default function StickyCTA({ resortName }: Props) {
+export default function StickyCTA({ resortName, resortSlug }: Props) {
   const [visible, setVisible] = useState(false);
+  const { ref } = useReferral();
+  const baseHref = resortSlug ? `/plan?resort=${encodeURIComponent(resortSlug)}` : "/plan";
+  const href = appendRefToUrl(baseHref, ref);
 
   useEffect(() => {
     const onScroll = () => {
@@ -31,8 +38,9 @@ export default function StickyCTA({ resortName }: Props) {
           Ready to stay at <strong>{resortName}</strong>?
         </span>
         <Link
-          href="/trip-builder"
-          className="rounded-full bg-gradient-to-r from-[#d9a64f] to-[#f6e58d] px-4 py-1.5 text-sm font-semibold text-[#0F2148] transition hover:brightness-105"
+          href={href}
+          className="rounded-full bg-gradient-to-r from-[#d9a64f] to-[#f6e58d] px-4 py-1.5 text-sm font-semibold tracking-[0.01em] !text-[#0F2148] transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+          style={{ color: "#0F2148" }}
         >
           View Availability
         </Link>

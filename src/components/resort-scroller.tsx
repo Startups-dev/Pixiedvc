@@ -33,7 +33,11 @@ export function ResortScroller({ resorts }: ResortScrollerProps) {
           <Link
             key={resort.slug}
             href={`/resorts/${resort.slug}#gallery`}
-            className="group relative h-[220px] w-[280px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-[2px] shadow-[0_10px_30px_rgba(0,0,0,0.25)] transition hover:-translate-y-1 hover:shadow-[0_16px_42px_rgba(8,12,30,0.32)] sm:w-[320px]"
+            className="group relative h-[220px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-[2px] shadow-[0_10px_30px_rgba(0,0,0,0.25)] transition hover:-translate-y-1 hover:shadow-[0_16px_42px_rgba(8,12,30,0.32)]"
+            style={{
+              flex: '0 0 min(310px, calc((100% - 1rem) / 2 - 10px))',
+              width: 'min(310px, calc((100% - 1rem) / 2 - 10px))',
+            }}
             aria-label={resort.name}
           >
             {isRelative ? (

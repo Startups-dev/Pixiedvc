@@ -1,5 +1,7 @@
 export const FALLBACK_CALC_CODE_BY_SLUG: Record<string, string> = {
   'animal-kingdom-villas': 'AKV',
+  'animal-kingdom-jambo': 'AKV',
+  'animal-kingdom-kidani': 'AKV',
   aulani: 'AUL',
   'bay-lake-tower': 'BLT',
   'beach-club-villas': 'BCV',

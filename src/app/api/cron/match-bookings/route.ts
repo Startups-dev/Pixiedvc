@@ -1,46 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
-import { sendOwnerMatchEmail } from '@/lib/email';
+import { runMatchBookings, type MatchRunResult } from '@/lib/match-bookings';
 
-type BookingRow = {
-  id: string;
-  primary_resort_id: string | null;
-  total_points: number | null;
-  status: string;
-  check_in: string | null;
-  check_out: string | null;
-  primary_resort?: {
-    name: string | null;
-  } | null;
-  lead_guest_name: string | null;
-  lead_guest_email: string | null;
-  booking_matches?: { status: string | null }[] | null;
-};
+function getProvidedSecret(headers: Headers) {
+  const headerSecret = headers.get('x-cron-secret');
+  if (headerSecret) return headerSecret;
 
-type ProfileRow = {
-  id: string;
-  email: string | null;
-  display_name: string | null;
-};
+  const auth = headers.get('authorization');
+  if (!auth) return null;
+  const [type, token] = auth.split(' ');
+  if (type?.toLowerCase() !== 'bearer') return null;
+  return token ?? null;
+}
 
-type OwnerRow = {
-  id: string;
-  verification: string | null;
-  profiles: ProfileRow | ProfileRow[] | null;
-};
+async function countTableRows(client: ReturnType<typeof getSupabaseAdminClient>, table: string, step: string, errors: MatchRunResult['errors']) {
+  if (!client) return null;
+  const { count, error } = await client.from(table).select('id', { head: true, count: 'exact' });
+  if (error) {
+    errors.push({ step, message: error.message });
+    return null;
+  }
+  return typeof count === 'number' ? count : null;
+}
 
-type MembershipRow = {
-  id: number;
-  owner_id: string;
-  resort_id: string;
-  points_available: number | null;
-  owner?: OwnerRow | null;
-};
+function parseProjectRef(url?: string | null) {
+  if (!url) return null;
+  try {
+    const host = new URL(url).hostname;
+    return host.split('.')[0] ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+async function handleMatchBookings(request: NextRequest) {
+  let dryRun = request.nextUrl.searchParams.get('dryRun') === '1';
+  if (request.method === 'POST') {
+    try {
+      const payload = (await request.json()) as { dryRun?: boolean } | null;
+      if (payload?.dryRun) {
+        dryRun = true;
+      }
+    } catch {
+      // Ignore malformed JSON; dryRun stays based on query params.
+    }
+  }
+
+  const cronSecret = process.env.CRON_SECRET;
+  const providedSecret = getProvidedSecret(request.headers);
+  const nodeEnv = process.env.NODE_ENV;
+  const hasCronSecret = Boolean(cronSecret);
+  const hasHeaderSecret = Boolean(request.headers.get('x-cron-secret'));
+  const hasAuthHeader = Boolean(request.headers.get('authorization'));
+
+  if (!cronSecret || providedSecret !== cronSecret) {
+    const unauthorizedPayload = { error: 'Unauthorized' };
+    if (nodeEnv === 'development') {
+      return NextResponse.json(
+        {
+          ...unauthorizedPayload,
+          debug: {
+            hasCronSecret,
+            hasHeaderSecret,
+            hasAuthHeader,
+          },
+        },
+        { status: 401 },
+      );
+    }
+    return NextResponse.json(unauthorizedPayload, { status: 401 });
+  }
+
   const client = getSupabaseAdminClient();
   if (!client) {
     return NextResponse.json(
@@ -49,203 +82,188 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // 1) Load submitted booking requests that need matching
-  const { data: bookings, error: bookingError } = await client
-    .from('booking_requests')
-    .select(
-      `
-        id,
-        primary_resort_id,
-        total_points,
-        status,
-        check_in,
-        check_out,
-        lead_guest_name,
-        lead_guest_email,
-        primary_resort:resorts(name),
-        booking_matches(status)
-      `,
-    )
-    .eq('status', 'submitted')
-    .limit(20);
+  const lockName = 'match-bookings';
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const lockUntil = new Date(now.getTime() + 60_000).toISOString();
 
-  if (bookingError) {
-    return NextResponse.json(
-      { error: bookingError.message },
-      { status: 500 },
-    );
+  if (!dryRun) {
+    const { error: lockInsertError } = await client
+      .from('cron_locks')
+      .upsert(
+        { name: lockName, locked_until: nowIso },
+        { onConflict: 'name', ignoreDuplicates: true },
+      );
+
+    if (lockInsertError) {
+      return NextResponse.json(
+        { error: lockInsertError.message },
+        { status: 500 },
+      );
+    }
+
+    const { data: lockRows, error: lockError } = await client
+      .from('cron_locks')
+      .update({ locked_until: lockUntil })
+      .eq('name', lockName)
+      .lt('locked_until', nowIso)
+      .select('locked_until');
+
+    if (lockError) {
+      return NextResponse.json(
+        { error: lockError.message },
+        { status: 500 },
+      );
+    }
+
+    if (!lockRows || lockRows.length === 0) {
+      const { data: existingLock } = await client
+        .from('cron_locks')
+        .select('locked_until')
+        .eq('name', lockName)
+        .maybeSingle();
+
+      return NextResponse.json(
+        { error: 'Locked', locked_until: existingLock?.locked_until ?? null },
+        { status: 429 },
+      );
+    }
   }
 
-  const createdMatches: string[] = [];
   const origin = request.nextUrl.origin;
+  const result = await runMatchBookings({
+    client,
+    origin,
+    dryRun,
+    now,
+    sendEmails: !dryRun,
+  });
 
-  for (const booking of (bookings ?? []) as BookingRow[]) {
-    // --- Basic sanity checks ------------------------------------
-    if (
-      !booking.primary_resort_id ||
-      !booking.total_points ||
-      booking.total_points <= 0
-    ) {
-      continue;
-    }
+  const responseErrors: MatchRunResult['errors'] = [...result.errors];
+  const evaluatedBookings = result.evaluatedBookings.map((booking) => ({
+    ...booking,
+    skipReasons: [...booking.skipReasons],
+  }));
+  const evaluatedMap = new Map(
+    evaluatedBookings.map((booking, index) => [booking.bookingId, index]),
+  );
 
-    // Skip if this booking already has a pending owner match
-    const hasPendingMatch = (booking.booking_matches ?? []).some(
-      (match) => match.status === 'pending_owner',
-    );
-    if (hasPendingMatch) {
-      continue;
-    }
+  const verifiedMatchIds: string[] = [];
 
-    // 2) Find candidate memberships with enough points at this resort
-    const {
-      data: memberships,
-      error: membershipError,
-    } = await client
-      .from('owner_memberships')
-      .select(
-        `
-        id,
-        owner_id,
-        resort_id,
-        points_available,
-        owner:owners (
-          id,
-          verification,
-          profiles:profiles!owners_user_id_fkey (
-            id,
-            email,
-            display_name
-          )
-        )
-      `,
-      )
-      .eq('resort_id', booking.primary_resort_id)
-      .gte('points_available', booking.total_points)
-      .order('points_available', { ascending: true })
-      .limit(10);
-
-    if (membershipError) {
-      console.error('Failed to load memberships for match', membershipError);
-      continue;
-    }
-
-    if (!memberships || memberships.length === 0) {
-      // No owners with enough points for this resort
-      continue;
-    }
-
-    // 3) In TS: only verified owners AND ones with a usable email
-    const membership = (memberships as MembershipRow[]).find((m) => {
-      const owner = m.owner;
-      if (!owner || owner.verification !== 'verified') return false;
-
-      const profiles = owner.profiles;
-      const profile = Array.isArray(profiles) ? profiles[0] : profiles;
-      return !!profile?.email;
-    });
-
-    if (!membership) {
-      // No verified owners with an email in this batch
-      continue;
-    }
-
-    const ownerProfiles = membership.owner?.profiles;
-    const ownerProfile: ProfileRow | null = Array.isArray(ownerProfiles)
-      ? ownerProfiles[0] ?? null
-      : ownerProfiles ?? null;
-
-    const ownerEmail: string | null = ownerProfile?.email ?? null;
-    const ownerName: string =
-      ownerProfile?.display_name ?? 'PixieDVC Owner';
-
-    if (!ownerEmail) {
-      // Shouldn't happen because we filtered above, but guard anyway
-      continue;
-    }
-
-    // 4) Reserve the owner points with an optimistic lock
-    const {
-      data: reservedRow,
-      error: reserveError,
-    } = await client
-      .from('owner_memberships')
-      .update({
-        points_available: Math.max(
-          (membership.points_available ?? 0) - (booking.total_points ?? 0),
-          0,
-        ),
-      })
-      .eq('id', membership.id)
-      .gte('points_available', booking.total_points)
-      .select('id')
-      .maybeSingle();
-
-    if (reserveError) {
-      console.error('Failed to reserve owner points', reserveError);
-      continue;
-    }
-
-    if (!reservedRow) {
-      // Another process may have consumed these points first
-      continue;
-    }
-
-    // 5) Create the booking_match row
-    const {
-      data: matchRow,
-      error: matchError,
-    } = await client
+  for (const { matchId, bookingId } of result.matchResults) {
+    const { data: matchRow, error: matchError } = await client
       .from('booking_matches')
-      .insert({
-        booking_id: booking.id,
-        owner_id: membership.owner_id,
-        points_reserved: booking.total_points,
-        status: 'pending_owner',
-      })
       .select('id')
+      .eq('id', matchId)
       .maybeSingle();
 
-    if (matchError || !matchRow) {
-      console.error('Failed to insert booking_match', matchError);
-      // Optionally you could roll back the points reservation here
+    if (matchError) {
+      responseErrors.push({
+        bookingId,
+        step: 'verify_match',
+        message: matchError.message,
+      });
       continue;
     }
 
-    createdMatches.push(matchRow.id);
-
-    // 6) Update booking status to reflect that we're waiting on the owner
-    await client
-      .from('booking_requests')
-      .update({ status: 'pending_owner' })
-      .eq('id', booking.id);
-
-    // 7) Send email to owner with Accept / Decline links
-    const acceptUrl = `${origin}/api/matches/owner/accept?matchId=${matchRow.id}`;
-    const declineUrl = `${origin}/api/matches/owner/decline?matchId=${matchRow.id}`;
-
-    try {
-      await sendOwnerMatchEmail({
-        to: ownerEmail,
-        ownerName,
-        resortName: booking.primary_resort?.name ?? 'your DVC resort',
-        checkIn: booking.check_in,
-        checkOut: booking.check_out,
-        totalPoints: booking.total_points,
-        leadGuestName: booking.lead_guest_name,
-        leadGuestEmail: booking.lead_guest_email,
-        acceptUrl,
-        declineUrl,
+    if (!matchRow) {
+      responseErrors.push({
+        bookingId,
+        step: 'verify_match',
+        message: 'match_not_found',
       });
-    } catch (emailError) {
-      console.error('Failed to send owner match email', emailError);
-      // We still keep the match; email can be retried separately
+      continue;
+    }
+
+    verifiedMatchIds.push(matchId);
+  }
+
+  const bookingMatchesCount = await countTableRows(
+    client,
+    'booking_matches',
+    'count_booking_matches',
+    responseErrors,
+  );
+  const bookingRequestsCount = await countTableRows(
+    client,
+    'booking_requests',
+    'count_booking_requests',
+    responseErrors,
+  );
+
+  const projectRef = parseProjectRef(process.env.NEXT_PUBLIC_SUPABASE_URL ?? null);
+  const adminHasServiceKey = Boolean(
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SERVICE_ROLE,
+  );
+  const adminProjectRef = parseProjectRef(process.env.NEXT_PUBLIC_SUPABASE_URL ?? null);
+
+  for (const error of responseErrors) {
+    if (error.step !== 'verify_match') {
+      continue;
+    }
+    const index = evaluatedMap.get(error.bookingId);
+    if (index === undefined) {
+      continue;
+    }
+    evaluatedBookings[index] = {
+      ...evaluatedBookings[index],
+      finalDecision: 'skipped',
+      skipReasons: Array.from(
+        new Set([...evaluatedBookings[index].skipReasons, 'match_verify_failed']),
+      ),
+    };
+  }
+
+  for (const { matchId, bookingId } of result.matchResults) {
+    if (!verifiedMatchIds.includes(matchId)) {
+      const index = evaluatedMap.get(bookingId);
+      if (index === undefined) {
+        continue;
+      }
+      evaluatedBookings[index] = {
+        ...evaluatedBookings[index],
+        finalDecision: 'skipped',
+        skipReasons: Array.from(
+          new Set([...evaluatedBookings[index].skipReasons, 'match_verify_failed']),
+        ),
+      };
     }
   }
 
-  return NextResponse.json({
-    matchesCreated: createdMatches.length,
-    matchIds: createdMatches,
-  });
+  const payload = {
+    ...result,
+    matchesCreated: verifiedMatchIds.length,
+    matchIds: verifiedMatchIds,
+    errors: responseErrors,
+    dryRun: result.dryRun,
+    ok: responseErrors.length === 0,
+    dbCounts: {
+      bookingMatchesCount: bookingMatchesCount ?? 0,
+      bookingRequestsCount: bookingRequestsCount ?? 0,
+    },
+    projectRef,
+    evaluatedBookings,
+  };
+
+  if (nodeEnv === 'development') {
+    payload.debug = {
+      adminHasServiceKey,
+      adminProjectRef,
+      writePath: 'rpc:apply_booking_match',
+    };
+  }
+
+  if (!payload.ok) {
+    return NextResponse.json(payload, { status: 500 });
+  }
+
+  return NextResponse.json(payload);
 }
 
+export async function GET(request: NextRequest) {
+  return handleMatchBookings(request);
+}
+
+export async function POST(request: NextRequest) {
+  return handleMatchBookings(request);
+}

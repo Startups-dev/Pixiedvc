@@ -4,8 +4,7 @@ const DISCLAIMER =
   "PixieDVC is an independent vacation rental platform and is not affiliated with, sponsored by, or endorsed by The Walt Disney Company or Disney Vacation Club®. Disney trademarks and resort names are used for informational purposes only and remain the property of their respective owners.";
 
 const COMPANY_LINKS = [
-  { label: "Our Story", href: "/our-story" },
-  { label: "About", href: "/get-to-know" },
+    { label: "Our Story", href: "/our-story" },
   { label: "Contact", href: "/contact" },
   { label: "FAQ", href: "/faq" },
 ];
@@ -19,6 +18,7 @@ const LEGAL_LINKS = [
 const EXPLORE_LINKS = [
   { label: "Resorts", href: "/resorts" },
   { label: "How it works", href: "/how-it-works" },
+  { label: "Guides", href: "/guides" },
   { label: "Owners", href: "/owners" },
   { label: "Guests", href: "/guests" },
 ];

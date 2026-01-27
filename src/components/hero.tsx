@@ -3,7 +3,9 @@ import Link from "next/link";
 
 import { Button } from "@pixiedvc/design-system";
 import { ResortScroller } from "@/components/resort-scroller";
+import { getPublicMarketMetrics } from "@/lib/market-metrics";
 import { getResortSummaries } from "@/lib/resorts";
+import ReferralLink from "@/components/referral/ReferralLink";
 
 const CURATED_FEATURED = [
   {
@@ -11,7 +13,7 @@ const CURATED_FEATURED = [
     name: "Bay Lake Tower",
     location: "Magic Kingdom Skyline",
     tags: ["Monorail", "Firework Views"],
-    pointsRange: "18–32 pts/night",
+    pointsRange: "18–32 nightly",
     cardImage: "/images/Bay Lake.png",
   },
   {
@@ -19,7 +21,7 @@ const CURATED_FEATURED = [
     name: "Grand Floridian Villas",
     location: "Seven Seas Lagoon",
     tags: ["Victorian", "Spa"],
-    pointsRange: "22–40 pts/night",
+    pointsRange: "22–40 nightly",
     cardImage: "/images/Beach Club.png",
   },
   {
@@ -27,7 +29,7 @@ const CURATED_FEATURED = [
     name: "Disney's Riviera Resort",
     location: "Epcot Resort Area",
     tags: ["Skyliner", "European Flair"],
-    pointsRange: "20–38 pts/night",
+    pointsRange: "20–38 nightly",
     cardImage: "/images/Riviera.png",
   },
   {
@@ -35,13 +37,22 @@ const CURATED_FEATURED = [
     name: "Polynesian Villas & Bungalows",
     location: "Seven Seas Lagoon",
     tags: ["Overwater", "Dole Whip"],
-    pointsRange: "24–50 pts/night",
+    pointsRange: "24–50 nightly",
     cardImage: "/images/Polynesian.png",
   },
 ];
 
 export async function Hero() {
   const liveResorts = await getResortSummaries();
+  const metrics = await getPublicMarketMetrics("walt-disney-world");
+  const updatedHours = metrics.updatedAt
+    ? Math.max(
+        1,
+        Math.round(
+          (Date.now() - new Date(metrics.updatedAt).getTime()) / (1000 * 60 * 60),
+        ),
+      )
+    : null;
 
   const map = new Map(liveResorts.map((resort) => [resort.slug, resort]));
   const combined = [...liveResorts];
@@ -56,7 +67,6 @@ export async function Hero() {
 
   return (
     <section className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-[10] h-[64px] bg-gradient-to-b from-white/28 to-transparent" />
 
       <div className="absolute inset-0">
         <Image
@@ -67,8 +77,11 @@ export async function Hero() {
           sizes="100vw"
           className="h-full w-full scale-[1.04] object-cover object-center brightness-[0.95]"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#10152b]/75 via-[#18224a]/55 to-[#272b5c]/85" />
-        <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_20%,rgba(15,21,49,0.18),rgba(15,21,49,0.55))]" />
+        <>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#050811]/80 via-[#0c1324]/70 to-[#191e47]/90" />
+          <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_15%,rgba(5,8,17,0.25),rgba(5,8,17,0.75))]" />
+          <div className="absolute inset-0 bg-[radial-gradient(130%_80%_at_50%_20%,rgba(15,21,49,0.18),rgba(15,21,49,0.55))]" />
+        </>
       </div>
 
       <div className="relative z-20 mx-auto max-w-[1200px] px-4 pt-[56px] pb-16 md:px-6 lg:pt-[64px]">
@@ -77,13 +90,13 @@ export async function Hero() {
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/70 backdrop-blur">
               Disney Vacation Club reinvented
             </span>
-            <h1 className="font-display text-[2.9rem] leading-tight text-white drop-shadow-[0_6px_20px_rgba(12,15,44,0.3)] sm:text-[3.4rem] lg:text-[3.9rem]">
+            <h1 className="font-display text-[2.9rem] leading-tight text-white/90 drop-shadow-[0_6px_20px_rgba(12,15,44,0.3)] sm:text-[3.4rem] lg:text-[3.9rem]">
               Stay at Disney’s top resorts for a fraction of the cost.
             </h1>
-            <p className="font-sans text-base leading-relaxed text-white/75 sm:text-lg">
-              Wake up steps from Cinderella’s Castle, sip coffee on your balcony at Bay Lake Tower, or unwind at
-              Aulani’s oceanfront villas—without the high price tag. PixieDVC transforms DVC points into premium
-              stays for families who love Disney magic and smart value alike.
+            <p className="font-sans text-base leading-relaxed text-white/55 sm:text-lg space-y-2">
+              <span>Stay steps from Cinderella’s Castle. </span>
+              <span>Have your morning coffee overlooking the African savanna. </span>
+              <span>Unwind in Disney’s most exclusive resorts, without the deluxe price tag. </span>
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <div className="relative">
@@ -92,15 +105,15 @@ export async function Hero() {
                   asChild
                   className="bg-gradient-to-r from-[#2b3a70] via-[#384b94] to-[#9aa7ff] text-white shadow-[0_18px_48px_rgba(35,53,107,0.45)] transition duration-300 hover:from-[#f6c64d] hover:via-[#a8b8ff] hover:to-[#9aa7ff] hover:shadow-[0_24px_70px_rgba(35,53,107,0.6)]"
                 >
-                  <Link href="/trip-builder">Plan My Stay →</Link>
+                  <ReferralLink href="/plan">Plan My Stay →</ReferralLink>
                 </Button>
               </div>
-              <Button
-                asChild
-                variant="ghost"
-                className="border border-white/30 bg-white/10 px-6 py-3 text-white hover:border-lavender hover:bg-white/20"
-              >
-                <Link href="#resorts">See How It Works</Link>
+            <Button
+              asChild
+              variant="ghost"
+              className="border border-white/30 bg-white/10 px-5 py-3 text-white hover:border-lavender hover:bg-white/20"
+            >
+                <Link href="/how-it-works">See How It Works</Link>
               </Button>
             </div>
 
@@ -124,17 +137,27 @@ export async function Hero() {
                 </div>
                 <div className="space-y-4 rounded-3xl bg-white/12 p-5 text-sm text-white/85 shadow-[0_18px_36px_rgba(8,12,30,0.35)]">
                   <div className="flex items-center justify-between">
-                    <span>Point Balance</span>
-                    <span className="font-semibold">182 pts</span>
+                    <span>Availability Confidence</span>
+                    <span className="font-semibold">
+                      {metrics.availabilityConfidence.charAt(0).toUpperCase() +
+                        metrics.availabilityConfidence.slice(1)}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Borrowed</span>
-                    <span className="font-semibold">12 pts</span>
+                    <span>Typical Match Time</span>
+                    <span className="font-semibold">{metrics.typicalMatchTimeLabel}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Bank Deadline</span>
-                    <span className="font-semibold">Jun 30, 2025</span>
+                    <span>Verified Owners Ready</span>
+                    <span className="font-semibold">{metrics.verifiedOwnersReady}</span>
                   </div>
+                  <div className="flex items-center justify-between">
+                    <span>Booking Window Supported</span>
+                    <span className="font-semibold">{metrics.bookingWindowSupported ? "Yes" : "No"}</span>
+                  </div>
+                  {updatedHours ? (
+                    <div className="text-xs text-white/60">Updated {updatedHours} hours ago</div>
+                  ) : null}
                 </div>
                 <div className="rounded-3xl border border-white/20 bg-white/10 px-4 py-5 text-sm text-white/80 backdrop-blur">
                   “PixieDVC matched our wishlist villa within 48 hours — we watched fireworks from the balcony and

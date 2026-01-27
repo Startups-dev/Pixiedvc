@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#16214D"/>
+      <stop offset="100%" stop-color="#0F2148"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="980" cy="160" r="120" fill="rgba(255,255,255,0.08)"/>
+  <circle cx="180" cy="500" r="140" fill="rgba(255,255,255,0.06)"/>
+  <text x="120" y="210" fill="#FFFFFF" font-family="Inter, system-ui, sans-serif" font-size="48" font-weight="600">
+    Plan Disney stays with clarity
+  </text>
+  <text x="120" y="280" fill="#D6E0FF" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="500">
+    PixieDVC concierge rentals
+  </text>
+  <text x="120" y="380" fill="#FFFFFF" font-family="Inter, system-ui, sans-serif" font-size="22" opacity="0.75">
+    Verified owners • Premium resorts • Simple request flow
+  </text>
+</svg>

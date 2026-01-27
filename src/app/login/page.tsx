@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-import { createClient } from '@/lib/supabase';
+import { supabaseBrowser } from '@/lib/supabase-browser';
 
 const googleIcon = (
   <svg viewBox="0 0 20 20" aria-hidden="true" className="h-5 w-5">
@@ -31,10 +31,13 @@ const oauthProviders = [
 type Mode = 'login' | 'signup' | 'update';
 
 export default function LoginPage() {
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = useMemo(() => supabaseBrowser(), []);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const passwordRedirect = '/login?mode=update';
+  const passwordRedirect = useMemo(() => {
+    if (typeof window === 'undefined') return '/login?mode=update';
+    return new URL('/login?mode=update', window.location.origin).toString();
+  }, []);
 
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
@@ -43,7 +46,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loginErrorState, setLoginErrorState] = useState<{ primary: string; secondary?: string } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const adminNotice = searchParams.get('admin') === '1';
 
   useEffect(() => {
     const paramMode = searchParams.get('mode');
@@ -59,17 +64,33 @@ export default function LoginPage() {
       const prepareForUpdate = async () => {
         setLoading(true);
         try {
-          const {
-            data: sessionFromUrl,
-            error: exchangeError,
-          } = await supabase.auth.getSessionFromUrl({ storeSession: true });
+          const code = searchParams.get('code');
+          let session = null;
+          let exchangeError = null;
+
+          if (code) {
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+            session = data?.session ?? null;
+            exchangeError = error;
+          } else if (typeof window !== 'undefined' && window.location.hash) {
+            const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+            const accessToken = hashParams.get('access_token');
+            const refreshToken = hashParams.get('refresh_token');
+
+            if (accessToken && refreshToken) {
+              const { data, error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              });
+              session = data?.session ?? null;
+              exchangeError = error;
+            }
+          }
 
           if (exchangeError) {
             setErrorMessage(exchangeError.message);
             return;
           }
-
-          const session = sessionFromUrl.session;
 
           if (!session?.user) {
             setErrorMessage('Auth session missing. Please restart the reset flow.');
@@ -97,6 +118,7 @@ export default function LoginPage() {
     event.preventDefault();
     setMessage(null);
     setErrorMessage(null);
+    setLoginErrorState(null);
     setLoading(true);
 
     if (mode === 'update') {
@@ -133,9 +155,26 @@ export default function LoginPage() {
     setLoading(false);
 
     if (error) {
-      setErrorMessage(error.message);
+      const isRateLimited =
+        error.status === 429 ||
+        error.status === 0 ||
+        /rate limit/i.test(error.message ?? '') ||
+        /try again/i.test(error.message ?? '');
+      if (mode === 'login') {
+        setLoginErrorState({
+          primary: isRateLimited ? 'Login failed. Please try again in a moment.' : 'Invalid email or password.',
+          secondary: isRateLimited ? undefined : "If you don't have an account yet, click Sign Up.",
+        });
+      } else {
+        setErrorMessage(error.message);
+      }
     } else {
-      window.location.href = '/';
+      if (mode === 'login') {
+        setLoginErrorState(null);
+      }
+      const redirectPath = searchParams.get('redirect') ?? '/owner/dashboard';
+      await router.replace(redirectPath);
+      router.refresh();
     }
   }
 
@@ -185,6 +224,12 @@ export default function LoginPage() {
         {mode === 'update' && 'Set a new password'}
       </h1>
 
+      {adminNotice ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          This area is restricted to administrators. Please sign in with an admin account.
+        </p>
+      ) : null}
+
       {mode !== 'update' ? (
         <div className="flex gap-2">
           <button
@@ -210,14 +255,20 @@ export default function LoginPage() {
 
       <form onSubmit={handleAuth} className="space-y-3">
         {mode !== 'update' ? (
-          <input
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-xl border p-2"
-            required
-          />
+        <input
+          type="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(event) => {
+            setEmail(event.target.value);
+            if (mode === 'login') {
+              setLoginErrorState(null);
+              setErrorMessage(null);
+            }
+          }}
+          className="w-full rounded-xl border p-2"
+          required
+        />
         ) : (
           <input
             type="email"
@@ -232,10 +283,16 @@ export default function LoginPage() {
             type={showPassword ? 'text' : 'password'}
             placeholder="••••••••"
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-xl border p-2 pr-24"
-            required
-          />
+          onChange={(event) => {
+            setPassword(event.target.value);
+            if (mode === 'login') {
+              setLoginErrorState(null);
+              setErrorMessage(null);
+            }
+          }}
+          className="w-full rounded-xl border p-2 pr-24"
+          required
+        />
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
@@ -254,6 +311,19 @@ export default function LoginPage() {
             className="w-full rounded-xl border p-2"
             required
           />
+        ) : null}
+
+        {mode === 'login' && loginErrorState ? (
+          <div
+            role="alert"
+            aria-live="polite"
+            className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+          >
+            <p className="font-semibold">{loginErrorState.primary}</p>
+            {loginErrorState.secondary ? (
+              <p className="text-xs text-rose-700">{loginErrorState.secondary}</p>
+            ) : null}
+          </div>
         ) : null}
 
         <button disabled={loading} className="w-full rounded-xl bg-indigo-600 px-4 py-2 text-white">

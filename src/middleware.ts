@@ -8,6 +8,7 @@ const PUBLIC_PATHS = [
   /^\/login/,
   /^\/register/,
   /^\/onboarding/,
+  /^\/auth\/callback/,
   /^\/api\/public/,
   /^\/_next/,
   /^\/favicon\.ico$/,
@@ -17,6 +18,7 @@ const PUBLIC_PATHS = [
 
 export async function middleware(req: NextRequest) {
   const url = new URL(req.url);
+  const redirectPath = `${url.pathname}${url.search}`;
   if (PUBLIC_PATHS.some((re) => re.test(url.pathname))) {
     return NextResponse.next();
   }
@@ -31,6 +33,8 @@ export async function middleware(req: NextRequest) {
   if (!user) {
     if (url.pathname.startsWith('/admin')) {
       url.pathname = '/login';
+      url.searchParams.set('admin', '1');
+      url.searchParams.set('redirect', redirectPath);
       return NextResponse.redirect(url);
     }
     return res;
@@ -41,6 +45,10 @@ export async function middleware(req: NextRequest) {
       url.pathname = '/';
       return NextResponse.redirect(url);
     }
+  }
+
+  if (url.pathname.startsWith('/affiliate')) {
+    return res;
   }
 
   let onboardingComplete = user.user_metadata?.onboarding_completed === true;

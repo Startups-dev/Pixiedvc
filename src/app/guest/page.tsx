@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { createServer } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +14,8 @@ type GuestRequest = {
   check_out: string | null;
   room_type: string | null;
   adults: number | null;
-  children: number | null;
-  max_price_per_point: number | null;
+  youths: number | null;
+  total_points: number | null;
   resort: {
     name: string;
   } | null;
@@ -35,7 +35,7 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 
 export default async function GuestDashboard() {
   const cookieStore = await cookies();
-  const supabase = createServer(cookieStore);
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -45,9 +45,10 @@ export default async function GuestDashboard() {
   }
 
   const { data } = await supabase
-    .from("renter_requests")
-    .select("id, status, created_at, check_in, check_out, room_type, adults, children, max_price_per_point, resort:resorts(name)")
+    .from("booking_requests")
+    .select("id, status, created_at, check_in, check_out, room_type:primary_room, adults, youths, total_points, resort:resorts!booking_requests_primary_resort_id_fkey(name)")
     .eq("renter_id", user.id)
+    .in("status", ["submitted", "matched", "confirmed", "cancelled"])
     .order("created_at", { ascending: false });
 
   const requests = (data ?? []) as GuestRequest[];
@@ -63,7 +64,7 @@ export default async function GuestDashboard() {
         </p>
         <div className="flex flex-wrap gap-3 pt-2">
           <Link
-            href="/stay-builder"
+            href="/plan"
             className="rounded-full bg-[#4b6aff] px-5 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(75,106,255,0.4)] hover:opacity-90"
           >
             Launch Trip Builder
@@ -97,8 +98,8 @@ export default async function GuestDashboard() {
                   <p className="text-base font-medium">
                     {formatRange(request.check_in, request.check_out)}
                   </p>
-                  {request.max_price_per_point ? (
-                    <p className="text-xs text-slate-500">Cap ${request.max_price_per_point.toFixed(2)} / pt</p>
+                  {request.total_points ? (
+                    <p className="text-xs text-slate-500">{request.total_points} points requested</p>
                   ) : null}
                 </div>
                 <div className="flex flex-col items-start gap-2 md:items-end">
@@ -133,7 +134,7 @@ function formatRange(start?: string | null, end?: string | null) {
 
 function adultsLabel(request: GuestRequest) {
   const adults = request.adults ?? 0;
-  const children = request.children ?? 0;
+  const children = request.youths ?? 0;
   const parts = [];
   if (adults) {
     parts.push(`${adults} adult${adults === 1 ? "" : "s"}`);

@@ -1,18 +1,16 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-import { createServer } from './supabase';
+import { createSupabaseServerClient } from './supabase-server';
 import { emailIsAllowedForAdmin, isAdminEmailStrict } from './admin-emails';
 
 export async function requireAdminUser(redirectPath = '/admin/owners') {
-  const cookieStore = await cookies();
-  const supabase = createServer(cookieStore);
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/login?redirect=${encodeURIComponent(redirectPath)}`);
+    redirect(`/login?redirect=${encodeURIComponent(redirectPath)}&admin=1`);
   }
 
   if (!emailIsAllowedForAdmin(user.email ?? null)) {

@@ -19,7 +19,8 @@ const authMock = {
   resetPasswordForEmail: vi.fn().mockResolvedValue({ error: null }),
   signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
   updateUser: vi.fn().mockResolvedValue({ error: null }),
-  getSessionFromUrl: vi.fn().mockResolvedValue({ data: { session: { user: { email: 'user@example.com' } } }, error: null }),
+  exchangeCodeForSession: vi.fn().mockResolvedValue({ data: { session: { user: { email: 'user@example.com' } } }, error: null }),
+  setSession: vi.fn().mockResolvedValue({ data: { session: { user: { email: 'user@example.com' } } }, error: null }),
   signOut: vi.fn().mockResolvedValue({ error: null }),
 };
 
@@ -66,21 +67,38 @@ describe('LoginPage', () => {
   });
 
   test('submits sign up with redirect to password update step', async () => {
+    currentParams = new URLSearchParams([['mode', 'signup']]);
     render(<LoginPage />);
-
-    await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
 
     await userEvent.type(screen.getByPlaceholderText(/you@example.com/i), 'new@pixiedvc.com');
     await userEvent.type(screen.getByPlaceholderText(/••••••••/), 'StrongPass9!');
 
-    await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^Sign up$/ }));
 
     await waitFor(() => {
       expect(authMock.signUp).toHaveBeenCalledWith({
         email: 'new@pixiedvc.com',
         password: 'StrongPass9!',
-        options: { emailRedirectTo: '/login?mode=update' },
+        options: expect.objectContaining({
+          emailRedirectTo: expect.stringMatching(/\/login\?mode=update$/),
+        }),
       });
+    });
+  });
+
+  test('shows inline error when login fails', async () => {
+    authMock.signInWithPassword.mockResolvedValueOnce({
+      error: { message: 'Invalid login credentials' },
+    });
+    render(<LoginPage />);
+
+    await userEvent.type(screen.getByPlaceholderText(/you@example.com/i), 'user@example.com');
+    await userEvent.type(screen.getByPlaceholderText(/••••••••/), 'wrongpassword');
+    await userEvent.click(screen.getByRole('button', { name: /log in/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Invalid email or password.');
+      expect(screen.getByRole('alert')).toHaveTextContent("If you don't have an account yet, click Sign Up.");
     });
   });
 });

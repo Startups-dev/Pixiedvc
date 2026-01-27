@@ -1,8 +1,14 @@
-import { cookies } from 'next/headers';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+// src/lib/supabase-server.ts
+import "server-only";
 
-export function supabaseServer() {
-  return createServerComponentClient({
-    cookies,
-  });
+import { createSupabaseServerClient } from "./supabase/server";
+
+export { createSupabaseServerClient };
+
+/**
+ * Back-compat wrapper: many files expect supabaseServer().
+ * Keep it during the transition so we don't touch a bunch of call sites.
+ */
+export async function supabaseServer() {
+  return createSupabaseServerClient();
 }

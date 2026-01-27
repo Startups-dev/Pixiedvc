@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import { Button, Card, SectionHeader } from "@pixiedvc/design-system";
-import { SiteHeader } from "@/components/site-header";
 
 const highlights = [
   {
@@ -21,7 +20,6 @@ const highlights = [
 export default function OwnersPage() {
   return (
     <div className="min-h-screen bg-surface text-ink">
-      <SiteHeader variant="solid" />
       <div className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0 -z-10 opacity-70">
           <div className="absolute left-[45%] top-[-10%] h-[360px] w-[360px] rounded-full bg-brand/20 blur-3xl" />
@@ -35,11 +33,11 @@ export default function OwnersPage() {
                 Owner Experience
               </span>
               <h1 className="font-display text-4xl leading-tight text-ink sm:text-5xl lg:text-6xl">
-                Turn unused points into delightfully hosted stays.
+                Put your unused points to work.
               </h1>
               <p className="max-w-xl text-lg text-muted">
-                PixieDVC verifies guests, orchestrates contracts, and handles payouts so you can share the
-                magic without the overhead.
+                PixieDVC takes care of guest verification, agreements, and payouts, so you can rent with
+                confidence and without the hassle.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button asChild>
@@ -54,21 +52,21 @@ export default function OwnersPage() {
               <p className="text-xs uppercase tracking-[0.2em] text-white/70">Matching Snapshot</p>
               <p className="font-display text-3xl">Bay Lake Tower | Theme Park View</p>
               <p className="text-sm text-white/80">
-                Matched 18 points for April Sun-Thu stay. Guest deposit secured and contract delivered in under
-                6 hours.
+                Matched 112 points for an April 5–9 (Sun–Thu) stay. Owner match completed in 5 hours, with
+                deposit secured and contract signed in under 6 hours.
               </p>
               <div className="grid grid-cols-3 gap-3 text-center text-sm">
                 <div className="rounded-2xl bg-white/10 p-3">
                   <p className="text-white/60">Avg. Match Time</p>
-                  <p className="text-lg font-semibold text-white">3.4 days</p>
+                  <p className="text-lg font-semibold text-white">4–36 hours</p>
                 </div>
                 <div className="rounded-2xl bg-white/10 p-3">
                   <p className="text-white/60">Verified Guests</p>
                   <p className="text-lg font-semibold text-white">100%</p>
                 </div>
                 <div className="rounded-2xl bg-white/10 p-3">
-                  <p className="text-white/60">Net Promoter</p>
-                  <p className="text-lg font-semibold text-white">+74</p>
+                  <p className="text-white/60">Trust Signal</p>
+                  <p className="text-sm text-white/80">Guests happily recommend PixieDVC</p>
                 </div>
               </div>
             </Card>

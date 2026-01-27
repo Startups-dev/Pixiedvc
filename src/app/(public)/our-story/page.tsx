@@ -1,11 +1,14 @@
 import Link from "next/link";
+import ReferralLink from "@/components/referral/ReferralLink";
+
+import TestimonialsSection from "@/components/TestimonialsSection";
 
 export default function OurStoryPage() {
   return (
     <main className="bg-white text-[#0F2148]">
       <section className="mx-auto max-w-6xl px-6 pb-10 pt-10">
         <p className="text-xs uppercase tracking-[0.3em] text-[#0F2148]/60">Our Story</p>
-        <h1 className="mt-3 text-4xl font-serif sm:text-5xl">Built by a DVC family — for families like yours.</h1>
+        <h1 className="mt-3 text-4xl font-serif sm:text-5xl">Built by a DVC family, for families like yours.</h1>
         <div className="mt-6 space-y-4 text-base leading-7 text-[#0F2148]/80">
           <p>
             PixieDVC started the same way many Disney trips do: around a family table, planning a vacation that meant
@@ -13,9 +16,9 @@ export default function OurStoryPage() {
           </p>
           <p>
             We’re Disney Vacation Club owners. We’ve planned trips with kids, grandparents, first-time Disney guests,
-            and lifelong fans. We know how exciting — and sometimes overwhelming — planning a DVC stay can feel.
+            and lifelong fans. We know how exciting, and sometimes overwhelming, planning a DVC stay can feel.
           </p>
-          <p>So we built PixieDVC to make it easier, calmer, and more human.</p>
+          <p>So we built PixieDVC to make it easier, calmer, and more straightforward.</p>
         </div>
       </section>
 
@@ -73,12 +76,16 @@ export default function OurStoryPage() {
           </ul>
           <p className="text-sm leading-6 text-[#0F2148]/80">We’d rather get it right than get it fast.</p>
         </div>
+      </section>
 
+      <TestimonialsSection />
+
+      <section className="mx-auto max-w-6xl space-y-12 px-6 pb-16">
         <div className="space-y-4">
           <h2 className="text-2xl font-semibold text-[#0F2148]">A Family-Run Approach</h2>
           <p className="text-sm leading-6 text-[#0F2148]/80">PixieDVC is family-run, and that shapes how we work.</p>
           <p className="text-sm leading-6 text-[#0F2148]/80">
-            We know how much these trips matter — especially when you’re traveling with the people you love most. That’s
+            We know how much these trips matter, especially when you’re traveling with the people you love most. That’s
             why we take extra care with every request, every question, and every detail.
           </p>
           <p className="text-sm leading-6 text-[#0F2148]/80">
@@ -94,21 +101,19 @@ export default function OurStoryPage() {
             help families access DVC resorts with clarity, care, and confidence.
           </p>
         </div>
-      </section>
 
-      <section className="mx-auto max-w-6xl px-6 pb-16">
         <div className="rounded-3xl bg-[#0F2148] px-6 py-10 text-white shadow-[0_30px_80px_rgba(8,12,30,0.35)] sm:px-10">
           <p className="text-sm text-white/75">
             If you’re thinking about a Disney Vacation Club stay and want a more relaxed, supportive way to plan it,
             we’d be happy to help.
           </p>
-          <p className="mt-3 text-lg font-semibold">Let’s plan your stay — together.</p>
-          <Link
-            href="/stay-builder"
-            className="mt-6 inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2148]"
-          >
+          <p className="mt-3 text-lg font-semibold">Let’s plan your stay, together.</p>
+            <ReferralLink
+              href="/plan"
+              className="mt-6 inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2148]"
+            >
             Plan Your Stay
-          </Link>
+          </ReferralLink>
         </div>
       </section>
     </main>

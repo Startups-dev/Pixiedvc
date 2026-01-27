@@ -8,6 +8,7 @@ import { Resorts as CalculatorResorts } from 'pixiedvc-calculator/engine/charts'
 import type { QuoteResult, RoomCode, ViewCode } from 'pixiedvc-calculator/engine/types';
 
 import { resolveCalculatorCode } from '@/lib/resort-calculator';
+import { getMaxOccupancyForSelection } from '@/lib/occupancy';
 
 import { saveStayBuilderStepOne, saveTravelerDetails, saveGuestRoster, submitStayRequest } from './actions';
 
@@ -48,6 +49,7 @@ type GuestRecord = {
   email: string | null;
   phone: string | null;
   age_category: 'adult' | 'youth' | null;
+  age: number | null;
 };
 
 type GuestForm = {
@@ -58,6 +60,7 @@ type GuestForm = {
   email: string;
   phone: string;
   ageCategory: 'adult' | 'youth';
+  age: string;
 };
 
 type ResortOption = {
@@ -96,7 +99,12 @@ export default function StayBuilderClient({
   const [estimate, setEstimate] = useState<QuoteResult | null>(null);
 
   const stepOneComplete = Boolean(draftState.check_in && draftState.check_out && draftState.primary_resort_id);
-  const stepTwoComplete = Boolean(draftState.lead_guest_name && draftState.lead_guest_email && draftState.address_line1);
+  const stepTwoComplete = Boolean(
+    draftState.lead_guest_name &&
+      draftState.lead_guest_email &&
+      draftState.lead_guest_phone &&
+      draftState.address_line1,
+  );
   const stepThreeComplete = guestState.length > 0;
   const stepFourComplete = draftState.status === 'submitted';
 
@@ -115,6 +123,21 @@ export default function StayBuilderClient({
     if (!stepThreeComplete) return 3;
     return 4;
   })();
+
+  const selectedResort = useMemo(
+    () => resorts.find((resort) => resort.id === draftState.primary_resort_id) ?? null,
+    [resorts, draftState.primary_resort_id],
+  );
+  const maxOccupancy = useMemo(() => {
+    const resortCode = resolveCalculatorCode(selectedResort);
+    const roomLabel = draftState.primary_room ? ROOM_LABELS[draftState.primary_room] ?? draftState.primary_room : null;
+    return getMaxOccupancyForSelection({
+      resortSlug: selectedResort?.slug ?? null,
+      resortCode: resortCode ?? null,
+      roomCode: draftState.primary_room ?? null,
+      roomLabel,
+    });
+  }, [draftState.primary_room, selectedResort]);
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
@@ -167,6 +190,7 @@ export default function StayBuilderClient({
             <StepThree
               draft={draftState}
               guests={guestState}
+              maxOccupancy={maxOccupancy}
               onSaved={(guestPayload, draftPayload) => {
                 setGuestState(guestPayload);
                 setDraftState((prev) => ({ ...prev, ...draftPayload }));
@@ -599,7 +623,7 @@ function StepTwo({
         <label className="text-sm font-medium text-slate-700">
           Title
           <select value={form.title} onChange={(event) => update('title', event.target.value)} className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2">
-            {['Mr.', 'Ms.', 'Mx.', 'Mrs.', 'Dr.'].map((option) => (
+            {['Mr.', 'Mrs.'].map((option) => (
               <option key={option} value={option}>
                 {option}
               </option>
@@ -689,35 +713,44 @@ function StepTwo({
 function StepThree({
   draft,
   guests,
+  maxOccupancy,
   onSaved,
   onAdvance,
   onBack,
 }: {
   draft: BookingDraft;
   guests: GuestRecord[];
+  maxOccupancy: number;
   onSaved: (guests: GuestRecord[], draftPayload: Partial<BookingDraft>) => void;
   onAdvance: () => void;
   onBack: () => void;
 }) {
   const leadGuest = parseName(draft.lead_guest_name);
+  const defaultAdultTitle = 'Mr.';
+  const defaultChildTitle = 'Master';
   const initialForms: GuestForm[] = guests.length
     ? guests.map((guest) => ({
         id: guest.id,
-        title: guest.title ?? 'Mr.',
+        title:
+          guest.age_category === 'youth'
+            ? ['Master', 'Ms.'].includes(guest.title ?? '') ? (guest.title as string) : defaultChildTitle
+            : ['Mr.', 'Mrs.'].includes(guest.title ?? '') ? (guest.title as string) : defaultAdultTitle,
         firstName: guest.first_name ?? '',
         lastName: guest.last_name ?? '',
         email: guest.email ?? '',
         phone: guest.phone ?? '',
         ageCategory: guest.age_category === 'youth' ? 'youth' : 'adult',
+        age: guest.age ? String(guest.age) : '',
       }))
     : [
         {
-          title: leadGuest.title ?? 'Mr.',
+          title: ['Mr.', 'Mrs.'].includes(leadGuest.title ?? '') ? (leadGuest.title as string) : defaultAdultTitle,
           firstName: leadGuest.firstName ?? '',
           lastName: leadGuest.lastName ?? '',
           email: draft.lead_guest_email ?? '',
           phone: draft.lead_guest_phone ?? '',
           ageCategory: 'adult',
+          age: '',
         },
       ];
 
@@ -731,7 +764,15 @@ function StepThree({
   }
 
   function addGuest(ageCategory: 'adult' | 'youth') {
-    setForms((prev) => [...prev, { title: 'Mr.', firstName: '', lastName: '', email: '', phone: '', ageCategory }]);
+    if (forms.length >= maxOccupancy) {
+      setError(`This room allows up to ${maxOccupancy} guests.`);
+      return;
+    }
+    const nextTitle = ageCategory === 'youth' ? defaultChildTitle : defaultAdultTitle;
+    setForms((prev) => [
+      ...prev,
+      { title: nextTitle, firstName: '', lastName: '', email: '', phone: '', ageCategory, age: '' },
+    ]);
   }
 
   function removeGuest(index: number) {
@@ -739,9 +780,20 @@ function StepThree({
   }
 
   function handleSave() {
+    if (forms.length > maxOccupancy) {
+      setError(`Please keep your guest list within the ${maxOccupancy}-person limit for this room.`);
+      return;
+    }
     const sanitized = forms.filter((guest) => guest.firstName.trim() && guest.lastName.trim());
     if (!sanitized.length) {
       setError('Add at least one guest.');
+      return;
+    }
+    const missingChildAge = sanitized.find(
+      (guest) => guest.ageCategory === 'youth' && !guest.age.trim(),
+    );
+    if (missingChildAge) {
+      setError('Please enter the age for each child guest.');
       return;
     }
     setError(null);
@@ -756,6 +808,7 @@ function StepThree({
             email: guest.email,
             phone: guest.phone,
             ageCategory: guest.ageCategory,
+            age: guest.age ? Number(guest.age) : null,
           })),
         });
         setMessage('Guest roster saved.');
@@ -768,6 +821,7 @@ function StepThree({
             email: guest.email,
             phone: guest.phone,
             age_category: guest.ageCategory,
+            age: guest.age ? Number(guest.age) : null,
           })),
           {
             adults: sanitized.filter((guest) => guest.ageCategory === 'adult').length,
@@ -801,21 +855,20 @@ function StepThree({
               ) : null}
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <label className="text-xs font-semibold text-slate-600">
-                Age group
-                <select
-                  value={guest.ageCategory}
-                  onChange={(event) => updateForm(index, { ageCategory: event.target.value as 'adult' | 'youth' })}
-                  className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
-                >
-                  <option value="adult">Adult (18+)</option>
-                  <option value="youth">Youth (17 or younger)</option>
-                </select>
-              </label>
+              <div className="text-xs font-semibold text-slate-600">
+                Guest type
+                <p className="mt-1 rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                  {guest.ageCategory === 'youth' ? 'Child (under 18)' : 'Adult (18+)'}
+                </p>
+              </div>
               <label className="text-xs font-semibold text-slate-600">
                 Title
-                <select value={guest.title} onChange={(event) => updateForm(index, { title: event.target.value })} className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm">
-                  {['Mr.', 'Ms.', 'Mx.', 'Mrs.', 'Dr.'].map((option) => (
+                <select
+                  value={guest.title}
+                  onChange={(event) => updateForm(index, { title: event.target.value })}
+                  className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+                >
+                  {(guest.ageCategory === 'youth' ? ['Master', 'Ms.'] : ['Mr.', 'Mrs.']).map((option) => (
                     <option key={option} value={option}>
                       {option}
                     </option>
@@ -855,19 +908,43 @@ function StepThree({
                   className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
                 />
               </label>
+              {guest.ageCategory === 'youth' ? (
+                <label className="text-xs font-semibold text-slate-600">
+                  Child age
+                  <input
+                    type="number"
+                    min={0}
+                    max={17}
+                    value={guest.age}
+                    onChange={(event) => updateForm(index, { age: event.target.value })}
+                    className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+                  />
+                </label>
+              ) : null}
             </div>
           </div>
         ))}
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <button type="button" className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold" onClick={() => addGuest('adult')}>
+        <button
+          type="button"
+          className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold disabled:opacity-50"
+          onClick={() => addGuest('adult')}
+          disabled={forms.length >= maxOccupancy}
+        >
           + Add adult guest
         </button>
-        <button type="button" className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold" onClick={() => addGuest('youth')}>
-          + Add youth guest
+        <button
+          type="button"
+          className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold disabled:opacity-50"
+          onClick={() => addGuest('youth')}
+          disabled={forms.length >= maxOccupancy}
+        >
+          + Add child guest
         </button>
       </div>
+      <p className="text-xs text-slate-500">This room allows up to {maxOccupancy} guests total.</p>
 
       {message ? <p className="text-sm text-emerald-600">{message}</p> : null}
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
