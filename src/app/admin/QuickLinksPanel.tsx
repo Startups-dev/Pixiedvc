@@ -29,8 +29,9 @@ const SECTIONS: QuickLinkSection[] = [
       },
       {
         id: 'requests',
-        title: 'Booking Requests',
-        description: 'Monitor incoming guest requests.',
+        title: 'Guest Requests',
+        description: 'Review and promote guest requests.',
+        href: '/admin/guests',
       },
       {
         id: 'owners',

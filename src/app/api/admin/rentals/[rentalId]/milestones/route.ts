@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
@@ -6,7 +6,11 @@ import { emailIsAllowedForAdmin } from "@/lib/admin-emails";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { calculatePayoutAmountCents, getPayoutStageForMilestone } from "@/lib/owner-portal";
 
-export async function POST(request: Request, { params }: { params: { rentalId: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ rentalId: string }> },
+) {
+  const { rentalId } = await params;
   const cookieStore = await cookies();
   const authClient = await createSupabaseServerClient();
   const {
@@ -24,7 +28,6 @@ export async function POST(request: Request, { params }: { params: { rentalId: s
     return NextResponse.json({ error: "Missing milestone details" }, { status: 400 });
   }
 
-  const { rentalId } = params;
   const client = getSupabaseAdminClient() ?? authClient;
 
   const { data: rental } = await client

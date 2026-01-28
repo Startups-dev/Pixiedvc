@@ -15,6 +15,8 @@ type MembershipInput = {
   points_owned: number;
   points_available: number;
   points_reserved?: number | null;
+  purchase_channel?: string | null;
+  acquired_at?: string | null;
 };
 
 async function getOwnerIdForUser(
@@ -49,6 +51,10 @@ export async function upsertOwnerMembership(input: MembershipInput) {
     return { ok: false, error: "Missing required membership fields" };
   }
 
+  if (input.purchase_channel === "resale" && !input.acquired_at) {
+    return { ok: false, error: "Resale memberships require an acquisition date." };
+  }
+
   const { data: resortRow } = await supabase
     .from("resorts")
     .select("id, calculator_code")
@@ -66,6 +72,8 @@ export async function upsertOwnerMembership(input: MembershipInput) {
     points_owned: input.points_owned,
     points_available: input.points_available,
     points_reserved: input.points_reserved ?? 0,
+    purchase_channel: input.purchase_channel ?? "unknown",
+    acquired_at: input.acquired_at ?? null,
   };
 
   const { data, error } = await supabase
@@ -76,6 +84,32 @@ export async function upsertOwnerMembership(input: MembershipInput) {
 
   if (error) {
     return { ok: false, error: error.message };
+  }
+
+  const resaleRestricted =
+    payload.purchase_channel === "resale" &&
+    payload.acquired_at &&
+    new Date(payload.acquired_at) >= new Date("2019-01-19");
+  if (resaleRestricted) {
+    const adminClient = getSupabaseAdminClient();
+    if (adminClient) {
+      const { data: existing } = await adminClient
+        .from("notifications")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("type", "resale_restriction_notice")
+        .is("read_at", null)
+        .limit(1);
+      if (!existing || existing.length === 0) {
+        await adminClient.from("notifications").insert({
+          user_id: user.id,
+          type: "resale_restriction_notice",
+          title: "Resale booking restrictions",
+          body: "Resale memberships acquired on/after Jan 19, 2019 have booking restrictions at certain resorts (including Riviera, Villas at Disneyland Hotel, and the Cabins at Fort Wilderness). PixieDVC will automatically avoid matching you to requests you can’t book.",
+          link: "/owner/dashboard",
+        });
+      }
+    }
   }
 
   revalidatePath("/owner/dashboard");

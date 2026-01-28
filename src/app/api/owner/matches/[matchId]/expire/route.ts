@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
@@ -6,9 +6,10 @@ import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { expireMatchAndReleasePoints } from "@/lib/matches/expire";
 
 export async function POST(
-  request: Request,
-  { params }: { params: { matchId: string } },
+  request: NextRequest,
+  { params }: { params: Promise<{ matchId: string }> },
 ) {
+  const { matchId } = await params;
   const cookieStore = await cookies();
   const supabase = await createSupabaseServerClient();
   const {
@@ -40,7 +41,7 @@ export async function POST(
   const { data: match } = await adminClient
     .from("booking_matches")
     .select("id, status, booking_id, owner_id, owner_membership_id, points_reserved, points_reserved_current, points_reserved_borrowed, created_at, expires_at")
-    .eq("id", params.matchId)
+    .eq("id", matchId)
     .eq("owner_id", owner.id)
     .maybeSingle();
 

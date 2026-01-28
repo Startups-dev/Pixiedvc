@@ -1,14 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 
 import { AFFILIATE_COOKIE, AFFILIATE_CLICK_COOKIE, AFFILIATE_COOKIE_MAX_AGE } from "@/lib/affiliate-cookies";
 
-export async function GET(request: Request, { params }: { params: { slug: string } }) {
-  const slug = decodeURIComponent(params.slug);
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> },
+) {
+  const { slug } = await params;
+  const decodedSlug = decodeURIComponent(slug);
   const supabase = createRouteHandlerClient({ cookies });
 
-  const { data, error } = await supabase.rpc("resolve_affiliate", { slug_or_code: slug });
+  const { data, error } = await supabase.rpc("resolve_affiliate", { slug_or_code: decodedSlug });
 
   if (error || !data || data.length === 0) {
     const fallback = new URL("/", request.url);

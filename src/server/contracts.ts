@@ -2,7 +2,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import { createClient } from '@/lib/supabaseServer';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { fillTemplate, loadContractTemplate } from '@/contracts/loadTemplate';
 import { sendPlainEmail } from '@/lib/email';
 import { generateAcceptToken } from '@/lib/tokens';
@@ -33,7 +33,7 @@ export async function generateContract(form: {
   templateName: string;
   placeholderData: PlaceholderData;
 }) {
-  const supabase = createClient();
+  const supabase = createSupabaseServerClient();
 
   const template = loadContractTemplate(form.templateName);
   const body = fillTemplate(template, form.placeholderData);

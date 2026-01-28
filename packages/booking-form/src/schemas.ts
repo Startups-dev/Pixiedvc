@@ -13,7 +13,7 @@ export const tripDetailsSchema = z.object({
 });
 
 const adultGuestSchema = z.object({
-  title: z.enum(["Mr.", "Mrs."]),
+  title: z.enum(["Mr.", "Mrs.", "Ms."]),
   firstName: z.string().min(1, "Required"),
   middleInitial: z.string().max(3).optional(),
   lastName: z.string().min(1, "Required"),
@@ -30,7 +30,7 @@ const childGuestSchema = z.object({
 });
 
 export const guestInfoSchema = z.object({
-  leadTitle: z.enum(["Mr.", "Mrs."]),
+  leadTitle: z.enum(["Mr.", "Mrs.", "Ms."]),
   leadFirstName: z.string().min(1, "Required"),
   leadMiddleInitial: z.string().max(3).optional(),
   leadLastName: z.string().min(1, "Required"),

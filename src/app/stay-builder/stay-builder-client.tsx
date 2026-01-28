@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 
 import { quoteStay } from 'pixiedvc-calculator/engine/calc';
 import { Resorts as CalculatorResorts } from 'pixiedvc-calculator/engine/charts';
@@ -9,6 +9,7 @@ import type { QuoteResult, RoomCode, ViewCode } from 'pixiedvc-calculator/engine
 
 import { resolveCalculatorCode } from '@/lib/resort-calculator';
 import { getMaxOccupancyForSelection } from '@/lib/occupancy';
+import { usePlacesAutocomplete } from '@/hooks/usePlacesAutocomplete';
 
 import { saveStayBuilderStepOne, saveTravelerDetails, saveGuestRoster, submitStayRequest } from './actions';
 
@@ -555,10 +556,23 @@ function StepTwo({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const address1Ref = useRef<HTMLInputElement>(null);
 
   function update(field: keyof typeof form, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
+
+  usePlacesAutocomplete({
+    inputRef: address1Ref,
+    debugLabel: "stay-builder",
+    onSelect: (address) => {
+      if (address.line1) update('addressLine1', address.line1);
+      if (address.city) update('city', address.city);
+      if (address.state) update('state', address.state);
+      if (address.postalCode) update('postalCode', address.postalCode);
+      if (address.country) update('country', address.country);
+    },
+  });
 
   function handleSave() {
     if (!form.firstName || !form.lastName || !form.email || !form.phone || !form.addressLine1 || !form.city || !form.postalCode) {
@@ -658,7 +672,13 @@ function StepTwo({
       <div className="grid gap-4 md:grid-cols-2">
         <label className="text-sm font-medium text-slate-700">
           Address line 1
-          <input value={form.addressLine1} onChange={(event) => update('addressLine1', event.target.value)} className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2" />
+          <input
+            ref={address1Ref}
+            value={form.addressLine1}
+            onChange={(event) => update('addressLine1', event.target.value)}
+            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
+            autoComplete="street-address"
+          />
         </label>
         <label className="text-sm font-medium text-slate-700">
           Address line 2 (optional)

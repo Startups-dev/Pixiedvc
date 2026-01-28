@@ -415,11 +415,7 @@ async function fetchUnmatchedGuests(options: {
     return { rows: [], totalCount: 0, limit, offset };
   }
 
-  const activeStatuses = [
-    'submitted',
-    'pending_confirmation',
-    're-matching_requested',
-  ];
+  const activeStatuses = ['submitted', 'pending_match'];
 
   const { data: matchRows, error: matchError } = await client
     .from('booking_matches')

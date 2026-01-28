@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
@@ -7,9 +7,10 @@ import { resolveCalculatorCode } from "@/lib/resort-calculator";
 import { computeOwnerPayout } from "@/lib/pricing";
 
 export async function POST(
-  request: Request,
-  { params }: { params: { matchId: string } },
+  request: NextRequest,
+  { params }: { params: Promise<{ matchId: string }> },
 ) {
+  const { matchId } = await params;
   const cookieStore = await cookies();
   const supabase = await createSupabaseServerClient();
   const {
@@ -41,7 +42,7 @@ export async function POST(
   const { data: match } = await adminClient
     .from("booking_matches")
     .select("id, status, booking_id, owner_id, owner_membership_id, points_reserved, points_reserved_current, points_reserved_borrowed, created_at, expires_at, owner_base_rate_per_point_cents, owner_premium_per_point_cents, owner_rate_per_point_cents, owner_total_cents, owner_home_resort_premium_applied")
-    .eq("id", params.matchId)
+    .eq("id", matchId)
     .eq("owner_id", owner.id)
     .maybeSingle();
 
@@ -363,6 +364,13 @@ export async function POST(
       console.error("Failed to update booking request", bookingUpdateError);
     }
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    console.info("[owner/matches/accept] rental ready", {
+      match_id: match.id,
+      rental_id: rentalRow.id,
+    });
   }
 
   return NextResponse.json({ rentalId: rentalRow.id });

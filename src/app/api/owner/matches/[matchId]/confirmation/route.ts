@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
@@ -6,9 +6,10 @@ import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { calculatePayoutAmountCents } from "@/lib/owner-portal";
 
 export async function POST(
-  request: Request,
-  { params }: { params: { matchId: string } },
+  request: NextRequest,
+  { params }: { params: Promise<{ matchId: string }> },
 ) {
+  const { matchId } = await params;
   const cookieStore = await cookies();
   const supabase = await createSupabaseServerClient();
   const {
@@ -52,7 +53,7 @@ export async function POST(
   const { data: match } = await adminClient
     .from("booking_matches")
     .select("id, booking_id, status, owner_membership_id, points_reserved_current, points_reserved_borrowed")
-    .eq("id", params.matchId)
+    .eq("id", matchId)
     .eq("owner_id", owner.id)
     .maybeSingle();
 
@@ -84,6 +85,13 @@ export async function POST(
       console.error("Failed to save confirmation number", rentalError);
     }
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    console.info("[owner/matches/confirmation] confirmation saved", {
+      match_id: match.id,
+      has_confirmation: Boolean(confirmationNumber),
+    });
   }
 
   if (match.status !== "booked") {

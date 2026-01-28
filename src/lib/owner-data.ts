@@ -26,6 +26,8 @@ export type OwnerMembership = {
   points_reserved: number | null;
   points_rented: number | null;
   points_expiration_date: string | null;
+  purchase_channel: string | null;
+  acquired_at: string | null;
   created_at?: string | null;
   resort: { name: string; slug: string; calculator_code: string | null } | null;
 };
@@ -200,7 +202,7 @@ export async function getOwnerMemberships(userId: string, cookieStore?: RequestC
   const { data } = await client
     .from("owner_memberships")
     .select(
-      "id, owner_id, resort_id, home_resort, use_year, use_year_start, use_year_end, contract_year, points_owned, points_available, points_reserved, points_rented, points_expiration_date, created_at, resort:resorts(name, slug, calculator_code)",
+      "id, owner_id, resort_id, home_resort, use_year, use_year_start, use_year_end, contract_year, points_owned, points_available, points_reserved, points_rented, points_expiration_date, purchase_channel, acquired_at, created_at, resort:resorts(name, slug, calculator_code)",
     )
     .eq("owner_id", owner.id)
     .order("created_at", { ascending: true });
@@ -634,4 +636,44 @@ export async function ensureApprovalNotifications(userId: string, rentals: Renta
       body: "A booking package is waiting for your approval.",
       link: "/owner/rentals",
     });
+}
+
+export async function ensureResaleRestrictionNotification(userId: string, memberships: OwnerMembership[]) {
+  const hasRestrictedResale = memberships.some((membership) => {
+    if (membership.purchase_channel !== "resale") return false;
+    if (!membership.acquired_at) return false;
+    return new Date(membership.acquired_at) >= new Date("2019-01-19");
+  });
+
+  if (!hasRestrictedResale) return;
+  const adminClient = getSupabaseAdminClient();
+  if (!adminClient) return;
+
+  const { data: existing } = await adminClient
+    .from("notifications")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("type", "resale_restriction_notice")
+    .is("read_at", null)
+    .limit(1);
+
+  if (existing && existing.length > 0) return;
+
+  await adminClient
+    .from("notifications")
+    .insert({
+      user_id: userId,
+      type: "resale_restriction_notice",
+      title: "Resale booking restrictions",
+      body: "Resale memberships acquired on/after Jan 19, 2019 have booking restrictions at certain resorts (including Riviera, Villas at Disneyland Hotel, and the Cabins at Fort Wilderness). PixieDVC will automatically avoid matching you to requests you can’t book.",
+      link: "/owner/dashboard",
+    });
+}
+
+export function hasRestrictedResaleMembership(memberships: OwnerMembership[]) {
+  return memberships.some((membership) => {
+    if (membership.purchase_channel !== "resale") return false;
+    if (!membership.acquired_at) return false;
+    return new Date(membership.acquired_at) >= new Date("2019-01-19");
+  });
 }

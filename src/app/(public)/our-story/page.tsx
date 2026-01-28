@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import ReferralLink from "@/components/referral/ReferralLink";
 
@@ -108,12 +109,14 @@ export default function OurStoryPage() {
             we’d be happy to help.
           </p>
           <p className="mt-3 text-lg font-semibold">Let’s plan your stay, together.</p>
+          <Suspense fallback={null}>
             <ReferralLink
               href="/plan"
               className="mt-6 inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2148]"
             >
-            Plan Your Stay
-          </ReferralLink>
+              Plan Your Stay
+            </ReferralLink>
+          </Suspense>
         </div>
       </section>
     </main>

@@ -4,7 +4,15 @@ import { cookies } from 'next/headers';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { emailIsAllowedForAdmin } from '@/lib/admin-emails';
 
-const ALLOWED_STATUSES = ['submitted', 'pending', 'matched', 'confirmed', 'cancelled'];
+const ALLOWED_STATUSES = [
+  'draft',
+  'submitted',
+  'pending_match',
+  'pending_owner',
+  'matched',
+  'confirmed',
+  'cancelled',
+];
 
 export async function POST(request: Request) {
   const { requestId, status, note } = await request.json();
@@ -24,7 +32,7 @@ export async function POST(request: Request) {
   }
 
   const { data: existing, error: existingError } = await supabase
-    .from('renter_requests')
+    .from('booking_requests')
     .select('status')
     .eq('id', requestId)
     .maybeSingle();
@@ -34,7 +42,7 @@ export async function POST(request: Request) {
   }
 
   const { error: updateError } = await supabase
-    .from('renter_requests')
+    .from('booking_requests')
     .update({ status })
     .eq('id', requestId);
 

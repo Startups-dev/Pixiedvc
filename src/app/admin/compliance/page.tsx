@@ -1,5 +1,6 @@
 import { readdir, readFile } from 'fs/promises';
 import path from 'path';
+import Link from 'next/link';
 
 import { requireAdminUser } from '@/lib/admin';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
@@ -286,12 +287,12 @@ export default async function ComplianceHubPage() {
               <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Policies</p>
               <h3 className="text-lg font-semibold text-slate-900">Policy set</h3>
             </div>
-            <a
+            <Link
               href="/admin/compliance/policies"
               className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-600"
             >
               View
-            </a>
+            </Link>
           </div>
           <div className="mt-3 inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-700">
             Available

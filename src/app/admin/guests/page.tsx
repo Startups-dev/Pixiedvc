@@ -9,11 +9,15 @@ type RequestRow = {
   renter_id: string | null;
   status: string | null;
   created_at: string;
+  updated_at: string | null;
   check_in: string | null;
   check_out: string | null;
   primary_room: string | null;
   adults: number | null;
   youths: number | null;
+  max_price_per_point: number | null;
+  availability_status: string | null;
+  availability_checked_at: string | null;
   lead_guest_name: string | null;
   lead_guest_email: string | null;
   primary_resort?: { name: string | null } | null;
@@ -22,7 +26,7 @@ type RequestRow = {
 type ActivityRow = {
   id: string;
   request_id: string;
-  kind: 'note' | 'status_change';
+  kind: 'note' | 'status_change' | 'availability';
   body: string | null;
   from_status: string | null;
   to_status: string | null;
@@ -46,7 +50,7 @@ export default async function AdminGuestsPage() {
   const { data: requestRows, error } = await supabase
     .from('booking_requests')
     .select(
-      'id, renter_id, status, created_at, check_in, check_out, primary_room, adults, youths, lead_guest_name, lead_guest_email, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)'
+      'id, renter_id, status, created_at, updated_at, check_in, check_out, primary_room, adults, youths, max_price_per_point, availability_status, availability_checked_at, lead_guest_name, lead_guest_email, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)',
     )
     .order('created_at', { ascending: false })
     .limit(75);
@@ -137,7 +141,9 @@ export default async function AdminGuestsPage() {
       roomType: row.primary_room,
       adults: row.adults,
       children: row.youths,
-      maxPrice: null,
+      maxPrice: row.max_price_per_point,
+      availabilityStatus: row.availability_status,
+      availabilityCheckedAt: row.availability_checked_at,
       resortName: row.primary_resort?.name ?? null,
       renterName: row.lead_guest_name ?? renter?.display_name ?? null,
       renterEmail: row.lead_guest_email ?? renter?.email ?? null,
@@ -145,19 +151,32 @@ export default async function AdminGuestsPage() {
     };
   });
 
-  const statusCounts: Record<string, number> = {};
+  const statusCounts: Record<string, number> = {
+    all: (statusRows ?? []).length,
+    submitted: 0,
+    pending: 0,
+    matched: 0,
+    confirmed: 0,
+    cancelled: 0,
+  };
+
   for (const row of statusRows ?? []) {
-    const label = row.status ?? 'submitted';
-    statusCounts[label] = (statusCounts[label] ?? 0) + 1;
+    const status = row.status ?? 'submitted';
+    if (status === 'pending_match' || status === 'pending_owner') {
+      statusCounts.pending += 1;
+      continue;
+    }
+    if (status in statusCounts) {
+      statusCounts[status] = (statusCounts[status] ?? 0) + 1;
+    }
   }
-  statusCounts.all = (statusRows ?? []).length;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
       <div className="space-y-2">
         <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Admin</p>
         <h1 className="text-3xl font-semibold text-slate-900">Guest Requests</h1>
-        <p className="text-slate-600">Concierge workspace for matching renters to available owner points.</p>
+        <p className="text-slate-600">Concierge workspace for reviewing new booking requests.</p>
       </div>
 
       <div className="mt-8">

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import ReferralLink from "@/components/referral/ReferralLink";
 
@@ -50,9 +51,11 @@ export default function DiningPlanPage() {
         </section>
 
         <div className="mt-10">
-          <Button asChild>
-            <ReferralLink href="/calculator">Return to calculator</ReferralLink>
-          </Button>
+          <Suspense fallback={null}>
+            <Button asChild>
+              <ReferralLink href="/calculator">Return to calculator</ReferralLink>
+            </Button>
+          </Suspense>
         </div>
       </main>
     </div>

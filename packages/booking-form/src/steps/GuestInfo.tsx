@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
+import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
 
 import {
   Button,
@@ -13,6 +13,7 @@ import {
 } from "@pixiedvc/design-system";
 import type { GuestInfoInput } from "../schemas";
 import { getMaxOccupancyForSelection, suggestNextVillaType } from "@/lib/occupancy";
+import { usePlacesAutocomplete } from "@/hooks/usePlacesAutocomplete";
 
 type GuestInfoProps = {
   onNext: () => void;
@@ -43,10 +44,12 @@ export function GuestInfo({ onNext, onBack }: GuestInfoProps) {
   } = useFormContext<FormValues>();
   const [occupancyError, setOccupancyError] = useState<string | null>(null);
   const occupancyWarningRef = useRef<HTMLDivElement | null>(null);
+  const addressRef = useRef<HTMLInputElement>(null);
   const villaType = useWatch({ control, name: "trip.villaType" });
   const resortId = useWatch({ control, name: "trip.resortId" });
   const adultGuests = useWatch({ control, name: "guest.adultGuests" }) ?? [];
   const childGuests = useWatch({ control, name: "guest.childGuests" }) ?? [];
+  const country = useWatch({ control, name: "guest.country" }) ?? "United States";
   const totalGuests = 1 + adultGuests.length + childGuests.length;
   const maxOccupancy = getMaxOccupancyForSelection({ roomLabel: villaType, resortCode: resortId });
 
@@ -61,6 +64,28 @@ export function GuestInfo({ onNext, onBack }: GuestInfoProps) {
   const additionalGuestLimit = Math.max(0, maxOccupancy - 1);
   const isOverCapacity = totalGuests > maxOccupancy;
   const occupancySuggestion = suggestNextVillaType(villaType ?? "");
+
+  const countryCodeMap: Record<string, string> = {
+    "United States": "us",
+    Canada: "ca",
+    "United Kingdom": "gb",
+    Mexico: "mx",
+    Brazil: "br",
+    Australia: "au",
+  };
+
+  usePlacesAutocomplete({
+    inputRef: addressRef,
+    debugLabel: "booking-form",
+    countryCode: countryCodeMap[country],
+    onSelect: (address) => {
+      if (address.line1) setValue("guest.address", address.line1, { shouldDirty: true });
+      if (address.city) setValue("guest.city", address.city, { shouldDirty: true });
+      if (address.state) setValue("guest.region", address.state, { shouldDirty: true });
+      if (address.postalCode) setValue("guest.postalCode", address.postalCode, { shouldDirty: true });
+      if (address.country) setValue("guest.country", address.country, { shouldDirty: true });
+    },
+  });
 
   useEffect(() => {
     const extraCount = adultGuests.length + childGuests.length;
@@ -128,6 +153,7 @@ export function GuestInfo({ onNext, onBack }: GuestInfoProps) {
               >
                 <option value="Mr.">Mr.</option>
                 <option value="Mrs.">Mrs.</option>
+                <option value="Ms.">Ms.</option>
               </select>
             </div>
             <div>
@@ -155,9 +181,45 @@ export function GuestInfo({ onNext, onBack }: GuestInfoProps) {
               <TextInput id="guest.phone" {...register("guest.phone")} />
             </div>
             <div className="sm:col-span-2">
+              <FieldLabel htmlFor="guest.country">Country</FieldLabel>
+              <select
+                id="guest.country"
+                {...register("guest.country")}
+                className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              >
+                <option value="United States">United States</option>
+                <option value="Canada">Canada</option>
+                <option value="United Kingdom">United Kingdom</option>
+                <option value="Mexico">Mexico</option>
+                <option value="Brazil">Brazil</option>
+                <option value="Australia">Australia</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2">
               <FieldLabel htmlFor="guest.address">Address</FieldLabel>
-              <TextInput id="guest.address" placeholder="Start typing to search..." {...register("guest.address")} />
-              <HelperText>Google Places integration forthcoming.</HelperText>
+              <Controller
+                name="guest.address"
+                control={control}
+                render={({ field }) => (
+                  <TextInput
+                    id="guest.address"
+                    placeholder="Start typing to search..."
+                    autoComplete="street-address"
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    ref={(node) => {
+                      field.ref(node);
+                      addressRef.current = node;
+                    }}
+                  />
+                )}
+              />
+              {errors.guest?.address ? (
+                <HelperText>{errors.guest.address.message}</HelperText>
+              ) : (
+                <HelperText>Start typing to search.</HelperText>
+              )}
             </div>
             <div>
               <FieldLabel htmlFor="guest.city">City</FieldLabel>
@@ -170,10 +232,6 @@ export function GuestInfo({ onNext, onBack }: GuestInfoProps) {
             <div>
               <FieldLabel htmlFor="guest.postalCode">Postal Code</FieldLabel>
               <TextInput id="guest.postalCode" {...register("guest.postalCode")} />
-            </div>
-            <div>
-              <FieldLabel htmlFor="guest.country">Country</FieldLabel>
-              <TextInput id="guest.country" {...register("guest.country")} />
             </div>
 
             <div className="sm:col-span-2 space-y-4">
@@ -191,6 +249,7 @@ export function GuestInfo({ onNext, onBack }: GuestInfoProps) {
                         >
                           <option value="Mr.">Mr.</option>
                           <option value="Mrs.">Mrs.</option>
+                          <option value="Ms.">Ms.</option>
                         </select>
                       </label>
                       <label className="text-xs font-semibold text-slate-600">
