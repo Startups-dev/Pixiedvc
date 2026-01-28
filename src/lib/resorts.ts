@@ -1,5 +1,4 @@
 import { supabase } from "@pixiedvc/data";
-import resortPhotoPrefixes from "@/lib/resort-photo-prefixes.json";
 
 export type Resort = {
   slug: string;
@@ -118,6 +117,7 @@ const RESORT_SLUG_ALIASES = new Map<string, string>([
   ["saratoga-springs", "saratoga-springs-resort"],
 ]);
 const PHOTO_FOLDER_OVERRIDES: Record<string, { folder: string; prefix?: string }> = {
+const PHOTO_FOLDER_OVERRIDES: Record<string, { folder: string; prefix: string }> = {
   "animal-kingdom-jambo": { folder: "animal-kingdom-lodge", prefix: "AKL" },
   "animal-kingdom-kidani": { folder: "Kidani", prefix: "AKV" },
   "animal-kingdom-villas": { folder: "animal-kingdom-lodge", prefix: "AKL" },
@@ -227,30 +227,15 @@ type ResortPhotoRow = {
   sort_order?: number | null;
 };
 
-function derivePhotoPrefix(slug: string) {
-  const compact = slug.replace(/[^a-z0-9]/g, "");
-  return compact.slice(0, 4);
-}
-
-function getPhotoPrefix(slug: string) {
-  const override = PHOTO_FOLDER_OVERRIDES[slug];
-  if (override?.prefix) {
-    return override.prefix;
-  }
-  const prefix = (resortPhotoPrefixes as Record<string, string>)[slug];
-  return prefix || derivePhotoPrefix(slug);
-}
-
 function buildResortPhotoUrls(slug: string) {
   if (!SUPABASE_PUBLIC_URL) {
     return [];
   }
   const override = PHOTO_FOLDER_OVERRIDES[slug];
-  const folder = override?.folder ?? slug;
-  const prefix = getPhotoPrefix(slug);
-  if (!prefix) {
+  if (!override) {
     return [];
   }
+  const { folder, prefix } = override;
   return Array.from({ length: 5 }, (_, index) => {
     const order = index + 1;
     return {
@@ -512,6 +497,7 @@ export async function getResortPhotos(
   }
 
   const slugVariants = getResortSlugVariants(slug);
+  
   const { data, error } = await supabase
     .from("resort_photos")
     .select("url, alt, caption, sort_order")
@@ -532,6 +518,18 @@ export async function getResortPhotos(
   const reachable = await filterReachablePhotos(mapped as { src: string; caption: string; alt?: string | null }[]);
   if (reachable.length > 0) {
     return reachable;
+  const filtered = mapped.filter((photo) => {
+    if (!photo.src) {
+      return false;
+    }
+    if (photo.src.startsWith("/")) {
+      return true;
+    }
+    return Boolean(allowedPrefix && photo.src.startsWith(allowedPrefix));
+  });
+
+  if (filtered.length > 0) {
+    return filtered;
   }
 
   const { data: resortRow } = await supabase
