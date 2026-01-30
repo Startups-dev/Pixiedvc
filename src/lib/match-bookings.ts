@@ -39,13 +39,15 @@ type OwnerRow = {
 };
 
 type MembershipRow = {
-  id: string;
+  id: number;
   owner_id: string;
   resort_id: string;
   home_resort?: string | null;
   contract_year?: number | null;
   use_year_start?: string | null;
   use_year_end?: string | null;
+  points_owned?: number | null;
+  points_rented?: number | null;
   points_available: number | null;
   points_reserved?: number | null;
   borrowing_enabled?: boolean | null;
@@ -56,7 +58,7 @@ type MembershipRow = {
 };
 
 export type MatchCandidateEvaluation = {
-  membership_id: string;
+  membership_id: number;
   owner_id: string;
   resort_id: string;
   home_resort: string | null;
@@ -84,8 +86,8 @@ export type EvaluatedBooking = {
 type MatchPlan = {
   bookingId: string;
   ownerId: string;
-  ownerMembershipId: string;
-  borrowMembershipId: string | null;
+  ownerMembershipId: number;
+  borrowMembershipId: number | null;
   ownerEmail: string;
   ownerName: string;
   pointsReserved: number;
@@ -275,6 +277,8 @@ export async function evaluateMatchBookings(options: {
         contract_year,
         use_year_start,
         use_year_end,
+        points_owned,
+        points_rented,
         points_available,
         points_reserved,
         borrowing_enabled,
@@ -411,10 +415,19 @@ export async function evaluateMatchBookings(options: {
         }
       }
 
-      const currentAvailable = Math.max(
-        (membership.points_available ?? 0) - (membership.points_reserved ?? 0),
-        0,
-      );
+      const rawAvailable =
+        (membership.points_owned ?? membership.points_available ?? 0) -
+        (membership.points_rented ?? 0) -
+        (membership.points_reserved ?? 0);
+      if (rawAvailable < 0 && process.env.NODE_ENV !== 'production') {
+        console.warn('[matcher] membership over-allocated', {
+          membership_id: membership.id,
+          owner_id: membership.owner_id,
+          raw_available: rawAvailable,
+        });
+      }
+      const effectiveAvailable = Math.max(rawAvailable, 0);
+      const currentAvailable = effectiveAvailable;
       let nextMembership: MembershipRow | null = null;
       let borrowable = 0;
       if (membership.borrowing_enabled) {
@@ -424,7 +437,8 @@ export async function evaluateMatchBookings(options: {
         const candidateNext = membershipMap.get(nextKey) ?? null;
         if (candidateNext) {
           const nextAvailable = Math.max(
-            (candidateNext.points_available ?? 0) -
+            (candidateNext.points_owned ?? candidateNext.points_available ?? 0) -
+              (candidateNext.points_rented ?? 0) -
               (candidateNext.points_reserved ?? 0),
             0,
           );
@@ -448,7 +462,7 @@ export async function evaluateMatchBookings(options: {
         contract_year: membership.contract_year ?? null,
         use_year_start: membership.use_year_start ?? null,
         use_year_end: membership.use_year_end ?? null,
-        points_available: membership.points_available ?? 0,
+        points_available: effectiveAvailable,
         points_reserved: membership.points_reserved ?? 0,
         points_ok: pointsOk,
         rejectReasons,

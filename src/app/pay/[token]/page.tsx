@@ -1,13 +1,12 @@
 // src/app/pay/[token]/page.tsx
 
 import { notFound } from "next/navigation";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
 import Link from "next/link";
+import { createServiceClient } from "@/lib/supabase-service-client";
 
 type PaymentRecord = {
   id: string;
-  amount: number | null;
+  amount_cents: number | null;
   currency: string | null;
   status: string | null;
   booking_request_id: string | null;
@@ -19,23 +18,12 @@ export default async function PayPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: () => {},
-      },
-    }
-  );
+  const supabase = createServiceClient();
 
   const { data: payment, error } = await supabase
     .from("payments")
-    .select("id, amount, currency, status, booking_request_id")
-    .eq("payment_token", token)
+    .select("id, amount_cents, currency, status, booking_request_id")
+    .eq("id", token)
     .maybeSingle<PaymentRecord>();
 
   if (error || !payment) {
@@ -58,7 +46,7 @@ export default async function PayPage({
           <div className="flex justify-between text-sm">
             <span className="text-[#0B1B3A]/60">Amount</span>
             <span className="font-semibold text-[#0B1B3A]">
-              {(payment.amount ?? 0) / 100} {payment.currency ?? "USD"}
+              {((payment.amount_cents ?? 0) / 100).toFixed(2)} {payment.currency ?? "USD"}
             </span>
           </div>
 

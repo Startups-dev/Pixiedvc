@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { cookies } from 'next/headers';
 
 import { createSupabaseServerClient } from '@/lib/supabase-server';
@@ -6,11 +7,17 @@ import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { emailIsAllowedForAdmin } from '@/lib/admin-emails';
 import { runMatchBookings } from '@/lib/match-bookings';
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const BodySchema = z.object({
+  bookingRequestId: z.string().uuid().nullable().optional(),
+});
 
 export async function POST(request: Request) {
-  const { bookingRequestId, bookingId } = await request.json().catch(() => ({}));
-  const requestedId = typeof bookingRequestId === 'string' ? bookingRequestId : bookingId;
+  const body = await request.json().catch(() => ({}));
+  const parsed = BodySchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ ok: false, error: 'Invalid booking request id' }, { status: 400 });
+  }
+  const bookingRequestId = parsed.data.bookingRequestId ?? null;
 
   const cookieStore = await cookies();
   const sessionClient = await createSupabaseServerClient();
@@ -24,15 +31,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (requestedId && typeof requestedId === 'string' && !UUID_REGEX.test(requestedId)) {
-    return NextResponse.json({ ok: false, error: 'Invalid booking request id' }, { status: 400 });
-  }
-
   const origin = new URL(request.url).origin;
   const result = await runMatchBookings({
     client: supabase,
     origin,
-    bookingId: typeof requestedId === 'string' ? requestedId : null,
+    bookingId: bookingRequestId,
     dryRun: false,
     now: new Date(),
     sendEmails: true,

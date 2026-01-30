@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import GuestDetailsClient from "./GuestDetailsClient";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,13 @@ type BookingRequestRow = {
   primary_resort: { name: string | null } | null;
 };
 
+type GuestRow = {
+  first_name: string | null;
+  last_name: string | null;
+  age_category: string | null;
+  age: number | null;
+};
+
 const dateFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
 
 export default async function GuestRequestPage({
@@ -75,6 +83,10 @@ export default async function GuestRequestPage({
   }
 
   const request = data as BookingRequestRow;
+  const { data: guests } = await supabase
+    .from("booking_request_guests")
+    .select("first_name, last_name, age_category, age")
+    .eq("booking_id", request.id);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-6 py-12">
@@ -106,24 +118,25 @@ export default async function GuestRequestPage({
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <Detail label="Max $/pt" value={request.max_price_per_point ? `$${request.max_price_per_point.toFixed(2)}` : "—"} />
           <Detail label="Estimated cash" value={formatCurrency(request.est_cash, request.deposit_currency)} />
-          <Detail label="Guest total (cents)" value={request.guest_total_cents ? `${request.guest_total_cents}` : "—"} />
-          <Detail label="Guest rate/pt (cents)" value={request.guest_rate_per_point_cents ? `${request.guest_rate_per_point_cents}` : "—"} />
           <Detail label="Deposit due" value={formatCurrency(request.deposit_due, request.deposit_currency)} />
           <Detail label="Deposit paid" value={formatCurrency(request.deposit_paid, request.deposit_currency)} />
         </div>
+        <p className="mt-4 text-xs text-slate-500">
+          This reservation may be eligible for a Deferred Cancellation Credit.{" "}
+          <Link href="/policies/deferred-cancellation" className="font-semibold text-slate-700 hover:text-slate-900">
+            View policy
+          </Link>
+          .
+        </p>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Guest info</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <Detail label="Name" value={request.lead_guest_name ?? "—"} />
-          <Detail label="Email" value={request.lead_guest_email ?? "—"} />
-          <Detail label="Phone" value={request.lead_guest_phone ?? "—"} />
-          <Detail label="Accessibility needs" value={request.requires_accessibility ? "Yes" : "No"} />
-          <Detail label="Address" value={formatAddress(request)} />
-          <Detail label="Notes" value={request.comments ?? "—"} />
-        </div>
-      </section>
+      <GuestDetailsClient
+        requestId={request.id}
+        userEmail={user.email ?? null}
+        leadGuestEmail={request.lead_guest_email ?? null}
+        leadGuestPhone={request.lead_guest_phone ?? null}
+        guests={(guests ?? []) as GuestRow[]}
+      />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-900">Request timeline</h2>

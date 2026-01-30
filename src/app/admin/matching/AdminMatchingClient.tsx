@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { z } from 'zod';
 import PresetBar from './PresetBar';
 import AdminAuditTrail from './[matchId]/AdminAuditTrail';
 import MatchListTile, { type MatchListTileRow } from './MatchListTile';
@@ -245,7 +246,7 @@ const MATCHER_SKIP_REASON_LABELS: Record<string, string> = {
   restricted_resale_resort: "Resale (post-2019) points can’t book this resort.",
 };
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_SCHEMA = z.string().uuid();
 
 function formatMatcherResponse(resp: MatcherResponse | null) {
   if (!resp) return null;
@@ -418,14 +419,19 @@ export default function AdminMatchingClient() {
     [matcherResponse],
   );
   const trimmedMatcherId = matcherBookingId.trim();
-  const matcherBookingIdInvalid = Boolean(trimmedMatcherId) && !UUID_REGEX.test(trimmedMatcherId);
+  const matcherBookingIdInvalid =
+    Boolean(trimmedMatcherId) && !UUID_SCHEMA.safeParse(trimmedMatcherId).success;
 
   async function runMatcher() {
-    if (matcherBookingIdInvalid) {
-      setMatcherBookingIdError('Booking request id must be a valid UUID.');
-      return;
-    }
     setMatcherBookingIdError(null);
+
+    if (trimmedMatcherId) {
+      const parsed = UUID_SCHEMA.safeParse(trimmedMatcherId);
+      if (!parsed.success) {
+        setMatcherBookingIdError('Booking request id must be a valid UUID.');
+        return;
+      }
+    }
     setMatcherRunning(true);
     setMatcherError(null);
     try {
@@ -907,7 +913,10 @@ export default function AdminMatchingClient() {
           <button
             type="button"
             onClick={runMatcher}
-            disabled={matcherRunning || matcherBookingIdInvalid}
+            disabled={
+              matcherRunning ||
+              (Boolean(matcherBookingId) && !UUID_SCHEMA.safeParse(matcherBookingId).success)
+            }
             className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
           >
             {matcherRunning ? 'Running…' : 'Run matcher'}
@@ -923,7 +932,7 @@ export default function AdminMatchingClient() {
               setMatcherBookingId(nextValue);
               if (!nextTrimmed) {
                 setMatcherBookingIdError(null);
-              } else if (UUID_REGEX.test(nextTrimmed)) {
+              } else if (UUID_SCHEMA.safeParse(nextTrimmed).success) {
                 setMatcherBookingIdError(null);
               } else {
                 setMatcherBookingIdError('Booking request id must be a valid UUID.');
@@ -942,7 +951,7 @@ export default function AdminMatchingClient() {
         {matcherSummary ? (
           <div className="mt-4 space-y-4">
             <div className="grid gap-3 sm:grid-cols-3">
-              <SummaryStat label="Eligible bookings" value={matcherSummary.runSummary.eligibleCount.toString()} />
+              <SummaryStat label="Eligible requests" value={matcherSummary.runSummary.eligibleCount.toString()} />
               <SummaryStat label="Matches created" value={matcherSummary.runSummary.matchesCreated.toString()} />
               <SummaryStat label="Errors" value={matcherSummary.runSummary.errorsCount.toString()} />
             </div>
@@ -956,7 +965,19 @@ export default function AdminMatchingClient() {
                 matcherSummary.bookingSummaries.map((summary) => (
                   <details key={summary.bookingId} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                     <summary className="cursor-pointer text-sm font-semibold text-slate-800">
-                      {summary.bookingIdShort} · {summary.result} · {summary.points ?? '—'} pts
+                      {summary.bookingIdShort} ·{' '}
+                      <span
+                        className={
+                          summary.result === 'matched'
+                            ? 'text-emerald-600'
+                            : summary.result === 'skipped'
+                              ? 'text-rose-600'
+                              : 'text-slate-700'
+                        }
+                      >
+                        {summary.result}
+                      </span>{' '}
+                      · {summary.points ?? '—'} pts
                     </summary>
                     <div className="mt-2 text-xs text-slate-600">
                       <p>Booking id: {summary.bookingId}</p>

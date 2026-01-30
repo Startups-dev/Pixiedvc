@@ -3,8 +3,7 @@ import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
-import { resolveCalculatorCode } from "@/lib/resort-calculator";
-import { computeOwnerPayout } from "@/lib/pricing";
+import { ensureRentalForMatch } from "@/lib/rentals/ensureRentalForMatch";
 
 export async function POST(
   request: NextRequest,
@@ -155,203 +154,14 @@ export async function POST(
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 404 });
   }
 
-  const resortMeta = booking.primary_resort ?? null;
-  const resortCode =
-    resolveCalculatorCode({
-      slug: resortMeta?.slug ?? null,
-      calculator_code: resortMeta?.calculator_code ?? null,
-    }) ?? "TBD";
-
-  const resortName = resortMeta?.name ?? null;
-  const guestVerified = Boolean(
-    booking.renter_id ||
-      (booking.lead_guest_name && booking.lead_guest_email && booking.lead_guest_phone),
-  );
-  const paymentVerified =
-    typeof booking.deposit_paid === "number" && booking.deposit_paid >= 99;
-  const bookingPackage = {
-    booking_request_id: booking.id,
-    resort_name: resortName,
-    resort_code: resortCode,
-    room_type: booking.primary_room ?? null,
-    room_view: booking.primary_view ?? null,
-    check_in: booking.check_in ?? null,
-    check_out: booking.check_out ?? null,
-    points_required: booking.total_points ?? null,
-    lead_guest_name: booking.lead_guest_name ?? null,
-    lead_guest_email: booking.lead_guest_email ?? null,
-    lead_guest_phone: booking.lead_guest_phone ?? null,
-    lead_guest_address: {
-      line1: booking.address_line1 ?? null,
-      line2: booking.address_line2 ?? null,
-      city: booking.city ?? null,
-      state: booking.state ?? null,
-      postal: booking.postal_code ?? null,
-      country: booking.country ?? null,
-    },
-    party_size:
-      typeof booking.adults === "number" && typeof booking.youths === "number"
-        ? booking.adults + booking.youths
-        : null,
-    adults: booking.adults ?? null,
-    youths: booking.youths ?? null,
-    requires_accessibility: booking.requires_accessibility ?? false,
-    comments: booking.comments ?? null,
-    deposit_due: booking.deposit_due ?? null,
-    deposit_paid: booking.deposit_paid ?? null,
-    deposit_currency: booking.deposit_currency ?? "USD",
-    max_price_per_point: booking.max_price_per_point ?? null,
-    est_cash: booking.est_cash ?? null,
-    guest_total_cents: booking.guest_total_cents ?? null,
-    guest_rate_per_point_cents: booking.guest_rate_per_point_cents ?? null,
-  };
-
-  let membershipResortId: string | null = null;
-  if (match.owner_membership_id) {
-    const { data: membership } = await adminClient
-      .from("owner_memberships")
-      .select("resort_id")
-      .eq("id", match.owner_membership_id)
-      .maybeSingle();
-    membershipResortId = membership?.resort_id ?? null;
-  }
-
-  const computedOwnerPayout = computeOwnerPayout({
-    totalPoints: booking.total_points,
-    matchedMembershipResortId: membershipResortId,
-    bookingResortId: booking.primary_resort_id ?? null,
-  });
-
-  const owner_base_rate_per_point_cents =
-    typeof match.owner_base_rate_per_point_cents === "number"
-      ? match.owner_base_rate_per_point_cents
-      : computedOwnerPayout.owner_base_rate_per_point_cents;
-  const owner_premium_per_point_cents =
-    typeof match.owner_premium_per_point_cents === "number"
-      ? match.owner_premium_per_point_cents
-      : computedOwnerPayout.owner_premium_per_point_cents;
-  const owner_rate_per_point_cents =
-    typeof match.owner_rate_per_point_cents === "number"
-      ? match.owner_rate_per_point_cents
-      : computedOwnerPayout.owner_rate_per_point_cents;
-  const owner_total_cents =
-    typeof match.owner_total_cents === "number"
-      ? match.owner_total_cents
-      : computedOwnerPayout.owner_total_cents;
-  const owner_home_resort_premium_applied =
-    typeof match.owner_home_resort_premium_applied === "boolean"
-      ? match.owner_home_resort_premium_applied
-      : computedOwnerPayout.owner_home_resort_premium_applied;
-
-  const rentalAmountCents =
-    typeof owner_total_cents === "number" && owner_total_cents > 0 ? owner_total_cents : null;
-
-  const rentalPayload = {
-    match_id: match.id,
-    owner_id: owner.id,
-    guest_id: booking.renter_id ?? null,
-    owner_user_id: owner.user_id ?? owner.id,
-    guest_user_id: booking.renter_id ?? null,
-    resort_code: resortCode,
-    room_type: booking.primary_room ?? null,
-    check_in: booking.check_in ?? null,
-    check_out: booking.check_out ?? null,
-    points_required: booking.total_points ?? null,
-    rental_amount_cents: rentalAmountCents,
-    owner_base_rate_per_point_cents,
-    owner_premium_per_point_cents,
-    owner_rate_per_point_cents,
-    owner_total_cents,
-    owner_home_resort_premium_applied,
-    status: "needs_dvc_booking",
-    booking_package: bookingPackage,
-    lead_guest_name: booking.lead_guest_name ?? null,
-    lead_guest_email: booking.lead_guest_email ?? null,
-    lead_guest_phone: booking.lead_guest_phone ?? null,
-    lead_guest_address: bookingPackage.lead_guest_address,
-    party_size: bookingPackage.party_size,
-    adults: booking.adults ?? null,
-    youths: booking.youths ?? null,
-    special_needs: booking.requires_accessibility ?? false,
-    special_needs_notes: booking.comments ?? null,
-  };
-
-  const { data: existingRental } = await adminClient
-    .from("rentals")
-    .select("id")
-    .eq("match_id", match.id)
-    .maybeSingle();
-
-  let rentalRow = existingRental ?? null;
-  if (!rentalRow) {
-    const { data: insertedRental, error: rentalError } = await adminClient
-      .from("rentals")
-      .insert(rentalPayload)
-      .select("id")
-      .maybeSingle();
-
-    if (rentalError || !insertedRental) {
-      if (process.env.NODE_ENV !== "production") {
-        console.error("Failed to create rental", rentalError);
-      }
-      return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
+  let rentalRow: { rentalId: string; checkIn: string | null; ownerUserId: string; rentalAmountCents: number | null };
+  try {
+    rentalRow = await ensureRentalForMatch({ adminClient, matchId: match.id, ownerUserId: owner.user_id ?? user.id });
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("Failed to ensure rental", error);
     }
-    rentalRow = insertedRental;
-  } else {
-    await adminClient
-      .from("rentals")
-      .update(rentalPayload)
-      .eq("id", rentalRow.id);
-  }
-
-  if (!existingRental) {
-    const { error: milestoneError } = await adminClient.from("rental_milestones").insert([
-      { rental_id: rentalRow.id, code: "matched", status: "completed", occurred_at: nowIso },
-      {
-        rental_id: rentalRow.id,
-        code: "guest_verified",
-        status: guestVerified ? "completed" : "pending",
-        occurred_at: guestVerified ? nowIso : null,
-      },
-      {
-        rental_id: rentalRow.id,
-        code: "payment_verified",
-        status: paymentVerified ? "completed" : "pending",
-        occurred_at: paymentVerified ? nowIso : null,
-      },
-      { rental_id: rentalRow.id, code: "booking_package_sent", status: "completed", occurred_at: nowIso },
-      { rental_id: rentalRow.id, code: "agreement_sent", status: "pending", occurred_at: null },
-      { rental_id: rentalRow.id, code: "owner_approved", status: "pending", occurred_at: null },
-      { rental_id: rentalRow.id, code: "owner_booked", status: "pending", occurred_at: null },
-      { rental_id: rentalRow.id, code: "check_in", status: "pending", occurred_at: null },
-      { rental_id: rentalRow.id, code: "check_out", status: "pending", occurred_at: null },
-    ]);
-    if (milestoneError) {
-      if (process.env.NODE_ENV !== "production") {
-        console.error("Failed to seed rental milestones", milestoneError);
-      }
-      return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
-    }
-  } else {
-    if (guestVerified) {
-      await adminClient
-        .from("rental_milestones")
-        .update({ status: "completed", occurred_at: nowIso })
-        .eq("rental_id", rentalRow.id)
-        .eq("code", "guest_verified");
-    }
-    if (paymentVerified) {
-      await adminClient
-        .from("rental_milestones")
-        .update({ status: "completed", occurred_at: nowIso })
-        .eq("rental_id", rentalRow.id)
-        .eq("code", "payment_verified");
-    }
-    await adminClient
-      .from("rental_milestones")
-      .update({ status: "completed", occurred_at: nowIso })
-      .eq("rental_id", rentalRow.id)
-      .eq("code", "booking_package_sent");
+    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
 
   const { error: bookingUpdateError } = await adminClient
@@ -369,9 +179,9 @@ export async function POST(
   if (process.env.NODE_ENV !== "production") {
     console.info("[owner/matches/accept] rental ready", {
       match_id: match.id,
-      rental_id: rentalRow.id,
+      rental_id: rentalRow.rentalId,
     });
   }
 
-  return NextResponse.json({ rentalId: rentalRow.id });
+  return NextResponse.json({ rentalId: rentalRow.rentalId });
 }

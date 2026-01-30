@@ -111,7 +111,17 @@ export default function RequestWorkstationClient({ request }: { request: Request
             <SummaryStat label="Status" value={STATUS_LABELS[request.status ?? ''] ?? request.status ?? '—'} />
             <SummaryStat
               label="Availability"
-              value={<span className={availabilityLabel === 'Confirmed' ? 'text-emerald-400' : undefined}>{availabilityLabel}</span>}
+              value={
+                <span
+                  className={
+                    availabilityLabel === 'Confirmed'
+                      ? 'font-semibold text-emerald-300'
+                      : undefined
+                  }
+                >
+                  {availabilityLabel}
+                </span>
+              }
             />
             <SummaryStat label="Resort" value={request.resortName ?? 'Any resort'} />
             <SummaryStat label="Dates" value={formatDates(request.checkIn, request.checkOut)} />
@@ -125,7 +135,9 @@ export default function RequestWorkstationClient({ request }: { request: Request
           <p className="text-xs uppercase tracking-[0.3em] text-[#9aa3b2]">Availability</p>
           <p
             className={`mt-1 text-sm ${
-              availabilityLabel === 'Confirmed' ? 'text-emerald-400' : 'text-[#9aa3b2]'
+              availabilityLabel === 'Confirmed'
+                ? 'font-semibold text-emerald-300'
+                : 'text-[#9aa3b2]'
             }`}
           >
             Status: {availabilityLabel}

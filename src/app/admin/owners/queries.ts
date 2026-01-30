@@ -36,8 +36,7 @@ export type OwnerDocumentRow = {
 
 export type OwnerContractRow = {
   id: number;
-  template_name: string;
-  contract_body: string;
+  contract_body?: string | null;
   status: 'draft' | 'sent' | 'accepted' | 'rejected';
   created_at: string | null;
   sent_at: string | null;

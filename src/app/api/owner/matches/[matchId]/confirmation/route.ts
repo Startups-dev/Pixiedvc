@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { calculatePayoutAmountCents } from "@/lib/owner-portal";
+import { ensureRentalForMatch } from "@/lib/rentals/ensureRentalForMatch";
+import { ensureGuestAgreementForBooking } from "@/server/contracts";
 
 export async function POST(
   request: NextRequest,
@@ -28,6 +30,8 @@ export async function POST(
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
 
+  const debugEnabled = process.env.NODE_ENV !== "production";
+
   let payload: { confirmationNumber?: string } | null = null;
   try {
     payload = await request.json();
@@ -40,34 +44,40 @@ export async function POST(
     return NextResponse.json({ error: "Invalid confirmation number." }, { status: 400 });
   }
 
-  const { data: owner } = await adminClient
-    .from("owners")
-    .select("id, user_id")
-    .or(`id.eq.${user.id},user_id.eq.${user.id}`)
-    .maybeSingle();
-
-  if (!owner) {
-    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 404 });
-  }
-
   const { data: match } = await adminClient
     .from("booking_matches")
-    .select("id, booking_id, status, owner_membership_id, points_reserved_current, points_reserved_borrowed")
+    .select("id, booking_id, status, owner_id, owner_membership_id, points_reserved_current, points_reserved_borrowed")
     .eq("id", matchId)
-    .eq("owner_id", owner.id)
     .maybeSingle();
 
   if (!match) {
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 404 });
   }
 
-  const { data: rental } = await adminClient
-    .from("rentals")
-    .select("id, check_in, owner_user_id, rental_amount_cents")
-    .eq("match_id", match.id)
-    .maybeSingle();
+  let rentalRow: {
+    rentalId: string;
+    checkIn: string | null;
+    ownerUserId: string;
+    rentalAmountCents: number | null;
+  };
+  try {
+    rentalRow = await ensureRentalForMatch({ adminClient, matchId: match.id, ownerUserId: user.id });
+  } catch (error) {
+    if (debugEnabled) {
+      console.error("Failed to ensure rental", error);
+      console.debug("[owner/confirmation] ensureRentalForMatch failed", {
+        matchId: match.id,
+        error: error instanceof Error ? error.message : "unknown_error",
+      });
+    }
+    const message = error instanceof Error ? error.message : "Something went wrong. Please try again.";
+    return NextResponse.json(
+      { error: "Something went wrong. Please try again.", debug: debugEnabled ? message : undefined },
+      { status: 500 },
+    );
+  }
 
-  if (!rental) {
+  if (rentalRow.ownerUserId !== user.id) {
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 404 });
   }
 
@@ -78,13 +88,60 @@ export async function POST(
       status: "booked_pending_agreement",
       updated_at: new Date().toISOString(),
     })
-    .eq("id", rental.id);
+    .eq("id", rentalRow.rentalId);
 
   if (rentalError) {
     if (process.env.NODE_ENV !== "production") {
       console.error("Failed to save confirmation number", rentalError);
     }
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
+  }
+
+  // Mark booking + confirmation milestones as completed (insert if missing)
+  const milestoneTime = new Date().toISOString();
+  await adminClient.from("rental_milestones").upsert(
+    [
+      {
+        rental_id: rentalRow.rentalId,
+        code: "owner_booked",
+        status: "completed",
+        occurred_at: milestoneTime,
+      },
+      {
+        rental_id: rentalRow.rentalId,
+        code: "disney_confirmation_uploaded",
+        status: "completed",
+        occurred_at: milestoneTime,
+      },
+    ],
+    { onConflict: "rental_id,code" },
+  );
+
+  // Keep contract snapshot in sync with confirmation number for guest-facing pages.
+  const { data: latestContract } = await adminClient
+    .from("contracts")
+    .select("id, snapshot")
+    .eq("booking_request_id", match.booking_id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latestContract?.id && latestContract.snapshot) {
+    const snapshot = latestContract.snapshot as Record<string, unknown>;
+    const summary = (snapshot.summary as Record<string, unknown> | null) ?? {};
+    const nextSnapshot = {
+      ...snapshot,
+      confirmationNumber,
+      summary: {
+        ...summary,
+        reservationNumber: confirmationNumber,
+      },
+    };
+
+    await adminClient
+      .from("contracts")
+      .update({ snapshot: nextSnapshot })
+      .eq("id", latestContract.id);
   }
 
   if (process.env.NODE_ENV !== "production") {
@@ -94,10 +151,10 @@ export async function POST(
     });
   }
 
-  if (match.status !== "booked") {
+  if (match.status !== "accepted") {
     const { error: matchError } = await adminClient
       .from("booking_matches")
-      .update({ status: "booked", responded_at: new Date().toISOString() })
+      .update({ status: "accepted", responded_at: new Date().toISOString() })
       .eq("id", match.id);
 
     if (matchError && process.env.NODE_ENV !== "production") {
@@ -105,16 +162,44 @@ export async function POST(
     }
   }
 
-  const payout70Amount = calculatePayoutAmountCents(rental.rental_amount_cents, 70);
-  const payout30Amount = calculatePayoutAmountCents(rental.rental_amount_cents, 30);
+  let contractWarning: { ok: false; error: string; debug?: string } | null = null;
+  try {
+    await ensureGuestAgreementForBooking({
+      supabase: adminClient,
+      ownerId: match.owner_id,
+      bookingRequestId: match.booking_id,
+      rentalId: rentalRow.rentalId,
+      confirmationNumber,
+    });
+  } catch (contractError) {
+    if (debugEnabled) {
+      console.error("Failed to generate guest agreement", contractError);
+    }
+    const message =
+      contractError instanceof Error
+        ? contractError.message
+        : typeof contractError === "string"
+          ? contractError
+          : contractError && typeof (contractError as { message?: string }).message === "string"
+            ? (contractError as { message?: string }).message
+            : JSON.stringify(contractError);
+    contractWarning = {
+      ok: false,
+      error: "Agreement generation failed.",
+      debug: debugEnabled ? message : undefined,
+    };
+  }
+
+  const payout70Amount = calculatePayoutAmountCents(rentalRow.rentalAmountCents, 70);
+  const payout30Amount = calculatePayoutAmountCents(rentalRow.rentalAmountCents, 30);
   const nowIso = new Date().toISOString();
 
   await adminClient
     .from("payout_ledger")
     .upsert(
       {
-        rental_id: rental.id,
-        owner_user_id: rental.owner_user_id,
+        rental_id: rentalRow.rentalId,
+        owner_user_id: rentalRow.ownerUserId,
         stage: 70,
         amount_cents: payout70Amount,
         status: "eligible",
@@ -127,8 +212,8 @@ export async function POST(
     .from("payout_ledger")
     .upsert(
       {
-        rental_id: rental.id,
-        owner_user_id: rental.owner_user_id,
+        rental_id: rentalRow.rentalId,
+        owner_user_id: rentalRow.ownerUserId,
         stage: 30,
         amount_cents: payout30Amount,
         status: "pending",
@@ -156,8 +241,8 @@ export async function POST(
   }
 
   const reservedBorrowed = match.points_reserved_borrowed ?? 0;
-  if (reservedBorrowed > 0 && rental?.check_in) {
-    const bookingYear = new Date(rental.check_in).getUTCFullYear();
+  if (reservedBorrowed > 0 && rentalRow.checkIn) {
+    const bookingYear = new Date(rentalRow.checkIn).getUTCFullYear();
     const { data: currentMembership } = await adminClient
       .from("owner_memberships")
       .select("owner_id, resort_id, contract_year")
@@ -185,5 +270,5 @@ export async function POST(
     }
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, rentalSaved: true, contract: contractWarning });
 }

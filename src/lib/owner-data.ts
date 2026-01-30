@@ -15,6 +15,8 @@ export type OwnerProfile = {
 export type OwnerMembership = {
   id: string;
   owner_id: string;
+  owner_legal_full_name?: string | null;
+  co_owner_legal_full_name?: string | null;
   resort_id: string | null;
   home_resort: string | null;
   use_year: string | null;
@@ -202,7 +204,7 @@ export async function getOwnerMemberships(userId: string, cookieStore?: RequestC
   const { data } = await client
     .from("owner_memberships")
     .select(
-      "id, owner_id, resort_id, home_resort, use_year, use_year_start, use_year_end, contract_year, points_owned, points_available, points_reserved, points_rented, points_expiration_date, purchase_channel, acquired_at, created_at, resort:resorts(name, slug, calculator_code)",
+      "id, owner_id, owner_legal_full_name, co_owner_legal_full_name, resort_id, home_resort, use_year, use_year_start, use_year_end, contract_year, points_owned, points_available, points_reserved, points_rented, points_expiration_date, purchase_channel, acquired_at, created_at, resort:resorts(name, slug, calculator_code)",
     )
     .eq("owner_id", owner.id)
     .order("created_at", { ascending: true });

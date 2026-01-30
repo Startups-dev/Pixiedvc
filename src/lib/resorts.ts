@@ -116,7 +116,6 @@ const RESORT_SLUG_ALIASES = new Map<string, string>([
   ["riviera-resort", "riviera"],
   ["saratoga-springs", "saratoga-springs-resort"],
 ]);
-const PHOTO_FOLDER_OVERRIDES: Record<string, { folder: string; prefix?: string }> = {
 const PHOTO_FOLDER_OVERRIDES: Record<string, { folder: string; prefix: string }> = {
   "animal-kingdom-jambo": { folder: "animal-kingdom-lodge", prefix: "AKL" },
   "animal-kingdom-kidani": { folder: "Kidani", prefix: "AKV" },

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { Card, Button } from "@pixiedvc/design-system";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getOwnerRentalDetail, getRentalDocumentUrls } from "@/lib/owner-data";
 import {
   calculatePayoutAmountCents,
@@ -20,6 +21,7 @@ import OwnerApprovalButton from "@/components/owner/OwnerApprovalButton";
 import PayoutTimeline from "@/components/owner/PayoutTimeline";
 import ExceptionRequestForm from "@/components/owner/ExceptionRequestForm";
 import DevSeedRental from "@/components/owner/DevSeedRental";
+import AgreementPreview from "@/components/owner/AgreementPreview";
 import styles from "./rental-header.module.css";
 
 function formatDate(value: string | null) {
@@ -196,6 +198,22 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
   const milestones = normalizeMilestones(rental.rental_milestones ?? []);
   const payouts = (rental.payout_ledger ?? []) as any[];
   const agreementDoc = documents.find((doc) => doc.type === "agreement_pdf");
+
+  const bookingRequestId =
+    typeof (rental.booking_package as any)?.booking_request_id === "string"
+      ? (rental.booking_package as any).booking_request_id
+      : null;
+  const adminClient = getSupabaseAdminClient();
+  const { data: contract } =
+    adminClient && bookingRequestId
+      ? await adminClient
+          .from("contracts")
+          .select("id, status, guest_accepted_at, owner_accepted_at, snapshot")
+          .eq("booking_request_id", bookingRequestId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : { data: null };
 
   const approvalCompleted = getMilestoneStatus("owner_approved", milestones) === "completed";
   const confirmationCompleted = getMilestoneStatus("disney_confirmation_uploaded", milestones) === "completed";
@@ -426,6 +444,11 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
           )}
         </Card>
       </section>
+      {contract ? (
+        <section>
+          <AgreementPreview contract={contract} />
+        </section>
+      ) : null}
 
       <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <DocumentList documents={documents} />

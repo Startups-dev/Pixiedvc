@@ -47,7 +47,7 @@ export default function OwnerMatchActions({
   const [uiState, setUiState] = useState<UiState>(deriveUiState(initialStatus));
   const [successVisible, setSuccessVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showConfirmationForm, setShowConfirmationForm] = useState(false);
+  const [showConfirmationForm, setShowConfirmationForm] = useState(true);
   const [confirmationNumber, setConfirmationNumber] = useState("");
   const [confirmationError, setConfirmationError] = useState<string | null>(null);
   const [confirmationSuccess, setConfirmationSuccess] = useState(false);
@@ -146,7 +146,6 @@ export default function OwnerMatchActions({
         setMatchStatus("accepted");
         setUiState("accepted");
         setRentalId(payload.rentalId ?? null);
-        setShowConfirmationForm(false);
         return;
       }
 
@@ -181,7 +180,10 @@ export default function OwnerMatchActions({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirmationNumber: cleaned }),
       });
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        debug?: string;
+      };
 
       if (response.status === 410 || payload.error === "expired") {
         router.push("/owner/matches");
@@ -190,19 +192,19 @@ export default function OwnerMatchActions({
       }
 
       if (!response.ok) {
-        throw new Error("Something went wrong.");
+        const detail = payload.debug || payload.error || "";
+        throw new Error(detail || "Save confirmation failed");
       }
 
       setMatchStatus("booked");
       setConfirmationSuccess(true);
       setBookingInProgress(true);
-      setShowConfirmationForm(false);
       setConfirmationNumber("");
     } catch (err) {
       if (process.env.NODE_ENV !== "production") {
         console.error("Confirmation save failed", err);
       }
-      setConfirmationError("Something went wrong. Please try again.");
+      setConfirmationError("We couldn’t save that just now. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -296,14 +298,11 @@ export default function OwnerMatchActions({
               <span>Success</span>
             </div>
             <h3 className="mt-2 text-lg font-semibold text-emerald-900">You’ve secured a renter!</h3>
-            <p className="mt-2 text-sm text-emerald-800">These points are now committed to this booking.</p>
+            <p className="mt-2 text-sm text-emerald-800">These points are now committed to this request.</p>
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-ink">Next step: Book with Disney Vacation Club</h4>
-            <p className="mt-2 text-sm text-slate-600">
-              Place the reservation using the guest details. Once confirmed, enter the Disney confirmation number here to continue.
-            </p>
+            <h4 className="text-sm font-semibold text-ink">Next step: Book with Disney Vacation Club.</h4>
           </div>
 
           <details className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
@@ -315,15 +314,6 @@ export default function OwnerMatchActions({
               <p className="text-xs text-slate-500">Tip: Best time to call: starting 8:00 AM ET</p>
             </div>
           </details>
-
-          <div className="flex flex-wrap gap-3">
-            <Button onClick={() => setShowConfirmationForm(true)} disabled={isSubmitting}>
-              Enter Disney confirmation number
-            </Button>
-            <Button variant="ghost" onClick={() => setShowConfirmationForm(false)} disabled={isSubmitting}>
-              Book later
-            </Button>
-          </div>
 
           {rentalId ? (
             <button
@@ -356,14 +346,10 @@ export default function OwnerMatchActions({
             <p>• The signed rental agreement</p>
             <p>• Your first payout (70% of reservation)</p>
           </div>
-          <p className="mt-3 text-xs text-slate-500">
-            To speed up verification, you may forward the Disney confirmation email to{" "}
-            <span className="font-medium text-slate-600">confirmations@pixiedvc.com</span>
-          </p>
-      <div className="mt-4 flex flex-wrap gap-3">
-        <Button onClick={() => router.push(rentalId ? `/owner/rentals/${rentalId}` : "/owner/rentals")}>
-          View rental milestones
-        </Button>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Button onClick={() => router.push(rentalId ? `/owner/rentals/${rentalId}` : "/owner/rentals")}>
+              View rental milestones
+            </Button>
             <Button variant="ghost" onClick={() => router.push("/owner/dashboard")}>
               Back to dashboard
             </Button>
@@ -383,17 +369,20 @@ export default function OwnerMatchActions({
                 placeholder="Enter confirmation number"
               />
             </label>
-            <p className="text-xs leading-relaxed text-slate-500">
-              After booking, you can forward the Disney confirmation email to{" "}
-              <span className="font-medium text-slate-600">confirmations@pixiedvc.com</span>{" "}
-              to help us verify the reservation faster.
-            </p>
             {confirmationError ? <p className="text-sm text-rose-600">{confirmationError}</p> : null}
             <div className="flex flex-wrap gap-2">
               <Button type="submit" disabled={isSubmitting}>
                 Save confirmation
               </Button>
-              <Button type="button" variant="ghost" onClick={() => setShowConfirmationForm(false)} disabled={isSubmitting}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setConfirmationNumber("");
+                  setConfirmationError(null);
+                }}
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
             </div>

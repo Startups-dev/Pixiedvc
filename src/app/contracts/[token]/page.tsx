@@ -1,11 +1,13 @@
 import { notFound } from 'next/navigation';
 
 import { createServiceClient } from '@/lib/supabase-service-client';
-import ContractPreview from '@/components/admin/ContractPreview';
+import { renderPixieAgreementHTML } from '@/lib/agreements/renderPixieAgreement';
+import type { ContractSnapshot } from '@/lib/contracts/contractSnapshot';
+import AcceptanceFormClient from './AcceptanceFormClient';
 import { acceptContractAction, declineContractAction } from './actions';
 
-export default async function ContractTokenPage({ params }: { params: { token: string } }) {
-  const token = params.token;
+export default async function ContractTokenPage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
   const supabase = createServiceClient();
 
   const { data: contract } = await supabase
@@ -23,11 +25,31 @@ export default async function ContractTokenPage({ params }: { params: { token: s
     notFound();
   }
 
-  const snapshot = (contract.snapshot ?? {}) as Record<string, unknown>;
+  const snapshot = (contract.snapshot ?? {}) as ContractSnapshot;
   const ownerAccepted = Boolean(contract.owner_accepted_at);
   const guestAccepted = Boolean(contract.guest_accepted_at);
-  const fullyAccepted = ownerAccepted && guestAccepted;
-  const alreadyAccepted = (role === 'owner' && ownerAccepted) || (role === 'guest' && guestAccepted);
+  const fullyAccepted = guestAccepted;
+  const alreadyAccepted = role === 'guest' && guestAccepted;
+  const { data: eventRow } = await supabase
+    .from('contract_events')
+    .select('metadata, created_at')
+    .eq('contract_id', contract.id)
+    .eq('event_type', 'accepted')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const meta = (eventRow?.metadata ?? {}) as Record<string, unknown>;
+  const acceptanceIpRaw =
+    (typeof meta.guest_ip === 'string' && meta.guest_ip) ||
+    (typeof meta.ip === 'string' && meta.ip) ||
+    null;
+
+  const agreementHtml = renderPixieAgreementHTML(snapshot, {
+    guestAcceptedAt: contract.guest_accepted_at ?? null,
+    acceptanceId: contract.id ?? null,
+    acceptanceIp: maskIp(acceptanceIpRaw),
+  });
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-6 py-12">
@@ -39,42 +61,63 @@ export default async function ContractTokenPage({ params }: { params: { token: s
         <p className="text-sm text-slate-500">Review the terms below and confirm if you agree.</p>
       </header>
 
-      <Summary snapshot={snapshot} role={role} />
+      <Summary snapshot={snapshot} contractId={contract.id} />
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <ContractPreview contract={contract} />
-      </div>
+      <GuestDetails snapshot={snapshot} />
 
-      {fullyAccepted ? (
+      <TravelParty snapshot={snapshot} />
+
+      <div
+        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+        dangerouslySetInnerHTML={{ __html: agreementHtml }}
+      />
+
+      {fullyAccepted || alreadyAccepted ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900">
-          This agreement has been fully accepted.
+          ✓ Agreement accepted
         </div>
-      ) : alreadyAccepted ? (
+      ) : role === 'owner' ? (
         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700">
-          You have already accepted this agreement. No further action is required.
+          This agreement is read-only for owners. You will be notified once the guest signs.
         </div>
       ) : (
-        <AcceptanceForm token={token} role={role} contract={contract} />
+        <>
+          <AcceptanceFormClient token={token} onAccept={acceptContractAction} />
+          <form action={declineContractAction} className="text-center">
+            <input type="hidden" name="token" value={token} />
+            <button type="submit" className="text-xs font-semibold text-rose-600">
+              Decline agreement
+            </button>
+          </form>
+        </>
       )}
     </div>
   );
 }
 
-function Summary({ snapshot, role }: { snapshot: Record<string, unknown>; role: 'owner' | 'guest' }) {
+function Summary({ snapshot, contractId }: { snapshot: ContractSnapshot; contractId?: number | null }) {
+  const summary = snapshot.summary;
+  const pricePerPoint = `$${(summary.guestPricePerPointCents / 100).toFixed(2)}`;
+  const totalRental = `$${(summary.totalPayableByGuestCents / 100).toFixed(2)}`;
+
   const rows = [
-    { label: 'Owner', value: snapshot.ownerName ?? '—' },
-    { label: 'Home resort', value: snapshot.homeResort ?? '—' },
-    { label: 'Use year', value: snapshot.useYearMonth ?? '—' },
-    { label: 'Price per point', value: snapshot.pricePerPoint ? `$${snapshot.pricePerPoint}` : '—' },
-    { label: 'Guest', value: snapshot.guestName ?? '—' },
-    { label: 'Check-in', value: snapshot.checkIn ?? '—' },
-    { label: 'Check-out', value: snapshot.checkOut ?? '—' },
-    { label: 'Points needed', value: snapshot.pointsAvailable ?? '—' },
+    { label: 'Owner', value: snapshot.parties.owner.fullName || '—' },
+    { label: 'Guest', value: snapshot.parties.guest.fullName || '—' },
+    { label: 'Resort', value: summary.resortName || '—' },
+    { label: 'Room', value: summary.accommodationType || '—' },
+    { label: 'Check-in', value: summary.checkIn || '—' },
+    { label: 'Check-out', value: summary.checkOut || '—' },
+    { label: 'Points rented', value: summary.pointsRented },
+    { label: 'Price per point', value: pricePerPoint },
+    { label: 'Total rental price', value: totalRental },
   ];
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <h2 className="text-sm font-semibold text-slate-900">Reservation summary</h2>
+      {contractId ? (
+        <p className="mt-1 text-xs text-slate-400">Reservation / Contract ID: {contractId}</p>
+      ) : null}
       <dl className="mt-3 grid grid-cols-2 gap-3 text-xs">
         {rows.map((row) => (
           <div key={row.label}>
@@ -87,24 +130,93 @@ function Summary({ snapshot, role }: { snapshot: Record<string, unknown>; role: 
   );
 }
 
-function AcceptanceForm({ token, role }: { token: string; role: 'owner' | 'guest' }) {
-  const buttonLabel = role === 'owner' ? 'I am the owner – accept terms' : 'I am the guest – accept terms';
+function GuestDetails({ snapshot }: { snapshot: ContractSnapshot }) {
+  const guest = snapshot.parties.guest;
+  const requestId = snapshot.bookingRequestId ?? null;
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <form action={acceptContractAction} className="space-y-3">
-        <input type="hidden" name="token" value={token} />
-        <label className="flex items-start gap-2 text-sm text-slate-700">
-          <input type="checkbox" name="confirm" required className="mt-1" />
-          I have read and agree to the contract terms above.
-        </label>
-        <button type="submit" className="w-full rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-          {buttonLabel}
-        </button>
-      </form>
-      <form action={declineContractAction} className="mt-3 text-center">
-        <input type="hidden" name="token" value={token} />
-        <button type="submit" className="text-xs font-semibold text-rose-600">Decline agreement</button>
-      </form>
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-900">Guest Details</h2>
+        {requestId ? (
+          <a
+            href={`/guest/requests/${requestId}#guest-details`}
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 hover:text-slate-700"
+          >
+            Edit
+          </a>
+        ) : null}
+      </div>
+      <p className="mt-1 text-xs text-slate-500">
+        For communication purposes only. This does not change your contract.
+      </p>
+      <dl className="mt-3 grid grid-cols-2 gap-3 text-xs">
+        <div>
+          <dt className="text-slate-500">Email</dt>
+          <dd className="text-slate-900">{guest.email ?? '—'}</dd>
+        </div>
+        <div>
+          <dt className="text-slate-500">Phone</dt>
+          <dd className="text-slate-900">{guest.phone ?? '—'}</dd>
+        </div>
+      </dl>
     </div>
   );
+}
+
+function TravelParty({ snapshot }: { snapshot: ContractSnapshot }) {
+  const requestId = snapshot.bookingRequestId ?? null;
+  const adults = snapshot.occupancy.adults ?? [];
+  const youths = snapshot.occupancy.youths ?? [];
+
+  const rows = [
+    ...adults.map((name) => ({ name, type: 'Adult' })),
+    ...youths.map((name) => ({ name, type: 'Child' })),
+  ];
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-900">Travel Party</h2>
+        {requestId ? (
+          <a
+            href={`/guest/requests/${requestId}#travel-party`}
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 hover:text-slate-700"
+          >
+            Edit
+          </a>
+        ) : null}
+      </div>
+      <p className="mt-1 text-xs text-slate-500">
+        For check-in purposes only. This does not change your contract.
+      </p>
+      {rows.length ? (
+        <ul className="mt-3 space-y-2 text-xs text-slate-700">
+          {rows.map((row, index) => (
+            <li key={`${row.name}-${index}`} className="flex items-center justify-between">
+              <span className="text-slate-900">{row.name}</span>
+              <span className="text-slate-500">{row.type}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 text-xs text-slate-500">No travel party details yet.</p>
+      )}
+    </div>
+  );
+}
+
+function maskIp(value: string | null) {
+  if (!value) return null;
+  if (value.includes(".")) {
+    const parts = value.split(".");
+    if (parts.length === 4) {
+      return `${parts[0]}.${parts[1]}.${parts[2]}.xxx`;
+    }
+  }
+  if (value.includes(":")) {
+    const parts = value.split(":").filter(Boolean);
+    return parts.length > 2 ? `${parts.slice(0, 3).join(":")}:…` : value;
+  }
+  return value;
 }

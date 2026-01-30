@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
@@ -12,10 +11,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing requestId' }, { status: 400 });
   }
 
-  const cookieStore = await cookies();
   const sessionClient = await createSupabaseServerClient();
   const adminClient = getSupabaseAdminClient();
-  const supabase = adminClient ?? sessionClient;
   const {
     data: { user },
   } = await sessionClient.auth.getUser();
@@ -24,7 +21,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { data: existing, error: existingError } = await supabase
+  if (!adminClient) {
+    return NextResponse.json({ error: 'Service role key not configured' }, { status: 500 });
+  }
+
+  const { data: existing, error: existingError } = await adminClient
     .from('booking_requests')
     .select('id, status, availability_status')
     .eq('id', requestId)
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
   }
 
   const nowIso = new Date().toISOString();
-  const { data: updatedRequest, error: updateError } = await supabase
+  const { data: updatedRequest, error: updateError } = await adminClient
     .from('booking_requests')
     .update({ status: 'pending_match', updated_at: nowIso })
     .eq('id', requestId)
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: updateError?.message ?? 'Unable to promote request' }, { status: 400 });
   }
 
-  await supabase.from('guest_request_activity').insert({
+  await adminClient.from('guest_request_activity').insert({
     request_id: requestId,
     author_id: user.id,
     kind: 'status_change',

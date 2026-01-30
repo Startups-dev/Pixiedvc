@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 export default function OwnerSubmittedPage() {
   const router = useRouter();
-  const redirectPath = "/owner";
+  const redirectPath = "/owner/dashboard";
 
   useEffect(() => {
     const timeout = setTimeout(() => {

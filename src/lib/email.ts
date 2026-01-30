@@ -135,3 +135,41 @@ export async function sendOwnerMatchEmail(payload: OwnerMatchEmailPayload) {
     context: 'owner match email',
   });
 }
+
+export async function sendOwnerAgreementSignedEmail(payload: {
+  to: string;
+  ownerName?: string | null;
+  guestName?: string | null;
+  resortName?: string | null;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  rentalUrl?: string | null;
+}) {
+  const subject = 'PixieDVC – Guest signed the rental agreement';
+  const ownerName = payload.ownerName ?? 'PixieDVC owner';
+  const guestName = payload.guestName ?? 'the guest';
+  const resort = payload.resortName ?? 'your resort';
+  const dates = payload.checkIn && payload.checkOut ? `${payload.checkIn} → ${payload.checkOut}` : 'the requested dates';
+  const actionLine = payload.rentalUrl
+    ? `View agreement: ${payload.rentalUrl}`
+    : 'View the agreement in your PixieDVC owner dashboard.';
+
+  const body = [
+    `Hi ${ownerName},`,
+    '',
+    `${guestName} has signed the rental agreement for ${resort} (${dates}).`,
+    '',
+    actionLine,
+    '',
+    'No signature is required from you. We will keep you updated on next steps.',
+    '',
+    'PixieDVC Concierge',
+  ].join('\n');
+
+  await sendResendEmail({
+    to: payload.to,
+    subject,
+    body,
+    context: 'owner agreement signed email',
+  });
+}

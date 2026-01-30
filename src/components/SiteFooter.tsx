@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { POLICY_LINKS } from "@/lib/policies";
+
 const DISCLAIMER =
   "PixieDVC is an independent vacation rental platform and is not affiliated with, sponsored by, or endorsed by The Walt Disney Company or Disney Vacation Club®. Disney trademarks and resort names are used for informational purposes only and remain the property of their respective owners.";
 
@@ -32,7 +34,7 @@ export default function SiteFooter() {
   return (
     <footer className="border-t border-white/10 bg-[#0F2148] text-white">
       <div className="mx-auto max-w-6xl px-6 py-12 sm:py-14">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="space-y-3">
             <p className="text-xl font-semibold tracking-tight">PixieDVC</p>
             <p className="text-sm text-white/70">Disney Vacation Club rentals reimagined.</p>
@@ -55,6 +57,19 @@ export default function SiteFooter() {
             <p className="text-xs uppercase tracking-[0.3em] text-white/60">Legal</p>
             <ul className="space-y-2">
               {LEGAL_LINKS.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className={linkClassName}>
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.3em] text-white/60">Policies</p>
+            <ul className="space-y-2">
+              {POLICY_LINKS.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className={linkClassName}>
                     {link.label}

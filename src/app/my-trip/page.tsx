@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { resolveResortImage } from "@/lib/resort-image";
 
 type TripRow = {
@@ -30,6 +31,7 @@ type ContractRow = {
   guest_accepted_at?: string | null;
   guest_paid_at?: string | null;
   status?: string | null;
+  snapshot?: Record<string, unknown> | null;
 };
 
 const confirmedStatusSet = new Set(["confirmed", "booked", "complete", "completed", "contract_signed"]);
@@ -50,11 +52,18 @@ const nonConfirmedStatusSet = new Set([
 function isConfirmedLike(t: TripRow) {
   const s = (t.status ?? "").toLowerCase();
   const c = t.contracts?.[0];
+  const confirmation =
+    (c?.snapshot as { confirmationNumber?: string; summary?: { reservationNumber?: string } } | null)
+      ?.confirmationNumber ??
+    (c?.snapshot as { confirmationNumber?: string; summary?: { reservationNumber?: string } } | null)
+      ?.summary?.reservationNumber ??
+    null;
   if (c?.guest_accepted_at || c?.guest_paid_at) return true;
   if (c?.status) {
     const cs = c.status.toLowerCase();
     if (cs === "accepted" || cs === "paid" || cs === "signed") return true;
   }
+  if (confirmation) return true;
   if (confirmedStatusSet.has(s)) return true;
   if (nonConfirmedStatusSet.has(s)) return false;
 
@@ -86,7 +95,10 @@ export default async function MyTripIndexPage() {
 
   if (!user) redirect("/login");
 
-  const { data, error } = await supabase
+  const adminClient = getSupabaseAdminClient();
+  const dataClient = adminClient ?? supabase;
+
+  const { data, error } = await dataClient
     .from("booking_requests")
     .select(
       `
@@ -105,11 +117,47 @@ export default async function MyTripIndexPage() {
   const trips: TripRow[] = (data as TripRow[]) ?? [];
   const tripIds = trips.map((trip) => trip.id).filter(Boolean);
 
-  if (tripIds.length > 0) {
-    const { data: contractsData } = await supabase
+  // Fallback: if no trips returned, try to resolve via contracts for this renter.
+  if (tripIds.length === 0) {
+    const { data: contractRows } = await dataClient
       .from("contracts")
-      .select("booking_request_id,guest_accepted_at,guest_paid_at,status")
-      .in("booking_request_id", tripIds);
+      .select("booking_request_id")
+      .eq("renter_id", user.id);
+
+    const contractTripIds = (contractRows ?? [])
+      .map((row) => row.booking_request_id)
+      .filter(Boolean);
+
+    if (contractTripIds.length > 0) {
+      const { data: fallbackTrips } = await dataClient
+        .from("booking_requests")
+        .select(
+          `
+          id,
+          status,
+          created_at,
+          check_in,
+          check_out,
+          primary_resort:resorts!booking_requests_primary_resort_id_fkey(name, slug, calculator_code),
+          confirmed_resort:resorts!booking_requests_confirmed_resort_id_fkey(name, slug, calculator_code)
+        `
+        )
+        .in("id", contractTripIds)
+        .order("created_at", { ascending: false });
+
+      if (fallbackTrips?.length) {
+        trips.push(...(fallbackTrips as TripRow[]));
+      }
+    }
+  }
+
+  const uniqueTripIds = Array.from(new Set(trips.map((trip) => trip.id).filter(Boolean)));
+
+  if (uniqueTripIds.length > 0) {
+    const { data: contractsData } = await dataClient
+      .from("contracts")
+      .select("booking_request_id,guest_accepted_at,guest_paid_at,status,snapshot")
+      .in("booking_request_id", uniqueTripIds);
 
     const contractsByTrip = new Map<string, ContractRow[]>();
     for (const contract of (contractsData as ContractRow[]) ?? []) {
@@ -123,7 +171,7 @@ export default async function MyTripIndexPage() {
     }
   }
 
-  const confirmedTrips = trips.filter(isConfirmedLike);
+  const tripsToShow = trips;
 
   if (process.env.NODE_ENV !== "production") {
     for (const trip of trips) {
@@ -150,7 +198,7 @@ export default async function MyTripIndexPage() {
             {error.message ?? "Unknown error"}
           </div>
         </div>
-      ) : confirmedTrips.length === 0 ? (
+      ) : tripsToShow.length === 0 ? (
         <div className="rounded-xl border p-6">
           <div className="text-base font-medium">No trips yet</div>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -167,13 +215,14 @@ export default async function MyTripIndexPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {confirmedTrips.map((trip) => {
+          {tripsToShow.map((trip) => {
             const resortRecord = trip.confirmed_resort ?? trip.primary_resort ?? null;
             const resortName = resortRecord?.name ?? "Your Resort";
             const resortSlug = resortRecord?.slug ?? null;
             const resortCode = resortRecord?.calculator_code ?? null;
             const hero = resolveResortImage({ resortCode, resortSlug });
             const dateRange = formatDateRange(trip.check_in, trip.check_out);
+            const confirmedLike = isConfirmedLike(trip);
 
             return (
               <div
@@ -191,15 +240,22 @@ export default async function MyTripIndexPage() {
                       <h2 className="text-lg font-semibold text-[#0B1B3A]">{resortName}</h2>
                       <p className="mt-1 text-sm text-[#0B1B3A]/65">{dateRange}</p>
                     </div>
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-900">
-                      Confirmed
-                    </span>
+                    {confirmedLike ? (
+                      <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-900">
+                        Booked
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+                        In progress
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap gap-3">
                     <Link
                       href={`/my-trip/${trip.id}`}
                       className="inline-flex items-center rounded-full bg-[#0B1B3A] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-[#0B1B3A]/90"
+                      style={{ color: "#ffffff" }}
                     >
                       View trip
                     </Link>

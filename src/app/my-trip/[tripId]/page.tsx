@@ -36,18 +36,14 @@ type BookingRequest = {
   confirmed_resort: ResortRecord | null;
 };
 
-type ContractRow = {
-  guest_confirmation_number: string | null;
-  owner_confirmation_number: string | null;
-};
-
 type MatchRow = {
   id: string;
-  rental?: { dvc_confirmation_number: string | null } | null;
+  rental?: { dvc_confirmation_number: string | null; disney_confirmation_number: string | null } | null;
 };
 
 type RentalRow = {
   dvc_confirmation_number: string | null;
+  disney_confirmation_number: string | null;
 };
 
 type EnhanceItem = {
@@ -282,13 +278,13 @@ export default async function TripDetailsPage({
 
   const { data: contract } = await supabase
     .from("contracts")
-    .select("guest_confirmation_number, owner_confirmation_number")
+    .select("snapshot")
     .eq("booking_request_id", tripId)
-    .maybeSingle<ContractRow>();
+    .maybeSingle<{ snapshot: Record<string, unknown> | null }>();
 
   const { data: matchRow } = await supabase
     .from("booking_matches")
-    .select("id, rental:rentals!rentals_match_id_fkey(dvc_confirmation_number)")
+    .select("id, rental:rentals!rentals_match_id_fkey(dvc_confirmation_number, disney_confirmation_number)")
     .eq("booking_id", tripId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -307,20 +303,36 @@ export default async function TripDetailsPage({
   if (matchIds.length > 0) {
     const { data: rentals } = await supabase
       .from("rentals")
-      .select("dvc_confirmation_number")
+      .select("dvc_confirmation_number, disney_confirmation_number")
       .in("match_id", matchIds);
 
     rentalsData = rentals as RentalRow[] | null;
     rentalConfirmation =
+      rentalsData?.find((row) => row.disney_confirmation_number)?.disney_confirmation_number ??
       rentalsData?.find((row) => row.dvc_confirmation_number)?.dvc_confirmation_number ??
+      null;
+  }
+
+  let rentalByIdConfirmation: string | null = null;
+  const snapshotRentalId =
+    (contract?.snapshot as { rentalId?: string } | null)?.rentalId ?? null;
+  if (snapshotRentalId) {
+    const { data: rentalById } = await supabase
+      .from("rentals")
+      .select("disney_confirmation_number, dvc_confirmation_number")
+      .eq("id", snapshotRentalId)
+      .maybeSingle<RentalRow>();
+    rentalByIdConfirmation =
+      rentalById?.disney_confirmation_number ??
+      rentalById?.dvc_confirmation_number ??
       null;
   }
 
   if (process.env.NODE_ENV !== "production") {
     const matchCount = matchRows?.length ?? 0;
     const rentalsCount = rentalsData?.length ?? 0;
-    const hasContractGuest = Boolean(contract?.guest_confirmation_number);
-    const hasContractOwner = Boolean(contract?.owner_confirmation_number);
+    const snapshotConfirmation = (contract?.snapshot as { confirmationNumber?: string } | null)?.confirmationNumber;
+    const hasContractSnapshot = Boolean(snapshotConfirmation);
     const hasMatchRental = Boolean(matchRow?.rental?.dvc_confirmation_number);
     const hasAnyRental = Boolean(rentalsData?.some((row) => Boolean(row.dvc_confirmation_number)));
 
@@ -329,16 +341,19 @@ export default async function TripDetailsPage({
       booking_request_id: bookingRequest.id,
       booking_matches: matchCount,
       rentals: rentalsCount,
-      has_contract_guest_confirmation: hasContractGuest,
-      has_contract_owner_confirmation: hasContractOwner,
+      has_contract_snapshot_confirmation: hasContractSnapshot,
       has_match_rental_confirmation: hasMatchRental,
       has_any_rental_confirmation: hasAnyRental,
     });
   }
 
+  const snapshotConfirmation =
+    (contract?.snapshot as { confirmationNumber?: string } | null)?.confirmationNumber ?? null;
+
   const confirmationNumber =
-    contract?.guest_confirmation_number ??
-    contract?.owner_confirmation_number ??
+    snapshotConfirmation ??
+    rentalByIdConfirmation ??
+    matchRow?.rental?.disney_confirmation_number ??
     matchRow?.rental?.dvc_confirmation_number ??
     rentalConfirmation ??
     null;
@@ -445,6 +460,19 @@ export default async function TripDetailsPage({
           className="mt-3 inline-flex items-center text-xs font-semibold uppercase tracking-[0.2em] text-[#0B1B3A]/70 hover:text-[#0B1B3A]"
         >
           How to link your reservation
+        </Link>
+      </section>
+
+      <section className="mt-8 rounded-2xl border border-[#0B1B3A]/10 bg-white p-6 shadow-sm">
+        <div className="text-xs uppercase tracking-[0.32em] text-[#0B1B3A]/55">Cancellation &amp; Credits</div>
+        <p className="mt-3 text-sm text-[#0B1B3A]/70">
+          This reservation may be eligible for a Deferred Cancellation Credit.
+        </p>
+        <Link
+          href="/policies/deferred-cancellation"
+          className="mt-3 inline-flex items-center text-xs font-semibold uppercase tracking-[0.2em] text-[#0B1B3A]/70 hover:text-[#0B1B3A]"
+        >
+          View policy
         </Link>
       </section>
 
