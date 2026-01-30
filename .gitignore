@@ -44,3 +44,6 @@ package-lock.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local admin scripts
+scripts/reset-password.mjs
