@@ -2,72 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Button } from "@pixiedvc/design-system";
-import { ResortScroller } from "@/components/resort-scroller";
-import { getPublicMarketMetrics } from "@/lib/market-metrics";
-import { getResortSummaries } from "@/lib/resorts";
 import ReferralLink from "@/components/referral/ReferralLink";
 
-const CURATED_FEATURED = [
-  {
-    slug: "bay-lake-tower",
-    name: "Bay Lake Tower",
-    location: "Magic Kingdom Skyline",
-    tags: ["Monorail", "Firework Views"],
-    pointsRange: "18–32 nightly",
-    cardImage: "/images/Bay Lake.png",
-  },
-  {
-    slug: "grand-floridian-villas",
-    name: "Grand Floridian Villas",
-    location: "Seven Seas Lagoon",
-    tags: ["Victorian", "Spa"],
-    pointsRange: "22–40 nightly",
-    cardImage: "/images/Beach Club.png",
-  },
-  {
-    slug: "riviera-resort",
-    name: "Disney's Riviera Resort",
-    location: "Epcot Resort Area",
-    tags: ["Skyliner", "European Flair"],
-    pointsRange: "20–38 nightly",
-    cardImage: "/images/Riviera.png",
-  },
-  {
-    slug: "polynesian-villas",
-    name: "Polynesian Villas & Bungalows",
-    location: "Seven Seas Lagoon",
-    tags: ["Overwater", "Dole Whip"],
-    pointsRange: "24–50 nightly",
-    cardImage: "/images/Polynesian.png",
-  },
-];
-
 export async function Hero() {
-  const liveResorts = await getResortSummaries();
-  const metrics = await getPublicMarketMetrics("walt-disney-world");
-  const updatedHours = metrics.updatedAt
-    ? Math.max(
-        1,
-        Math.round(
-          (Date.now() - new Date(metrics.updatedAt).getTime()) / (1000 * 60 * 60),
-        ),
-      )
-    : null;
-
-  const map = new Map(liveResorts.map((resort) => [resort.slug, resort]));
-  const combined = [...liveResorts];
-
-  for (const fallback of CURATED_FEATURED) {
-    if (!map.has(fallback.slug)) {
-      combined.push(fallback);
-    }
-  }
-
-  const featuredResorts = combined.slice(0, 10);
-
   return (
     <section className="relative overflow-hidden">
-
       <div className="absolute inset-0">
         <Image
           src="/images/castle-hero.png"
@@ -86,86 +25,73 @@ export async function Hero() {
 
       <div className="relative z-20 mx-auto max-w-[1200px] px-4 pt-[56px] pb-16 md:px-6 lg:pt-[64px]">
         <div className="flex flex-col gap-12 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
-          <div className="max-w-[620px] space-y-8">
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/70 backdrop-blur">
-              Disney Vacation Club reinvented
+          <div className="max-w-[620px] space-y-6">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white backdrop-blur">
+              Luxury Disney resorts, smarter pricing, zero hassle.
             </span>
-            <h1 className="font-display text-[2.9rem] leading-tight text-white/90 drop-shadow-[0_6px_20px_rgba(12,15,44,0.3)] sm:text-[3.4rem] lg:text-[3.9rem]">
-              Stay at Disney’s top resorts for a fraction of the cost.
-            </h1>
-            <p className="font-sans text-base leading-relaxed text-white/55 sm:text-lg space-y-2">
-              <span>Stay steps from Cinderella’s Castle. </span>
-              <span>Have your morning coffee overlooking the African savanna. </span>
-              <span>Unwind in Disney’s most exclusive resorts, without the deluxe price tag. </span>
+            <h2 className="font-display text-[3.2rem] leading-tight !text-white drop-shadow-[0_6px_20px_rgba(12,15,44,0.3)] sm:text-[3.8rem] lg:text-[4.4rem]">
+              Luxury Disney resorts, without the complexity.
+            </h2>
+            <p className="font-sans text-base leading-relaxed text-white/70 sm:text-lg">
+              A concierge-led, faster way to book Disney Vacation Club villas.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <div className="relative">
                 <span className="dust-trail" aria-hidden="true" />
                 <Button
                   asChild
-                  className="bg-gradient-to-r from-[#2b3a70] via-[#384b94] to-[#9aa7ff] text-white shadow-[0_18px_48px_rgba(35,53,107,0.45)] transition duration-300 hover:from-[#f6c64d] hover:via-[#a8b8ff] hover:to-[#9aa7ff] hover:shadow-[0_24px_70px_rgba(35,53,107,0.6)]"
+                  className="bg-white/10 text-white !text-white shadow-[0_18px_48px_rgba(35,53,107,0.35)] transition duration-300 hover:bg-white/20"
                 >
-                  <ReferralLink href="/plan">Plan My Stay →</ReferralLink>
+                  <ReferralLink href="/plan" className="text-white">
+                    Check My Dates →
+                  </ReferralLink>
                 </Button>
               </div>
-            <Button
-              asChild
-              variant="ghost"
-              className="border border-white/30 bg-white/10 px-5 py-3 text-white hover:border-lavender hover:bg-white/20"
-            >
-                <Link href="/how-it-works">See How It Works</Link>
+              <Button
+                asChild
+                variant="ghost"
+                className="border border-white/30 bg-white/10 px-5 py-3 text-white hover:border-lavender hover:bg-white/20"
+              >
+                <Link href="/how-it-works" className="text-[#0B1B3A]">
+                  How PixieDVC Works
+                </Link>
               </Button>
             </div>
-
-            <div className="mt-6 lg:mt-8">
-              <ResortScroller resorts={featuredResorts} />
-            </div>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/60">
+              ✔ Verified owners • Secure payments • Concierge-led
+            </p>
           </div>
 
-          <div className="w-full max-w-[360px] self-stretch rounded-3xl border border-white/12 bg-white/10 p-[1.5px] shadow-[0_12px_40px_rgba(0,0,0,0.28)] backdrop-blur-md sm:max-w-[400px]">
-            <div className="rounded-3xl bg-[#0f2148]/70 p-8">
+          <div className="w-full max-w-[320px] self-stretch rounded-3xl border border-white/12 bg-white/8 p-[1.5px] shadow-[0_12px_40px_rgba(0,0,0,0.28)] backdrop-blur-md sm:max-w-[340px]">
+            <div className="rounded-3xl bg-[#14234b] p-6">
               <div className="space-y-5">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.25em] text-white/65">Tonight at the Kingdom</p>
-                  <h2 className="mt-3 font-display text-2xl text-white sm:text-[28px]">
-                    Bay Lake Tower | Fireworks Vista Villa
-                  </h2>
-                  <p className="mt-3 text-sm text-white/70">
-                    Secure the monorail skyline without the deluxe cash rates. Concierge handles confirmations in
-                    under six hours.
+                  <p className="text-xs uppercase tracking-[0.25em] text-white/65">
+                    What Happens After You Check Your Dates
                   </p>
                 </div>
-                <div className="space-y-4 rounded-3xl bg-white/12 p-5 text-sm text-white/85 shadow-[0_18px_36px_rgba(8,12,30,0.35)]">
-                  <div className="flex items-center justify-between">
-                    <span>Availability Confidence</span>
-                    <span className="font-semibold">
-                      {metrics.availabilityConfidence.charAt(0).toUpperCase() +
-                        metrics.availabilityConfidence.slice(1)}
-                    </span>
+                <div className="space-y-4 text-sm text-white/85">
+                  <div>
+                    <p className="font-semibold text-white">Share your dates & resort preferences</p>
+                    <p className="text-white/60">Takes about 60 seconds</p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span>Typical Match Time</span>
-                    <span className="font-semibold">{metrics.typicalMatchTimeLabel}</span>
+                  <div>
+                    <p className="font-semibold text-white">We match you with verified owners</p>
+                    <p className="text-white/60">Typical match time: 6–24 hours</p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span>Verified Owners Ready</span>
-                    <span className="font-semibold">{metrics.verifiedOwnersReady}</span>
+                  <div>
+                    <p className="font-semibold text-white">Review your villa & confirm</p>
+                    <p className="text-white/60">Secure, refundable, concierge-guided</p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span>Booking Window Supported</span>
-                    <span className="font-semibold">{metrics.bookingWindowSupported ? "Yes" : "No"}</span>
-                  </div>
-                  {updatedHours ? (
-                    <div className="text-xs text-white/60">Updated {updatedHours} hours ago</div>
-                  ) : null}
                 </div>
-                <div className="rounded-3xl border border-white/20 bg-white/10 px-4 py-5 text-sm text-white/80 backdrop-blur">
-                  “PixieDVC matched our wishlist villa within 48 hours — we watched fireworks from the balcony and
-                  still came in under budget.”
-                </div>
-                <div className="flex items-center justify-between text-xs uppercase tracking-[0.24em] text-white/55">
-                  <span>Secure • Refundable • Concierge Guided</span>
-                </div>
+                <Button
+                  asChild
+                  className="w-fit rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white !text-white hover:bg-white/20"
+                >
+                  <Link href="/plan" className="text-white">
+                    Start My Match →
+                  </Link>
+                </Button>
               </div>
             </div>
           </div>
