@@ -32,10 +32,10 @@ export default function StickyCTA({ resortName, resortSlug }: Props) {
   }
 
   return (
-    <div className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2">
+    <div className="fixed bottom-5 left-1/2 z-[60] hidden -translate-x-1/2 sm:block">
       <div className="flex items-center gap-4 rounded-full bg-[#0F2148] px-5 py-3 text-white shadow-xl ring-1 ring-white/10">
         <span className="text-sm md:text-base">
-          Ready to stay at <strong>{resortName}</strong>?
+          Ready to stay at <strong className="!text-white">{resortName}</strong>?
         </span>
         <Link
           href={href}
