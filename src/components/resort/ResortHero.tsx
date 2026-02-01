@@ -27,6 +27,9 @@ export default function ResortHero({ name, tagline, heroImage, chips }: Props) {
             <ResortChip key={chip} label={chip} variant="light" />
           ))}
         </div>
+        <div className="mt-3 text-xs text-white/70">
+          ★★★★☆ 4.8 <span className="ml-2 text-white/60">Guest favorite</span>
+        </div>
       </div>
     </section>
   );

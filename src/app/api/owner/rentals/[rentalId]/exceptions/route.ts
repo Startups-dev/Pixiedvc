@@ -1,10 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
-export async function POST(request: Request, { params }: { params: { rentalId: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ rentalId: string }> },
+) {
   const cookieStore = await cookies();
   const authClient = await createSupabaseServerClient();
   const {
@@ -22,7 +25,7 @@ export async function POST(request: Request, { params }: { params: { rentalId: s
     return NextResponse.json({ error: "Missing exception type" }, { status: 400 });
   }
 
-  const { rentalId } = params;
+  const { rentalId } = await params;
   const { data: rental } = await authClient
     .from("rentals")
     .select("id, owner_user_id")

@@ -39,6 +39,9 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
   const { supabase: sessionClient } = await requireAdminUser('/admin');
   const supabaseAdmin = getSupabaseAdminClient();
   const supabase: AdminClient = supabaseAdmin ?? sessionClient;
+  const {
+    data: { user },
+  } = await sessionClient.auth.getUser();
 
   const requestStatusParam = getParam(searchParams, 'requestStatus') ?? 'all';
   const requestStatusFilter = normalizeStatus(requestStatusParam, REQUEST_STATUS_OPTIONS);
@@ -377,6 +380,8 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
           </Link>
         </div>
       </section>
+
+      <div className="text-xs text-slate-400">Admin user id: {user?.id ?? '—'}</div>
     </div>
   );
 }

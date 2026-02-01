@@ -18,6 +18,8 @@ type MembershipFormState = {
   points_owned: string;
   points_available: string;
   points_reserved: string;
+  purchase_channel: string;
+  acquired_at: string;
 };
 
 const MONTHS = [
@@ -42,6 +44,8 @@ const emptyForm: MembershipFormState = {
   points_owned: "",
   points_available: "",
   points_reserved: "0",
+  purchase_channel: "unknown",
+  acquired_at: "",
 };
 
 function formatUtcDate(value: string | null | undefined) {
@@ -97,6 +101,8 @@ export default function OwnerMembershipManager({
       points_owned: (membership.points_owned ?? 0).toString(),
       points_available: (membership.points_available ?? 0).toString(),
       points_reserved: (membership.points_reserved ?? 0).toString(),
+      purchase_channel: membership.purchase_channel ?? "unknown",
+      acquired_at: membership.acquired_at ?? "",
     });
   }
 
@@ -119,6 +125,8 @@ export default function OwnerMembershipManager({
       points_owned: Number(formState.points_owned),
       points_available: Number(formState.points_available),
       points_reserved: Number(formState.points_reserved),
+      purchase_channel: formState.purchase_channel,
+      acquired_at: formState.acquired_at || null,
     };
 
     const result = await upsertOwnerMembership(payload);
@@ -256,6 +264,34 @@ export default function OwnerMembershipManager({
             />
           </div>
 
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Purchase channel</label>
+            <select
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm"
+              value={formState.purchase_channel}
+              onChange={(event) => setFormState((prev) => ({ ...prev, purchase_channel: event.target.value }))}
+              required
+            >
+              <option value="unknown">Unknown</option>
+              <option value="direct">Direct</option>
+              <option value="resale">Resale</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Acquired date</label>
+            <input
+              type="date"
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm"
+              value={formState.acquired_at}
+              onChange={(event) => setFormState((prev) => ({ ...prev, acquired_at: event.target.value }))}
+              required={formState.purchase_channel === "resale"}
+            />
+            {formState.purchase_channel === "resale" && !formState.acquired_at ? (
+              <p className="mt-2 text-xs text-amber-700">Required for resale memberships.</p>
+            ) : null}
+          </div>
+
           <div className="flex items-end gap-3 sm:col-span-2">
             <Button type="submit" disabled={pending}>
               {editId ? "Update contract" : "Save contract"}
@@ -312,6 +348,15 @@ export default function OwnerMembershipManager({
                   <Stat label="Available" value={membership.points_available ?? 0} />
                   <Stat label="Reserved" value={membership.points_reserved ?? 0} />
                   <Stat label="Rented" value={membership.points_rented ?? 0} />
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
+                  <span className="rounded-full bg-slate-100 px-3 py-1">
+                    Channel: {membership.purchase_channel ?? "unknown"}
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1">
+                    Acquired: {membership.acquired_at ? formatUtcDate(membership.acquired_at) : "—"}
+                  </span>
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-end gap-3">

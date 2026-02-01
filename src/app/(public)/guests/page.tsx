@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import ReferralLink from "@/components/referral/ReferralLink";
 
@@ -41,9 +42,11 @@ export default function GuestsPage() {
                 itinerary, and keep you updated every step of the way.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Button asChild>
-                  <ReferralLink href="/calculator">Launch the Trip Builder</ReferralLink>
-                </Button>
+                <Suspense fallback={null}>
+                  <Button asChild>
+                    <ReferralLink href="/calculator">Launch the Trip Builder</ReferralLink>
+                  </Button>
+                </Suspense>
                 <Button asChild variant="ghost">
                   <Link href="/info/guests/rental-process">See How Rentals Work</Link>
                 </Button>
@@ -58,9 +61,11 @@ export default function GuestsPage() {
                   Save 12% compared to cash rates and unlock monorail mornings plus extended evening hours.
                 </p>
               </div>
-              <Button asChild variant="secondary">
-                <ReferralLink href="/plan">Start a Reservation</ReferralLink>
-              </Button>
+              <Suspense fallback={null}>
+                <Button asChild variant="secondary">
+                  <ReferralLink href="/plan">Start a Reservation</ReferralLink>
+                </Button>
+              </Suspense>
               <p className="text-xs uppercase tracking-[0.2em] text-muted">
                 Deposits stay refundable until we match you.
               </p>

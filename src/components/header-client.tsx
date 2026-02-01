@@ -22,6 +22,7 @@ import UserMenu from "@/components/user-menu";
 import { createClient } from "@/lib/supabase";
 import AffiliatePortalHeader from "@/components/layout/AffiliatePortalHeader";
 import { openIntercom } from "@/lib/intercom";
+import { POLICY_LINKS } from "@/lib/policies";
 
 const NAV_LINKS = [
   { href: "/resorts", label: "Resorts" },
@@ -152,6 +153,14 @@ const DROPDOWNS: Record<string, DropdownConfig> = {
   Contact: {
     columns: 3,
     sections: [
+      {
+        title: "Policies",
+        items: POLICY_LINKS.map((policy) => ({
+          label: policy.label,
+          href: policy.href,
+          icon: FileText,
+        })),
+      },
       {
         title: "General Help",
         items: [

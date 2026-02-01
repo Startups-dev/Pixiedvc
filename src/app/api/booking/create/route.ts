@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 type TripPayload = {
   resortId?: string;
@@ -121,11 +119,16 @@ export async function POST(request: Request) {
       guestTotalCents !== null && typeof trip.points === "number" && trip.points > 0
         ? Math.round(guestTotalCents / trip.points)
         : null;
+    const totalPoints = asNumber(trip.points);
 
-    const authClient = createRouteHandlerClient({ cookies });
+    const authClient = await createSupabaseServerClient();
     const {
       data: { user },
     } = await authClient.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const adminClient = getSupabaseAdminClient();
     const supabase = adminClient ?? authClient;
@@ -149,6 +152,7 @@ export async function POST(request: Request) {
     const checkIn = toDateString(trip.checkIn);
     const checkOut = toDateString(trip.checkOut);
     const nights = calculateNights(checkIn, checkOut);
+    const primaryRoom = asString(trip.villaType) || null;
 
     const leadGuestName =
       asString(guest.leadGuest) ||
@@ -184,14 +188,63 @@ export async function POST(request: Request) {
       Boolean(asString(guest.country));
     const agreementAccepted = Boolean(agreement.acceptTerms);
 
+    const bookingStatus = agreement.gateway === "stripe" ? "draft" : "submitted";
+
+    const signature = {
+      renter_id: user.id,
+      primary_resort_id: resortId,
+      check_in: checkIn,
+      check_out: checkOut,
+      total_points: totalPoints,
+      primary_room: primaryRoom,
+    };
+    const signatureComplete =
+      Boolean(resortId && checkIn && checkOut && primaryRoom) &&
+      typeof totalPoints === "number" &&
+      totalPoints > 0;
+
+    if (signatureComplete) {
+      const activeStatuses = ["draft", "submitted", "pending_match", "pending_owner"];
+      let existingQuery = supabase
+        .from("booking_requests")
+        .select("id, status, updated_at")
+        .eq("renter_id", user.id)
+        .in("status", activeStatuses)
+        .order("updated_at", { ascending: false })
+        .limit(1);
+
+      existingQuery = existingQuery.eq("check_in", checkIn);
+      existingQuery = existingQuery.eq("check_out", checkOut);
+      existingQuery = existingQuery.eq("primary_resort_id", resortId);
+      existingQuery = existingQuery.eq("total_points", totalPoints);
+      existingQuery = existingQuery.eq("primary_room", primaryRoom);
+
+      const { data: existingRows, error: existingError } = await existingQuery;
+      const existing = existingRows?.[0] ?? null;
+      if (existingError) {
+        console.error("[booking/create] lookup failed", existingError);
+      }
+
+      if (existing?.id) {
+        if (process.env.NODE_ENV !== "production") {
+          console.info("[booking/create] reuse existing", {
+            booking_request_id: existing.id,
+            renter_id: user.id,
+            status: existing.status ?? null,
+            signature,
+          });
+        }
+        return NextResponse.json({ bookingId: existing.id });
+      }
+    }
     const bookingInsert = {
-      renter_id: user?.id ?? null,
-      status: "submitted",
+      renter_id: user.id,
+      status: bookingStatus,
       check_in: checkIn,
       check_out: checkOut,
       nights,
       primary_resort_id: resortId,
-      primary_room: asString(trip.villaType) || null,
+      primary_room: primaryRoom,
       primary_view: null,
       requires_accessibility: Boolean(trip.accessibility),
       secondary_resort_id: null,
@@ -212,7 +265,7 @@ export async function POST(request: Request) {
       lead_guest_name: leadGuestName || null,
       lead_guest_email: asString(guest.email) || null,
       lead_guest_phone: asString(guest.phone) || null,
-      total_points: asNumber(trip.points),
+      total_points: totalPoints,
       max_price_per_point: pricePerPoint,
       est_cash: estCash,
       guest_total_cents: guestTotalCents,
@@ -235,11 +288,51 @@ export async function POST(request: Request) {
       .single();
 
     if (bookingError || !booking?.id) {
+      if (bookingError?.code === "23505" && signatureComplete) {
+        const activeStatuses = ["draft", "submitted", "pending_match", "pending_owner"];
+        let retryQuery = supabase
+          .from("booking_requests")
+          .select("id, status, updated_at")
+          .eq("renter_id", user.id)
+          .in("status", activeStatuses)
+          .order("updated_at", { ascending: false })
+          .limit(1);
+
+        retryQuery = retryQuery.eq("check_in", checkIn);
+        retryQuery = retryQuery.eq("check_out", checkOut);
+        retryQuery = retryQuery.eq("primary_resort_id", resortId);
+        retryQuery = retryQuery.eq("total_points", totalPoints);
+        retryQuery = retryQuery.eq("primary_room", primaryRoom);
+
+        const { data: retryRows } = await retryQuery;
+        const retryExisting = retryRows?.[0] ?? null;
+        if (retryExisting?.id) {
+          if (process.env.NODE_ENV !== "production") {
+            console.info("[booking/create] reuse existing", {
+              booking_request_id: retryExisting.id,
+              renter_id: user.id,
+              status: retryExisting.status ?? null,
+              signature,
+            });
+          }
+          return NextResponse.json({ bookingId: retryExisting.id });
+        }
+      }
+
       console.error("[booking/create] insert failed", bookingError);
       return NextResponse.json(
         { error: bookingError?.message ?? "Unable to create booking request." },
         { status: 400 },
       );
+    }
+
+    if (process.env.NODE_ENV !== "production") {
+      console.info("[booking/create] created new", {
+        booking_request_id: booking.id,
+        renter_id: user.id,
+        status: bookingStatus,
+        signature,
+      });
     }
 
     const adultGuests = guest.adultGuests ?? [];

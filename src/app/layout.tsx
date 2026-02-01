@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import {
   Inter,
   Geist_Mono,
@@ -56,10 +57,16 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
           <SiteFooterClient />
         </div>
-        <AffiliateTracker />
-        <ReferralCapture />
+        <Suspense fallback={null}>
+          <AffiliateTracker />
+        </Suspense>
+        <Suspense fallback={null}>
+          <ReferralCapture />
+        </Suspense>
         <IntercomProvider />
-        <RecoveryRedirect />
+        <Suspense fallback={null}>
+          <RecoveryRedirect />
+        </Suspense>
         <SupportWidget />
       </body>
     </html>

@@ -19,18 +19,15 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
   const [signingOut, setSigningOut] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
   const isOwner = userRole?.startsWith('owner') || userRole === 'admin';
-  const dashboardHref = userRole === 'owner' ? '/owner' : userRole === 'guest' ? '/guest' : '/profile';
+  const isGuest = userRole === 'guest';
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
+    if (!open) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (!menuRef.current || !triggerRef.current) {
-        return;
-      }
+      if (!menuRef.current || !triggerRef.current) return;
       const target = event.target as Node;
       if (!menuRef.current.contains(target) && !triggerRef.current.contains(target)) {
         setOpen(false);
@@ -46,9 +43,7 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
   }, []);
 
   const handleLogout = useCallback(async () => {
-    if (signingOut) {
-      return;
-    }
+    if (signingOut) return;
     setSigningOut(true);
     try {
       await supabase.auth.signOut();
@@ -78,7 +73,13 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
           xmlns="http://www.w3.org/2000/svg"
           aria-hidden="true"
         >
-          <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M1 1l5 5 5-5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </button>
 
@@ -88,13 +89,31 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
           className="absolute right-0 mt-2 w-64 rounded-2xl border border-white/15 bg-[#0f2148]/95 p-3 text-sm text-white/80 shadow-[0_18px_36px_rgba(15,33,72,0.42)] backdrop-blur"
         >
           <div className="px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/50">Account</div>
+
           <Link
-            href={dashboardHref}
+            href="/my-trip"
             className="block rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
             onClick={() => setOpen(false)}
           >
-            Dashboard
+            My Trip
           </Link>
+
+          <Link
+            href="/plan"
+            className="block rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
+            onClick={() => setOpen(false)}
+          >
+            Trip Builder
+          </Link>
+
+          <Link
+            href="/guest"
+            className="block rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
+            onClick={() => setOpen(false)}
+          >
+            Requests
+          </Link>
+
           <Link
             href="/profile"
             className="block rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
@@ -102,6 +121,7 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
           >
             Profile
           </Link>
+
           <Link
             href="/profile"
             className="block rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
@@ -113,6 +133,7 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
           {isOwner ? (
             <>
               <div className="mt-2 px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/50">Owners</div>
+
               <Link
                 href="/owner"
                 className="block rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
@@ -120,18 +141,21 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
               >
                 Owner Dashboard
               </Link>
+
               <span className="block cursor-not-allowed rounded-xl px-3 py-2 text-white/45">
                 My Listings
                 <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/50">
                   Coming soon
                 </span>
               </span>
+
               <span className="block cursor-not-allowed rounded-xl px-3 py-2 text-white/45">
                 Payouts &amp; History
                 <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/50">
                   Coming soon
                 </span>
               </span>
+
               <span className="block cursor-not-allowed rounded-xl px-3 py-2 text-white/45">
                 Documents &amp; Agreements
                 <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/50">
@@ -141,7 +165,9 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
             </>
           ) : null}
 
-          <div className="mt-2 px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/50">System</div>
+          {/* Divider instead of "System" */}
+          <div className="my-2 h-px w-full bg-white/10" />
+
           {isAdmin ? (
             <Link
               href="/admin"
@@ -151,6 +177,7 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
               Admin
             </Link>
           ) : null}
+
           <button
             type="button"
             onClick={handleLogout}

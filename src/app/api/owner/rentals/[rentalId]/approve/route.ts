@@ -1,11 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { APPROVAL_PREREQUISITES } from "@/lib/owner-portal";
 
-export async function POST(request: Request, { params }: { params: { rentalId: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ rentalId: string }> },
+) {
   const cookieStore = await cookies();
   const authClient = await createSupabaseServerClient();
   const {
@@ -16,7 +19,7 @@ export async function POST(request: Request, { params }: { params: { rentalId: s
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { rentalId } = params;
+  const { rentalId } = await params;
   const client = getSupabaseAdminClient() ?? authClient;
 
   const { data: owner } = await client

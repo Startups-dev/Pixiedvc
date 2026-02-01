@@ -12,10 +12,12 @@ import ResortSections from "@/components/ResortSections";
 import ResortHero from "@/components/resort/ResortHero";
 import ResortChip from "@/components/resort/ResortChip";
 import ResortRoomLayouts from "@/components/resorts/ResortRoomLayouts";
+import ResortHighlightsSection from "@/components/resorts/ResortHighlightsSection";
 import ContextualGuides from "@/components/guides/ContextualGuides";
 import { getAllResortSlugs, getResortBySlug, getResortPhotos } from "@/lib/resorts";
 import { getHighlightsForResort, getResortSections } from "@/lib/resort-sections";
 import { resolveCalculatorCode } from "@/lib/resort-calculator";
+import { resortHighlights } from "@/content/resortHighlights";
 
 import type { Resort } from "@/lib/resorts";
 
@@ -78,6 +80,7 @@ export default async function ResortPage({ params }: Props) {
     chips: resortData.chips,
     sections,
   });
+  const highlight = resortHighlights[slug];
 
   return (
     <main className="bg-white text-[#0F2148]">
@@ -118,6 +121,12 @@ export default async function ResortPage({ params }: Props) {
           tagline={resortData.tagline}
           chips={highlightChips}
         />
+      ) : null}
+
+      {highlight ? (
+        <section className="mx-auto max-w-6xl px-6">
+          <ResortHighlightsSection highlight={highlight} resortName={resortData.name} />
+        </section>
       ) : null}
 
       <ResortRoomLayouts resortCode={resortCode} />
@@ -165,6 +174,9 @@ function ResortIntro({ name, tagline, chips }: { name: string; tagline: string; 
           {chips.map((chip) => (
             <ResortChip key={chip} label={chip} variant="light" />
           ))}
+        </div>
+        <div className="mt-3 text-xs text-white/70">
+          ★★★★☆ 4.8 <span className="ml-2 text-white/60">Guest favorite</span>
         </div>
       </div>
     </section>

@@ -27,7 +27,7 @@ export default async function ContextualGuides({
   return (
     <section className="mt-16">
       <SectionHeader eyebrow="Guides" title={title} description={description} />
-      <div className="mt-8">
+      <div className="mt-10">
         <GuideGrid guides={guides as GuideMeta[]} />
       </div>
     </section>

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FormProvider, useForm } from "react-hook-form";
+import { ZodError } from "zod";
 
 import { Card } from "@pixiedvc/design-system";
 
@@ -121,6 +122,11 @@ export function BookingFlow({ prefill, onComplete }: BookingFlowProps) {
         return;
       }
       const parsed = bookingFlowSchema.parse(values);
+      if (process.env.NODE_ENV !== "production") {
+        console.info("[book] agreement signedName present", {
+          present: Boolean(parsed?.agreement?.signedName?.trim()),
+        });
+      }
       const middleInitial = parsed.guest.leadMiddleInitial?.trim() ?? "";
       const middleToken = middleInitial ? (middleInitial.endsWith(".") ? middleInitial : `${middleInitial}.`) : "";
       const leadGuestName = [
@@ -194,8 +200,42 @@ export function BookingFlow({ prefill, onComplete }: BookingFlowProps) {
       }
 
       const json = (await response.json()) as { bookingId: string };
+
+      if (process.env.NODE_ENV !== "production") {
+        console.info("[book] booking created id", { booking_request_id: json.bookingId });
+      }
+
+      if (parsed.agreement.gateway === "stripe") {
+        const depositResponse = await fetch("/api/booking/deposit", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            bookingId: json.bookingId,
+            amount: depositAmount,
+            currency: "USD",
+            customerEmail: parsed.guest.email,
+            customerName: leadGuestName,
+            gateway: "stripe",
+          }),
+        });
+
+        const depositJson = (await depositResponse.json()) as { url?: string; error?: string };
+        if (!depositResponse.ok || !depositJson.url) {
+          throw new Error(depositJson.error ?? "Unable to start Stripe checkout.");
+        }
+
+        window.location.href = depositJson.url;
+        return;
+      }
+
       onComplete(json.bookingId);
     } catch (err) {
+      if (err instanceof ZodError) {
+        setError("Please fix the highlighted fields and try again.");
+        return;
+      }
       console.error(err);
       setError(
         err instanceof Error ? err.message : "We could not save your booking. Please try again.",

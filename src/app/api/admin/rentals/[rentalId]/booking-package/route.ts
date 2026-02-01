@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
@@ -16,7 +16,11 @@ function toNumber(value: unknown) {
   return Number.isFinite(num) ? num : null;
 }
 
-export async function POST(request: Request, { params }: { params: { rentalId: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ rentalId: string }> },
+) {
+  const { rentalId } = await params;
   const cookieStore = await cookies();
   const supabase = await createSupabaseServerClient();
   const {
@@ -70,7 +74,7 @@ export async function POST(request: Request, { params }: { params: { rentalId: s
       special_needs,
       special_needs_notes,
     })
-    .eq("id", params.rentalId)
+    .eq("id", rentalId)
     .select("id")
     .maybeSingle();
 

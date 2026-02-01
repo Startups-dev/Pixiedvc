@@ -85,11 +85,6 @@ export default function ResortCarousel({ photos }: Props) {
             </div>
           ) : null}
 
-          {current.caption ? (
-            <div className="absolute bottom-4 left-4 z-10 rounded-full bg-white/15 px-4 py-2 text-xs text-white/90 backdrop-blur">
-              {current.caption}
-            </div>
-          ) : null}
         </div>
 
         {safePhotos.length > 1 ? (

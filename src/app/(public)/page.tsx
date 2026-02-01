@@ -1,31 +1,39 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 
 import { Hero } from "@/components/hero";
+import BridgeChips from "@/components/BridgeChips";
+import ResortShowcase from "@/components/ResortShowcase";
+import ResortCollectionCard from "@/components/ResortCollectionCard";
 import ContextualGuides from "@/components/guides/ContextualGuides";
 import { STORIES } from "@/content/stories";
 
 const resortShowcase = [
   {
     name: "Bay Lake Tower",
-    location: "Magic Kingdom Skyline",
-    vibe: "Firework-view villas with monorail at your doorstep.",
+    location: "Magic Kingdom Access",
+    vibe: "Walkable Magic Kingdom access + monorail convenience.",
     points: "18–32 nightly",
+    image: "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/bay-lake-tower/BTC1.png",
+    micro: "Popular for short Magic Kingdom stays",
     slug: "bay-lake-tower",
   },
   {
     name: "Aulani",
-    location: "Ko Olina, Hawai'i",
-    vibe: "Island storytelling, lazy rivers, and oceanfront aloha.",
+    location: "Island Escape",
+    vibe: "Oceanfront villas, lazy rivers, and true island calm.",
     points: "22–40 nightly",
+    image: "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/Aulani/Aul1.png",
+    micro: "Loved for relaxed resort days",
     slug: "aulani",
   },
   {
     name: "Grand Floridian",
-    location: "Victorian Splendor",
-    vibe: "Five-star charm with spa rituals and pianist serenades.",
+    location: "Iconic Luxury",
+    vibe: "Classic elegance near EPCOT dining and evening strolls.",
     points: "24–38 nightly",
+    image: "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/grand-floridian-villas/GFV1.png",
+    micro: "Often chosen for first-time Disney trips",
     slug: "grand-floridian-villas",
   },
 ];
@@ -45,27 +53,31 @@ const testimonials = [
   },
 ];
 
-const membershipPerks = [
-  {
-    title: "Live Member Snapshot",
-    detail: "Stay balances, banking deadlines, and upcoming trips in a single enchanted view.",
-  },
-  {
-    title: "Concierge Chat",
-    detail: "Real humans, curated recommendations, and insider park tips when you need them.",
-  },
-  {
-    title: "Family Collaboration",
-    detail: "Invite loved ones to co-create itineraries and manage Club access with ease.",
-  },
-];
-
 export default function Home() {
   return (
     <>
       <Hero />
 
       <main className="bg-surface text-ink">
+        {/* // Static Bridge Section */}
+        <section className="relative py-12 md:py-14">
+          <div className="relative z-10 mx-auto max-w-6xl px-6">
+            <div className="flex flex-col items-center gap-6 text-center">
+              <h2 className="font-display text-2xl font-semibold text-[#0B1B3A] sm:text-3xl">
+                A calmer way to secure a DVC stay.
+              </h2>
+              <BridgeChips />
+            </div>
+          </div>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-28 bg-gradient-to-b from-white to-transparent"
+          />
+        </section>
+
+        {/* // Resort Showcase Section */}
+        <ResortShowcase />
+
         <section className="bg-white/85 py-16 backdrop-blur">
             <div className="mx-auto max-w-6xl px-6">
               <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
@@ -80,14 +92,14 @@ export default function Home() {
                 <div className="max-w-md" />
               </div>
               <div className="mt-10 grid gap-6 md:grid-cols-3">
-                {STORIES.map((story) => {
+                {STORIES.map((story, index) => {
                   if (process.env.NODE_ENV === "development") {
                     console.log("[stories] image url", story.imageUrl);
                   }
                   return (
                     <div
                       key={story.id}
-                      className="rounded-3xl border border-slate-200/60 bg-white shadow-[0_30px_80px_rgba(2,6,23,0.10)]"
+                      className="rounded-3xl border border-slate-200/60 bg-white shadow-[0_30px_80px_rgba(2,6,23,0.10)] transition-transform duration-150 ease-out hover:-translate-y-1 hover:shadow-[0_36px_80px_rgba(2,6,23,0.12)]"
                     >
                       <div className="relative h-44 w-full overflow-hidden rounded-3xl bg-slate-100 sm:h-52 md:h-56">
                         <img
@@ -104,6 +116,9 @@ export default function Home() {
                         </p>
                         <p className="text-xl font-semibold text-[#0F2148]">{story.title}</p>
                         <p className="text-sm leading-relaxed text-slate-600">“{story.quote}”</p>
+                        {index === 0 ? (
+                          <p className="text-xs text-slate-500">Verified PixieDVC guest</p>
+                        ) : null}
                         <p className="text-xs font-semibold text-slate-600">{story.proofLine}</p>
                       </div>
                     </div>
@@ -117,7 +132,7 @@ export default function Home() {
             <div className="mx-auto max-w-6xl px-6">
               <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.25em] text-muted">Resort Stories</p>
+                  <p className="text-xs uppercase tracking-[0.25em] text-muted">Resort Collection</p>
                   <h2 className="mt-2 font-display text-3xl text-ink sm:text-4xl">
                     Handpicked escapes for every kind of dreamer.
                   </h2>
@@ -131,25 +146,16 @@ export default function Home() {
               </div>
               <div className="mt-10 grid gap-6 md:grid-cols-3">
                 {resortShowcase.map((resort) => (
-                  <Link
+                  <ResortCollectionCard
                     key={resort.name}
-                    href={`/resorts/${resort.slug}#gallery`}
-                    className="group relative overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-6 shadow-[0_22px_50px_rgba(15,23,42,0.12)] transition hover:-translate-y-1 hover:shadow-[0_30px_60px_rgba(15,23,42,0.16)]"
-                  >
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#A7F3D022,transparent_55%)] opacity-0 transition-opacity group-hover:opacity-100" />
-                    <div className="relative space-y-4">
-                      <p className="text-xs uppercase tracking-[0.2em] text-brand">
-                        {resort.location}
-                      </p>
-                      <h3 className="font-display text-2xl text-ink">
-                        {resort.name}
-                      </h3>
-                      <p className="text-sm text-muted">{resort.vibe}</p>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-brand/10 px-4 py-2 text-xs font-semibold text-brand">
-                        {resort.points}
-                  </div>
-                    </div>
-                  </Link>
+                    name={resort.name}
+                    location={resort.location}
+                    vibe={resort.vibe}
+                    points={resort.points}
+                    image={resort.image}
+                    micro={resort.micro}
+                    slug={resort.slug}
+                  />
                 ))}
               </div>
             </div>
@@ -166,125 +172,79 @@ export default function Home() {
             </div>
           </section>
 
+        <div className="h-[90px] w-full bg-[linear-gradient(to_bottom,rgba(255,255,255,1)_0%,rgba(255,255,255,0.85)_40%,rgba(255,255,255,0)_100%)]" />
         <section
-            id="trip-builder"
-            className="relative isolate overflow-hidden bg-deep py-20 text-white"
+            id="PixieBooking"
+            className="relative isolate overflow-hidden py-20 text-white"
           >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#2E8FFF55_0%,transparent_60%),radial-gradient(circle_at_bottom,#C5A8FF66_0%,transparent_55%)]" />
-            <div className="relative mx-auto grid max-w-6xl gap-12 px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-              <div className="space-y-6">
-                <p className="text-xs uppercase tracking-[0.25em] text-white/70">
-                  Trip Builder
+            <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_0%,#1c3b6e_0%,#0b1b3a_45%,#07152c_100%)]" />
+            <div className="relative mx-auto max-w-6xl px-6 pt-12 -mt-10">
+              <div>
+                <p className="text-[12px] font-medium uppercase tracking-[0.2em] text-white/60">
+                  Pixie Booking
                 </p>
-                <h2 className="font-display text-3xl sm:text-4xl">
-                  From wish list to booked stay in under five minutes.
+                <h2 className="mt-4 max-w-[600px] font-display text-[28px] font-semibold leading-[1.3] tracking-[-0.02em] !text-white sm:text-[34px]">
+                  Verified owners, clear steps, and full control — from request to confirmation.
                 </h2>
-                <p className="text-base text-white/75">
-                  Answer a few imaginative prompts - favorite characters, travel pace, celebration moments - and we orchestrate the perfect combination of villas, dining, and experiences matched to your stay strategy.
-                </p>
-          <ul className="space-y-4 text-sm text-white/80">
-                <li className="flex items-start gap-3">
-                  <span className="mt-1 inline-block h-2 w-2 rounded-full bg-gold" aria-hidden="true" />
-                  <span>Intelligent availability search spanning DVC and partner resorts.</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="mt-1 inline-block h-2 w-2 rounded-full bg-gold" aria-hidden="true" />
-                  <span>Price calculator that unlocks hidden value (hello, weeknight deals!).</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="mt-1 inline-block h-2 w-2 rounded-full bg-gold" aria-hidden="true" />
-                  <span>Personalized itinerary with export-to-calendar and shareable storybook.</span>
-                </li>
-              </ul>
-              </div>
-              <div className="grid gap-4 rounded-[32px] bg-white/10 p-6 shadow-[0_30px_70px_rgba(8,12,20,0.6)] backdrop-blur">
-                <div className="flex items-center justify-between rounded-2xl bg-white/10 p-4">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-white/70">
-                      Vibe Mixer
-                    </p>
-                    <p className="mt-1 text-sm text-white">
-                      Magical park mornings and relaxed resort evenings
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white">
-                    92% Match
+                <div className="mt-4">
+                  <span className="inline-flex rounded-full bg-white/6 px-3 py-1.5 text-[10px] font-medium text-white/70">
+                    A concierge-led way to book Disney Vacation Club stays.
                   </span>
                 </div>
-                <div className="grid gap-4 rounded-2xl bg-white/12 p-5">
-                  <p className="text-xs uppercase tracking-[0.2em] text-white/70">
-                    Suggested Flow
+              </div>
+              <div className="mt-12 grid gap-6 md:grid-cols-2">
+                <div className="rounded-2xl bg-white/10 p-6">
+                  <p className="text-[50px] font-semibold leading-none text-white">01</p>
+                  <h3 className="mt-3 text-lg font-semibold !text-white">
+                    Share your travel details
+                  </h3>
+                  <p className="mt-2 text-sm text-white/75">
+                    Tell us your preferred dates, party size, and resort interests. No commitment,
+                    just the information we need to guide you correctly.
                   </p>
-                  <div className="space-y-3 text-sm text-white/80">
-                    <p>Day 1 | Check-in at Bay Lake Tower theme park view</p>
-                    <p>Day 2 | Crescent Lake brunch + evening fireworks cruise</p>
-                    <p>Day 3 | Aulani preview session with concierge tips</p>
-                  </div>
                 </div>
-                <div className="rounded-2xl bg-white/10 p-4 text-sm text-white/75">
-                  Sparkle Tip: Shift one night midweek to save up to four nights of value while keeping the same villa category.
+                <div className="rounded-2xl bg-white/10 p-6">
+                  <p className="text-[50px] font-semibold leading-none text-white">02</p>
+                  <h3 className="mt-3 text-lg font-semibold !text-white">
+                    We verify real availability
+                  </h3>
+                  <p className="mt-2 text-sm text-white/75">
+                    We match your request with verified Disney Vacation Club owners and confirm
+                    availability for your stay. You don’t chase listings. We handle the coordination.
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white/10 p-6">
+                  <p className="text-[50px] font-semibold leading-none text-white">03</p>
+                  <h3 className="mt-3 text-lg font-semibold !text-white">
+                    Review before anything is booked
+                  </h3>
+                  <p className="mt-2 text-sm text-white/75">
+                    You receive a clear overview of:
+                    <span className="mt-2 block text-xs leading-relaxed text-white/70">
+                      • Resort and villa details
+                      <br />
+                      • Dates and stay specifics
+                      <br />
+                      • Total cost and payment terms
+                    </span>
+                    Take your time. Ask questions. Nothing moves forward without your approval.
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white/10 p-6">
+                  <p className="text-[50px] font-semibold leading-none text-white">04</p>
+                  <h3 className="mt-3 text-lg font-semibold !text-white">
+                    Confirm with confidence
+                  </h3>
+                  <p className="mt-2 text-sm text-white/75">
+                    Once you’re ready, you secure your stay through our protected payment flow.
+                    Your PixieDVC concierge stays with you through booking and beyond.
+                  </p>
                 </div>
               </div>
-            </div>
-          </section>
-
-        <section id="membership" className="py-20">
-            <div className="mx-auto max-w-6xl px-6">
-              <div className="grid gap-12 lg:grid-cols-[1fr_1fr]">
-                <div className="space-y-6">
-                  <p className="text-xs uppercase tracking-[0.25em] text-muted">
-                    Member Experience
-                  </p>
-                  <h2 className="font-display text-3xl text-ink sm:text-4xl">
-                    Elevate your membership with concierge-grade insights.
-                  </h2>
-                  <p className="text-base text-muted">
-                    The PixieDVC dashboard centralizes every detail - from stay strategy to reservation alerts - so seasoned members and newcomers alike stay in the glow.
-                  </p>
-                  <div className="grid gap-5 sm:grid-cols-3">
-                    {membershipPerks.map((perk) => (
-                      <div
-                        key={perk.title}
-                        className="rounded-3xl border border-ink/5 bg-white/80 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
-                      >
-                        <h3 className="font-display text-lg text-ink">
-                          {perk.title}
-                        </h3>
-                        <p className="mt-2 text-sm text-muted">{perk.detail}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="relative">
-                  <div className="absolute -inset-6 rounded-[36px] border border-brand/40 opacity-50" />
-                  <div className="relative space-y-6 rounded-[32px] bg-white/80 p-8 shadow-[0_35px_70px_rgba(15,23,42,0.16)]">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-brand">
-                        Sparkles Earned
-                      </p>
-                      <p className="mt-2 text-4xl font-display text-ink">4,820</p>
-                    </div>
-                    <div className="flex items-center justify-between rounded-2xl bg-surface px-4 py-3 text-sm text-muted">
-                      <span>Upcoming Stay</span>
-                      <span className="font-semibold text-ink">Copper Creek | Jun 2025</span>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-sm text-muted">
-                        <span>Waitlist Confidence</span>
-                        <span className="font-semibold text-ink">High</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm text-muted">
-                        <span>Banked into 2026</span>
-                        <span className="font-semibold text-ink">38 nights</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm text-muted">
-                        <span>Exclusive Offers</span>
-                        <span className="font-semibold text-brand">3 new</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <p className="mt-8 text-xs uppercase tracking-[0.2em] text-white/60">
+                ✔ Verified owners • Secure payments • Concierge-led support
+              </p>
+              <p className="mt-2 text-xs text-white/50">Advanced planning tools coming soon.</p>
             </div>
           </section>
 

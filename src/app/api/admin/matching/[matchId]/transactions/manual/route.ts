@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 import { emailIsAllowedForAdmin } from '@/lib/admin-emails';
 import { logAdminEvent } from '@/lib/admin/audit';
@@ -9,9 +9,10 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 const VALID_TYPES = new Set(['deposit', 'booking', 'checkin']);
 
 export async function POST(
-  request: Request,
-  { params }: { params: { matchId: string } },
+  request: NextRequest,
+  { params }: { params: Promise<{ matchId: string }> },
 ) {
+  const { matchId } = await params;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -26,7 +27,6 @@ export async function POST(
     return NextResponse.json({ error: 'Service role key not configured' }, { status: 500 });
   }
 
-  const matchId = params.matchId;
   if (!matchId) {
     return NextResponse.json({ error: 'Missing matchId' }, { status: 400 });
   }

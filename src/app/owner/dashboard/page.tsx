@@ -8,8 +8,10 @@ import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import {
   ensureApprovalNotifications,
   ensurePointsExpiringNotification,
+  ensureResaleRestrictionNotification,
   getDisplayName,
   getNextExpiringMembership,
+  hasRestrictedResaleMembership,
   getOwnerMemberships,
   getOwnerMatches,
   getOwnerNotifications,
@@ -98,6 +100,7 @@ export default async function OwnerDashboardPage() {
   await Promise.all([
     ensurePointsExpiringNotification(user.id, memberships),
     ensureApprovalNotifications(user.id, rentals),
+    ensureResaleRestrictionNotification(user.id, memberships),
   ]);
 
   const rentalsWithMilestones = rentals.map((rental) => ({
@@ -108,6 +111,7 @@ export default async function OwnerDashboardPage() {
   const displayName = getDisplayName(owner, user.email ?? null);
   const pointsSummary = getPointsSummary(memberships);
   const nextExpiring = getNextExpiringMembership(memberships);
+  const showResaleRestrictionBanner = hasRestrictedResaleMembership(memberships);
 
   const pendingPayouts = payouts.filter((payout) => payout.status === "eligible" || payout.status === "pending");
   const pendingPayoutAmount = pendingPayouts.reduce((sum, payout) => sum + Number(payout.amount_cents ?? 0), 0);
@@ -206,6 +210,11 @@ export default async function OwnerDashboardPage() {
       {showOnboardingMessage ? (
         <Card className="rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-sm text-emerald-900 shadow-sm">
           Thanks for finishing onboarding. Everything you need stays here on the dashboard.
+        </Card>
+      ) : null}
+      {showResaleRestrictionBanner ? (
+        <Card className="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-4 text-sm text-amber-900 shadow-sm">
+          Resale memberships acquired on/after Jan 19, 2019 have booking restrictions at certain resorts (including Riviera, Villas at Disneyland Hotel, and the Cabins at Fort Wilderness). PixieDVC will automatically avoid matching you to requests you can’t book.
         </Card>
       ) : null}
       <header className="space-y-4 rounded-[36px] bg-[#0f2148] px-8 py-10 text-white shadow-[0_40px_80px_rgba(15,33,72,0.35)]">

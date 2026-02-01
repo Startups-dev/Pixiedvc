@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { z } from 'zod';
 import PresetBar from './PresetBar';
 import AdminAuditTrail from './[matchId]/AdminAuditTrail';
 import MatchListTile, { type MatchListTileRow } from './MatchListTile';
@@ -135,6 +136,25 @@ type MatchDetail = {
   };
 };
 
+type MatcherResponse = {
+  ok?: boolean;
+  matchesCreated?: number;
+  eligibleBookings?: string[];
+  errors?: Array<{ bookingId?: string | null; step?: string; message?: string }>;
+  evaluatedBookings?: Array<{
+    bookingId: string;
+    status?: string | null;
+    required_resort_id?: string | null;
+    total_points?: number | null;
+    deposit_ok?: boolean;
+    candidatesFound?: number;
+    finalDecision?: string;
+    skipReasons?: string[];
+  }>;
+  matchResults?: Array<{ bookingId: string; matchId: string }>;
+  [key: string]: unknown;
+};
+
 const MATCH_STATUS_OPTIONS = [
   'pending_owner',
   'pending',
@@ -220,6 +240,46 @@ function parseAmountToCents(value: string) {
   return Math.round(amount * 100);
 }
 
+const MATCHER_SKIP_REASON_LABELS: Record<string, string> = {
+  already_pending_owner: 'Already sent to owners; waiting for responses.',
+  no_membership_for_resort: 'No eligible membership can book this resort under current rules.',
+  restricted_resale_resort: "Resale (post-2019) points can’t book this resort.",
+};
+
+const UUID_SCHEMA = z.string().uuid();
+
+function formatMatcherResponse(resp: MatcherResponse | null) {
+  if (!resp) return null;
+  const evaluated = resp.evaluatedBookings ?? [];
+  const bookingSummaries = evaluated.map((booking) => {
+    const reasons = booking.skipReasons ?? [];
+    const skipReasonsReadable = reasons.length
+      ? reasons.map((reason) => MATCHER_SKIP_REASON_LABELS[reason] ?? `Skipped by rule: ${reason}`)
+      : [];
+    return {
+      bookingId: booking.bookingId,
+      bookingIdShort: booking.bookingId.slice(0, 8),
+      resortName: '—',
+      dates: '—',
+      points: booking.total_points ?? null,
+      depositOk: booking.deposit_ok ?? false,
+      result: booking.finalDecision ?? 'unknown',
+      skipReasonsReadable,
+      existingMatchesCount: reasons.includes('already_pending_owner') ? 1 : 0,
+      raw: booking,
+    };
+  });
+
+  return {
+    runSummary: {
+      eligibleCount: resp.eligibleBookings?.length ?? 0,
+      matchesCreated: resp.matchesCreated ?? 0,
+      errorsCount: resp.errors?.length ?? 0,
+    },
+    bookingSummaries,
+  };
+}
+
 function getStatusChips(options: {
   matchStatus?: string | null;
   bookingCancelled?: boolean;
@@ -273,6 +333,15 @@ function ActionTile({
   );
 }
 
+function SummaryStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+      <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{label}</p>
+      <p className="text-lg font-semibold text-slate-900">{value}</p>
+    </div>
+  );
+}
+
 export default function AdminMatchingClient() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -317,6 +386,12 @@ export default function AdminMatchingClient() {
   const [manualNotes, setManualNotes] = useState('');
   const [manualError, setManualError] = useState<string | null>(null);
   const [manualSubmitting, setManualSubmitting] = useState(false);
+  const [matcherResponse, setMatcherResponse] = useState<MatcherResponse | null>(null);
+  const [matcherRunning, setMatcherRunning] = useState(false);
+  const [matcherError, setMatcherError] = useState<string | null>(null);
+  const [matcherBookingId, setMatcherBookingId] = useState('');
+  const [matcherRawOpen, setMatcherRawOpen] = useState(false);
+  const [matcherBookingIdError, setMatcherBookingIdError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!actionNotice) return;
@@ -338,6 +413,46 @@ export default function AdminMatchingClient() {
       window.clearTimeout(handle);
     };
   }, [search]);
+
+  const matcherSummary = useMemo(
+    () => formatMatcherResponse(matcherResponse),
+    [matcherResponse],
+  );
+  const trimmedMatcherId = matcherBookingId.trim();
+  const matcherBookingIdInvalid =
+    Boolean(trimmedMatcherId) && !UUID_SCHEMA.safeParse(trimmedMatcherId).success;
+
+  async function runMatcher() {
+    setMatcherBookingIdError(null);
+
+    if (trimmedMatcherId) {
+      const parsed = UUID_SCHEMA.safeParse(trimmedMatcherId);
+      if (!parsed.success) {
+        setMatcherBookingIdError('Booking request id must be a valid UUID.');
+        return;
+      }
+    }
+    setMatcherRunning(true);
+    setMatcherError(null);
+    try {
+      const response = await fetch('/api/admin/matching/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingRequestId: trimmedMatcherId ? trimmedMatcherId : null,
+        }),
+      });
+      const payload = (await response.json()) as MatcherResponse;
+      setMatcherResponse(payload);
+      if (!response.ok || payload.ok === false) {
+        setMatcherError(payload.errors?.[0]?.message ?? 'Matcher run failed.');
+      }
+    } catch (error) {
+      setMatcherError(error instanceof Error ? error.message : 'Matcher run failed.');
+    } finally {
+      setMatcherRunning(false);
+    }
+  }
 
   const filtersKey = useMemo(
     () =>
@@ -788,6 +903,116 @@ export default function AdminMatchingClient() {
 
   return (
     <div className="space-y-6">
+      <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Matcher</p>
+            <h2 className="text-lg font-semibold text-slate-900">Run matcher</h2>
+            <p className="text-xs text-slate-500">Run against all pending_match requests or a single booking.</p>
+          </div>
+          <button
+            type="button"
+            onClick={runMatcher}
+            disabled={
+              matcherRunning ||
+              (Boolean(matcherBookingId) && !UUID_SCHEMA.safeParse(matcherBookingId).success)
+            }
+            className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            {matcherRunning ? 'Running…' : 'Run matcher'}
+          </button>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <input
+            value={matcherBookingId}
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              const nextTrimmed = nextValue.trim();
+              setMatcherBookingId(nextValue);
+              if (!nextTrimmed) {
+                setMatcherBookingIdError(null);
+              } else if (UUID_SCHEMA.safeParse(nextTrimmed).success) {
+                setMatcherBookingIdError(null);
+              } else {
+                setMatcherBookingIdError('Booking request id must be a valid UUID.');
+              }
+            }}
+            placeholder="Optional booking request id"
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm sm:w-96"
+          />
+          {matcherBookingIdError ? (
+            <span className="text-xs text-rose-600">{matcherBookingIdError}</span>
+          ) : matcherError ? (
+            <span className="text-xs text-rose-600">{matcherError}</span>
+          ) : null}
+        </div>
+
+        {matcherSummary ? (
+          <div className="mt-4 space-y-4">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <SummaryStat label="Eligible requests" value={matcherSummary.runSummary.eligibleCount.toString()} />
+              <SummaryStat label="Matches created" value={matcherSummary.runSummary.matchesCreated.toString()} />
+              <SummaryStat label="Errors" value={matcherSummary.runSummary.errorsCount.toString()} />
+            </div>
+
+            <div className="space-y-3">
+              {matcherSummary.bookingSummaries.length === 0 ? (
+                <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                  No evaluated bookings returned.
+                </p>
+              ) : (
+                matcherSummary.bookingSummaries.map((summary) => (
+                  <details key={summary.bookingId} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <summary className="cursor-pointer text-sm font-semibold text-slate-800">
+                      {summary.bookingIdShort} ·{' '}
+                      <span
+                        className={
+                          summary.result === 'matched'
+                            ? 'text-emerald-600'
+                            : summary.result === 'skipped'
+                              ? 'text-rose-600'
+                              : 'text-slate-700'
+                        }
+                      >
+                        {summary.result}
+                      </span>{' '}
+                      · {summary.points ?? '—'} pts
+                    </summary>
+                    <div className="mt-2 text-xs text-slate-600">
+                      <p>Booking id: {summary.bookingId}</p>
+                      <p>Resort: {summary.resortName}</p>
+                      <p>Dates: {summary.dates}</p>
+                      <p>Deposit ok: {summary.depositOk ? 'Yes' : 'No'}</p>
+                      <p>Existing matches: {summary.existingMatchesCount}</p>
+                      <p>Skip reasons: {summary.skipReasonsReadable.length ? summary.skipReasonsReadable.join(' ') : '—'}</p>
+                      <div className="mt-2 rounded-xl border border-slate-200 bg-white p-2 text-[11px] text-slate-500">
+                        status: {summary.raw.status ?? '—'} · required_resort_id: {summary.raw.required_resort_id ?? '—'} · total_points: {summary.raw.total_points ?? '—'} · candidatesFound: {summary.raw.candidatesFound ?? 0}
+                      </div>
+                    </div>
+                  </details>
+                ))
+              )}
+            </div>
+
+            <div>
+              <button
+                type="button"
+                onClick={() => setMatcherRawOpen((prev) => !prev)}
+                className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
+              >
+                {matcherRawOpen ? 'Hide raw json' : 'Show raw json'}
+              </button>
+              {matcherRawOpen ? (
+                <pre className="mt-2 max-h-80 overflow-auto rounded-2xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
+                  {JSON.stringify(matcherResponse, null, 2)}
+                </pre>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
       <PresetBar
         selectedKey={selectedPresetKey}
         onSelectPreset={applyPreset}

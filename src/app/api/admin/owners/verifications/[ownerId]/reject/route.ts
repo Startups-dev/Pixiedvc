@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
 import { createSupabaseServerClient } from '@/lib/supabase-server';
@@ -6,9 +6,10 @@ import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { emailIsAllowedForAdmin } from '@/lib/admin-emails';
 
 export async function POST(
-  request: Request,
-  { params }: { params: { ownerId: string } },
+  request: NextRequest,
+  { params }: { params: Promise<{ ownerId: string }> },
 ) {
+  const { ownerId } = await params;
   const formData = await request.formData();
   const reviewNotes = String(formData.get('review_notes') ?? '').trim();
 
@@ -41,7 +42,7 @@ export async function POST(
       review_notes: reviewNotes,
       reviewed_by: user.id,
     })
-    .eq('owner_id', params.ownerId);
+    .eq('owner_id', ownerId);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
@@ -50,7 +51,7 @@ export async function POST(
   await adminClient
     .from('owners')
     .update({ verification: 'rejected', verified_at: null, rejection_reason: reviewNotes })
-    .eq('id', params.ownerId);
+    .eq('id', ownerId);
 
-  return NextResponse.redirect(new URL(`/admin/owners/verifications/${params.ownerId}`, request.url));
+  return NextResponse.redirect(new URL(`/admin/owners/verifications/${ownerId}`, request.url));
 }

@@ -96,7 +96,7 @@ describe('booking matcher integration', () => {
     const { data: bookingRows, error: bookingError } = await admin
       .from('booking_requests')
       .insert({
-        status: 'submitted',
+        status: 'pending_match',
         check_in: `${bookingYear}-01-14`,
         check_out: `${bookingYear}-01-21`,
         primary_resort_id: resortId,

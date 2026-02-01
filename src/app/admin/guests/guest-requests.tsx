@@ -13,6 +13,8 @@ export type GuestRequestRecord = {
   adults: number | null;
   children: number | null;
   maxPrice: number | null;
+  availabilityStatus?: string | null;
+  availabilityCheckedAt?: string | null;
   resortName: string | null;
   renterName: string | null;
   renterEmail: string | null;
@@ -21,7 +23,7 @@ export type GuestRequestRecord = {
 
 export type ActivityEntry = {
   id: string;
-  kind: 'note' | 'status_change';
+  kind: 'note' | 'status_change' | 'availability';
   createdAt: string;
   author: string | null;
   body: string | null;
@@ -30,11 +32,20 @@ export type ActivityEntry = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
+  draft: 'Draft',
   submitted: 'Submitted',
+  pending_match: 'Pending match',
+  pending_owner: 'Pending owner',
   pending: 'Pending',
   matched: 'Matched',
   confirmed: 'Confirmed',
   cancelled: 'Cancelled',
+};
+
+const AVAILABILITY_LABELS: Record<string, string> = {
+  confirmed: 'Confirmed',
+  not_available: 'Not available',
+  needs_clarification: 'Needs clarification',
 };
 
 const FILTERS = ['all', 'submitted', 'pending', 'matched', 'confirmed', 'cancelled'] as const;
@@ -51,13 +62,22 @@ export default function GuestRequestBoard({
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('all');
   const [selectedId, setSelectedId] = useState(requests[0]?.id ?? null);
   const [note, setNote] = useState('');
-  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [availabilityNote, setAvailabilityNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
+  const [updatingAvailability, setUpdatingAvailability] = useState(false);
+  const [promoting, setPromoting] = useState(false);
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
 
   const filtered = useMemo(() => {
     const text = search.trim().toLowerCase();
     return requests.filter((request) => {
-      const matchesFilter = filter === 'all' ? true : request.status === filter;
+      const status = statusOverrides[request.id] ?? request.status;
+      const matchesFilter =
+        filter === 'all'
+          ? true
+          : filter === 'pending'
+            ? status === 'pending_match' || status === 'pending_owner'
+            : status === filter;
       if (!matchesFilter) {
         return false;
       }
@@ -67,7 +87,7 @@ export default function GuestRequestBoard({
       const haystack = `${request.resortName ?? ''} ${request.renterName ?? ''} ${request.renterEmail ?? ''}`.toLowerCase();
       return haystack.includes(text);
     });
-  }, [requests, search, filter]);
+  }, [requests, search, filter, statusOverrides]);
 
   const selected = useMemo(() => {
     if (!selectedId) {
@@ -76,23 +96,53 @@ export default function GuestRequestBoard({
     return filtered.find((request) => request.id === selectedId) ?? filtered[0];
   }, [filtered, selectedId]);
 
-  async function updateStatus(nextStatus: string) {
+  const selectedStatus = selected ? statusOverrides[selected.id] ?? selected.status : null;
+  const availabilityLabel = AVAILABILITY_LABELS[selected?.availabilityStatus ?? ''] ?? 'Unreviewed';
+  const availabilityOk = selected?.availabilityStatus === 'confirmed';
+
+  async function updateAvailability(nextAvailability: string) {
     if (!selected) {
       return;
     }
-    setUpdatingStatus(true);
-    const response = await fetch('/api/admin/guests/status', {
+    setUpdatingAvailability(true);
+    const response = await fetch('/api/admin/guests/availability', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ requestId: selected.id, status: nextStatus }),
+      body: JSON.stringify({
+        requestId: selected.id,
+        availabilityStatus: nextAvailability,
+        note: availabilityNote || undefined,
+      }),
     });
-    setUpdatingStatus(false);
+    setUpdatingAvailability(false);
     if (!response.ok) {
-      alert('Unable to update request status.');
+      alert('Unable to update availability.');
       return;
     }
+    setAvailabilityNote('');
+    router.refresh();
+  }
+
+  async function promoteToMatching() {
+    if (!selected) {
+      return;
+    }
+    setPromoting(true);
+    const response = await fetch('/api/admin/guests/promote-to-matching', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ requestId: selected.id }),
+    });
+    setPromoting(false);
+    if (!response.ok) {
+      alert('Unable to promote to matching.');
+      return;
+    }
+    setStatusOverrides((prev) => ({ ...prev, [selected.id]: 'pending_match' }));
     router.refresh();
   }
 
@@ -151,29 +201,39 @@ export default function GuestRequestBoard({
             {filtered.length === 0 ? (
               <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">No requests match this filter.</p>
             ) : (
-              filtered.map((request) => (
-                <button
-                  key={request.id}
-                  type="button"
-                  onClick={() => setSelectedId(request.id)}
-                  className={`flex w-full flex-col gap-2 px-3 py-4 text-left transition hover:bg-slate-50 ${
-                    selected?.id === request.id ? 'bg-slate-50' : ''
-                  }`}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-                    <div>
-                      <p className="text-base font-semibold text-slate-900">
-                        {request.renterName ?? request.renterEmail ?? 'Unknown guest'}
-                      </p>
-                      <p className="text-xs text-slate-500">{request.resortName ?? 'Any resort'} · {formatDates(request.checkIn, request.checkOut)}</p>
+              filtered.map((request) => {
+                const status = statusOverrides[request.id] ?? request.status;
+                return (
+                  <button
+                    key={request.id}
+                    type="button"
+                    onClick={() => setSelectedId(request.id)}
+                    className={`flex w-full flex-col gap-2 px-3 py-4 text-left transition hover:bg-slate-50 ${
+                      selected?.id === request.id ? 'bg-slate-50' : ''
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                      <div>
+                        <p className="text-base font-semibold text-slate-900">
+                          {request.renterName ?? request.renterEmail ?? 'Unknown guest'}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {request.resortName ?? 'Any resort'} · {formatDates(request.checkIn, request.checkOut)}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+                        {STATUS_LABELS[status] ?? status}
+                      </span>
                     </div>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
-                      {request.status}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500">Party size {partyLabel(request.adults, request.children)}</p>
-                </button>
-              ))
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                      <span>Party size {partyLabel(request.adults, request.children)}</span>
+                      <span className="rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        Availability: {AVAILABILITY_LABELS[request.availabilityStatus ?? ''] ?? 'Unreviewed'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })
             )}
           </div>
         </section>
@@ -188,12 +248,15 @@ export default function GuestRequestBoard({
                 <h2 className="text-2xl font-semibold text-slate-900">
                   {selected.renterName ?? selected.renterEmail ?? 'Unknown guest'}
                 </h2>
-                <p className="text-sm text-slate-500">{selected.resortName ?? 'Any resort'} · {formatDates(selected.checkIn, selected.checkOut)}</p>
+                <p className="text-sm text-slate-500">
+                  {selected.resortName ?? 'Any resort'} · {formatDates(selected.checkIn, selected.checkOut)}
+                </p>
                 <p className="text-xs text-slate-500">{selected.renterEmail ?? 'No email'}</p>
               </header>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <Stat label="Status" value={STATUS_LABELS[selected.status] ?? selected.status} />
+                <Stat label="Status" value={STATUS_LABELS[selectedStatus ?? ''] ?? selectedStatus ?? '—'} />
+                <Stat label="Availability" value={availabilityLabel} />
                 <Stat label="Room type" value={selected.roomType ?? 'Any'} />
                 <Stat label="Party size" value={partyLabel(selected.adults, selected.children)} />
                 <Stat
@@ -203,19 +266,43 @@ export default function GuestRequestBoard({
               </div>
 
               <div className="space-y-3">
-                <p className="text-sm font-semibold text-slate-900">Actions</p>
+                <p className="text-sm font-semibold text-slate-900">Availability</p>
+                <textarea
+                  className="min-h-[70px] w-full rounded-2xl border border-slate-200 p-3 text-sm"
+                  placeholder="Availability note (optional)"
+                  value={availabilityNote}
+                  onChange={(event) => setAvailabilityNote(event.target.value)}
+                />
                 <div className="flex flex-wrap gap-2">
-                  {['pending', 'matched', 'confirmed', 'cancelled'].map((next) => (
+                  {[
+                    { label: 'Confirm availability', value: 'confirmed' },
+                    { label: 'Not available', value: 'not_available' },
+                    { label: 'Needs clarification', value: 'needs_clarification' },
+                  ].map((option) => (
                     <button
-                      key={next}
+                      key={option.value}
                       type="button"
-                      onClick={() => updateStatus(next)}
-                      className={`rounded-full px-4 py-2 text-sm font-semibold text-white shadow ${buttonTone(next)}`}
-                      disabled={updatingStatus}
+                      onClick={() => updateAvailability(option.value)}
+                      className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                      disabled={updatingAvailability}
                     >
-                      {updatingStatus ? 'Saving…' : STATUS_LABELS[next] ?? next}
+                      {updatingAvailability ? 'Saving…' : option.label}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-slate-900">Actions</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={promoteToMatching}
+                    className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700 disabled:opacity-60"
+                    disabled={promoting || !availabilityOk}
+                  >
+                    {promoting ? 'Saving…' : 'Promote to matching tool'}
+                  </button>
                 </div>
               </div>
 
@@ -252,7 +339,7 @@ export default function GuestRequestBoard({
                           {entry.body ? ` · ${entry.body}` : ''}
                         </p>
                       ) : (
-                        <p className="mt-1 text-slate-800">{entry.body}</p>
+                        <p className="mt-1 text-slate-800">{entry.body ?? 'Availability updated.'}</p>
                       )}
                     </div>
                   ))
@@ -291,19 +378,6 @@ function partyLabel(adults: number | null, children: number | null) {
     parts.push(`${c} kid${c === 1 ? '' : 's'}`);
   }
   return parts.length ? parts.join(' · ') : 'No guests set';
-}
-
-function buttonTone(status: string) {
-  switch (status) {
-    case 'matched':
-      return 'bg-indigo-600 hover:bg-indigo-700';
-    case 'confirmed':
-      return 'bg-emerald-600 hover:bg-emerald-700';
-    case 'cancelled':
-      return 'bg-rose-600 hover:bg-rose-700';
-    default:
-      return 'bg-amber-500 hover:bg-amber-600 text-slate-900';
-  }
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

@@ -221,7 +221,9 @@ function ContractsSection({ ownerId, contracts, contractEventsMap, ownerEmail, s
           <div key={contract.id} className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-slate-900">{contract.template_name}</p>
+                <p className="text-sm font-semibold text-slate-900">
+                  {snapshot?.templateVersion ?? 'pixie_dvc_v1'}
+                </p>
                 <p className="text-xs text-slate-500">Created {contract.created_at ? new Date(contract.created_at).toLocaleString() : '—'}</p>
               </div>
               <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${contractStatusBadge(contract.status)}`}>
@@ -289,7 +291,7 @@ function ContractsSection({ ownerId, contracts, contractEventsMap, ownerEmail, s
             <details className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-3">
               <summary className="cursor-pointer text-sm font-semibold text-slate-900">View contract</summary>
               <div className="mt-3">
-                <ContractPreview contract={contract} />
+                <ContractPreview contract={contract} snapshot={contract.snapshot ?? null} />
               </div>
             </details>
 

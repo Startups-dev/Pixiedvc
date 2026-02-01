@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 import { emailIsAllowedForAdmin } from '@/lib/admin-emails';
 import { logAdminAuditEvent } from '@/lib/admin/audit';
@@ -7,9 +7,10 @@ import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export async function GET(
-  _request: Request,
-  { params }: { params: { matchId: string } },
+  _request: NextRequest,
+  { params }: { params: Promise<{ matchId: string }> },
 ) {
+  const { matchId } = await params;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -19,7 +20,6 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const matchId = params.matchId;
   if (!matchId) {
     return NextResponse.json({ error: 'Missing matchId' }, { status: 400 });
   }
@@ -39,9 +39,10 @@ export async function GET(
 }
 
 export async function DELETE(
-  _request: Request,
-  { params }: { params: { matchId: string } },
+  _request: NextRequest,
+  { params }: { params: Promise<{ matchId: string }> },
 ) {
+  const { matchId } = await params;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -56,7 +57,6 @@ export async function DELETE(
     return NextResponse.json({ error: 'Service role key not configured' }, { status: 500 });
   }
 
-  const matchId = params.matchId;
   if (!matchId) {
     return NextResponse.json({ error: 'Missing matchId' }, { status: 400 });
   }

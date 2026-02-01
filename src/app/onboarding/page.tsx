@@ -1,10 +1,11 @@
 'use client';
 
-import { FormEvent, useMemo, useState, useEffect } from 'react';
+import { FormEvent, useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { setRole, saveProfile, saveOwnerContracts, saveGuestPrefs, completeOnboarding, ContractInput } from './actions';
 import { createClient } from '@/lib/supabase';
+import { usePlacesAutocomplete } from '@/hooks/usePlacesAutocomplete';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -206,12 +207,25 @@ function ProfileStep({
   const [payoutEmail, setPayoutEmail] = useState(userEmail ?? '');
   const [sameAsLogin, setSameAsLogin] = useState(true);
   const [dvcLast4, setDvcLast4] = useState('');
+  const address1Ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (sameAsLogin && userEmail) {
       setPayoutEmail(userEmail);
     }
   }, [sameAsLogin, userEmail]);
+
+  usePlacesAutocomplete({
+    inputRef: address1Ref,
+    debugLabel: "onboarding",
+    onSelect: (address) => {
+      if (address.line1) setAddress1(address.line1);
+      if (address.city) setCity(address.city);
+      if (address.state) setRegion(address.state);
+      if (address.postalCode) setPostalCode(address.postalCode);
+      if (address.country) setCountry(address.country);
+    },
+  });
 
   const last4 = dvcLast4.trim();
   const last4Valid = !last4 || /^[0-9]{4}$/.test(last4);
@@ -274,11 +288,13 @@ function ProfileStep({
         <div className="sm:col-span-2">
           <label className="text-sm text-slate-600">Address line 1</label>
           <input
+            ref={address1Ref}
             className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
             placeholder="123 Dream St"
             value={address1}
             onChange={(event) => setAddress1(event.target.value)}
             required={isOwner}
+            autoComplete="street-address"
           />
         </div>
         <div className="sm:col-span-2">

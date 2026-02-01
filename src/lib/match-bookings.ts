@@ -17,6 +17,7 @@ type BookingRow = {
   primary_resort?: {
     name: string | null;
     calculator_code?: string | null;
+    is_resale_restricted_resort?: boolean | null;
   } | null;
   lead_guest_name: string | null;
   lead_guest_email: string | null;
@@ -38,22 +39,26 @@ type OwnerRow = {
 };
 
 type MembershipRow = {
-  id: string;
+  id: number;
   owner_id: string;
   resort_id: string;
   home_resort?: string | null;
   contract_year?: number | null;
   use_year_start?: string | null;
   use_year_end?: string | null;
+  points_owned?: number | null;
+  points_rented?: number | null;
   points_available: number | null;
   points_reserved?: number | null;
   borrowing_enabled?: boolean | null;
   max_points_to_borrow?: number | null;
+  purchase_channel?: string | null;
+  acquired_at?: string | null;
   owner?: OwnerRow | null;
 };
 
 export type MatchCandidateEvaluation = {
-  membership_id: string;
+  membership_id: number;
   owner_id: string;
   resort_id: string;
   home_resort: string | null;
@@ -81,8 +86,8 @@ export type EvaluatedBooking = {
 type MatchPlan = {
   bookingId: string;
   ownerId: string;
-  ownerMembershipId: string;
-  borrowMembershipId: string | null;
+  ownerMembershipId: number;
+  borrowMembershipId: number | null;
   ownerEmail: string;
   ownerName: string;
   pointsReserved: number;
@@ -163,7 +168,7 @@ export async function evaluateMatchBookings(options: {
         guest_rate_per_point_cents,
         lead_guest_name,
         lead_guest_email,
-        primary_resort:resorts!booking_requests_primary_resort_id_fkey(name, calculator_code),
+        primary_resort:resorts!booking_requests_primary_resort_id_fkey(name, calculator_code, is_resale_restricted_resort),
         booking_matches(status)
       `,
     )
@@ -173,7 +178,7 @@ export async function evaluateMatchBookings(options: {
   if (bookingId) {
     bookingQuery = bookingQuery.eq('id', bookingId);
   } else {
-    bookingQuery = bookingQuery.eq('status', 'submitted');
+    bookingQuery = bookingQuery.eq('status', 'pending_match');
   }
 
   const { data: bookings, error: bookingError } = await bookingQuery;
@@ -202,8 +207,8 @@ export async function evaluateMatchBookings(options: {
     const candidatesEvaluated: MatchCandidateEvaluation[] = [];
     const depositOk = computeDepositOk(booking);
 
-    if (booking.status !== 'submitted') {
-      skipReasons.push('booking_status_not_submitted');
+    if (booking.status !== 'pending_match') {
+      skipReasons.push('booking_status_not_pending_match');
     }
     if (!booking.primary_resort_id) {
       skipReasons.push('missing_primary_resort_id');
@@ -219,7 +224,7 @@ export async function evaluateMatchBookings(options: {
     }
 
     const baseIneligibleReasons = new Set([
-      'booking_status_not_submitted',
+      'booking_status_not_pending_match',
       'missing_primary_resort_id',
       'missing_total_points',
       'missing_dates',
@@ -253,6 +258,14 @@ export async function evaluateMatchBookings(options: {
     }
 
     const resortCode = booking.primary_resort?.calculator_code ?? null;
+    const isResaleRestrictedResort = Boolean(booking.primary_resort?.is_resale_restricted_resort);
+    const checkInDate = new Date(booking.check_in);
+    const bookingYear = Number.isNaN(checkInDate.getTime())
+      ? null
+      : checkInDate.getUTCFullYear();
+    const today = (options.now ?? new Date());
+    const daysOut = Math.floor((checkInDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const withinSevenMonths = Number.isFinite(daysOut) ? daysOut <= 210 : false;
     let membershipQuery = client
       .from('owner_memberships')
       .select(
@@ -264,10 +277,14 @@ export async function evaluateMatchBookings(options: {
         contract_year,
         use_year_start,
         use_year_end,
+        points_owned,
+        points_rented,
         points_available,
         points_reserved,
         borrowing_enabled,
         max_points_to_borrow,
+        purchase_channel,
+        acquired_at,
         owner:owners (
           id,
           verification,
@@ -283,12 +300,14 @@ export async function evaluateMatchBookings(options: {
       )
       .limit(200);
 
-    if (resortCode) {
-      membershipQuery = membershipQuery.or(
-        `resort_id.eq.${booking.primary_resort_id},home_resort.eq.${resortCode}`,
-      );
-    } else {
-      membershipQuery = membershipQuery.eq('resort_id', booking.primary_resort_id);
+    if (!withinSevenMonths) {
+      if (resortCode) {
+        membershipQuery = membershipQuery.or(
+          `resort_id.eq.${booking.primary_resort_id},home_resort.eq.${resortCode}`,
+        );
+      } else {
+        membershipQuery = membershipQuery.eq('resort_id', booking.primary_resort_id);
+      }
     }
 
     const { data: memberships, error: membershipError } = await membershipQuery;
@@ -340,11 +359,7 @@ export async function evaluateMatchBookings(options: {
       }
     }
 
-    const checkInDate = new Date(booking.check_in);
     const checkOutDate = new Date(booking.check_out);
-    const bookingYear = Number.isNaN(checkInDate.getTime())
-      ? null
-      : checkInDate.getUTCFullYear();
 
     let bestCandidate: {
       membership: MembershipRow;
@@ -359,6 +374,21 @@ export async function evaluateMatchBookings(options: {
       const rejectReasons: string[] = [];
       const owner = membership.owner ?? null;
       const profile = normalizeProfile(owner);
+
+      if (!withinSevenMonths) {
+        if (membership.resort_id !== booking.primary_resort_id) {
+          rejectReasons.push('home_resort_required');
+        }
+      }
+
+      const resaleRestricted =
+        membership.purchase_channel === 'resale' &&
+        membership.acquired_at &&
+        new Date(membership.acquired_at) >= new Date('2019-01-19') &&
+        isResaleRestrictedResort;
+      if (resaleRestricted) {
+        rejectReasons.push('restricted_resale_resort');
+      }
 
       const verificationStatus = verificationMap.get(membership.owner_id) ?? null;
       const ownerVerified =
@@ -385,10 +415,19 @@ export async function evaluateMatchBookings(options: {
         }
       }
 
-      const currentAvailable = Math.max(
-        (membership.points_available ?? 0) - (membership.points_reserved ?? 0),
-        0,
-      );
+      const rawAvailable =
+        (membership.points_owned ?? membership.points_available ?? 0) -
+        (membership.points_rented ?? 0) -
+        (membership.points_reserved ?? 0);
+      if (rawAvailable < 0 && process.env.NODE_ENV !== 'production') {
+        console.warn('[matcher] membership over-allocated', {
+          membership_id: membership.id,
+          owner_id: membership.owner_id,
+          raw_available: rawAvailable,
+        });
+      }
+      const effectiveAvailable = Math.max(rawAvailable, 0);
+      const currentAvailable = effectiveAvailable;
       let nextMembership: MembershipRow | null = null;
       let borrowable = 0;
       if (membership.borrowing_enabled) {
@@ -398,7 +437,8 @@ export async function evaluateMatchBookings(options: {
         const candidateNext = membershipMap.get(nextKey) ?? null;
         if (candidateNext) {
           const nextAvailable = Math.max(
-            (candidateNext.points_available ?? 0) -
+            (candidateNext.points_owned ?? candidateNext.points_available ?? 0) -
+              (candidateNext.points_rented ?? 0) -
               (candidateNext.points_reserved ?? 0),
             0,
           );
@@ -422,7 +462,7 @@ export async function evaluateMatchBookings(options: {
         contract_year: membership.contract_year ?? null,
         use_year_start: membership.use_year_start ?? null,
         use_year_end: membership.use_year_end ?? null,
-        points_available: membership.points_available ?? 0,
+        points_available: effectiveAvailable,
         points_reserved: membership.points_reserved ?? 0,
         points_ok: pointsOk,
         rejectReasons,

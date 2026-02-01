@@ -74,8 +74,15 @@ export function AgreementAndPayment({ onBack, onSubmit, estimatedDeposit }: Agre
 
           <div className="space-y-3">
             <FieldLabel htmlFor="agreement.signedName">Type your full name to e-sign</FieldLabel>
-            <TextInput id="agreement.signedName" {...register("agreement.signedName")} />
-            <HelperText>We capture your IP address and timestamp when you submit.</HelperText>
+            <TextInput
+              id="agreement.signedName"
+              aria-invalid={Boolean(errors.agreement?.signedName)}
+              aria-describedby="agreement-signed-name-help"
+              {...register("agreement.signedName", { required: true })}
+            />
+            <HelperText id="agreement-signed-name-help">
+              {errors.agreement?.signedName ? "Please type your full name." : "We capture your IP address and timestamp when you submit."}
+            </HelperText>
           </div>
 
           <div className="space-y-2">
@@ -112,7 +119,7 @@ export function AgreementAndPayment({ onBack, onSubmit, estimatedDeposit }: Agre
           </div>
         </div>
 
-        {errors.agreement ? (
+        {errors.agreement && !errors.agreement?.signedName ? (
           <HelperText>Accept the terms and choose a payment method to continue.</HelperText>
         ) : null}
 

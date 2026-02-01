@@ -5,8 +5,11 @@ import { renderMatchResponse } from '../response';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(_request: NextRequest, { params }: { params: { token: string } }) {
-  const token = params.token;
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ token: string }> },
+) {
+  const { token } = await params;
   if (!token) {
     return renderMatchResponse({ title: 'Missing token', message: 'The link is incomplete. Please contact concierge.', status: 400 });
   }

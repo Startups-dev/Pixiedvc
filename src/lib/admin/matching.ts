@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
+import { runMatchBookings, type MatchRunResult } from '@/lib/match-bookings';
 import { computePaymentSchedule, type PaymentScheduleResult } from '@/lib/payments/schedule';
 import { computeTaxes, type TaxRateRow } from '@/lib/tax/computeTaxes';
 
@@ -67,6 +68,39 @@ function normalizeProfile(
 ) {
   if (!profiles) return null;
   return Array.isArray(profiles) ? profiles[0] ?? null : profiles;
+}
+
+type RunAdminMatcherOptions = {
+  client?: SupabaseClient;
+  origin?: string;
+  dryRun?: boolean;
+  bookingId?: string | null;
+  limit?: number;
+  now?: Date;
+  sendEmails?: boolean;
+};
+
+function resolveOrigin(origin?: string) {
+  if (origin) return origin;
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.VERCEL_URL ?? '';
+  if (!base) throw new Error('Site URL not set');
+  return base.startsWith('http') ? base : `https://${base}`;
+}
+
+export async function runAdminMatcher(options: RunAdminMatcherOptions) {
+  const client = options.client ?? getSupabaseAdminClient();
+  if (!client) throw new Error('Supabase admin client not available');
+  const origin = resolveOrigin(options.origin);
+
+  return runMatchBookings({
+    client,
+    origin,
+    dryRun: options.dryRun,
+    bookingId: options.bookingId ?? null,
+    limit: options.limit,
+    now: options.now,
+    sendEmails: options.sendEmails,
+  }) as Promise<MatchRunResult>;
 }
 
 function getBookingTotalCents(booking: {
@@ -415,11 +449,7 @@ async function fetchUnmatchedGuests(options: {
     return { rows: [], totalCount: 0, limit, offset };
   }
 
-  const activeStatuses = [
-    'submitted',
-    'pending_confirmation',
-    're-matching_requested',
-  ];
+  const activeStatuses = ['submitted', 'pending_match'];
 
   const { data: matchRows, error: matchError } = await client
     .from('booking_matches')

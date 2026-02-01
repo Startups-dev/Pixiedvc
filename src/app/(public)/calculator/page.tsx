@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Card, SectionHeader } from "@pixiedvc/design-system";
 import CalculatorClient from "@/app/(public)/calculator/CalculatorClient";
 import ContextualGuides from "@/components/guides/ContextualGuides";
@@ -12,7 +13,9 @@ export default function CalculatorPage() {
           description="Choose your resort, dates, and room type to see an instant point total and estimated cost."
         />
         <Card className="mt-10 bg-white/90">
-          <CalculatorClient />
+          <Suspense fallback={null}>
+            <CalculatorClient />
+          </Suspense>
         </Card>
         <ContextualGuides
           title="Learn the basics"
