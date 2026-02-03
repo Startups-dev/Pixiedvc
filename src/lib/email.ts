@@ -173,3 +173,40 @@ export async function sendOwnerAgreementSignedEmail(payload: {
     context: 'owner agreement signed email',
   });
 }
+
+export async function sendGuestAgreementSignedEmail(payload: {
+  to: string;
+  guestName?: string | null;
+  resortName?: string | null;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  agreementUrl?: string | null;
+}) {
+  const subject = 'PixieDVC – Your signed rental agreement';
+  const guestName = payload.guestName ?? 'there';
+  const agreementLine = payload.agreementUrl
+    ? payload.agreementUrl
+    : 'A copy of your signed agreement is available in your PixieDVC trip details.';
+
+  const body = [
+    `Hi ${guestName},`,
+    '',
+    'Your PixieDVC rental agreement has been successfully signed and finalized.',
+    '',
+    'For your records, you can view or download a copy of your signed agreement using the link below:',
+    agreementLine,
+    '',
+    'If you have any questions about your reservation or need assistance at any point, our concierge team is here to help.',
+    '',
+    'Warm regards,',
+    'PixieDVC Concierge',
+    'hello@pixiedvc.com',
+  ].join('\n');
+
+  await sendResendEmail({
+    to: payload.to,
+    subject,
+    body,
+    context: 'guest agreement signed email',
+  });
+}

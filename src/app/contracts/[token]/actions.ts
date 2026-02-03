@@ -6,7 +6,7 @@ import crypto from 'crypto';
 
 import { createServiceClient } from '@/lib/supabase-service-client';
 import type { ContractSnapshot } from '@/lib/contracts/contractSnapshot';
-import { sendOwnerAgreementSignedEmail } from '@/lib/email';
+import { sendGuestAgreementSignedEmail, sendOwnerAgreementSignedEmail } from '@/lib/email';
 import { logContractEvent } from '@/server/contracts';
 
 export async function acceptContractAction(_: { error?: string | null }, formData: FormData) {
@@ -65,7 +65,14 @@ export async function acceptContractAction(_: { error?: string | null }, formDat
   });
 
   if (role === 'guest') {
-    const snapshot = (contract.snapshot ?? {}) as ContractSnapshot;
+    const { data: freshContract } = await supabase
+      .from('contracts')
+      .select('id, signed_copy_emailed_at, guest_accept_token, snapshot')
+      .eq('id', contract.id)
+      .maybeSingle();
+
+    const snapshot = (freshContract?.snapshot ?? contract.snapshot ?? {}) as ContractSnapshot;
+
     if (snapshot.ownerEmail) {
       const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? '';
       const rentalUrl =
@@ -81,6 +88,37 @@ export async function acceptContractAction(_: { error?: string | null }, formDat
         checkOut: snapshot.checkOut,
         rentalUrl,
       });
+    }
+
+    if (freshContract?.signed_copy_emailed_at) {
+      // Idempotency: email already sent.
+    } else {
+      const guestEmail = snapshot.parties?.guest?.email ?? snapshot.guestEmail ?? null;
+      if (guestEmail) {
+        try {
+          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? '';
+          const tokenToUse = freshContract?.guest_accept_token ?? contract.guest_accept_token;
+          const agreementUrl = baseUrl && tokenToUse ? `${baseUrl.replace(/\/$/, '')}/contracts/${tokenToUse}` : null;
+          await sendGuestAgreementSignedEmail({
+            to: guestEmail,
+            guestName: snapshot.renterName ?? null,
+            resortName: snapshot.resortName ?? null,
+            checkIn: snapshot.checkIn ?? null,
+            checkOut: snapshot.checkOut ?? null,
+            agreementUrl,
+          });
+          await supabase
+            .from('contracts')
+            .update({ signed_copy_emailed_at: new Date().toISOString() })
+            .eq('id', contract.id);
+        } catch (error) {
+          console.error('Failed to send guest agreement signed email', error);
+        }
+      } else {
+        console.warn('Guest agreement signed email skipped: missing guest email', {
+          contractId: contract.id,
+        });
+      }
     }
   }
 

@@ -213,18 +213,6 @@ export async function ensureGuestAgreementForBooking(params: {
     contractId = data.id;
   }
 
-  const sendResult = await sendContractEmail({ contractId: contractId!, sendToGuest: true });
-  if (process.env.NODE_ENV !== 'production') {
-    console.debug('[contracts] ensureGuestAgreementForBooking', {
-      bookingRequestId: params.bookingRequestId,
-      ownerId: params.ownerId,
-      renterId,
-      contractId,
-      sentToGuest: sendResult.sentToGuest,
-      skippedGuest: sendResult.skipped?.guest ?? null,
-    });
-  }
-
   return {
     contractId,
     status: 'sent',
