@@ -363,9 +363,9 @@ export async function sendContractEmail(params: { contractId: number; sendToOwne
       '',
       ownerUrl
         ? [`To review and accept online, click: ${ownerUrl}`, 'If the link does not work, copy and paste it into your browser.'].join('\n')
-        : 'To accept, contact concierge@pixiedvc.com.',
+        : 'To accept, contact hello@pixiedvc.com.',
       '',
-      'Need help? Email concierge@pixiedvc.com.',
+      'Need help? Email hello@pixiedvc.com.',
     ]
       .filter(Boolean)
       .join('\n');
@@ -388,9 +388,9 @@ export async function sendContractEmail(params: { contractId: number; sendToOwne
       '',
       guestUrl
         ? [`To review and accept online, click: ${guestUrl}`, 'If the link does not work, copy and paste it into your browser.'].join('\n')
-        : 'To accept, contact concierge@pixiedvc.com.',
+        : 'To accept, contact hello@pixiedvc.com.',
       '',
-      'Need assistance? Email concierge@pixiedvc.com.',
+      'Need assistance? Email hello@pixiedvc.com.',
     ]
       .filter(Boolean)
       .join('\n');

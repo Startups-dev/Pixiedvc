@@ -2,16 +2,30 @@
 
 import { FormEvent, useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { CalendarDays, ShieldCheck } from 'lucide-react';
 
-import { setRole, saveProfile, saveOwnerContracts, saveGuestPrefs, completeOnboarding, ContractInput } from './actions';
+import {
+  setRole,
+  saveProfile,
+  saveOwnerContracts,
+  saveOwnerLegalInfo,
+  saveGuestPrefs,
+  completeOnboarding,
+  ContractInput,
+} from './actions';
 import { createClient } from '@/lib/supabase';
 import { usePlacesAutocomplete } from '@/hooks/usePlacesAutocomplete';
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5;
 
 type GuestPrefsInput = {
   dates_pref?: string;
   favorite_resorts?: string[];
+};
+
+type OwnerLegalInfoInput = {
+  owner_legal_full_name: string;
+  co_owner_legal_full_name?: string;
 };
 
 export default function OnboardingPage() {
@@ -100,12 +114,31 @@ export default function OnboardingPage() {
         />
       ) : null}
 
-      {step === 4 ? (
+      {step === 4 && role === 'owner' ? (
+        <OwnerLegalInfoStep
+          onNext={async (payload) => {
+            await saveOwnerLegalInfo(payload);
+            setStep(5);
+          }}
+        />
+      ) : null}
+
+      {step === 4 && role === 'guest' ? (
         <FinishStep
           role={role}
-          onFinish={async () => {
+          onFinish={async (nextOverride) => {
             const { next } = await completeOnboarding();
-            router.replace(next || '/');
+            router.replace(nextOverride ?? next || '/');
+          }}
+        />
+      ) : null}
+
+      {step === 5 ? (
+        <FinishStep
+          role={role}
+          onFinish={async (nextOverride) => {
+            const { next } = await completeOnboarding();
+            router.replace(nextOverride ?? next || '/');
           }}
         />
       ) : null}
@@ -114,7 +147,10 @@ export default function OnboardingPage() {
 }
 
 function Progress({ step, role }: { step: Step; role: string | null }) {
-  const items = ['Role', 'Profile', role === 'owner' ? 'Owner' : 'Guest', 'Finish'];
+  const items =
+    role === 'owner'
+      ? ['Role', 'Profile', 'Owner', 'Legal', 'Finish']
+      : ['Role', 'Profile', 'Guest', 'Finish'];
 
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
@@ -149,21 +185,39 @@ function RoleStep({
 }) {
   return (
     <div className="space-y-4">
-      <p className="text-lg text-slate-700">How will you use PixieDVC?</p>
-      <div className="flex gap-4">
+      <p className="text-lg text-slate-700">Choose your path to get started.</p>
+      <div className="grid gap-4 sm:grid-cols-2">
         <button
-          className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold transition hover:border-emerald-500"
-          onClick={() => onPick('owner')}
-          disabled={pending}
-        >
-          I’m an Owner
-        </button>
-        <button
-          className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold transition hover:border-emerald-500"
+          type="button"
+          className="group flex h-full w-full flex-col items-start gap-3 rounded-3xl border border-slate-200 bg-white p-5 text-left transition hover:border-emerald-500 hover:shadow-[0_16px_40px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
           onClick={() => onPick('guest')}
           disabled={pending}
         >
-          I’m a Guest
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+            <CalendarDays className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-base font-semibold text-slate-900">I’m planning a stay</p>
+            <p className="mt-1 text-sm text-slate-600">
+              Estimate points, explore resorts, and request a reservation with concierge support.
+            </p>
+          </div>
+        </button>
+        <button
+          type="button"
+          className="group flex h-full w-full flex-col items-start gap-3 rounded-3xl border border-slate-200 bg-white p-5 text-left transition hover:border-emerald-500 hover:shadow-[0_16px_40px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+          onClick={() => onPick('owner')}
+          disabled={pending}
+        >
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+            <ShieldCheck className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-base font-semibold text-slate-900">I own DVC points</p>
+            <p className="mt-1 text-sm text-slate-600">
+              Rent your points through PixieDVC with verified guests and structured payouts.
+            </p>
+          </div>
         </button>
       </div>
       {pending ? <p className="text-sm text-slate-500">Saving your choice…</p> : null}
@@ -424,6 +478,7 @@ function OwnerContractsStep({
   onNext: (payload: ContractInput[]) => void;
 }) {
   const currentYear = String(new Date().getFullYear());
+  const [pricingAcknowledged, setPricingAcknowledged] = useState(false);
   const [contracts, setContracts] = useState<ContractForm[]>([
     { resortId: '', useYear: 'January', contractYear: currentYear, pointsOwned: '', pointsAvailable: '' },
   ]);
@@ -459,6 +514,38 @@ function OwnerContractsStep({
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Owner basics</p>
+        <div className="mt-2 space-y-2">
+          <p>11‑month windows favor home resort bookings; 7‑month windows open availability across resorts.</p>
+          <p>Home resort advantage is strongest for high‑demand dates and premium room categories.</p>
+          <p>Per‑point pricing varies by season and demand — we’ll confirm terms before any booking.</p>
+        </div>
+      </div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">How your points are priced</p>
+        <ul className="mt-3 space-y-2">
+          <li>7‑month window rentals typically range from $18–23 per point</li>
+          <li>11‑month home resort bookings typically range from $24–30 per point</li>
+          <li>
+            Exceptionally scarce inventory (holidays, club‑level, premium views) is handled by concierge at premium
+            rates
+          </li>
+        </ul>
+        <p className="mt-3 text-sm text-slate-600">
+          Final pricing depends on demand, flexibility, and booking window. PixieDVC optimizes pricing to maximize
+          successful rentals.
+        </p>
+        <label className="mt-3 flex items-start gap-2 text-xs text-slate-500">
+          <input
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 rounded border-slate-300"
+            checked={pricingAcknowledged}
+            onChange={(event) => setPricingAcknowledged(event.target.checked)}
+          />
+          I understand pricing depends on booking window and demand.
+        </label>
+      </div>
       <HowToFindContractInfo />
       {contracts.map((contract, index) => (
         <div key={index} className="rounded-2xl border border-slate-200 p-4 shadow-sm">
@@ -583,6 +670,59 @@ function HowToFindContractInfo() {
   );
 }
 
+function OwnerLegalInfoStep({ onNext }: { onNext: (payload: OwnerLegalInfoInput) => void }) {
+  const [ownerLegalName, setOwnerLegalName] = useState('');
+  const [coOwnerLegalName, setCoOwnerLegalName] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const trimmed = ownerLegalName.trim();
+        if (!trimmed) {
+          setError('Legal owner name is required.');
+          return;
+        }
+        setError(null);
+        onNext({
+          owner_legal_full_name: trimmed,
+          co_owner_legal_full_name: coOwnerLegalName.trim() || undefined,
+        });
+      }}
+    >
+      <div>
+        <label className="text-sm text-slate-600">Legal owner full name</label>
+        <input
+          className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
+          placeholder="Jane Rivera"
+          value={ownerLegalName}
+          onChange={(event) => setOwnerLegalName(event.target.value)}
+          required
+        />
+        <p className="mt-1 text-xs text-slate-500">
+          Enter the full legal name exactly as it appears on your Disney Vacation Club contract.
+        </p>
+      </div>
+      <div>
+        <label className="text-sm text-slate-600">Co-owner legal full name (optional)</label>
+        <input
+          className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
+          placeholder="Second owner name"
+          value={coOwnerLegalName}
+          onChange={(event) => setCoOwnerLegalName(event.target.value)}
+        />
+        <p className="mt-1 text-xs text-slate-500">If your DVC contract has a second owner.</p>
+      </div>
+      {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+      <button className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white" type="submit">
+        Continue
+      </button>
+    </form>
+  );
+}
+
 function GuestPrefsStep({ onNext }: { onNext: (payload: GuestPrefsInput) => void }) {
   const [dates, setDates] = useState('');
   const [resorts, setResorts] = useState('');
@@ -624,7 +764,7 @@ function FinishStep({
   onFinish,
   role,
 }: {
-  onFinish: () => void;
+  onFinish: (next?: string) => void;
   role: 'owner' | 'guest' | null;
 }) {
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
@@ -672,9 +812,26 @@ function FinishStep({
           </div>
         </div>
       ) : null}
-      <button className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white" onClick={onFinish}>
-        Finish onboarding
-      </button>
+      {role === 'guest' ? (
+        <div className="flex flex-wrap gap-3">
+          <button
+            className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+            onClick={() => onFinish('/calculator')}
+          >
+            Start guided planning
+          </button>
+          <button
+            className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-300"
+            onClick={() => onFinish('/resorts')}
+          >
+            Browse resorts
+          </button>
+        </div>
+      ) : (
+        <button className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => onFinish()}>
+          Finish onboarding
+        </button>
+      )}
     </div>
   );
 }

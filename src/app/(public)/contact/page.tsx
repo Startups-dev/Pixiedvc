@@ -26,15 +26,17 @@ export default function ContactPage() {
               <h1 className="font-display text-3xl leading-tight tracking-tight text-ink sm:text-4xl lg:text-5xl">
                 We’re one message away from your perfect DVC stay.
               </h1>
-              <p className="max-w-prose text-base text-slate-600 sm:text-lg">
-                Owners, guests, and partners receive responses within 24 hours (often much faster). Share a few
-                details and we’ll route your note to the right concierge.
+              <div className="max-w-prose space-y-3 text-base text-slate-600 sm:text-lg">
+                <p>In a rush? Start a live chat with a PixieDVC concierge — responses are often immediate.</p>
+                <p>Not urgent? Send us a message and we’ll follow up the same day.</p>
+                <p>Owners, guests, and partners are routed to the right concierge with clear next steps.</p>
+              </div>
+              <p className="text-sm text-slate-500">
+                If we’re offline, all messages are reviewed and answered promptly.
               </p>
               <div className="space-y-2 text-sm text-slate-600">
                 <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Prefer email?</p>
-                <p className="text-base font-semibold text-ink">concierge@pixiedvc.com</p>
-                <p className="text-base font-semibold text-ink">owners@pixiedvc.com</p>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Mon–Sat · 8a–8p ET</p>
+                <p className="text-base font-semibold text-ink">hello@pixiedvc.com</p>
               </div>
             </div>
 
@@ -78,10 +80,10 @@ export default function ContactPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">
                   Affiliates & Partners
                 </p>
-                <h2 className="font-display text-2xl sm:text-3xl">
+                <h2 className="font-display text-2xl !text-slate-500 sm:text-3xl">
                   Earn up to 8% referring DVC bookings.
                 </h2>
-                <p className="max-w-prose text-sm text-white/75 sm:text-base">
+                <p className="max-w-prose text-sm text-white sm:text-base">
                   Transparent tracking. Monthly payouts. See every click, booking, and commission in real time.
                 </p>
               </div>

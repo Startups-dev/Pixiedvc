@@ -19,7 +19,7 @@ type OwnerMatchEmailPayload = {
   declineUrl?: string | null;
 };
 
-const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL ?? 'bookings@pixiedvc.com';
+const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL ?? 'hello@pixiedvc.com';
 
 async function sendResendEmail({
   to,
@@ -76,7 +76,7 @@ export async function sendBookingConfirmationEmail(payload: BookingEmailPayload)
     '',
     'Our concierge team is pairing you with available owners now. We will email you as soon as we have a match (usually within 24 hours).',
     '',
-    'Need to update anything? Reply to this email or contact concierge@pixiedvc.com.',
+    'Need to update anything? Reply to this email or contact hello@pixiedvc.com.',
     '',
     'PixieDVC Concierge',
   ].join('\n');

@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { compileMDX } from "next-mdx-remote/rsc";
 
 import { Card, SectionHeader } from "@pixiedvc/design-system";
+import { DecisionTile, GuideCallout, KeyTakeaways, NextStep } from "@/components/guides/GuideTiles";
 
 const MDX_ROOT = path.join(process.cwd(), "content");
 
@@ -62,9 +63,12 @@ export const mdxComponents = {
   h2: ({ children }: { children: ReactNode }) => {
     const id = slugify(extractText(children));
     return (
-      <h2 id={id} className="scroll-mt-28 font-display text-3xl text-ink">
-        {children}
-      </h2>
+      <div className="mt-12 border-t border-slate-200/70 pt-8">
+        <h2 id={id} className="scroll-mt-28 font-display text-3xl text-ink">
+          {children}
+        </h2>
+        <span className="mt-4 block h-px w-16 bg-slate-200/70" aria-hidden="true" />
+      </div>
     );
   },
   h3: ({ children }: { children: ReactNode }) => {
@@ -76,19 +80,23 @@ export const mdxComponents = {
     );
   },
   p: ({ children }: { children: ReactNode }) => (
-    <p className="text-base text-muted">{children}</p>
+    <p className="text-[15px] leading-relaxed text-slate-600">{children}</p>
   ),
   ul: ({ children }: { children: ReactNode }) => (
-    <ul className="list-disc space-y-2 pl-6 text-base text-muted">{children}</ul>
+    <ul className="list-disc space-y-2 pl-6 text-[15px] leading-relaxed text-slate-600">{children}</ul>
   ),
   ol: ({ children }: { children: ReactNode }) => (
-    <ol className="list-decimal space-y-2 pl-6 text-base text-muted">{children}</ol>
+    <ol className="list-decimal space-y-2 pl-6 text-[15px] leading-relaxed text-slate-600">{children}</ol>
   ),
   li: ({ children }: { children: ReactNode }) => (
-    <li className="text-base text-muted">{children}</li>
+    <li className="text-[15px] leading-relaxed text-slate-600">{children}</li>
   ),
   Card,
   SectionHeader,
+  KeyTakeaways,
+  DecisionTile,
+  NextStep,
+  Callout: GuideCallout,
 };
 
 export async function loadMdxDirectory(directory: string) {

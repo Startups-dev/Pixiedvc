@@ -41,13 +41,13 @@ const resortShowcase = [
 const testimonials = [
   {
     quote:
-      "PixieDVC turned our wish list into a dream itinerary in minutes. The trip builder even saved us a few surprises.",
+      "We wanted something that felt easy but still special. PixieDVC handled the details, and we could just enjoy the trip. Everything felt smooth from start to finish.",
     name: "Elena & Marco",
     role: "Founders | Park Hoppers",
   },
   {
     quote:
-      "From resale research to luxe resort vibes, everything feels crafted for superfans like us.",
+      "I’ve booked DVC stays before, but this was the first time it actually felt calm. Clear steps, no pressure, and exactly what we were looking for.",
     name: "Tasha A.",
     role: "DVC Member Since 2015",
   },
@@ -78,7 +78,44 @@ export default function Home() {
         {/* // Resort Showcase Section */}
         <ResortShowcase />
 
-        <section className="bg-white/85 py-16 backdrop-blur">
+        <section id="resorts" className="bg-white/70 py-16 backdrop-blur">
+            <div className="mx-auto max-w-6xl px-6">
+              <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.25em] text-muted">Resort Collection</p>
+                  <h2 className="mt-2 font-display text-3xl text-ink sm:text-4xl">
+                    Handpicked escapes for every kind of dreamer.
+                  </h2>
+                </div>
+                <Link
+                  href="/resorts"
+                  className="inline-flex items-center gap-2 rounded-full border border-ink/10 px-5 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand"
+                >
+                  View all resorts
+                </Link>
+              </div>
+              <div className="mt-10 grid gap-6 md:grid-cols-3">
+                {resortShowcase.map((resort) => (
+                  <ResortCollectionCard
+                    key={resort.name}
+                    name={resort.name}
+                    location={resort.location}
+                    vibe={resort.vibe}
+                    points={resort.points}
+                    image={resort.image}
+                    micro={resort.micro}
+                    slug={resort.slug}
+                  />
+                ))}
+              </div>
+            </div>
+          </section>
+
+        <section className="relative bg-white/85 py-16 backdrop-blur">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[#0B1B3A]/10"
+            />
             <div className="mx-auto max-w-6xl px-6">
               <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -125,50 +162,6 @@ export default function Home() {
                   );
                 })}
               </div>
-            </div>
-          </section>
-
-        <section id="resorts" className="bg-white/70 py-16 backdrop-blur">
-            <div className="mx-auto max-w-6xl px-6">
-              <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.25em] text-muted">Resort Collection</p>
-                  <h2 className="mt-2 font-display text-3xl text-ink sm:text-4xl">
-                    Handpicked escapes for every kind of dreamer.
-                  </h2>
-                </div>
-                <Link
-                  href="/resorts"
-                  className="inline-flex items-center gap-2 rounded-full border border-ink/10 px-5 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:text-brand"
-                >
-                  View all resorts
-                </Link>
-              </div>
-              <div className="mt-10 grid gap-6 md:grid-cols-3">
-                {resortShowcase.map((resort) => (
-                  <ResortCollectionCard
-                    key={resort.name}
-                    name={resort.name}
-                    location={resort.location}
-                    vibe={resort.vibe}
-                    points={resort.points}
-                    image={resort.image}
-                    micro={resort.micro}
-                    slug={resort.slug}
-                  />
-                ))}
-              </div>
-            </div>
-          </section>
-
-        <section className="py-20">
-            <div className="mx-auto max-w-6xl px-6">
-              <ContextualGuides
-                title="New to DVC? Start Here"
-                description="Short, practical guides to help you book with confidence."
-                category="DVC Basics"
-                limit={3}
-              />
             </div>
           </section>
 
@@ -248,7 +241,22 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="py-20">
+        <section className="py-20">
+            <div className="mx-auto max-w-6xl px-6">
+              <ContextualGuides
+                title="New to DVC? Start Here"
+                description="Short, practical guides to help you book with confidence."
+                category="DVC Basics"
+                limit={3}
+              />
+            </div>
+          </section>
+
+          <section className="relative bg-[#F8FAFC] py-24">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[#0B1B3A]/10"
+            />
             <div className="mx-auto max-w-6xl px-6">
               <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
                 <div className="space-y-6">
@@ -282,6 +290,9 @@ export default function Home() {
             </div>
           </section>
 
+        {/* Community Stories temporarily hidden for launch focus.
+            Will be reintroduced once Storybook/Podcast content is live. */}
+        {false && (
         <section id="stories" className="bg-surface-dark py-20 text-white">
             <div className="mx-auto max-w-6xl px-6">
               <div className="xl:grid xl:grid-cols-[1.1fr_0.9fr] xl:items-center xl:gap-12">
@@ -337,6 +348,7 @@ export default function Home() {
               </div>
             </div>
           </section>
+        )}
       </main>
     </>
   );

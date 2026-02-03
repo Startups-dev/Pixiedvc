@@ -2,6 +2,7 @@
 
 import { ensureOnboardingNotComplete } from './guards';
 import { supabaseServer } from '@/lib/supabase-server';
+import { getHomeForRole } from '@/lib/routes/home';
 
 async function ensureProfileRow(sb: ReturnType<typeof supabaseServer>, userId: string) {
   const { error } = await sb
@@ -158,6 +159,37 @@ export async function saveOwnerContracts(contracts: ContractInput[]) {
   return { ok: true };
 }
 
+export async function saveOwnerLegalInfo(input: {
+  owner_legal_full_name: string;
+  co_owner_legal_full_name?: string;
+}) {
+  const sb = await supabaseServer();
+  const {
+    data: { user },
+    error: authError,
+  } = await sb.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error('Not authenticated');
+  }
+
+  await ensureOnboardingNotComplete(sb, user.id);
+
+  const { error } = await sb
+    .from('owner_memberships')
+    .update({
+      owner_legal_full_name: input.owner_legal_full_name,
+      co_owner_legal_full_name: input.co_owner_legal_full_name ?? null,
+    })
+    .eq('owner_id', user.id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return { ok: true };
+}
+
 export async function saveGuestPrefs(input: { dates_pref?: string; favorite_resorts?: string[] }) {
   const sb = await supabaseServer();
   const {
@@ -212,6 +244,22 @@ export async function completeOnboarding() {
     throw new Error(profileError.message);
   }
 
+  if (profile?.role === 'owner') {
+    const { data: ownerMembership, error: ownerMembershipError } = await sb
+      .from('owner_memberships')
+      .select('owner_legal_full_name')
+      .eq('owner_id', user.id)
+      .maybeSingle();
+
+    if (ownerMembershipError) {
+      throw new Error(ownerMembershipError.message);
+    }
+
+    if (!ownerMembership?.owner_legal_full_name) {
+      throw new Error('Owner legal full name is required to complete onboarding.');
+    }
+  }
+
   const { error } = await sb
     .from('profiles')
     .update({
@@ -241,5 +289,6 @@ export async function completeOnboarding() {
       );
   }
 
-  return { ok: true, next: profile?.role === 'owner' ? '/owner' : '/guest' };
+  const role = profile?.role === 'owner' || profile?.role === 'guest' ? profile?.role : null;
+  return { ok: true, next: getHomeForRole(role) };
 }

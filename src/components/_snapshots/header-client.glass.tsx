@@ -67,16 +67,26 @@ const DROPDOWNS: Record<string, DropdownConfig> = {
       {
         title: "Renting",
         items: [
-          { label: "Rent DVC Points", href: "/guests", icon: Sparkles },
-          { label: "How Guest Renting Works", href: "/guides/how-renting-dvc-points-works", icon: BookOpen },
+          { label: "Rent DVC Points", href: "/guests/rent-dvc-points", icon: Sparkles },
+          { label: "How Guest Renting Works", href: "/guests/how-renting-works", icon: BookOpen },
           { label: "Confirmed Reservations", enabled: false, icon: CheckCircle2 },
           { label: "Guest Policies & Rules", href: "/guests/policies", icon: FileText },
         ],
       },
       {
+        title: "Explore",
+        items: [
+          { label: "Available Resorts", enabled: false, icon: Users },
+          { label: "Room Types", enabled: false, icon: Users },
+          { label: "Popular Dates", enabled: false, icon: Calendar },
+          { label: "Last-Minute Deals", enabled: false, icon: Sparkles },
+        ],
+      },
+      {
         title: "Support",
         items: [
-          { label: "Guest FAQ", href: "/faq", icon: HelpCircle },
+          { label: "Guest FAQ", href: "/guests/faq", icon: HelpCircle },
+          { label: "Pricing & Fees", enabled: false, icon: FileText },
           { label: "Cancellation Policy", href: "/guests/cancellation-policy", icon: FileText },
         ],
       },
@@ -124,7 +134,7 @@ const DROPDOWNS: Record<string, DropdownConfig> = {
     ],
   },
   Contact: {
-    columns: 2,
+    columns: 3,
     sections: [
       {
         title: "Policies",
@@ -148,16 +158,27 @@ const DROPDOWNS: Record<string, DropdownConfig> = {
           { label: "Contact Form", href: "/contact", icon: FileText },
         ],
       },
+      {
+        title: "Call Us Now",
+        items: [
+          { label: "Owners: (000) 000-0000", href: "tel:+10000000000", icon: Phone, note: "Placeholder" },
+          { label: "Guests: (000) 000-0000", href: "tel:+10000000000", icon: Phone, note: "Placeholder" },
+          { label: "Mon-Sat · 8a-8p ET", icon: Calendar },
+        ],
+      },
     ],
   },
   Partners: {
-    columns: 1,
+    columns: 2,
     sections: [
       {
-        title: "Partner with PixieDVC",
+        title: "Partners",
         items: [
           { label: "Become a Partner", href: "/partners/become-a-partner", icon: Users },
           { label: "Affiliate Program", href: "/partners/affiliate-program", icon: Sparkles },
+          { label: "Travel Advisors", enabled: false, icon: Users },
+          { label: "Group / Corporate Travel", enabled: false, icon: Users },
+          { label: "Press / Media", enabled: false, icon: FileText },
         ],
       },
     ],
@@ -299,14 +320,12 @@ export default function HeaderClient({ userLabel, userRole, isAdmin, isAuthentic
               const isOpen = openDropdown === item.label;
               const alignRight =
                 item.label === "Contact" || item.label === "Partners" || item.label === "Get to Know";
-              const isContactMenu = item.label === "Contact";
-              const effectiveColumns = Math.min(dropdown.columns, dropdown.sections.length);
               return (
                 <div
                   key={item.href}
                   className="relative"
-                  onMouseEnter={() => openDropdownWithDelay(item.label)}
-                  onMouseLeave={closeDropdownWithDelay}
+                  onMouseEnter={isDesktop ? () => openDropdownWithDelay(item.label) : undefined}
+                  onMouseLeave={isDesktop ? closeDropdownWithDelay : undefined}
                 >
                   <Link
                     href={item.href}
@@ -338,15 +357,24 @@ export default function HeaderClient({ userLabel, userRole, isAdmin, isAuthentic
                         "backdrop-blur-[18px] saturate-[120%]",
                         "max-w-[calc(100vw-2rem)]",
                         "max-h-[calc(100vh-140px)] overflow-auto",
-                        effectiveColumns === 1
-                          ? "w-[320px]"
-                          : effectiveColumns === 2
+                        dropdown.columns === 1
+                          ? "w-[360px]"
+                          : dropdown.columns === 2
                             ? "w-[720px]"
                             : "w-[900px]",
                       ].join(" ")}
                     >
-                      {(() => {
-                        const renderSection = (section: NavItem) => (
+                      <div
+                        className={[
+                          "grid w-full gap-6",
+                          dropdown.columns === 1
+                            ? "grid-cols-1"
+                            : dropdown.columns === 2
+                              ? "sm:grid-cols-2"
+                              : "sm:grid-cols-3",
+                        ].join(" ")}
+                      >
+                        {dropdown.sections.map((section) => (
                           <div key={section.title} className="space-y-3">
                             <p className="text-[11px] uppercase tracking-[0.22em] text-white/60">
                               {section.title}
@@ -420,40 +448,8 @@ export default function HeaderClient({ userLabel, userRole, isAdmin, isAuthentic
                               })}
                             </div>
                           </div>
-                        );
-
-                        if (isContactMenu) {
-                          const policies = dropdown.sections.find((section) => section.title === "Policies");
-                          const generalHelp = dropdown.sections.find((section) => section.title === "General Help");
-                          const concierge = dropdown.sections.find((section) => section.title === "Talk to a Concierge");
-                          return (
-                            <div className="grid w-full gap-6 sm:grid-cols-2">
-                              <div className="space-y-6">
-                                {policies ? renderSection(policies) : null}
-                                {generalHelp ? renderSection(generalHelp) : null}
-                              </div>
-                              <div className="space-y-6">
-                                {concierge ? renderSection(concierge) : null}
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        return (
-                          <div
-                            className={[
-                              "grid w-full gap-6",
-                          effectiveColumns === 1
-                            ? "grid-cols-1"
-                            : effectiveColumns === 2
-                              ? "sm:grid-cols-2"
-                              : "sm:grid-cols-3",
-                            ].join(" ")}
-                          >
-                            {dropdown.sections.map((section) => renderSection(section))}
-                          </div>
-                        );
-                      })()}
+                        ))}
+                      </div>
                     </div>
                   ) : null}
                 </div>
