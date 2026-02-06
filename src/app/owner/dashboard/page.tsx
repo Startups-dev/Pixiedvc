@@ -20,14 +20,18 @@ import {
   getOwnerRentals,
   getPointsSummary,
 } from "@/lib/owner-data";
+import { getCanonicalResorts } from "@/lib/resorts/getResorts";
 import {
   formatCurrency,
   getMilestoneStatus,
   normalizeMilestones,
 } from "@/lib/owner-portal";
+import { getMembershipExpirationDate, getMembershipNudge } from "@/lib/owner-nudges";
 import StatTiles from "@/components/owner/StatTiles";
 import MatchedRequestsInbox from "@/components/owner/MatchedRequestsInbox";
 import OwnerMembershipManager from "@/components/owner/OwnerMembershipManager";
+import LiquidationIntentButton from "@/components/owner/LiquidationIntentButton";
+import BankedPointsButton from "@/components/owner/BankedPointsButton";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +41,32 @@ function formatDate(value: string | null) {
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleDateString();
 }
+
+function formatUseYearPeriod(start: string | null | undefined, end: string | null | undefined) {
+  if (!start) return "—";
+  const startDate = new Date(start);
+  if (Number.isNaN(startDate.getTime())) return "—";
+  let endDate = end ? new Date(end) : null;
+  if (!endDate || Number.isNaN(endDate.getTime())) {
+    endDate = new Date(startDate);
+    endDate.setUTCFullYear(endDate.getUTCFullYear() + 1);
+    endDate.setUTCDate(endDate.getUTCDate() - 1);
+  }
+  const endISO = endDate.toISOString().slice(0, 10);
+  return `${formatDate(start)} – ${formatDate(endISO)}`;
+}
+
+function getUseYearEndDate(start: string | null | undefined, end: string | null | undefined) {
+  if (!start) return null;
+  if (end) return end;
+  const startDate = new Date(start);
+  if (Number.isNaN(startDate.getTime())) return null;
+  const endDate = new Date(startDate);
+  endDate.setUTCFullYear(endDate.getUTCFullYear() + 1);
+  endDate.setUTCDate(endDate.getUTCDate() - 1);
+  return endDate.toISOString().slice(0, 10);
+}
+
 
 function buildDisplayMilestones(rental: any) {
   const milestones = normalizeMilestones(rental.rental_milestones ?? []);
@@ -94,7 +124,7 @@ export default async function OwnerDashboardPage() {
     getOwnerPayouts(user.id, cookieStore),
     getOwnerNotifications(user.id, cookieStore),
     getOwnerMatches(user.id, cookieStore),
-    supabase.from("resorts").select("id, name, calculator_code").order("name"),
+    getCanonicalResorts(supabase, { select: "id, name, calculator_code, slug" }),
   ]);
 
   await Promise.all([
@@ -159,28 +189,33 @@ export default async function OwnerDashboardPage() {
     return approved && !confirmation;
   });
 
-  const expiringPoints = memberships.filter((membership) => {
-    if (!membership.points_expiration_date) return false;
-    const expiry = new Date(membership.points_expiration_date).getTime();
-    if (Number.isNaN(expiry)) return false;
-    const daysLeft = (expiry - Date.now()) / (1000 * 60 * 60 * 24);
-    return daysLeft <= 45;
-  });
+  const expiringPoints = memberships
+    .map((membership) => {
+      const nudge = getMembershipNudge(membership);
+      if (!nudge) return null;
+      return {
+        ...membership,
+        nudge,
+      };
+    })
+    .filter((membership): membership is any => Boolean(membership));
 
   const membershipRows = memberships.map((membership) => {
     const resortCode = membership.resort?.calculator_code ?? membership.resort?.slug ?? null;
     const resortLabel = resortCode ? `${membership.resort?.name ?? "Resort TBD"} (${resortCode})` : membership.resort?.name ?? "Resort TBD";
     const useYearLabel =
-      membership.use_year ??
-      (membership.use_year_start && membership.use_year_end
-        ? `${formatDate(membership.use_year_start)} – ${formatDate(membership.use_year_end)}`
-        : "Unknown");
+      membership.use_year ?? formatUseYearPeriod(membership.use_year_start, membership.use_year_end);
+    const nudge = getMembershipNudge(membership);
     return {
       ...membership,
       resortLabel,
       useYearLabel,
+      nudge,
     };
   });
+
+  const nextExpiringDate = nextExpiring ? getMembershipExpirationDate(nextExpiring) : null;
+  const nextExpiringNudge = nextExpiring ? getMembershipNudge(nextExpiring) : null;
 
   const tiles = [
     {
@@ -200,8 +235,14 @@ export default async function OwnerDashboardPage() {
     },
     {
       label: "Next expiring",
-      value: nextExpiring?.points_expiration_date ? formatDate(nextExpiring.points_expiration_date) : "—",
+      value: nextExpiringDate ? formatDate(nextExpiringDate) : "—",
       helper: nextExpiring?.resort?.name ?? "No expirations soon",
+      badge: nextExpiringNudge
+        ? {
+            label: nextExpiringNudge.stage === "banking" ? "Banking" : "Expiring",
+            className: nextExpiringNudge.tier.classes,
+          }
+        : undefined,
     },
   ];
 
@@ -288,7 +329,7 @@ export default async function OwnerDashboardPage() {
                 <tr>
                   <th className="px-2 py-3">Resort</th>
                   <th className="px-2 py-3">Use year</th>
-                  <th className="px-2 py-3">Contract year</th>
+                  <th className="px-2 py-3 w-[280px] min-w-[280px]">Use year period</th>
                   <th className="px-2 py-3">Owned</th>
                   <th className="px-2 py-3">Available</th>
                   <th className="px-2 py-3">Reserved</th>
@@ -301,13 +342,44 @@ export default async function OwnerDashboardPage() {
                   <tr key={membership.id} className="border-b border-slate-100">
                     <td className="px-2 py-3 font-semibold text-ink">{membership.resortLabel}</td>
                     <td className="px-2 py-3">{membership.useYearLabel}</td>
-                    <td className="px-2 py-3">{membership.contract_year ?? "—"}</td>
+                    <td className="px-2 py-3 w-[280px] min-w-[280px]">
+                      {membership.use_year_start ? (
+                        <div className="flex items-center gap-2 whitespace-nowrap">
+                          <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
+                            {formatDate(membership.use_year_start)}
+                          </span>
+                          <span className="text-xs text-slate-400">–</span>
+                          <span className="rounded-full bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700">
+                            {(() => {
+                              const endDate = getUseYearEndDate(
+                                membership.use_year_start,
+                                membership.use_year_end,
+                              );
+                              return endDate ? formatDate(endDate) : "—";
+                            })()}
+                          </span>
+                        </div>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td className="px-2 py-3">{membership.points_owned?.toLocaleString("en-US") ?? "—"}</td>
                     <td className="px-2 py-3">{membership.points_available?.toLocaleString("en-US") ?? "—"}</td>
                     <td className="px-2 py-3">{membership.points_reserved?.toLocaleString("en-US") ?? "—"}</td>
                     <td className="px-2 py-3">{membership.points_rented?.toLocaleString("en-US") ?? "—"}</td>
                     <td className="px-2 py-3">
-                      {membership.points_expiration_date ? formatDate(membership.points_expiration_date) : "—"}
+                      <div className="flex flex-col gap-1">
+                        <span>
+                          {getMembershipExpirationDate(membership)
+                            ? formatDate(getMembershipExpirationDate(membership))
+                            : "—"}
+                        </span>
+                        {membership.nudge ? (
+                          <span className={`inline-flex w-fit rounded-full px-2 py-0.5 text-[10px] font-semibold ${membership.nudge.tier.classes}`}>
+                            {membership.nudge.tier.label}
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -319,7 +391,7 @@ export default async function OwnerDashboardPage() {
 
       <OwnerMembershipManager
         memberships={memberships}
-        resorts={(resorts.data ?? []) as { id: string; name: string; calculator_code: string | null }[]}
+        resorts={resorts as { id: string; name: string; calculator_code: string | null }[]}
       />
 
       <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
@@ -343,6 +415,77 @@ export default async function OwnerDashboardPage() {
               <span>Points expiring soon</span>
               <span className="font-semibold text-ink">{expiringPoints.length}</span>
             </div>
+            {expiringPoints.length ? (
+              <div className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50/70 px-4 py-4">
+                {expiringPoints
+                  .slice()
+                  .sort((a, b) => a.nudge.daysToExpire - b.nudge.daysToExpire)
+                  .map((membership) => {
+                    const nudge = membership.nudge;
+                    const canBank = nudge.stage === "banking";
+                    const reason =
+                      nudge.stage === "banking"
+                        ? nudge.daysToBank <= 7
+                          ? "banking_close_7"
+                          : "banking_close_30"
+                        : nudge.daysToExpire <= 30
+                          ? "expiring_nudge_30"
+                          : nudge.daysToExpire <= 60
+                            ? "expiring_nudge_60"
+                            : nudge.daysToExpire <= 90
+                              ? "expiring_nudge_90"
+                              : "expiring_nudge_120";
+                    return (
+                      <div key={membership.id} className="flex flex-col gap-3 rounded-xl bg-white px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="space-y-1">
+                            <p className="text-sm font-semibold text-ink">
+                              {membership.resort?.name ?? "Resort points"}
+                            </p>
+                            <p className="text-xs text-muted">
+                              Expires in {nudge.daysToExpire} days
+                              {nudge.expiration ? ` • ${formatDate(nudge.expiration)}` : ""}
+                            </p>
+                          </div>
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${nudge.tier.classes}`}>
+                            {nudge.tier.label}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted">
+                          {canBank && nudge.bankingDeadline
+                            ? nudge.daysToBank <= 7
+                              ? `Last week to bank. Bank by ${formatDate(nudge.bankingDeadline)} or rent now.`
+                              : `Banking closes soon. You can bank your points until ${formatDate(nudge.bankingDeadline)}. Bank now, or rent them.`
+                            : `Your ${membership.resort?.name ?? "points"} expire in ${nudge.daysToExpire} days. Banking window is closed. Liquidate ASAP so you don’t lose them.`}
+                        </p>
+                        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
+                          <span>
+                            {canBank && nudge.bankingDeadline
+                              ? `Bank by ${formatDate(nudge.bankingDeadline)}`
+                              : "Banking closed"}
+                          </span>
+                          {canBank ? (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <BankedPointsButton
+                                ownerMembershipId={membership.id}
+                                reason={reason}
+                                defaultAmount={membership.points_available ?? 0}
+                              />
+                              <LiquidationIntentButton
+                                ownerMembershipId={membership.id}
+                                reason={`${reason}_rent`}
+                                label="Rent instead"
+                              />
+                            </div>
+                          ) : nudge.daysToExpire <= 90 ? (
+                            <LiquidationIntentButton ownerMembershipId={membership.id} reason={reason} label="Liquidate" />
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : null}
           </div>
           <Button asChild variant="ghost" fullWidth>
             <Link href="/owner/notifications">Review notifications ({notifications.length})</Link>

@@ -242,21 +242,29 @@ export async function POST(
 
   const reservedBorrowed = match.points_reserved_borrowed ?? 0;
   if (reservedBorrowed > 0 && rentalRow.checkIn) {
-    const bookingYear = new Date(rentalRow.checkIn).getUTCFullYear();
     const { data: currentMembership } = await adminClient
       .from("owner_memberships")
-      .select("owner_id, resort_id, contract_year")
+      .select("owner_id, resort_id, use_year_start")
       .eq("id", match.owner_membership_id)
       .maybeSingle();
 
     if (currentMembership?.owner_id && currentMembership?.resort_id) {
-      const targetYear = (currentMembership.contract_year ?? bookingYear) + 1;
+      const currentStart = currentMembership.use_year_start ?? null;
+      if (!currentStart) {
+        return NextResponse.json({ ok: true, rentalSaved: true, contract: contractWarning });
+      }
+      const nextStart = new Date(currentStart);
+      if (Number.isNaN(nextStart.getTime())) {
+        return NextResponse.json({ ok: true, rentalSaved: true, contract: contractWarning });
+      }
+      nextStart.setUTCFullYear(nextStart.getUTCFullYear() + 1);
+      const targetYear = nextStart.toISOString().slice(0, 10);
       const { data: nextMembership } = await adminClient
         .from("owner_memberships")
         .select("id, points_reserved, points_rented")
         .eq("owner_id", currentMembership.owner_id)
         .eq("resort_id", currentMembership.resort_id)
-        .eq("contract_year", targetYear)
+        .eq("use_year_start", targetYear)
         .maybeSingle();
 
       if (nextMembership) {

@@ -7,6 +7,17 @@ import type { NotificationRow } from "@/lib/owner-data";
 
 export default function NotificationList({ notifications }: { notifications: NotificationRow[] }) {
   const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const getMembershipId = (link: string | null) => {
+    if (!link) return null;
+    try {
+      const url = new URL(link, window.location.origin);
+      return url.searchParams.get("membershipId");
+    } catch {
+      return null;
+    }
+  };
 
   const markAllRead = async () => {
     if (!notifications.length) return;
@@ -46,7 +57,50 @@ export default function NotificationList({ notifications }: { notifications: Not
                 {new Date(note.created_at).toLocaleDateString()}
               </div>
             </div>
-            {note.link ? (
+            {note.type === "premium_fallback_prompt" ? (
+              <div className="mt-3 space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700"
+                    disabled={actionLoading === note.id}
+                    onClick={async () => {
+                      const membershipId = getMembershipId(note.link);
+                      if (!membershipId) return;
+                      setActionLoading(note.id);
+                      await fetch(`/api/owner/memberships/${membershipId}/allow-standard`, { method: "POST" });
+                      window.location.reload();
+                    }}
+                  >
+                    Allow standard matching
+                  </button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                  <span>Remind me in</span>
+                  {[7, 15, 30].map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      className="rounded-full border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-600"
+                      disabled={actionLoading === note.id}
+                      onClick={async () => {
+                        const membershipId = getMembershipId(note.link);
+                        if (!membershipId) return;
+                        setActionLoading(note.id);
+                        await fetch(`/api/owner/memberships/${membershipId}/fallback-remind`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ days }),
+                        });
+                        window.location.reload();
+                      }}
+                    >
+                      {days} days
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : note.link ? (
               <Link href={note.link} className="mt-2 inline-flex text-xs font-semibold text-brand hover:underline">
                 View details
               </Link>

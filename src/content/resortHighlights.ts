@@ -128,8 +128,8 @@ export const resortHighlights: Record<string, ResortHighlight> = {
     recommendation:
       "PixieDVC recommends Jambo House for guests who want a resort-focused stay with unforgettable views, rich theming, and dining experiences that feel like a destination on their own.",
   },
-  "animal-kingdom-jambo": {
-    slug: "animal-kingdom-jambo",
+  "animal-kingdom-villas": {
+    slug: "animal-kingdom-villas",
     title: "Why guests love Jambo House",
     intro:
       "Jambo House delivers one of the most unique Disney Vacation Club experiences, combining African-inspired architecture with live savanna views and immersive theming.",

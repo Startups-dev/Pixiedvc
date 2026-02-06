@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase';
+import { getCanonicalResorts } from '@/lib/resorts/getResorts';
 
 const MONTHS = [
   'January',
@@ -36,11 +37,12 @@ export default function OwnerOnboarding() {
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase
-      .from('resorts')
-      .select('id,name')
-      .order('name')
-      .then(({ data }) => setResorts(data ?? []));
+    getCanonicalResorts(supabase, { select: 'id,name,slug,calculator_code' })
+      .then(setResorts)
+      .catch((error) => {
+        console.error('Failed to load resorts', error);
+        setResorts([]);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

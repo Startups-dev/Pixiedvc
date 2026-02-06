@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 
 import StayBuilderClient from './stay-builder-client';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { getCanonicalResorts } from '@/lib/resorts/getResorts';
 
 type GuestRow = {
   id: string;
@@ -49,10 +50,9 @@ export default async function StayBuilderPage() {
     draft = inserted;
   }
 
-  const { data: resorts } = await supabase
-    .from('resorts')
-    .select('id, slug, name, location, card_image, calculator_code')
-    .order('name');
+  const resorts = await getCanonicalResorts(supabase, {
+    select: 'id, slug, name, location, card_image, calculator_code',
+  });
 
   const { data: guestRows } = draft
     ? await supabase
@@ -62,5 +62,5 @@ export default async function StayBuilderPage() {
         .order('created_at', { ascending: true })
     : { data: [] };
 
-  return <StayBuilderClient userEmail={user.email ?? ''} draft={draft!} resorts={resorts ?? []} guests={(guestRows ?? []) as GuestRow[]} />;
+  return <StayBuilderClient userEmail={user.email ?? ''} draft={draft!} resorts={resorts} guests={(guestRows ?? []) as GuestRow[]} />;
 }

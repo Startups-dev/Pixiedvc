@@ -21,7 +21,7 @@ export type ResortTagMeta = {
 };
 
 export const RESORT_TAGS: Record<string, ResortTagMeta> = {
-  "animal-kingdom-jambo": {
+  "animal-kingdom-villas": {
     headline: "Best for safari vibes",
     blurb: "Immersive theming and amazing atmosphere - feels like a true getaway.",
     tags: ["Unique Theme", "Great for Families", "Quiet"],

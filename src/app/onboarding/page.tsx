@@ -2,7 +2,6 @@
 
 import { FormEvent, useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { CalendarDays, ShieldCheck } from 'lucide-react';
 
 import {
   setRole,
@@ -14,6 +13,7 @@ import {
   ContractInput,
 } from './actions';
 import { createClient } from '@/lib/supabase';
+import { getCanonicalResorts } from '@/lib/resorts/getResorts';
 import { usePlacesAutocomplete } from '@/hooks/usePlacesAutocomplete';
 
 type Step = 1 | 2 | 3 | 4 | 5;
@@ -34,29 +34,113 @@ export default function OnboardingPage() {
   const [roleError, setRoleError] = useState<string | null>(null);
   const [rolePending, setRolePending] = useState(false);
   const [resorts, setResorts] = useState<{ id: string; name: string }[]>([]);
+  const [profileData, setProfileData] = useState<{
+    display_name?: string | null;
+    full_name?: string | null;
+    phone?: string | null;
+    address_line1?: string | null;
+    address_line2?: string | null;
+    city?: string | null;
+    region?: string | null;
+    postal_code?: string | null;
+    country?: string | null;
+    payout_email?: string | null;
+    payout_email_same_as_login?: boolean | null;
+    dvc_member_last4?: string | null;
+  } | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [ownerMemberships, setOwnerMemberships] = useState<
+    Array<{
+      resort_id: string | null;
+      use_year: string | null;
+      use_year_start: string | null;
+      points_available: number | null;
+      points_owned: number | null;
+      borrowing_enabled?: boolean | null;
+      max_points_to_borrow?: number | null;
+      owner_legal_full_name?: string | null;
+      co_owner_legal_full_name?: string | null;
+      matching_mode?: string | null;
+    }>
+  >([]);
+  const [ownerMembershipsLoaded, setOwnerMembershipsLoaded] = useState(false);
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
-    supabase
-      .from('resorts')
-      .select('id,name')
-      .order('name')
-      .then(({ data }) => {
-        const unique = new Map<string, { id: string; name: string }>();
-        for (const resort of data ?? []) {
-          if (!unique.has(resort.name)) {
-            unique.set(resort.name, resort);
-          }
-        }
-        setResorts([...unique.values()]);
+    getCanonicalResorts(supabase, { select: 'id,name,slug,calculator_code' })
+      .then(setResorts)
+      .catch((error) => {
+        console.error('Failed to load resorts', error);
+        setResorts([]);
       });
 
     supabase.auth.getUser().then(({ data }) => {
       setUserEmail(data.user?.email ?? null);
     });
   }, [supabase]);
+
+  useEffect(() => {
+    let active = true;
+    const loadOwnerMemberships = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user?.id) {
+        if (active) setOwnerMembershipsLoaded(true);
+        return;
+      }
+    const { data, error } = await supabase
+        .from('owner_memberships')
+        .select(
+          'resort_id, use_year, use_year_start, use_year_end, points_available, points_owned, borrowing_enabled, max_points_to_borrow, owner_legal_full_name, co_owner_legal_full_name, matching_mode',
+        )
+        .eq('owner_id', user.id);
+      if (!active) return;
+      if (error) {
+        console.error('Failed to load owner memberships', error);
+        setOwnerMemberships([]);
+      } else {
+        setOwnerMemberships(data ?? []);
+      }
+      setOwnerMembershipsLoaded(true);
+    };
+    loadOwnerMemberships();
+    return () => {
+      active = false;
+    };
+  }, [supabase]);
+  useEffect(() => {
+    if (step !== 2) return;
+    let active = true;
+    const loadProfile = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user?.id) {
+        if (active) setProfileLoaded(true);
+        return;
+      }
+      const { data } = await supabase
+        .from('profiles')
+        .select(
+          'display_name, full_name, phone, address_line1, address_line2, city, region, postal_code, country, payout_email, payout_email_same_as_login, dvc_member_last4',
+        )
+        .eq('id', user.id)
+        .maybeSingle();
+      if (!active) return;
+      setProfileData(data ?? null);
+      setProfileLoaded(true);
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug('[onboarding] loaded profile from db: {hasProfile:%s}', Boolean(data));
+      }
+    };
+    loadProfile();
+    return () => {
+      active = false;
+    };
+  }, [step, supabase]);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-6 py-10">
@@ -88,8 +172,16 @@ export default function OnboardingPage() {
         <ProfileStep
           role={role}
           userEmail={userEmail}
-          onNext={async (payload) => {
-            await saveProfile(payload);
+          profile={profileData}
+          profileLoaded={profileLoaded}
+          onNext={async (payload, skipSave) => {
+            if (!skipSave) {
+              await saveProfile(payload);
+              setProfileData((prev) => ({ ...(prev ?? {}), ...payload }));
+              if (process.env.NODE_ENV !== 'production') {
+                console.debug('[onboarding] saved profile');
+              }
+            }
             setStep(3);
           }}
         />
@@ -98,6 +190,8 @@ export default function OnboardingPage() {
       {step === 3 && role === 'owner' ? (
         <OwnerContractsStep
           resorts={resorts}
+          memberships={ownerMemberships}
+          membershipsLoaded={ownerMembershipsLoaded}
           onNext={async (payload) => {
             await saveOwnerContracts(payload);
             setStep(4);
@@ -116,6 +210,8 @@ export default function OnboardingPage() {
 
       {step === 4 && role === 'owner' ? (
         <OwnerLegalInfoStep
+          memberships={ownerMemberships}
+          membershipsLoaded={ownerMembershipsLoaded}
           onNext={async (payload) => {
             await saveOwnerLegalInfo(payload);
             setStep(5);
@@ -193,8 +289,12 @@ function RoleStep({
           onClick={() => onPick('guest')}
           disabled={pending}
         >
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-            <CalendarDays className="h-5 w-5" />
+          <span className="inline-flex h-12 w-12 items-center justify-center self-center rounded-2xl bg-emerald-50">
+            <img
+              src="https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/icons/Guest%20Icon.png"
+              alt=""
+              className="h-12 w-12"
+            />
           </span>
           <div>
             <p className="text-base font-semibold text-slate-900">I’m planning a stay</p>
@@ -209,8 +309,12 @@ function RoleStep({
           onClick={() => onPick('owner')}
           disabled={pending}
         >
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-            <ShieldCheck className="h-5 w-5" />
+          <span className="inline-flex h-12 w-12 items-center justify-center self-center rounded-2xl bg-emerald-50">
+            <img
+              src="https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/icons/OwnerIcon.png"
+              alt=""
+              className="h-12 w-12"
+            />
           </span>
           <div>
             <p className="text-base font-semibold text-slate-900">I own DVC points</p>
@@ -230,23 +334,43 @@ function ProfileStep({
   onNext,
   role,
   userEmail,
+  profile,
+  profileLoaded,
 }: {
-  onNext: (payload: {
-    display_name?: string;
-    full_name?: string;
-    phone?: string;
-    address_line1?: string;
-    address_line2?: string;
-    city?: string;
-    region?: string;
-    postal_code?: string;
-    country?: string;
-    payout_email?: string;
-    payout_email_same_as_login?: boolean;
-    dvc_member_last4?: string;
-  }) => void;
+  onNext: (
+    payload: {
+      display_name?: string;
+      full_name?: string;
+      phone?: string;
+      address_line1?: string;
+      address_line2?: string;
+      city?: string;
+      region?: string;
+      postal_code?: string;
+      country?: string;
+      payout_email?: string;
+      payout_email_same_as_login?: boolean;
+      dvc_member_last4?: string;
+    },
+    skipSave?: boolean,
+  ) => void;
   role: 'owner' | 'guest' | null;
   userEmail: string | null;
+  profile: {
+    display_name?: string | null;
+    full_name?: string | null;
+    phone?: string | null;
+    address_line1?: string | null;
+    address_line2?: string | null;
+    city?: string | null;
+    region?: string | null;
+    postal_code?: string | null;
+    country?: string | null;
+    payout_email?: string | null;
+    payout_email_same_as_login?: boolean | null;
+    dvc_member_last4?: string | null;
+  } | null;
+  profileLoaded: boolean;
 }) {
   const isOwner = role === 'owner';
   const [displayName, setDisplayName] = useState('');
@@ -261,7 +385,28 @@ function ProfileStep({
   const [payoutEmail, setPayoutEmail] = useState(userEmail ?? '');
   const [sameAsLogin, setSameAsLogin] = useState(true);
   const [dvcLast4, setDvcLast4] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [showConfirmEdit, setShowConfirmEdit] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const address1Ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!profileLoaded || !profile) return;
+    if (isEditing) return;
+    setDisplayName(profile.display_name ?? '');
+    setFullName(profile.full_name ?? '');
+    setPhone(profile.phone ?? '');
+    setAddress1(profile.address_line1 ?? '');
+    setAddress2(profile.address_line2 ?? '');
+    setCity(profile.city ?? '');
+    setRegion(profile.region ?? '');
+    setPostalCode(profile.postal_code ?? '');
+    setCountry(profile.country ?? '');
+    setPayoutEmail(profile.payout_email ?? userEmail ?? '');
+    setSameAsLogin(profile.payout_email_same_as_login ?? true);
+    setDvcLast4(profile.dvc_member_last4 ?? '');
+  }, [profileLoaded, profile, isEditing, userEmail]);
 
   useEffect(() => {
     if (sameAsLogin && userEmail) {
@@ -283,16 +428,32 @@ function ProfileStep({
 
   const last4 = dvcLast4.trim();
   const last4Valid = !last4 || /^[0-9]{4}$/.test(last4);
+  const hasProfileData = Boolean(
+    profile?.full_name ||
+      profile?.phone ||
+      profile?.address_line1 ||
+      profile?.city ||
+      profile?.region ||
+      profile?.postal_code ||
+      profile?.country,
+  );
+  const profileLocked = hasProfileData && !isEditing;
+  const disableFields = profileLocked;
+
+  if (!profileLoaded) {
+    return <p className="text-sm text-slate-500">Loading profile…</p>;
+  }
 
   return (
     <form
       className="space-y-5"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault();
         if (!last4Valid) {
           return;
         }
-        onNext({
+        setSaveError(null);
+        const payload = {
           display_name: displayName || undefined,
           full_name: fullName || undefined,
           phone: phone || undefined,
@@ -305,9 +466,36 @@ function ProfileStep({
           payout_email: payoutEmail || undefined,
           payout_email_same_as_login: sameAsLogin,
           dvc_member_last4: last4 || undefined,
-        });
+        };
+
+        if (profileLocked) {
+          await onNext(payload, true);
+          return;
+        }
+
+        try {
+          setIsSaving(true);
+          await onNext(payload, false);
+        } catch (error) {
+          setSaveError(error instanceof Error ? error.message : 'Unable to save profile. Try again.');
+        } finally {
+          setIsSaving(false);
+        }
       }}
     >
+      <p className="text-sm text-slate-500">Your profile information is saved automatically.</p>
+      {profileLocked ? (
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+          <p>Your profile is locked to prevent accidental changes.</p>
+          <button
+            type="button"
+            onClick={() => setShowConfirmEdit(true)}
+            className="mt-2 text-xs font-semibold text-slate-600 underline"
+          >
+            Edit profile info
+          </button>
+        </div>
+      ) : null}
       <div>
         <label className="text-sm text-slate-600">Display name (optional)</label>
         <input
@@ -315,6 +503,7 @@ function ProfileStep({
           placeholder="Jane Pixie"
           value={displayName}
           onChange={(event) => setDisplayName(event.target.value)}
+          disabled={disableFields}
         />
       </div>
       <div>
@@ -325,6 +514,7 @@ function ProfileStep({
           value={fullName}
           onChange={(event) => setFullName(event.target.value)}
           required={isOwner}
+          disabled={disableFields}
         />
       </div>
       <div>
@@ -335,6 +525,7 @@ function ProfileStep({
           value={phone}
           onChange={(event) => setPhone(event.target.value)}
           required={isOwner}
+          disabled={disableFields}
         />
       </div>
 
@@ -349,6 +540,7 @@ function ProfileStep({
             onChange={(event) => setAddress1(event.target.value)}
             required={isOwner}
             autoComplete="street-address"
+            disabled={disableFields}
           />
         </div>
         <div className="sm:col-span-2">
@@ -358,6 +550,7 @@ function ProfileStep({
             placeholder="Unit, suite, building"
             value={address2}
             onChange={(event) => setAddress2(event.target.value)}
+            disabled={disableFields}
           />
         </div>
         <div>
@@ -367,6 +560,7 @@ function ProfileStep({
             value={city}
             onChange={(event) => setCity(event.target.value)}
             required={isOwner}
+            disabled={disableFields}
           />
         </div>
         <div>
@@ -376,6 +570,7 @@ function ProfileStep({
             value={region}
             onChange={(event) => setRegion(event.target.value)}
             required={isOwner}
+            disabled={disableFields}
           />
         </div>
         <div>
@@ -385,6 +580,7 @@ function ProfileStep({
             value={postalCode}
             onChange={(event) => setPostalCode(event.target.value)}
             required={isOwner}
+            disabled={disableFields}
           />
         </div>
         <div>
@@ -394,6 +590,7 @@ function ProfileStep({
             value={country}
             onChange={(event) => setCountry(event.target.value)}
             required={isOwner}
+            disabled={disableFields}
           />
         </div>
       </div>
@@ -408,6 +605,7 @@ function ProfileStep({
                 className="h-4 w-4 rounded border-slate-300"
                 checked={sameAsLogin}
                 onChange={(event) => setSameAsLogin(event.target.checked)}
+                disabled={disableFields}
               />
               Same as login email
             </label>
@@ -417,6 +615,7 @@ function ProfileStep({
               onChange={(event) => setPayoutEmail(event.target.value)}
               disabled={sameAsLogin}
               required={isOwner}
+              readOnly={disableFields}
             />
             <p className="text-xs text-slate-500">
               We’ll send rental agreements and payout notices here. Change it if you want a dedicated payout email.
@@ -433,6 +632,7 @@ function ProfileStep({
             maxLength={4}
             value={dvcLast4}
             onChange={(event) => setDvcLast4(event.target.value.replace(/\D/g, ''))}
+            disabled={disableFields}
           />
           {!last4Valid ? (
             <p className="mt-1 text-xs text-rose-500">Enter exactly 4 digits or leave blank.</p>
@@ -440,9 +640,44 @@ function ProfileStep({
         </div>
       ) : null}
 
-      <button className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white" type="submit">
+      {saveError ? <p className="text-sm text-rose-600">{saveError}</p> : null}
+      <button
+        className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+        type="submit"
+        disabled={isSaving}
+      >
         Continue
       </button>
+
+      {showConfirmEdit ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-lg">
+            <h3 className="text-base font-semibold text-slate-900">Edit profile information?</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Changing your legal name or address may affect agreements and payouts. Continue?
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600"
+                onClick={() => setShowConfirmEdit(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded-full bg-emerald-600 px-3 py-2 text-xs font-semibold text-white"
+                onClick={() => {
+                  setShowConfirmEdit(false);
+                  setIsEditing(true);
+                }}
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </form>
   );
 }
@@ -464,33 +699,130 @@ const MONTHS = [
 
 type ContractForm = {
   resortId: string;
-  useYear: string;
-  contractYear: string;
-  pointsOwned: string;
-  pointsAvailable: string;
+  useYearMonth: string;
+  years: Record<number, { available: number; holding: number }>;
+  borrowing: { enabled: boolean; maxBorrow: number };
+  fastMove: boolean;
+  helpOpen: boolean;
 };
 
 function OwnerContractsStep({
   resorts,
+  memberships,
+  membershipsLoaded,
   onNext,
 }: {
   resorts: { id: string; name: string }[];
-  onNext: (payload: ContractInput[]) => void;
+  memberships: Array<{
+    resort_id: string | null;
+    use_year: string | null;
+    use_year_start: string | null;
+    points_available: number | null;
+    points_owned: number | null;
+    borrowing_enabled?: boolean | null;
+    max_points_to_borrow?: number | null;
+    matching_mode?: string | null;
+  }>;
+  membershipsLoaded: boolean;
+  onNext: (payload: {
+    contracts: ContractInput[];
+    matching_mode: 'premium_only' | 'premium_then_standard';
+    allow_standard_rate_fallback: boolean;
+  }) => void;
 }) {
   const currentYear = String(new Date().getFullYear());
   const [pricingAcknowledged, setPricingAcknowledged] = useState(false);
+  const [matchingMode, setMatchingMode] = useState<'premium_only' | 'premium_then_standard'>('premium_only');
   const [contracts, setContracts] = useState<ContractForm[]>([
-    { resortId: '', useYear: 'January', contractYear: currentYear, pointsOwned: '', pointsAvailable: '' },
+    {
+      resortId: '',
+      useYearMonth: '',
+      years: {},
+      borrowing: { enabled: false, maxBorrow: 0 },
+      fastMove: false,
+      helpOpen: false,
+    },
   ]);
-  const totalOwned = contracts.reduce((sum, contract) => sum + (Number(contract.pointsOwned) || 0), 0);
-  const totalAvailable = contracts.reduce((sum, contract) => sum + (Number(contract.pointsAvailable) || 0), 0);
+  const hydratedRef = useRef(false);
+
+  useEffect(() => {
+    if (hydratedRef.current) return;
+    if (!membershipsLoaded) return;
+    if (!memberships.length) {
+      hydratedRef.current = true;
+      return;
+    }
+
+    const grouped = new Map<string, ContractForm>();
+    for (const membership of memberships) {
+      if (!membership.resort_id || !membership.use_year || !membership.use_year_start) continue;
+      const key = `${membership.resort_id}:${membership.use_year}`;
+      const useYearStart = new Date(membership.use_year_start);
+      if (Number.isNaN(useYearStart.getTime())) continue;
+      const yearKey = useYearStart.getUTCFullYear();
+      const available = membership.points_available ?? 0;
+      const owned = membership.points_owned ?? available;
+      const holding = Math.max(owned - available, 0);
+
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          resortId: membership.resort_id,
+          useYearMonth: membership.use_year,
+          years: {},
+          borrowing: {
+            enabled: Boolean(membership.borrowing_enabled),
+            maxBorrow: membership.max_points_to_borrow ?? 0,
+          },
+          fastMove: false,
+          helpOpen: false,
+        });
+      }
+
+      const existing = grouped.get(key)!;
+      existing.years[yearKey] = { available, holding };
+      if (membership.matching_mode === 'premium_then_standard') {
+        setMatchingMode('premium_then_standard');
+      }
+    }
+
+    const nextContracts = Array.from(grouped.values());
+    if (nextContracts.length) {
+      setContracts(nextContracts);
+    }
+    hydratedRef.current = true;
+  }, [memberships, membershipsLoaded]);
+  const totalOwned = contracts.reduce((sum, contract) => {
+    return (
+      sum +
+      Object.values(contract.years).reduce(
+        (innerSum, row) => innerSum + (Number(row.available) || 0) + (Number(row.holding) || 0),
+        0,
+      )
+    );
+  }, 0);
+  const totalAvailable = contracts.reduce((sum, contract) => {
+    return (
+      sum +
+      Object.values(contract.years).reduce((innerSum, row) => innerSum + (Number(row.available) || 0), 0)
+    );
+  }, 0);
 
   function updateContract(index: number, patch: Partial<ContractForm>) {
     setContracts((prev) => prev.map((contract, i) => (i === index ? { ...contract, ...patch } : contract)));
   }
 
   function addContract() {
-    setContracts((prev) => [...prev, { resortId: '', useYear: 'January', contractYear: currentYear, pointsOwned: '', pointsAvailable: '' }]);
+    setContracts((prev) => [
+      ...prev,
+      {
+        resortId: '',
+        useYearMonth: '',
+        years: {},
+        borrowing: { enabled: false, maxBorrow: 0 },
+        fastMove: false,
+        helpOpen: false,
+      },
+    ]);
   }
 
   function removeContract(index: number) {
@@ -499,17 +831,42 @@ function OwnerContractsStep({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const payload = contracts
-      .filter((contract) => contract.resortId)
-      .map((contract) => ({
-        resort_id: contract.resortId,
-        use_year: contract.useYear,
-        contract_year: contract.contractYear ? Number(contract.contractYear) : undefined,
-        points_owned: contract.pointsOwned ? Number(contract.pointsOwned) : undefined,
-        points_available: contract.pointsAvailable ? Number(contract.pointsAvailable) : undefined,
-      }));
+    const payload: ContractInput[] = [];
+    const today = new Date();
 
-    onNext(payload);
+    for (const contract of contracts) {
+      if (!contract.resortId || !contract.useYearMonth) continue;
+      const monthIndex = MONTHS.findIndex((month) => month === contract.useYearMonth);
+      if (monthIndex < 0) continue;
+
+      const startThisYear = new Date(today.getFullYear(), monthIndex, 1);
+      const currentUseYear = today < startThisYear ? today.getFullYear() - 1 : today.getFullYear();
+      const nextUseYear = currentUseYear + 1;
+
+      const yearsToSave = [currentUseYear, nextUseYear, nextUseYear + 1];
+      for (const year of yearsToSave) {
+        const row = contract.years[year];
+        const available = Number(row?.available) || 0;
+        const holding = Number(row?.holding) || 0;
+        const useYearStart = new Date(Date.UTC(year, monthIndex, 1));
+        const useYearStartISO = useYearStart.toISOString().slice(0, 10);
+        payload.push({
+          resort_id: contract.resortId,
+          use_year: contract.useYearMonth,
+          use_year_start: useYearStartISO,
+          points_owned: available + holding,
+          points_available: available,
+          borrowing_enabled: contract.borrowing.enabled,
+          max_points_to_borrow: contract.borrowing.enabled ? contract.borrowing.maxBorrow : 0,
+        });
+      }
+    }
+
+    onNext({
+      contracts: payload,
+      matching_mode: matchingMode,
+      allow_standard_rate_fallback: matchingMode === 'premium_then_standard',
+    });
   }
 
   return (
@@ -517,25 +874,86 @@ function OwnerContractsStep({
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Owner basics</p>
         <div className="mt-2 space-y-2">
-          <p>11‑month windows favor home resort bookings; 7‑month windows open availability across resorts.</p>
-          <p>Home resort advantage is strongest for high‑demand dates and premium room categories.</p>
-          <p>Per‑point pricing varies by season and demand — we’ll confirm terms before any booking.</p>
+          <span className="inline-flex rounded-full bg-[#0B1B3A]/10 px-3 py-1 text-xs font-semibold text-[#0B1B3A]">
+            How DVC booking windows work
+          </span>
+          <p>DVC has two booking windows:</p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Premium window — bookings made more than 7 months before check-in</li>
+            <li>Standard window — bookings made 7 months or less before check-in</li>
+          </ul>
+          <p>Premium bookings usually:</p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Have better availability</li>
+            <li>Are easier to secure</li>
+            <li>Work best for popular dates and room types</li>
+          </ul>
+          <p>
+            Point value can change based on timing and demand. PixieDVC will always confirm details with you before
+            moving forward.
+          </p>
         </div>
       </div>
       <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">How your points are priced</p>
-        <ul className="mt-3 space-y-2">
-          <li>7‑month window rentals typically range from $18–23 per point</li>
-          <li>11‑month home resort bookings typically range from $24–30 per point</li>
-          <li>
-            Exceptionally scarce inventory (holidays, club‑level, premium views) is handled by concierge at premium
-            rates
-          </li>
-        </ul>
-        <p className="mt-3 text-sm text-slate-600">
-          Final pricing depends on demand, flexibility, and booking window. PixieDVC optimizes pricing to maximize
-          successful rentals.
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">How matching works</p>
+        <div className="mt-3 space-y-2">
+          <span className="inline-flex rounded-full bg-[#0B1B3A]/10 px-3 py-1 text-xs font-semibold text-[#0B1B3A]">
+            How your points are used
+          </span>
+          <p>If your points qualify for Premium bookings:</p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>We first try to place them in higher-value Premium reservations</li>
+            <li>If a Premium match isn’t available, your points can be used for Standard reservations</li>
+          </ul>
+          <p>You decide how flexible you want to be:</p>
+        </div>
+        <div className="mt-4 space-y-2">
+          <label className="flex items-start gap-2">
+            <input
+              type="radio"
+              name="matching-mode"
+              className="mt-1 h-4 w-4"
+              checked={matchingMode === 'premium_only'}
+              onChange={() => setMatchingMode('premium_only')}
+            />
+            <span>Only use my points for Premium bookings</span>
+          </label>
+          <label className="flex items-start gap-2">
+            <input
+              type="radio"
+              name="matching-mode"
+              className="mt-1 h-4 w-4"
+              checked={matchingMode === 'premium_then_standard'}
+              onChange={() => setMatchingMode('premium_then_standard')}
+            />
+            <span>Try Premium first, then allow Standard bookings if needed</span>
+          </label>
+          <p className="text-xs text-slate-500">(Allowing Standard bookings may help your points rent faster.)</p>
+        </div>
+        <p className="mt-3">We never book your points without your approval.</p>
+      </div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">How pricing works</p>
+        <div className="mt-3 space-y-2">
+          <span className="inline-flex rounded-full bg-[#0B1B3A]/10 px-3 py-1 text-xs font-semibold text-[#0B1B3A]">
+            Typical point rates
+          </span>
+          <p>Standard window (7 months or less):</p>
+          <p className="font-semibold text-slate-700">$16 per point</p>
+          <p>Premium window (more than 7 months):</p>
+          <p className="font-semibold text-slate-700">$18 per point</p>
+          <p>
+            Some stays — such as holidays, premium views, or high-demand room types — may qualify for higher concierge
+            pricing.
+          </p>
+          <p>Final pricing depends on:</p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Booking window (Premium vs Standard)</li>
+            <li>Date flexibility</li>
+            <li>Overall demand at the time of booking</li>
+          </ul>
+          <p>Our goal is simple: price your points fairly to maximize successful rentals, not just list them.</p>
+        </div>
         <label className="mt-3 flex items-start gap-2 text-xs text-slate-500">
           <input
             type="checkbox"
@@ -547,7 +965,20 @@ function OwnerContractsStep({
         </label>
       </div>
       <HowToFindContractInfo />
-      {contracts.map((contract, index) => (
+      {contracts.map((contract, index) => {
+        const monthIndex = MONTHS.findIndex((month) => month === contract.useYearMonth);
+        const today = new Date();
+        const startThisYear = monthIndex >= 0 ? new Date(today.getFullYear(), monthIndex, 1) : null;
+        const currentUseYear = startThisYear && today < startThisYear ? today.getFullYear() - 1 : today.getFullYear();
+        const years = [currentUseYear, currentUseYear + 1, currentUseYear + 2];
+        const showTable = Boolean(contract.useYearMonth);
+        const endCurrent =
+          monthIndex >= 0 ? new Date(currentUseYear + 1, monthIndex, 0) : null;
+        const nearExpiration =
+          endCurrent && (endCurrent.getTime() - today.getTime()) / (1000 * 60 * 60 * 24) <= 90;
+        const currentRow = contract.years[currentUseYear] ?? { available: 0, holding: 0 };
+
+        return (
         <div key={index} className="rounded-2xl border border-slate-200 p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-slate-600">Contract {index + 1}</p>
@@ -559,7 +990,7 @@ function OwnerContractsStep({
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-xs font-semibold text-slate-500">Home resort</label>
+              <label className="text-xs font-semibold text-slate-500">Resort</label>
               <select
                 value={contract.resortId}
                 onChange={(event) => updateContract(index, { resortId: event.target.value })}
@@ -575,49 +1006,194 @@ function OwnerContractsStep({
               </select>
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-500">Use year</label>
+              <label className="text-xs font-semibold text-slate-500">What is the Use Year for this contract?</label>
               <select
-                value={contract.useYear}
-                onChange={(event) => updateContract(index, { useYear: event.target.value })}
+                value={contract.useYearMonth}
+                onChange={(event) => {
+                  const nextMonth = event.target.value;
+                  const nextIndex = MONTHS.findIndex((month) => month === nextMonth);
+                  if (nextIndex < 0) {
+                    updateContract(index, { useYearMonth: nextMonth, years: {} });
+                    return;
+                  }
+                  const today = new Date();
+                  const startThisYear = new Date(today.getFullYear(), nextIndex, 1);
+                  const currentUseYear = today < startThisYear ? today.getFullYear() - 1 : today.getFullYear();
+                  const nextYears = [currentUseYear, currentUseYear + 1, currentUseYear + 2];
+                  const nextYearsMap: Record<number, { available: number; holding: number }> = {};
+                  for (const year of nextYears) {
+                    nextYearsMap[year] = contract.years[year] ?? { available: 0, holding: 0 };
+                  }
+                  updateContract(index, { useYearMonth: nextMonth, years: nextYearsMap });
+                }}
                 className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
               >
+                <option value="">Select month</option>
                 {MONTHS.map((month) => (
                   <option key={month} value={month}>
                     {month}
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-500">Contract year</label>
-              <input
-                type="number"
-                value={contract.contractYear}
-                onChange={(event) => updateContract(index, { contractYear: event.target.value })}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-500">Points owned</label>
-              <input
-                type="number"
-                value={contract.pointsOwned}
-                onChange={(event) => updateContract(index, { pointsOwned: event.target.value })}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-500">Points available for rent</label>
-              <input
-                type="number"
-                value={contract.pointsAvailable}
-                onChange={(event) => updateContract(index, { pointsAvailable: event.target.value })}
-                className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
-              />
+              <p className="mt-1 text-xs text-slate-500">This is the month when new points are added to your account.</p>
+              <button
+                type="button"
+                onClick={() => updateContract(index, { helpOpen: !contract.helpOpen })}
+                className="mt-2 text-xs font-semibold text-slate-500 underline"
+              >
+                Don’t know your Use Year?
+              </button>
             </div>
           </div>
+
+          {contract.helpOpen ? (
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Guided help</p>
+              <div className="mt-2 space-y-2">
+                <p>Log in to the DVC member site.</p>
+                <p>Go to Vacation Points → Points Overview.</p>
+                <p>Find the “Eligible for Travel” date range.</p>
+                <p>The start month of that range is the Use Year.</p>
+                <p>
+                  If you see “Eligible for Travel: Sep 1, 2025 – Aug 31, 2026”, your Use Year month is September.
+                </p>
+                <p>Use Years are named for the year they start, not the year they end.</p>
+              </div>
+              <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-white p-3">
+                <p className="text-xs font-semibold text-slate-500">Optional AI assist</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Upload a screenshot to auto-detect your Use Year. Used only to pre-fill data — you must confirm
+                  before saving. Images are not stored after processing.
+                </p>
+                <input type="file" accept="image/*" className="mt-2 text-xs" />
+              </div>
+            </div>
+          ) : null}
+
+          {showTable ? (
+            <div className="mt-4 space-y-3">
+              <label className="flex items-start gap-2 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 rounded border-slate-300"
+                  checked={contract.borrowing.enabled}
+                  onChange={(event) =>
+                    updateContract(index, {
+                      borrowing: {
+                        ...contract.borrowing,
+                        enabled: event.target.checked,
+                        maxBorrow: event.target.checked ? contract.borrowing.maxBorrow : 0,
+                      },
+                    })
+                  }
+                />
+                <span>I’m willing to borrow points from next year</span>
+              </label>
+              <p className="text-xs text-slate-500">Borrowing lets you use some of next year’s points for a booking sooner.</p>
+              {contract.borrowing.enabled ? (
+                <div>
+                  <label className="text-xs font-semibold text-slate-500">Maximum points I’m willing to borrow</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    placeholder="0"
+                    className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+                    value={contract.borrowing.maxBorrow}
+                    onChange={(event) => {
+                      const nextValue = Math.max(0, Number(event.target.value) || 0);
+                      updateContract(index, { borrowing: { ...contract.borrowing, maxBorrow: nextValue } });
+                    }}
+                  />
+                  <p className="mt-1 text-xs text-slate-500">We’ll never borrow more than this without asking.</p>
+                  <p className="mt-1 text-xs text-slate-400">You can adjust this after you enter your points.</p>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {showTable ? (
+            <div className="mt-4 rounded-2xl border border-slate-200 p-4">
+              <div className="grid gap-3">
+                <div className="grid gap-2 text-xs font-semibold text-slate-500 sm:grid-cols-3">
+                  <span>Use Year</span>
+                  <span>Available</span>
+                  <span>In Holding</span>
+                </div>
+                {years.map((year) => {
+                  const start = monthIndex >= 0 ? new Date(year, monthIndex, 1) : null;
+                  const end = monthIndex >= 0 ? new Date(year + 1, monthIndex, 0) : null;
+                  const row = contract.years[year] ?? { available: 0, holding: 0 };
+                  return (
+                    <div key={year} className="grid gap-2 sm:grid-cols-3">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-700">{year} Use Year</p>
+                        {start && end ? (
+                          <p className="text-xs text-slate-500">
+                            {start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} –{' '}
+                            {end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                        ) : null}
+                      </div>
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+                        value={row.available}
+                        onChange={(event) => {
+                          const nextValue = Math.max(0, Number(event.target.value) || 0);
+                          updateContract(index, {
+                            years: {
+                              ...contract.years,
+                              [year]: { ...row, available: nextValue },
+                            },
+                          });
+                        }}
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+                        value={row.holding}
+                        onChange={(event) => {
+                          const nextValue = Math.max(0, Number(event.target.value) || 0);
+                          updateContract(index, {
+                            years: {
+                              ...contract.years,
+                              [year]: { ...row, holding: nextValue },
+                            },
+                          });
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {nearExpiration && Number(currentRow.available) > 0 ? (
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                  <p>⚠️ These points are close to expiration.</p>
+                  <p className="mt-1">Points in this window often rent best when priced for a quick match.</p>
+                  <label className="mt-2 flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4 rounded border-amber-300"
+                      checked={contract.fastMove}
+                      onChange={(event) => updateContract(index, { fastMove: event.target.checked })}
+                    />
+                    <span>Place these points in Fast-Move / Liquidation listings</span>
+                  </label>
+                </div>
+              ) : null}
+              <p className="mt-3 text-xs text-slate-500">
+                Enter the numbers exactly as shown in your DVC Vacation Points dashboard.
+              </p>
+            </div>
+          ) : null}
         </div>
-      ))}
+      );})}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button type="button" onClick={addContract} className="text-sm font-semibold text-indigo-600">
@@ -640,15 +1216,15 @@ function HowToFindContractInfo() {
   const steps = [
     {
       title: 'Step 1: Open your DVC member dashboard',
-      description: 'Log in to the DVC member site and open your contract summary.',
+      description: 'Log in to the DVC member website and open your Contract Summary page.',
     },
     {
-      title: 'Step 2: Locate Use Year and Contract Year',
-      description: 'Find the month your points reset and the contract year listed.',
+      title: 'Step 2: Find your Use Year',
+      description: 'Locate the month your points reset each year (your Use Year). This tells you when new points are added to your account.',
     },
     {
-      title: 'Step 3: Confirm points owned and available',
-      description: 'Use the points balance summary to fill in totals.',
+      title: 'Step 3: Check your available points by year',
+      description: 'Review your Points Balance Summary to see how many points you have available for each year. For example: 2025: 98 points, 2026: 120 points, 2027: 120 points. Use these numbers when entering your points into PixieDVC.',
     },
   ];
 
@@ -660,7 +1236,6 @@ function HowToFindContractInfo() {
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
         {steps.map((step) => (
           <div key={step.title} className="rounded-2xl border border-dashed border-slate-200 p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Tutorial</p>
             <p className="mt-2 text-sm font-semibold text-slate-900">{step.title}</p>
             <p className="mt-1 text-xs text-slate-500">{step.description}</p>
           </div>
@@ -670,10 +1245,35 @@ function HowToFindContractInfo() {
   );
 }
 
-function OwnerLegalInfoStep({ onNext }: { onNext: (payload: OwnerLegalInfoInput) => void }) {
+function OwnerLegalInfoStep({
+  memberships,
+  membershipsLoaded,
+  onNext,
+}: {
+  memberships: Array<{
+    owner_legal_full_name?: string | null;
+    co_owner_legal_full_name?: string | null;
+  }>;
+  membershipsLoaded: boolean;
+  onNext: (payload: OwnerLegalInfoInput) => void;
+}) {
   const [ownerLegalName, setOwnerLegalName] = useState('');
   const [coOwnerLegalName, setCoOwnerLegalName] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const hydratedRef = useRef(false);
+
+  useEffect(() => {
+    if (hydratedRef.current) return;
+    if (!membershipsLoaded) return;
+    const existing = memberships.find(
+      (membership) => membership.owner_legal_full_name || membership.co_owner_legal_full_name,
+    );
+    if (existing) {
+      setOwnerLegalName(existing.owner_legal_full_name ?? '');
+      setCoOwnerLegalName(existing.co_owner_legal_full_name ?? '');
+    }
+    hydratedRef.current = true;
+  }, [memberships, membershipsLoaded]);
 
   return (
     <form
@@ -767,51 +1367,12 @@ function FinishStep({
   onFinish: (next?: string) => void;
   role: 'owner' | 'guest' | null;
 }) {
-  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
-  const supabase = useMemo(() => createClient(), []);
-
-  useEffect(() => {
-    if (role !== 'owner') return;
-    supabase
-      .from('owner_verifications')
-      .select('status')
-      .maybeSingle()
-      .then(({ data }) => {
-        setVerificationStatus(data?.status ?? 'not_started');
-      });
-  }, [role, supabase]);
-
-  const statusLabel =
-    verificationStatus === 'approved'
-      ? 'Approved'
-      : verificationStatus === 'submitted'
-        ? 'Submitted'
-        : verificationStatus === 'rejected'
-          ? 'Rejected'
-          : 'Not started';
-
   return (
     <div className="space-y-4">
-      <p className="text-lg text-slate-700">All set! We’ll tailor the app to your role.</p>
-      {role === 'owner' ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Verification required</p>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
-              {statusLabel}
-            </span>
-            {verificationStatus === 'approved' ? (
-              <span className="text-sm text-emerald-600">Verified ✅ You can now receive matches.</span>
-            ) : verificationStatus === 'submitted' ? (
-              <span className="text-sm text-slate-600">Verification submitted — we’ll review shortly.</span>
-            ) : (
-              <a href="/owner/verification" className="text-sm font-semibold text-indigo-600 hover:underline">
-                Submit verification
-              </a>
-            )}
-          </div>
-        </div>
-      ) : null}
+      <p className="text-lg text-slate-700">
+        You&apos;re all set! Your account is ready. We&apos;ll verify your first reservation automatically when a booking
+        is completed.
+      </p>
       {role === 'guest' ? (
         <div className="flex flex-wrap gap-3">
           <button

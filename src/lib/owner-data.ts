@@ -1,6 +1,8 @@
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getMilestoneStatus } from "@/lib/owner-portal";
+import { daysUntil } from "@/lib/dvc-dates";
+import { getMembershipExpirationDate } from "@/lib/owner-nudges";
 import type { RequestCookies } from "next/dist/compiled/@edge-runtime/cookies";
 
 export type OwnerProfile = {
@@ -17,17 +19,25 @@ export type OwnerMembership = {
   owner_id: string;
   owner_legal_full_name?: string | null;
   co_owner_legal_full_name?: string | null;
+  matching_mode?: string | null;
+  allow_standard_rate_fallback?: boolean | null;
+  premium_only_listed_at?: string | null;
+  last_fallback_prompted_at?: string | null;
+  fallback_remind_at?: string | null;
   resort_id: string | null;
   home_resort: string | null;
   use_year: string | null;
   use_year_start: string | null;
   use_year_end: string | null;
-  contract_year: number | null;
   points_owned: number | null;
   points_available: number | null;
   points_reserved: number | null;
   points_rented: number | null;
   points_expiration_date: string | null;
+  banked_assumed_at?: string | null;
+  banked_points_amount?: number | null;
+  banked_assumed_reason?: string | null;
+  expired_assumed_at?: string | null;
   purchase_channel: string | null;
   acquired_at: string | null;
   created_at?: string | null;
@@ -204,7 +214,7 @@ export async function getOwnerMemberships(userId: string, cookieStore?: RequestC
   const { data } = await client
     .from("owner_memberships")
     .select(
-      "id, owner_id, owner_legal_full_name, co_owner_legal_full_name, resort_id, home_resort, use_year, use_year_start, use_year_end, contract_year, points_owned, points_available, points_reserved, points_rented, points_expiration_date, purchase_channel, acquired_at, created_at, resort:resorts(name, slug, calculator_code)",
+      "id, owner_id, owner_legal_full_name, co_owner_legal_full_name, matching_mode, allow_standard_rate_fallback, premium_only_listed_at, last_fallback_prompted_at, fallback_remind_at, resort_id, home_resort, use_year, use_year_start, use_year_end, points_owned, points_available, points_reserved, points_rented, points_expiration_date, banked_assumed_at, banked_points_amount, banked_assumed_reason, expired_assumed_at, purchase_channel, acquired_at, created_at, resort:resorts(name, slug, calculator_code)",
     )
     .eq("owner_id", owner.id)
     .order("created_at", { ascending: true });
@@ -548,10 +558,14 @@ export function getDisplayName(owner: OwnerProfile | null, fallbackEmail: string
 export function getPointsSummary(memberships: OwnerMembership[]) {
   return memberships.reduce(
     (acc, membership) => {
+      if (membership.banked_assumed_at || membership.expired_assumed_at) {
+        return acc;
+      }
       const available = membership.points_available ?? 0;
+      const banked = membership.banked_points_amount ?? 0;
       const reserved = membership.points_reserved ?? 0;
       const rented = membership.points_rented ?? 0;
-      acc.available += Math.max(available - reserved - rented, 0);
+      acc.available += Math.max(available - banked - reserved - rented, 0);
       acc.reserved += reserved;
       acc.rented += rented;
       return acc;
@@ -562,12 +576,16 @@ export function getPointsSummary(memberships: OwnerMembership[]) {
 
 export function getNextExpiringMembership(memberships: OwnerMembership[]) {
   const withDates = memberships
-    .filter((membership) => membership.points_expiration_date)
-    .map((membership) => ({
-      ...membership,
-      expiry: new Date(membership.points_expiration_date as string).getTime(),
-    }))
-    .filter((membership) => !Number.isNaN(membership.expiry));
+    .map((membership) => {
+      if (membership.banked_assumed_at || membership.expired_assumed_at) return null;
+      const expiration = getMembershipExpirationDate(membership);
+      if (!expiration) return null;
+      if (daysUntil(expiration) <= 0) return null;
+      const expiry = new Date(expiration).getTime();
+      if (Number.isNaN(expiry)) return null;
+      return { ...membership, expiry, expiration };
+    })
+    .filter((membership): membership is OwnerMembership & { expiry: number; expiration: string } => Boolean(membership));
 
   if (!withDates.length) return null;
   return withDates.sort((a, b) => a.expiry - b.expiry)[0];
@@ -575,10 +593,10 @@ export function getNextExpiringMembership(memberships: OwnerMembership[]) {
 
 export async function ensurePointsExpiringNotification(userId: string, memberships: OwnerMembership[]) {
   const expiring = memberships.filter((membership) => {
-    if (!membership.points_expiration_date) return false;
-    const expiry = new Date(membership.points_expiration_date).getTime();
-    if (Number.isNaN(expiry)) return false;
-    const daysLeft = (expiry - Date.now()) / (1000 * 60 * 60 * 24);
+    if (membership.banked_assumed_at || membership.expired_assumed_at) return false;
+    const expiration = getMembershipExpirationDate(membership);
+    if (!expiration) return false;
+    const daysLeft = daysUntil(expiration);
     return daysLeft <= 45;
   });
 
@@ -597,7 +615,8 @@ export async function ensurePointsExpiringNotification(userId: string, membershi
   if (existing && existing.length > 0) return;
 
   const next = expiring[0];
-  const dateLabel = next.points_expiration_date ? new Date(next.points_expiration_date).toLocaleDateString() : "soon";
+  const expiration = getMembershipExpirationDate(next);
+  const dateLabel = expiration ? new Date(expiration).toLocaleDateString() : "soon";
 
   await adminClient
     .from("notifications")
@@ -608,6 +627,20 @@ export async function ensurePointsExpiringNotification(userId: string, membershi
       body: `Your ${next.resort?.name ?? "membership"} points expire on ${dateLabel}.`,
       link: "/owner/dashboard",
     });
+}
+
+export async function expireMembershipBuckets() {
+  const adminClient = getSupabaseAdminClient();
+  if (!adminClient) return;
+  const today = new Date().toISOString().slice(0, 10);
+  await adminClient
+    .from("owner_memberships")
+    .update({ expired_assumed_at: new Date().toISOString() })
+    .is("expired_assumed_at", null)
+    .is("banked_assumed_at", null)
+    .lt("use_year_end", today)
+    .eq("points_reserved", 0)
+    .eq("points_rented", 0);
 }
 
 export async function ensureApprovalNotifications(userId: string, rentals: RentalRow[]) {

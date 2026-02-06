@@ -1,4 +1,9 @@
 import { supabase } from "@pixiedvc/data";
+import {
+  CANONICAL_RESORT_SLUG_SET,
+  canonicalizeResortSlug,
+  getResortSlugVariants,
+} from "@/lib/resorts/canonical";
 
 export type Resort = {
   slug: string;
@@ -89,37 +94,9 @@ const PHOTOS_COMING_SOON = "Photos coming soon";
 const RESORT_PHOTO_BUCKET = "resorts";
 const SUPABASE_PUBLIC_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const REACHABILITY_CACHE = new Map<string, boolean>();
-const CANONICAL_RESORT_SLUGS = new Set([
-  "animal-kingdom-jambo",
-  "animal-kingdom-kidani",
-  "aulani",
-  "bay-lake-tower",
-  "beach-club-villas",
-  "boardwalk-villas",
-  "boulder-ridge-villas",
-  "copper-creek-villas",
-  "disneyland-hotel-villas",
-  "grand-californian-villas",
-  "grand-floridian-villas",
-  "hilton-head-island",
-  "old-key-west",
-  "polynesian-villas",
-  "riviera-resort",
-  "saratoga-springs",
-  "vero-beach",
-]);
-const RESORT_SLUG_ALIASES = new Map<string, string>([
-  ["beach-club-villas", "beach-club-villa"],
-  ["boardwalk-villas", "boardwalk"],
-  ["disneyland-hotel-villas", "villas-at-disneyland-hotel"],
-  ["grand-californian-villas", "grand-californian"],
-  ["riviera-resort", "riviera"],
-  ["saratoga-springs", "saratoga-springs-resort"],
-]);
 const PHOTO_FOLDER_OVERRIDES: Record<string, { folder: string; prefix: string }> = {
-  "animal-kingdom-jambo": { folder: "animal-kingdom-lodge", prefix: "AKL" },
-  "animal-kingdom-kidani": { folder: "Kidani", prefix: "AKV" },
   "animal-kingdom-villas": { folder: "animal-kingdom-lodge", prefix: "AKL" },
+  "animal-kingdom-kidani": { folder: "Kidani", prefix: "AKV" },
   "animal-kingdom-lodge": { folder: "animal-kingdom-lodge", prefix: "AKL" },
   "bay-lake-tower": { folder: "bay-lake-tower", prefix: "BTC" },
   "beach-club-villas": { folder: "beach-club-villa", prefix: "BCV" },
@@ -271,20 +248,6 @@ function normalizeResortPhotos(raw: unknown, slug: string, options?: { ignoreOve
   return mapped;
 }
 
-function canonicalizeResortSlug(slug: string) {
-  for (const [canonical, alias] of RESORT_SLUG_ALIASES.entries()) {
-    if (alias === slug) {
-      return canonical;
-    }
-  }
-  return slug;
-}
-
-function getResortSlugVariants(slug: string) {
-  const alias = RESORT_SLUG_ALIASES.get(slug);
-  return alias ? [slug, alias] : [slug];
-}
-
 async function mapResortRow(row: ResortRow | null): Promise<Resort | null> {
   if (!row) {
     return null;
@@ -402,7 +365,7 @@ export async function getAllResortSlugs(): Promise<string[]> {
     const slug = row.slug;
     if (!slug) continue;
     const canonical = canonicalizeResortSlug(slug);
-    if (CANONICAL_RESORT_SLUGS.has(canonical)) {
+    if (CANONICAL_RESORT_SLUG_SET.has(canonical)) {
       normalized.add(canonical);
     }
   }
@@ -423,7 +386,7 @@ export async function getResortSummaries(): Promise<ResortSummary[]> {
   const filtered = new Map<string, ResortSummaryRow>();
   for (const row of data ?? []) {
     const canonical = canonicalizeResortSlug(row.slug);
-    if (!CANONICAL_RESORT_SLUGS.has(canonical)) {
+    if (!CANONICAL_RESORT_SLUG_SET.has(canonical)) {
       continue;
     }
     const existing = filtered.get(canonical);

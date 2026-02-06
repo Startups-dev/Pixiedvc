@@ -39,6 +39,10 @@ export default function LoginClient() {
     if (typeof window === 'undefined') return '/login?mode=update';
     return new URL('/login?mode=update', window.location.origin).toString();
   }, []);
+  const signupRedirect = useMemo(() => {
+    if (typeof window === 'undefined') return '/auth/callback';
+    return new URL('/auth/callback', window.location.origin).toString();
+  }, []);
 
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
@@ -148,7 +152,7 @@ export default function LoginClient() {
             email,
             password,
             options: {
-              emailRedirectTo: passwordRedirect,
+              emailRedirectTo: signupRedirect,
             },
           });
 

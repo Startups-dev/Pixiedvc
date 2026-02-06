@@ -57,39 +57,83 @@ describe('saveOwnerContracts', () => {
   });
 
   test('upserts memberships without deleting existing rows', async () => {
-    await saveOwnerContracts([
-      {
-        resort_id: 'resort-1',
-        use_year: 'FEB',
-        contract_year: 2023,
-        points_owned: 100,
-        points_available: 80,
-      },
-    ]);
+    await saveOwnerContracts({
+      contracts: [
+        {
+          resort_id: 'resort-1',
+          use_year: 'FEB',
+          use_year_start: '2023-02-01',
+          points_owned: 100,
+          points_available: 80,
+        },
+      ],
+      matching_mode: 'premium_only',
+      allow_standard_rate_fallback: false,
+    });
 
-    await saveOwnerContracts([
-      {
-        resort_id: 'resort-1',
-        use_year: 'FEB',
-        contract_year: 2023,
-        points_owned: 120,
-        points_available: 95,
-      },
-    ]);
+    await saveOwnerContracts({
+      contracts: [
+        {
+          resort_id: 'resort-1',
+          use_year: 'FEB',
+          use_year_start: '2023-02-01',
+          points_owned: 120,
+          points_available: 95,
+        },
+      ],
+      matching_mode: 'premium_only',
+      allow_standard_rate_fallback: false,
+    });
 
     expect(membershipsUpsert).toHaveBeenCalledTimes(2);
     expect(membershipsUpsert.mock.calls[0][1]).toEqual({
-      onConflict: 'owner_id,resort_id,use_year,contract_year',
+      onConflict: 'owner_id,resort_id,use_year,use_year_start',
     });
-    expect(membershipsUpsert.mock.calls[1][0]).toEqual([
-      {
-        owner_id: 'owner-1',
-        resort_id: 'resort-1',
-        use_year: 'FEB',
-        contract_year: 2023,
-        points_owned: 120,
-        points_available: 95,
-      },
-    ]);
+    expect(membershipsUpsert.mock.calls[1][0][0]).toMatchObject({
+      owner_id: 'owner-1',
+      resort_id: 'resort-1',
+      use_year: 'FEB',
+      use_year_start: '2023-02-01',
+      points_owned: 120,
+      points_available: 95,
+      matching_mode: 'premium_only',
+      allow_standard_rate_fallback: false,
+    });
+  });
+
+  test('saves three distinct use year buckets', async () => {
+    await saveOwnerContracts({
+      contracts: [
+        {
+          resort_id: 'resort-1',
+          use_year: 'FEB',
+          use_year_start: '2025-02-01',
+          points_owned: 100,
+          points_available: 80,
+        },
+        {
+          resort_id: 'resort-1',
+          use_year: 'FEB',
+          use_year_start: '2026-02-01',
+          points_owned: 120,
+          points_available: 95,
+        },
+        {
+          resort_id: 'resort-1',
+          use_year: 'FEB',
+          use_year_start: '2027-02-01',
+          points_owned: 140,
+          points_available: 110,
+        },
+      ],
+      matching_mode: 'premium_only',
+      allow_standard_rate_fallback: false,
+    });
+
+    expect(membershipsUpsert).toHaveBeenCalledTimes(1);
+    const rows = membershipsUpsert.mock.calls[0][0] as Array<{ use_year_start: string }>;
+    expect(rows).toHaveLength(3);
+    const starts = rows.map((row) => row.use_year_start).sort();
+    expect(starts).toEqual(['2025-02-01', '2026-02-01', '2027-02-01']);
   });
 });

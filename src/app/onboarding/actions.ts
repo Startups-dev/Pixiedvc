@@ -102,12 +102,18 @@ export async function saveProfile(input: {
 export type ContractInput = {
   resort_id: string;
   use_year: string;
-  contract_year?: number;
+  use_year_start?: string;
+  borrowing_enabled?: boolean;
+  max_points_to_borrow?: number;
   points_owned?: number;
   points_available?: number;
 };
 
-export async function saveOwnerContracts(contracts: ContractInput[]) {
+export async function saveOwnerContracts(input: {
+  contracts: ContractInput[];
+  matching_mode: 'premium_only' | 'premium_then_standard';
+  allow_standard_rate_fallback: boolean;
+}) {
   const sb = await supabaseServer();
   const {
     data: { user },
@@ -119,7 +125,7 @@ export async function saveOwnerContracts(contracts: ContractInput[]) {
   }
 
   await ensureOnboardingNotComplete(sb, user.id);
-  const validContracts = contracts.filter((contract) => contract.resort_id);
+  const validContracts = input.contracts.filter((contract) => contract.resort_id);
   const totalOwned = validContracts.reduce((sum, contract) => sum + (contract.points_owned ?? 0), 0);
   const totalAvailable = validContracts.reduce((sum, contract) => sum + (contract.points_available ?? 0), 0);
 
@@ -139,18 +145,24 @@ export async function saveOwnerContracts(contracts: ContractInput[]) {
   }
 
   if (validContracts.length) {
+    const listedAt = new Date().toISOString();
     const rows = validContracts.map((contract) => ({
       owner_id: user.id,
       resort_id: contract.resort_id,
       use_year: contract.use_year,
-      contract_year: contract.contract_year ?? null,
+      use_year_start: contract.use_year_start ?? null,
       points_owned: contract.points_owned ?? null,
       points_available: contract.points_available ?? null,
+      matching_mode: input.matching_mode,
+      allow_standard_rate_fallback: input.allow_standard_rate_fallback,
+      premium_only_listed_at: listedAt,
+      borrowing_enabled: contract.borrowing_enabled ?? false,
+      max_points_to_borrow: contract.max_points_to_borrow ?? null,
     }));
 
     const { error } = await sb
       .from('owner_memberships')
-      .upsert(rows, { onConflict: 'owner_id,resort_id,use_year,contract_year' });
+      .upsert(rows, { onConflict: 'owner_id,resort_id,use_year,use_year_start' });
     if (error) {
       throw new Error(error.message);
     }
@@ -249,6 +261,9 @@ export async function completeOnboarding() {
       .from('owner_memberships')
       .select('owner_legal_full_name')
       .eq('owner_id', user.id)
+      .not('owner_legal_full_name', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (ownerMembershipError) {

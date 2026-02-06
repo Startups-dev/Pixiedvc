@@ -14,7 +14,7 @@ const RESORT_PROS: Array<{ slug: string; name: string; pros: string[] }> = [
     ],
   },
   {
-    slug: "animal-kingdom-jambo",
+    slug: "animal-kingdom-villas",
     name: "Animal Kingdom Villas",
     pros: [
       "Incredible savanna views with live animals",

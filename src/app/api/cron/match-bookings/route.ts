@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { runMatchBookings, type MatchRunResult } from '@/lib/match-bookings';
+import { expireMembershipBuckets } from '@/lib/owner-data';
 
 function getProvidedSecret(headers: Headers) {
   const headerSecret = headers.get('x-cron-secret');
@@ -131,6 +132,7 @@ async function handleMatchBookings(request: NextRequest) {
   }
 
   const origin = request.nextUrl.origin;
+  await expireMembershipBuckets();
   const result = await runMatchBookings({
     client,
     origin,
