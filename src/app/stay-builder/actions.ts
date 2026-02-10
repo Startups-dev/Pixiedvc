@@ -13,6 +13,8 @@ export async function saveStayBuilderStepOne(input: {
   checkIn: string;
   checkOut: string;
   resortId: string;
+  secondaryResortId?: string | null;
+  tertiaryResortId?: string | null;
   requiresAccessibility: boolean;
   roomType?: RoomCode;
   viewCode?: ViewCode;
@@ -63,6 +65,8 @@ export async function saveStayBuilderStepOne(input: {
     check_out: input.checkOut || null,
     nights,
     primary_resort_id: input.resortId || null,
+    secondary_resort_id: input.secondaryResortId ?? null,
+    tertiary_resort_id: input.tertiaryResortId ?? null,
     primary_room: input.roomType ?? null,
     primary_view: input.viewCode ?? null,
     requires_accessibility: input.requiresAccessibility,

@@ -45,7 +45,52 @@ export default async function ContractTokenPage({ params }: { params: Promise<{ 
     (typeof meta.ip === 'string' && meta.ip) ||
     null;
 
-  const agreementHtml = renderPixieAgreementHTML(snapshot, {
+  const { data: bookingRow } = contract.booking_request_id
+    ? await supabase
+        .from('booking_requests')
+        .select('lead_guest_name, lead_guest_email, lead_guest_phone')
+        .eq('id', contract.booking_request_id)
+        .maybeSingle()
+    : { data: null };
+
+  const { data: renterProfile } = contract.renter_id
+    ? await supabase
+        .from('profiles')
+        .select('full_name, email, phone')
+        .eq('id', contract.renter_id)
+        .maybeSingle()
+    : { data: null };
+
+  const displayGuestName =
+    snapshot.parties?.guest?.fullName ||
+    bookingRow?.lead_guest_name ||
+    renterProfile?.full_name ||
+    '—';
+  const displayGuestEmail =
+    snapshot.parties?.guest?.email ||
+    bookingRow?.lead_guest_email ||
+    renterProfile?.email ||
+    null;
+  const displayGuestPhone =
+    snapshot.parties?.guest?.phone ||
+    bookingRow?.lead_guest_phone ||
+    renterProfile?.phone ||
+    null;
+
+  const mergedSnapshot: ContractSnapshot = {
+    ...snapshot,
+    parties: {
+      ...snapshot.parties,
+      guest: {
+        ...snapshot.parties.guest,
+        fullName: displayGuestName,
+        email: displayGuestEmail,
+        phone: displayGuestPhone,
+      },
+    },
+  };
+
+  const agreementHtml = renderPixieAgreementHTML(mergedSnapshot, {
     guestAcceptedAt: contract.guest_accepted_at ?? null,
     acceptanceId: contract.id ?? null,
     acceptanceIp: maskIp(acceptanceIpRaw),
@@ -61,11 +106,16 @@ export default async function ContractTokenPage({ params }: { params: Promise<{ 
         <p className="text-sm text-slate-500">Review the terms below and confirm if you agree.</p>
       </header>
 
-      <Summary snapshot={snapshot} contractId={contract.id} />
+      <Summary snapshot={mergedSnapshot} contractId={contract.id} guestName={displayGuestName} />
 
-      <GuestDetails snapshot={snapshot} />
+      <GuestDetails
+        snapshot={mergedSnapshot}
+        guestName={displayGuestName}
+        guestEmail={displayGuestEmail}
+        guestPhone={displayGuestPhone}
+      />
 
-      <TravelParty snapshot={snapshot} />
+      <TravelParty snapshot={mergedSnapshot} />
 
       <div
         className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
@@ -95,14 +145,22 @@ export default async function ContractTokenPage({ params }: { params: Promise<{ 
   );
 }
 
-function Summary({ snapshot, contractId }: { snapshot: ContractSnapshot; contractId?: number | null }) {
+function Summary({
+  snapshot,
+  contractId,
+  guestName,
+}: {
+  snapshot: ContractSnapshot;
+  contractId?: number | null;
+  guestName: string;
+}) {
   const summary = snapshot.summary;
   const pricePerPoint = `$${(summary.guestPricePerPointCents / 100).toFixed(2)}`;
   const totalRental = `$${(summary.totalPayableByGuestCents / 100).toFixed(2)}`;
 
   const rows = [
     { label: 'Owner', value: snapshot.parties.owner.fullName || '—' },
-    { label: 'Guest', value: snapshot.parties.guest.fullName || '—' },
+    { label: 'Guest', value: guestName || '—' },
     { label: 'Resort', value: summary.resortName || '—' },
     { label: 'Room', value: summary.accommodationType || '—' },
     { label: 'Check-in', value: summary.checkIn || '—' },
@@ -130,8 +188,17 @@ function Summary({ snapshot, contractId }: { snapshot: ContractSnapshot; contrac
   );
 }
 
-function GuestDetails({ snapshot }: { snapshot: ContractSnapshot }) {
-  const guest = snapshot.parties.guest;
+function GuestDetails({
+  snapshot,
+  guestName,
+  guestEmail,
+  guestPhone,
+}: {
+  snapshot: ContractSnapshot;
+  guestName: string;
+  guestEmail: string | null;
+  guestPhone: string | null;
+}) {
   const requestId = snapshot.bookingRequestId ?? null;
 
   return (
@@ -147,17 +214,18 @@ function GuestDetails({ snapshot }: { snapshot: ContractSnapshot }) {
           </a>
         ) : null}
       </div>
-      <p className="mt-1 text-xs text-slate-500">
-        For communication purposes only. This does not change your contract.
-      </p>
       <dl className="mt-3 grid grid-cols-2 gap-3 text-xs">
         <div>
+          <dt className="text-slate-500">Legal name</dt>
+          <dd className="text-slate-900">{guestName || '—'}</dd>
+        </div>
+        <div>
           <dt className="text-slate-500">Email</dt>
-          <dd className="text-slate-900">{guest.email ?? '—'}</dd>
+          <dd className="text-slate-900">{guestEmail ?? '—'}</dd>
         </div>
         <div>
           <dt className="text-slate-500">Phone</dt>
-          <dd className="text-slate-900">{guest.phone ?? '—'}</dd>
+          <dd className="text-slate-900">{guestPhone ?? '—'}</dd>
         </div>
       </dl>
     </div>
@@ -187,9 +255,6 @@ function TravelParty({ snapshot }: { snapshot: ContractSnapshot }) {
           </a>
         ) : null}
       </div>
-      <p className="mt-1 text-xs text-slate-500">
-        For check-in purposes only. This does not change your contract.
-      </p>
       {rows.length ? (
         <ul className="mt-3 space-y-2 text-xs text-slate-700">
           {rows.map((row, index) => (

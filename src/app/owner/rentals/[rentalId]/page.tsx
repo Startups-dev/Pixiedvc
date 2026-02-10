@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 
 import { Card, Button } from "@pixiedvc/design-system";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getOwnerRentalDetail, getRentalDocumentUrls } from "@/lib/owner-data";
 import {
   calculatePayoutAmountCents,
@@ -18,10 +17,10 @@ import MilestoneStepper from "@/components/owner/MilestoneStepper";
 import DocumentList from "@/components/owner/DocumentList";
 import UploadBox from "@/components/owner/UploadBox";
 import OwnerApprovalButton from "@/components/owner/OwnerApprovalButton";
+import OwnerConfirmationTile from "@/components/owner/OwnerConfirmationTile";
 import PayoutTimeline from "@/components/owner/PayoutTimeline";
 import ExceptionRequestForm from "@/components/owner/ExceptionRequestForm";
 import DevSeedRental from "@/components/owner/DevSeedRental";
-import AgreementPreview from "@/components/owner/AgreementPreview";
 import styles from "./rental-header.module.css";
 
 function formatDate(value: string | null) {
@@ -198,26 +197,10 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
   const milestones = normalizeMilestones(rental.rental_milestones ?? []);
   const payouts = (rental.payout_ledger ?? []) as any[];
   const agreementDoc = documents.find((doc) => doc.type === "agreement_pdf");
-
-  const bookingRequestId =
-    typeof (rental.booking_package as any)?.booking_request_id === "string"
-      ? (rental.booking_package as any).booking_request_id
-      : null;
-  const adminClient = getSupabaseAdminClient();
-  const { data: contract } =
-    adminClient && bookingRequestId
-      ? await adminClient
-          .from("contracts")
-          .select("id, status, guest_accepted_at, owner_accepted_at, snapshot")
-          .eq("booking_request_id", bookingRequestId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle()
-      : { data: null };
-
   const approvalCompleted = getMilestoneStatus("owner_approved", milestones) === "completed";
   const confirmationCompleted = getMilestoneStatus("disney_confirmation_uploaded", milestones) === "completed";
   const paymentVerified = getMilestoneStatus("payment_verified", milestones) === "completed";
+  const hasConfirmationNumber = Boolean(rental.dvc_confirmation_number);
   const bookingPackage = (rental.booking_package ?? {}) as Record<string, unknown>;
   const leadGuestName =
     rental.lead_guest_name ?? (bookingPackage.lead_guest_name as string | null) ?? null;
@@ -362,14 +345,6 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
               Rate: {ownerRatePerPointCents !== null ? `$${(ownerRatePerPointCents / 100).toFixed(2)}/pt` : "—"}
               {premiumApplied && ownerPremiumCents ? ` (+$${(ownerPremiumCents / 100).toFixed(2)} home resort premium)` : ""}
             </p>
-            {guestTotalCents !== null ? (
-              <p className="text-xs text-slate-500">
-                Guest pays (platform price): {formatCurrency(guestTotalCents)}
-                {guestRatePerPointCents !== null
-                  ? ` · $${(guestRatePerPointCents / 100).toFixed(2)}/pt`
-                  : ""}
-              </p>
-            ) : null}
             <div className="flex items-center justify-between">
               <span>Lead guest</span>
               <span className="font-semibold text-ink">{leadGuestName ?? "—"}</span>
@@ -393,36 +368,20 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
             <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-xs text-slate-600">
               <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Payment schedule</p>
               <div className="mt-2 space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
                   <span>Upon booking (70%)</span>
-                  <span className="font-semibold text-ink">
+                  <span className="ml-auto min-w-[140px] text-right font-semibold text-ink tabular-nums">
                     {stage70?.status ? `${stage70.status}` : "Pending"} · {formatCurrency(payout70Amount)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span>At check-in (30%)</span>
-                  <span className="font-semibold text-ink">
+                <div className="flex items-center gap-4">
+                  <span>90 days before check-in (30%)</span>
+                  <span className="ml-auto min-w-[140px] text-right font-semibold text-ink tabular-nums">
                     {stage30?.status ? `${stage30.status}` : "Pending"} · {formatCurrency(payout30Amount)}
                   </span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span>Agreement</span>
-              {agreementDoc?.signed_url ? (
-                <a
-                  href={agreementDoc.signed_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs font-semibold text-brand hover:underline"
-                >
-                  Preview agreement
-                </a>
-              ) : (
-                <span className="text-xs text-slate-500">Agreement pending</span>
-              )}
-            </div>
-            <p className="text-[11px] text-slate-500">Required before approval.</p>
             {rental.special_needs ? (
               <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
                 Special needs: {rental.special_needs_notes ?? "Noted by guest."}
@@ -431,12 +390,11 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
           </div>
           {!approvalCompleted ? (
             <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-xs text-slate-600">
-              Review the booking details and approve once you can fulfill the reservation.
               <div className="mt-3">
                 <OwnerApprovalButton rentalId={rental.id} disabled={!approvalEnabled} missing={missingLabels} />
               </div>
               <p className="mt-3 text-[11px] text-slate-500">
-                After you approve, you book in Disney, upload confirmation, and 70% payout becomes eligible.
+                After approval, you’ll book the stay in Disney and upload the confirmation to unlock payout.
               </p>
             </div>
           ) : (
@@ -444,31 +402,55 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
           )}
         </Card>
       </section>
-      {contract ? (
-        <section>
-          <AgreementPreview contract={contract} />
+
+      {approvalCompleted ? (
+        <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+          <DocumentList documents={documents} />
+          <div className="space-y-4">
+            <OwnerConfirmationTile
+              rentalId={rental.id}
+              initialConfirmationNumber={rental.dvc_confirmation_number}
+            />
+            {hasConfirmationNumber ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Agreement</p>
+                {agreementDoc?.signed_url ? (
+                  <a
+                    href={agreementDoc.signed_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex text-xs font-semibold text-brand hover:underline"
+                  >
+                    View signed agreement
+                  </a>
+                ) : (
+                  <p className="mt-2 text-xs text-slate-500">
+                    Agreement is being drafted. A signed copy will be sent to you shortly after you submit the confirmation number from DVC.
+                  </p>
+                )}
+              </div>
+            ) : null}
+            <Card className="space-y-4">
+              <p className="text-xs uppercase tracking-[0.3em] text-muted">Upload Disney confirmation</p>
+              <p className="text-sm text-muted">
+                Upload the Disney confirmation email (PDF or screenshot) after booking the reservation. This unlocks your 70% payout.
+              </p>
+              {confirmationCompleted ? (
+                <p className="rounded-2xl bg-emerald-50 p-4 text-xs text-emerald-700">Disney confirmation uploaded.</p>
+              ) : (
+                <UploadBox
+                  rentalId={rental.id}
+                  documentType="disney_confirmation_email"
+                  label="Disney confirmation email"
+                  helper="PDF or screenshot accepted."
+                  confirmationNumber={rental.dvc_confirmation_number}
+                  disabledMessage="Enter the confirmation number above to enable upload."
+                />
+              )}
+            </Card>
+          </div>
         </section>
       ) : null}
-
-      <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <DocumentList documents={documents} />
-        <Card className="space-y-4">
-          <p className="text-xs uppercase tracking-[0.3em] text-muted">Upload confirmation</p>
-          <p className="text-sm text-muted">
-            Upload the Disney confirmation email once the reservation is booked. This unlocks the 70% payout.
-          </p>
-          {confirmationCompleted ? (
-            <p className="rounded-2xl bg-emerald-50 p-4 text-xs text-emerald-700">Disney confirmation uploaded.</p>
-          ) : (
-            <UploadBox
-              rentalId={rental.id}
-              documentType="disney_confirmation_email"
-              label="Disney confirmation email"
-              helper="PDF or screenshot accepted."
-            />
-          )}
-        </Card>
-      </section>
 
       <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <PayoutTimeline payouts={payouts} />

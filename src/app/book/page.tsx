@@ -1,6 +1,8 @@
 import { Resorts } from "pixiedvc-calculator/engine/charts";
 
 import BookingFlowClient from "@/app/book/BookingFlowClient";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getCanonicalResorts } from "@/lib/resorts/getResorts";
 
 const fallbackPrefill = {
   resortId: "UNKNOWN",
@@ -37,7 +39,8 @@ function formatVillaType(room?: string, view?: string, resortCode?: string) {
   return [room, viewName].filter(Boolean).join(" · ");
 }
 
-export default function BookingPage({ searchParams }: { searchParams?: SearchParams }) {
+export default async function BookingPage({ searchParams }: { searchParams?: SearchParams }) {
+  const supabase = await createSupabaseServerClient();
   const resortCode = getParam(searchParams ?? {}, "resort") ?? "";
   const checkIn = getParam(searchParams ?? {}, "checkIn") ?? "";
   const nightsValue = Number.parseInt(getParam(searchParams ?? {}, "nights") ?? "", 10);
@@ -61,10 +64,14 @@ export default function BookingPage({ searchParams }: { searchParams?: SearchPar
     estCash: Number.isFinite(priceValue) ? priceValue : 0,
   };
 
+  const resorts = await getCanonicalResorts(supabase, {
+    select: "id, name, slug",
+  });
+
   return (
     <div className="min-h-screen bg-surface text-ink">
       <main className="mx-auto max-w-5xl px-6 py-20">
-        <BookingFlowClient prefill={prefill} />
+        <BookingFlowClient prefill={prefill} resorts={resorts} />
       </main>
     </div>
   );

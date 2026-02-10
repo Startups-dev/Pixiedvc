@@ -150,6 +150,7 @@ type MatcherResponse = {
     candidatesFound?: number;
     finalDecision?: string;
     skipReasons?: string[];
+    candidateRejectionCounts?: Record<string, number>;
   }>;
   matchResults?: Array<{ bookingId: string; matchId: string }>;
   [key: string]: unknown;
@@ -256,6 +257,11 @@ function formatMatcherResponse(resp: MatcherResponse | null) {
     const skipReasonsReadable = reasons.length
       ? reasons.map((reason) => MATCHER_SKIP_REASON_LABELS[reason] ?? `Skipped by rule: ${reason}`)
       : [];
+    const rejectionBreakdown = booking.candidateRejectionCounts
+      ? Object.entries(booking.candidateRejectionCounts)
+          .sort((a, b) => b[1] - a[1])
+          .map(([reason, count]) => `${reason} (${count})`)
+      : [];
     return {
       bookingId: booking.bookingId,
       bookingIdShort: booking.bookingId.slice(0, 8),
@@ -265,6 +271,7 @@ function formatMatcherResponse(resp: MatcherResponse | null) {
       depositOk: booking.deposit_ok ?? false,
       result: booking.finalDecision ?? 'unknown',
       skipReasonsReadable,
+      rejectionBreakdown,
       existingMatchesCount: reasons.includes('already_pending_owner') ? 1 : 0,
       raw: booking,
     };
@@ -986,6 +993,9 @@ export default function AdminMatchingClient() {
                       <p>Deposit ok: {summary.depositOk ? 'Yes' : 'No'}</p>
                       <p>Existing matches: {summary.existingMatchesCount}</p>
                       <p>Skip reasons: {summary.skipReasonsReadable.length ? summary.skipReasonsReadable.join(' ') : '—'}</p>
+                      <p>
+                        Rejection breakdown: {summary.rejectionBreakdown.length ? summary.rejectionBreakdown.join(' ') : '—'}
+                      </p>
                       <div className="mt-2 rounded-xl border border-slate-200 bg-white p-2 text-[11px] text-slate-500">
                         status: {summary.raw.status ?? '—'} · required_resort_id: {summary.raw.required_resort_id ?? '—'} · total_points: {summary.raw.total_points ?? '—'} · candidatesFound: {summary.raw.candidatesFound ?? 0}
                       </div>

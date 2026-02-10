@@ -3,6 +3,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
+import { getPaidNowPercent } from '@/lib/payments/schedule';
 import { sendPlainEmail } from '@/lib/email';
 import { randomBytes } from 'crypto';
 import { generateAcceptToken } from '@/lib/tokens';
@@ -455,7 +456,7 @@ async function buildSnapshot({
       ? supabase
           .from('booking_requests')
           .select(
-            'lead_guest_name, lead_guest_email, lead_guest_phone, address_line1, address_line2, city, state, postal_code, country, check_in, check_out, total_points, max_price_per_point, guest_total_cents, guest_rate_per_point_cents, deposit_paid, deposit_due, primary_room, primary_view, primary_resort:resorts(name, calculator_code, slug)',
+            'renter_id, lead_guest_name, lead_guest_email, lead_guest_phone, address_line1, address_line2, city, state, postal_code, country, check_in, check_out, total_points, max_price_per_point, guest_total_cents, guest_rate_per_point_cents, deposit_paid, deposit_due, primary_room, primary_view, primary_resort:resorts(name, calculator_code, slug)',
           )
           .eq('id', bookingRequestId)
           .maybeSingle()
@@ -485,6 +486,14 @@ async function buildSnapshot({
   const owner = ownerResponse.data;
   const membership = membershipResponse?.data ?? null;
   const booking = bookingResponse?.data;
+  const renterProfileResponse = booking?.renter_id
+    ? await supabase
+        .from('profiles')
+        .select('full_name, email, phone, address_line1, address_line2, city, region, postal_code, country')
+        .eq('id', booking.renter_id)
+        .maybeSingle()
+    : { data: null };
+  const renterProfile = renterProfileResponse?.data ?? null;
   const guestRows = (guestResponse?.data ?? []) as Array<{
     first_name: string | null;
     last_name: string | null;
@@ -601,10 +610,9 @@ async function buildSnapshot({
     (guestPricePerPointCents && pointsRented ? guestPricePerPointCents * pointsRented : null) ??
     0;
 
-  const daysUntilCheckIn =
-    booking?.check_in ? Math.ceil((new Date(booking.check_in).getTime() - Date.now()) / 86400000) : null;
-  const paidNowPercent = daysUntilCheckIn !== null && daysUntilCheckIn < 90 ? 100 : 70;
-  const paidNowRule = daysUntilCheckIn !== null && daysUntilCheckIn < 90 ? 'WITHIN_3_MONTHS_100' : 'WITHIN_3_MONTHS_100_ELSE_70';
+  const checkInDate = booking?.check_in ?? packageCheckIn ?? rentalRow?.check_in ?? null;
+  const paidNowPercent = getPaidNowPercent(checkInDate);
+  const paidNowRule = paidNowPercent === 100 ? 'WITHIN_3_MONTHS_100' : 'WITHIN_3_MONTHS_100_ELSE_70';
   const paidNowCents = Math.round((guestTotalCents * paidNowPercent) / 100);
   const balanceOwingCents = Math.max(guestTotalCents - paidNowCents, 0);
 
@@ -644,16 +652,16 @@ async function buildSnapshot({
     },
     parties: {
       guest: {
-        fullName: booking?.lead_guest_name ?? packageGuestName ?? '—',
-        email: booking?.lead_guest_email ?? null,
-        phone: booking?.lead_guest_phone ?? null,
+        fullName: booking?.lead_guest_name ?? renterProfile?.full_name ?? packageGuestName ?? '—',
+        email: booking?.lead_guest_email ?? renterProfile?.email ?? null,
+        phone: booking?.lead_guest_phone ?? renterProfile?.phone ?? null,
         address: {
-          line1: booking?.address_line1 ?? null,
-          line2: booking?.address_line2 ?? null,
-          city: booking?.city ?? null,
-          state: booking?.state ?? null,
-          postal: booking?.postal_code ?? null,
-          country: booking?.country ?? null,
+          line1: booking?.address_line1 ?? renterProfile?.address_line1 ?? null,
+          line2: booking?.address_line2 ?? renterProfile?.address_line2 ?? null,
+          city: booking?.city ?? renterProfile?.city ?? null,
+          state: booking?.state ?? renterProfile?.region ?? null,
+          postal: booking?.postal_code ?? renterProfile?.postal_code ?? null,
+          country: booking?.country ?? renterProfile?.country ?? null,
         },
       },
       owner: {

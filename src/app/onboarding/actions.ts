@@ -141,11 +141,42 @@ export async function saveOwnerContracts(input: {
 
   const { error: ownerError } = await sb.from('owners').upsert(ownerPayload, { onConflict: 'id' });
   if (ownerError) {
+    console.error('[onboarding] failed to upsert owner', {
+      code: ownerError.code,
+      message: ownerError.message,
+      details: ownerError.details,
+      hint: ownerError.hint,
+    });
     throw new Error(ownerError.message);
   }
 
   if (validContracts.length) {
     const listedAt = new Date().toISOString();
+    const resortIds = Array.from(
+      new Set(validContracts.map((contract) => contract.resort_id).filter(Boolean)),
+    );
+    const existingMemberships =
+      resortIds.length > 0
+        ? await sb
+            .from('owner_memberships')
+            .select('resort_id, use_year, use_year_start, allow_standard_rate_fallback')
+            .eq('owner_id', user.id)
+            .in('resort_id', resortIds)
+        : { data: [], error: null };
+    if (existingMemberships.error) {
+      console.error('[onboarding] failed to load existing memberships', {
+        code: existingMemberships.error.code,
+        message: existingMemberships.error.message,
+        details: existingMemberships.error.details,
+        hint: existingMemberships.error.hint,
+      });
+    }
+    const membershipPreferenceMap = new Map(
+      (existingMemberships.data ?? []).map((row) => [
+        `${row.resort_id}:${row.use_year ?? 'none'}:${row.use_year_start ?? 'none'}`,
+        row.allow_standard_rate_fallback,
+      ]),
+    );
     const rows = validContracts.map((contract) => ({
       owner_id: user.id,
       resort_id: contract.resort_id,
@@ -154,7 +185,10 @@ export async function saveOwnerContracts(input: {
       points_owned: contract.points_owned ?? null,
       points_available: contract.points_available ?? null,
       matching_mode: input.matching_mode,
-      allow_standard_rate_fallback: input.allow_standard_rate_fallback,
+      allow_standard_rate_fallback:
+        membershipPreferenceMap.get(
+          `${contract.resort_id}:${contract.use_year ?? 'none'}:${contract.use_year_start ?? 'none'}`,
+        ) ?? input.allow_standard_rate_fallback,
       premium_only_listed_at: listedAt,
       borrowing_enabled: contract.borrowing_enabled ?? false,
       max_points_to_borrow: contract.max_points_to_borrow ?? null,
@@ -164,6 +198,12 @@ export async function saveOwnerContracts(input: {
       .from('owner_memberships')
       .upsert(rows, { onConflict: 'owner_id,resort_id,use_year,use_year_start' });
     if (error) {
+      console.error('[onboarding] failed to upsert owner memberships', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
       throw new Error(error.message);
     }
   }

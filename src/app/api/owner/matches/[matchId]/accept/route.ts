@@ -120,10 +120,21 @@ export async function POST(
       }
     }
 
-    await adminClient
+    const { error: expiredBookingError } = await adminClient
       .from("booking_requests")
-      .update({ status: "pending_match", matched_owner_id: null, updated_at: nowIso })
+      .update({ status: "pending_match", updated_at: nowIso })
       .eq("id", match.booking_id);
+
+    if (expiredBookingError) {
+      console.error("Failed to update booking request after match expiry", {
+        code: expiredBookingError.code,
+        message: expiredBookingError.message,
+        details: expiredBookingError.details,
+        hint: expiredBookingError.hint,
+        matchId: match.id,
+        bookingId: match.booking_id,
+      });
+    }
 
     return NextResponse.json({ error: "expired" }, { status: 410 });
   }
@@ -139,9 +150,13 @@ export async function POST(
       .eq("id", match.id);
 
     if (matchUpdateError) {
-      if (process.env.NODE_ENV !== "production") {
-        console.error("Failed to update match", matchUpdateError);
-      }
+      console.error("Failed to update match", {
+        code: matchUpdateError.code,
+        message: matchUpdateError.message,
+        details: matchUpdateError.details,
+        hint: matchUpdateError.hint,
+        matchId: match.id,
+      });
       return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
     }
   }
@@ -162,20 +177,29 @@ export async function POST(
   try {
     rentalRow = await ensureRentalForMatch({ adminClient, matchId: match.id, ownerUserId: owner.user_id ?? user.id });
   } catch (error) {
-    if (process.env.NODE_ENV !== "production") {
-      console.error("Failed to ensure rental", error);
-    }
+    console.error("Failed to ensure rental", {
+      matchId: match.id,
+      bookingId: booking.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
 
   const { error: bookingUpdateError } = await adminClient
     .from("booking_requests")
-    .update({ status: "matched", matched_owner_id: owner.id, updated_at: nowIso })
+    .update({ status: "matched", updated_at: nowIso })
     .eq("id", booking.id);
 
   if (bookingUpdateError) {
     if (process.env.NODE_ENV !== "production") {
-      console.error("Failed to update booking request", bookingUpdateError);
+      console.error("Failed to update booking request", {
+        code: bookingUpdateError.code,
+        message: bookingUpdateError.message,
+        details: bookingUpdateError.details,
+        hint: bookingUpdateError.hint,
+        matchId: match.id,
+        bookingId: booking.id,
+      });
     }
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }

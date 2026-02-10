@@ -32,11 +32,15 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (existingError || !existing) {
+    if (existingError) {
+      console.error('Failed to load booking request for promote-to-matching', {
+        code: existingError.code,
+        message: existingError.message,
+        details: existingError.details,
+        hint: existingError.hint,
+      });
+    }
     return NextResponse.json({ error: 'Request not found' }, { status: 404 });
-  }
-
-  if (existing.availability_status !== 'confirmed') {
-    return NextResponse.json({ error: 'availability_not_confirmed' }, { status: 400 });
   }
 
   const nowIso = new Date().toISOString();
@@ -48,6 +52,14 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (updateError || !updatedRequest) {
+    if (updateError) {
+      console.error('Failed to promote booking request to pending_match', {
+        code: updateError.code,
+        message: updateError.message,
+        details: updateError.details,
+        hint: updateError.hint,
+      });
+    }
     return NextResponse.json({ error: updateError?.message ?? 'Unable to promote request' }, { status: 400 });
   }
 

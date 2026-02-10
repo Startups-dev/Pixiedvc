@@ -26,6 +26,7 @@ type BookingRow = {
   status: string | null;
   check_in: string | null;
   check_out: string | null;
+  availability_status?: string | null;
   deposit_due: number | null;
   deposit_paid: number | null;
   guest_total_cents?: number | null;
@@ -98,6 +99,7 @@ export type EvaluatedBooking = {
   deposit_ok: boolean;
   candidatesFound: number;
   candidatesEvaluated: MatchCandidateEvaluation[];
+  candidateRejectionCounts?: Record<string, number>;
   finalDecision: 'matched' | 'skipped';
   skipReasons: string[];
 };
@@ -181,6 +183,7 @@ export async function evaluateMatchBookings(options: {
         status,
         check_in,
         check_out,
+        availability_status,
         deposit_due,
         deposit_paid,
         guest_total_cents,
@@ -197,11 +200,17 @@ export async function evaluateMatchBookings(options: {
   if (bookingId) {
     bookingQuery = bookingQuery.eq('id', bookingId);
   } else {
-    bookingQuery = bookingQuery.eq('status', 'pending_match');
+    bookingQuery = bookingQuery.in('status', ['pending_match', 'submitted']);
   }
 
   const { data: bookings, error: bookingError } = await bookingQuery;
   if (bookingError) {
+    console.error('[matcher] failed to load booking requests', {
+      code: bookingError.code,
+      message: bookingError.message,
+      details: bookingError.details,
+      hint: bookingError.hint,
+    });
     return {
       eligibleBookings: [] as string[],
       evaluatedBookings: [] as EvaluatedBooking[],
@@ -221,12 +230,15 @@ export async function evaluateMatchBookings(options: {
   const eligibleBookings: string[] = [];
   const errors: MatchRunResult['errors'] = [];
 
+  const matchableStatuses = new Set(['pending_match', 'submitted']);
+
   for (const booking of (bookings ?? []) as BookingRow[]) {
     const skipReasons: string[] = [];
     const candidatesEvaluated: MatchCandidateEvaluation[] = [];
+    const candidateRejectionCounts: Record<string, number> = {};
     const depositOk = computeDepositOk(booking);
 
-    if (booking.status !== 'pending_match') {
+    if (!matchableStatuses.has(booking.status)) {
       skipReasons.push('booking_status_not_pending_match');
     }
     if (!booking.primary_resort_id) {
@@ -510,6 +522,11 @@ export async function evaluateMatchBookings(options: {
       });
 
       if (rejectReasons.length > 0) {
+        const [primaryReason] = rejectReasons;
+        if (primaryReason) {
+          candidateRejectionCounts[primaryReason] =
+            (candidateRejectionCounts[primaryReason] ?? 0) + 1;
+        }
         continue;
       }
 
@@ -545,6 +562,8 @@ export async function evaluateMatchBookings(options: {
       if (!evaluated.skipReasons.includes('no_eligible_candidates')) {
         evaluated.skipReasons.push('no_eligible_candidates');
       }
+      evaluated.candidateRejectionCounts =
+        Object.keys(candidateRejectionCounts).length > 0 ? candidateRejectionCounts : undefined;
       evaluatedBookings.push(evaluated);
       continue;
     }
@@ -687,6 +706,13 @@ export async function runMatchBookings(options: {
     matchResults.push({ bookingId: plan.bookingId, matchId });
 
     if (sendEmails && plan.ownerEmail) {
+      if (plan.booking.availability_status !== 'confirmed') {
+        console.info('[matcher] owner package blocked by availability_status', {
+          bookingId: plan.booking.id,
+          availability_status: plan.booking.availability_status ?? null,
+        });
+        continue;
+      }
       const acceptUrl = `${origin}/api/matches/owner/accept?matchId=${matchId}`;
       const declineUrl = `${origin}/api/matches/owner/decline?matchId=${matchId}`;
 

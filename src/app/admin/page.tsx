@@ -69,12 +69,14 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
     query: ownerQueryParam,
   };
 
+  const metricsClient = supabaseAdmin ?? supabase;
+
   const [requestSummary, ownerSummary, latestRequests, ownerPipelineTable, compliance] = await Promise.all([
-    fetchRequestSummary(supabase),
-    fetchOwnerSummary(supabase),
-    fetchLatestBookingRequests(supabase, bookingFilters),
-    fetchOwnerPipelineTable(supabase, ownerFilters),
-    fetchComplianceSnapshot(supabase),
+    fetchRequestSummary(metricsClient),
+    fetchOwnerSummary(metricsClient),
+    fetchLatestBookingRequests(metricsClient, bookingFilters),
+    fetchOwnerPipelineTable(metricsClient, ownerFilters),
+    fetchComplianceSnapshot(metricsClient),
   ]);
 
   const bookingRows = latestRequests.rows;
@@ -529,7 +531,12 @@ async function countBookingRequests(
   }
   const { count, error } = await query;
   if (error) {
-    console.error('Failed to count booking requests', error);
+    console.error('Failed to count booking requests', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
     return 0;
   }
   return count ?? 0;
@@ -564,7 +571,12 @@ async function fetchLatestBookingRequests(supabase: AdminClient, filters: Bookin
   const countQuery = applyBookingFilters(supabase.from('booking_requests').select('id', { count: 'exact', head: true }), filters);
   const { count: total = 0, error: countError } = await countQuery;
   if (countError) {
-    console.error('Failed to count booking requests', countError);
+    console.error('Failed to count booking requests', {
+      code: countError.code,
+      message: countError.message,
+      details: countError.details,
+      hint: countError.hint,
+    });
   }
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));

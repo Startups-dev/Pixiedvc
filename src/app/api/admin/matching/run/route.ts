@@ -11,6 +11,16 @@ const BodySchema = z.object({
   bookingRequestId: z.string().uuid().nullable().optional(),
 });
 
+function summarizeSkipReasons(evaluatedBookings: Array<{ skipReasons: string[] }>) {
+  const counts: Record<string, number> = {};
+  for (const booking of evaluatedBookings) {
+    for (const reason of booking.skipReasons) {
+      counts[reason] = (counts[reason] ?? 0) + 1;
+    }
+  }
+  return counts;
+}
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const parsed = BodySchema.safeParse(body);
@@ -40,6 +50,16 @@ export async function POST(request: Request) {
     now: new Date(),
     sendEmails: true,
   });
+
+  if (result.eligibleBookings.length === 0) {
+    console.info('[matcher] no eligible bookings', {
+      eligibleStatuses: ['pending_match', 'submitted'],
+      candidateCount: result.evaluatedBookings.length,
+      eligibleCount: result.eligibleBookings.length,
+      skipReasons: summarizeSkipReasons(result.evaluatedBookings),
+      bookingId: bookingRequestId,
+    });
+  }
 
   return NextResponse.json(result, { status: result.ok ? 200 : 500 });
 }

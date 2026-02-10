@@ -905,7 +905,7 @@ function OwnerContractsStep({
             <li>We first try to place them in higher-value Premium reservations</li>
             <li>If a Premium match isn’t available, your points can be used for Standard reservations</li>
           </ul>
-          <p>You decide how flexible you want to be:</p>
+          <p>If a Premium booking isn’t possible, allow us to try Standard bookings so you match faster?</p>
         </div>
         <div className="mt-4 space-y-2">
           <label className="flex items-start gap-2">

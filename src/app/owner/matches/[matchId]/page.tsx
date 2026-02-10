@@ -172,12 +172,6 @@ export default async function OwnerMatchDetailPage({ params }: { params: { match
               Rate: {formatRatePerPoint(ownerRatePerPointCents)}
               {premiumApplied && ownerPremiumCents ? ` (+$${(ownerPremiumCents / 100).toFixed(2)} home resort premium)` : ""}
             </p>
-            {guestTotalCents !== null ? (
-              <p className="mt-2 text-xs text-slate-500">
-                Guest pays: {formatCurrency(guestTotalCents)}
-                {guestRatePerPointCents !== null ? ` · ${formatRatePerPoint(guestRatePerPointCents)}` : ""}
-              </p>
-            ) : null}
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">

@@ -11,7 +11,8 @@ type TripPayload = {
   points?: number;
   estCash?: number;
   accessibility?: boolean;
-  altResortId?: string;
+  secondaryResortId?: string;
+  tertiaryResortId?: string;
 };
 
 type GuestPayload = {
@@ -247,9 +248,9 @@ export async function POST(request: Request) {
       primary_room: primaryRoom,
       primary_view: null,
       requires_accessibility: Boolean(trip.accessibility),
-      secondary_resort_id: null,
+      secondary_resort_id: asString(trip.secondaryResortId) || null,
       secondary_room: null,
-      tertiary_resort_id: null,
+      tertiary_resort_id: asString(trip.tertiaryResortId) || null,
       tertiary_room: null,
       adults: Number.isFinite(adults) ? adults : null,
       youths: Number.isFinite(youths) ? youths : null,

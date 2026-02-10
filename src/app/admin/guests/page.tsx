@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import GuestRequestBoard, { ActivityEntry, GuestRequestRecord } from './guest-requests';
 import { requireAdminUser } from '@/lib/admin';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
@@ -13,8 +14,11 @@ type RequestRow = {
   check_in: string | null;
   check_out: string | null;
   primary_room: string | null;
+  secondary_resort_id: string | null;
+  tertiary_resort_id: string | null;
   adults: number | null;
   youths: number | null;
+  total_points: number | null;
   max_price_per_point: number | null;
   availability_status: string | null;
   availability_checked_at: string | null;
@@ -50,13 +54,18 @@ export default async function AdminGuestsPage() {
   const { data: requestRows, error } = await supabase
     .from('booking_requests')
     .select(
-      'id, renter_id, status, created_at, updated_at, check_in, check_out, primary_room, adults, youths, max_price_per_point, availability_status, availability_checked_at, lead_guest_name, lead_guest_email, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)',
+      'id, renter_id, status, created_at, updated_at, check_in, check_out, primary_room, secondary_resort_id, tertiary_resort_id, adults, youths, total_points, max_price_per_point, availability_status, availability_checked_at, lead_guest_name, lead_guest_email, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)',
     )
     .order('created_at', { ascending: false })
     .limit(75);
 
   if (error) {
-    console.error('Failed to load guest requests', error);
+    console.error('Failed to load guest requests', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
     return (
       <div className="mx-auto max-w-3xl px-6 py-12 text-slate-700">
         <h1 className="text-2xl font-semibold text-rose-600">Unable to load guest requests</h1>
@@ -76,7 +85,56 @@ export default async function AdminGuestsPage() {
         .order('created_at', { ascending: false })
     : Promise.resolve({ data: [], error: null });
 
-  const statusPromise = supabase.from('booking_requests').select('status');
+  const metricsClient = supabaseAdmin;
+
+  async function fetchCount(
+    label: string,
+    applyFilter?: (query: ReturnType<typeof supabase.from>) => ReturnType<typeof supabase.from>,
+  ) {
+    if (!metricsClient) {
+      return 0;
+    }
+    let query = metricsClient.from('booking_requests').select('id', { count: 'exact', head: true });
+    if (applyFilter) {
+      query = applyFilter(query);
+    }
+    const { count, error: countError } = await query;
+    if (countError) {
+      console.error(`Failed to count booking_requests (${label})`, {
+        code: countError.code,
+        message: countError.message,
+        details: countError.details,
+        hint: countError.hint,
+      });
+      return 0;
+    }
+    return count ?? 0;
+  }
+
+  const statusPromise = (metricsClient ?? supabase).from('booking_requests').select('status');
+
+  const metricsPromise = metricsClient
+    ? Promise.all([
+        fetchCount('total_open', (query) =>
+          query.in('status', ['submitted', 'pending_match', 'pending_owner']),
+        ),
+        fetchCount('needs_availability', (query) =>
+          query.eq('availability_status', 'needs_check'),
+        ),
+        fetchCount('confirmed_availability', (query) =>
+          query.eq('availability_status', 'confirmed'),
+        ),
+        fetchCount('with_multiple_choices', (query) =>
+          query.or('secondary_resort_id.not.is.null,tertiary_resort_id.not.is.null'),
+        ),
+        fetchCount('choices_no_availability', (query) =>
+          query
+            .in('status', ['submitted', 'pending_match'])
+            .or('secondary_resort_id.not.is.null,tertiary_resort_id.not.is.null')
+            .or('availability_status.is.null,availability_status.neq.confirmed'),
+        ),
+      ])
+    : Promise.resolve([0, 0, 0, 0, 0]);
 
   const profilePromise = renterIds.length
     ? supabase.from('profiles').select('id, display_name, email').in('id', renterIds)
@@ -94,12 +152,13 @@ export default async function AdminGuestsPage() {
     return supabase.from('profiles').select('id, display_name, email').in('id', authorIds);
   });
 
-  const [{ data: activityRows }, { data: statusRows }, { data: renterProfiles }, authorProfilesResult] = await Promise.all([
-    activityPromise,
-    statusPromise,
-    profilePromise,
-    authorPromise,
-  ]);
+  const [
+    { data: activityRows },
+    { data: statusRows },
+    { data: renterProfiles },
+    authorProfilesResult,
+    [totalOpen, needsAvailability, confirmedAvailability, withMultipleChoices, choicesNoAvailability],
+  ] = await Promise.all([activityPromise, statusPromise, profilePromise, authorPromise, metricsPromise]);
 
   const authorProfiles = authorProfilesResult.data ?? [];
 
@@ -141,10 +200,13 @@ export default async function AdminGuestsPage() {
       roomType: row.primary_room,
       adults: row.adults,
       children: row.youths,
+      totalPoints: row.total_points,
       maxPrice: row.max_price_per_point,
       availabilityStatus: row.availability_status,
       availabilityCheckedAt: row.availability_checked_at,
+      hasMultipleChoices: Boolean(row.secondary_resort_id || row.tertiary_resort_id),
       resortName: row.primary_resort?.name ?? null,
+      renterId: row.renter_id,
       renterName: row.lead_guest_name ?? renter?.display_name ?? null,
       renterEmail: row.lead_guest_email ?? renter?.email ?? null,
       activity: activityMap.get(row.id) ?? [],
@@ -172,15 +234,32 @@ export default async function AdminGuestsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-12">
-      <div className="space-y-2">
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Admin</p>
-        <h1 className="text-3xl font-semibold text-slate-900">Guest Requests</h1>
-        <p className="text-slate-600">Concierge workspace for reviewing new booking requests.</p>
-      </div>
+    <div className="min-h-screen bg-[#f7f7f8] text-slate-800">
+      <div className="mx-auto max-w-6xl px-6 py-12">
+        <div className="space-y-2">
+          <Link
+            href="/admin"
+            className="text-xs uppercase tracking-[0.3em] text-slate-400 hover:text-slate-600"
+          >
+            Admin
+          </Link>
+          <h1 className="text-3xl font-semibold text-slate-900">Guest Requests</h1>
+          <p className="text-slate-600">Concierge workspace for reviewing new booking requests.</p>
+        </div>
 
-      <div className="mt-8">
-        <GuestRequestBoard requests={records} statusCounts={statusCounts} />
+        <div className="mt-8">
+          <GuestRequestBoard
+            requests={records}
+            statusCounts={statusCounts}
+            metrics={{
+              totalOpen,
+              needsAvailability,
+              confirmedAvailability,
+              withMultipleChoices,
+            }}
+            bannerCount={choicesNoAvailability}
+          />
+        </div>
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ type BookingForSchedule = {
   guest_total_cents?: number | null;
   est_cash?: number | null;
   deposit_due?: number | null;
+  check_in?: string | null;
 };
 
 export type PaymentScheduleRow = {
@@ -32,6 +33,18 @@ export type PaymentScheduleResult = {
   missing: string[];
   deposit_source: 'default' | 'request';
 };
+
+function daysUntil(dateValue: string | null | undefined) {
+  if (!dateValue) return null;
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return null;
+  return Math.ceil((date.getTime() - Date.now()) / 86400000);
+}
+
+export function getPaidNowPercent(checkIn: string | null | undefined) {
+  const days = daysUntil(checkIn ?? null);
+  return days !== null && days < 90 ? 100 : 70;
+}
 
 function statusFromTxn(txn: TransactionRow | null, hasTotal: boolean) {
   if (!hasTotal) return '—';
@@ -85,11 +98,15 @@ export function computePaymentSchedule(options: {
 
   const totalTaxCents = totalCents !== null ? options.total_tax_cents ?? 0 : 0;
   const grandTotalCents = totalCents !== null ? totalCents + totalTaxCents : null;
-  const bookingTranche = grandTotalCents !== null ? Math.round(grandTotalCents * 0.7) : null;
+  const paidNowPercent = getPaidNowPercent(booking?.check_in ?? null);
+  const bookingTranche =
+    grandTotalCents !== null ? Math.round(grandTotalCents * (paidNowPercent / 100)) : null;
   const dueBookingCents =
     bookingTranche !== null ? Math.max(bookingTranche - depositCents, 0) : null;
   const dueCheckinCents =
-    grandTotalCents !== null && bookingTranche !== null ? grandTotalCents - bookingTranche : null;
+    grandTotalCents !== null && bookingTranche !== null
+      ? Math.max(grandTotalCents - bookingTranche, 0)
+      : null;
 
   if (bookingTranche !== null && bookingTranche - depositCents < 0) {
     warnings.push('Deposit exceeds 70% tranche');

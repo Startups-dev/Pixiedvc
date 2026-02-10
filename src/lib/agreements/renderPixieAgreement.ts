@@ -165,13 +165,13 @@ export function renderPixieAgreementHTML(
     <h3>10. Reservation Management</h3>
     <p>Renter is responsible for creating and managing a My Disney Experience account, ensuring a valid credit card is linked at check-in, and payment of all incidental charges during the stay. Requests for guest changes, corrections, or add-ons must be submitted at least 30 days prior to arrival.</p>
 
-    <h3>11. Payment Status</h3>
+    <h3>11. Payment Schedule</h3>
     <p>
       Points rented: <b>${Number(summary.pointsRented)}</b><br/>
       Price per point: <b>${money(derivedPricePerPoint)}</b><br/>
       Total rental amount: <b>${money(derivedTotalUsd)}</b><br/>
-      Amount paid: <b>${money(derivedAmountPaidUsd)}</b><br/>
-      Balance owing: <b>${money(derivedBalanceOwedUsd)}</b>
+      Initial payment due immediately upon signing: <b>${money(derivedAmountPaidUsd)}</b><br/>
+      Remaining balance due before check-in: <b>${money(derivedBalanceOwedUsd)}</b>
     </p>
 
     <h3 id="cancellation-policy">12. Deferred Cancellation Credit Policy</h3>

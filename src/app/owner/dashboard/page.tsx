@@ -139,9 +139,21 @@ export default async function OwnerDashboardPage() {
   }));
 
   const displayName = getDisplayName(owner, user.email ?? null);
-  const pointsSummary = getPointsSummary(memberships);
-  const nextExpiring = getNextExpiringMembership(memberships);
-  const showResaleRestrictionBanner = hasRestrictedResaleMembership(memberships);
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const visibleMemberships = memberships
+    .filter((membership) => !membership.expired_assumed_at)
+    .filter((membership) => {
+      const endDate = getUseYearEndDate(membership.use_year_start, membership.use_year_end);
+      return endDate ? endDate >= todayISO : true;
+    })
+    .sort((a, b) => (a.use_year_start ?? "").localeCompare(b.use_year_start ?? ""));
+
+  const pointsSummary = getPointsSummary(visibleMemberships);
+  const nextExpiring = getNextExpiringMembership(visibleMemberships);
+  const showResaleRestrictionBanner = hasRestrictedResaleMembership(visibleMemberships);
+  const hasPremiumOnlyMembership = visibleMemberships.some(
+    (membership) => membership.matching_mode === "premium_only",
+  );
 
   const pendingPayouts = payouts.filter((payout) => payout.status === "eligible" || payout.status === "pending");
   const pendingPayoutAmount = pendingPayouts.reduce((sum, payout) => sum + Number(payout.amount_cents ?? 0), 0);
@@ -189,7 +201,7 @@ export default async function OwnerDashboardPage() {
     return approved && !confirmation;
   });
 
-  const expiringPoints = memberships
+  const expiringPoints = visibleMemberships
     .map((membership) => {
       const nudge = getMembershipNudge(membership);
       if (!nudge) return null;
@@ -200,7 +212,7 @@ export default async function OwnerDashboardPage() {
     })
     .filter((membership): membership is any => Boolean(membership));
 
-  const membershipRows = memberships.map((membership) => {
+  const membershipRows = visibleMemberships.map((membership) => {
     const resortCode = membership.resort?.calculator_code ?? membership.resort?.slug ?? null;
     const resortLabel = resortCode ? `${membership.resort?.name ?? "Resort TBD"} (${resortCode})` : membership.resort?.name ?? "Resort TBD";
     const useYearLabel =
@@ -265,16 +277,29 @@ export default async function OwnerDashboardPage() {
           Track every rental milestone, upload confirmations, and stay ahead of payout releases.
         </p>
         <div className="flex flex-wrap gap-3">
-          <Button asChild variant="ghost">
+          <Button asChild>
             <Link href="/owner/rentals">View rentals</Link>
           </Button>
-          <Button asChild>
+          <Button asChild variant="ghost" className="!text-[#0B1B3A]">
             <Link href="/owner/payouts">View payouts</Link>
           </Button>
         </div>
       </header>
 
       <StatTiles tiles={tiles} />
+
+      {hasPremiumOnlyMembership ? (
+        <Card className="border border-amber-200 bg-amber-50/60 text-amber-900">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-semibold">
+              You’re set to Premium-only. This may prevent matches in the Standard window. Enable “Try Premium then Standard” to match faster.
+            </p>
+            <Button asChild variant="ghost">
+              <Link href="/owner/memberships">Review matching preferences</Link>
+            </Button>
+          </div>
+        </Card>
+      ) : null}
 
       <Card className="space-y-4">
         <div className="flex items-center justify-between gap-3">
@@ -390,7 +415,7 @@ export default async function OwnerDashboardPage() {
       </Card>
 
       <OwnerMembershipManager
-        memberships={memberships}
+        memberships={visibleMemberships}
         resorts={resorts as { id: string; name: string; calculator_code: string | null }[]}
       />
 
