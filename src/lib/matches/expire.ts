@@ -76,7 +76,7 @@ export async function expireMatchAndReleasePoints(options: {
 
     const { data: currentMembership, error: currentMembershipError } = await adminClient
       .from('owner_memberships')
-      .select('owner_id, resort_id, contract_year')
+      .select('owner_id, resort_id, use_year_start')
       .eq('id', match.owner_membership_id)
       .maybeSingle();
 
@@ -84,16 +84,20 @@ export async function expireMatchAndReleasePoints(options: {
       throw currentMembershipError;
     }
 
-    const bookingYear = booking?.check_in ? new Date(booking.check_in).getUTCFullYear() : null;
-    const currentYear = currentMembership?.contract_year ?? bookingYear;
-
-    if (currentMembership?.owner_id && currentMembership?.resort_id && currentYear) {
+    const currentStart = currentMembership?.use_year_start ?? null;
+    if (currentMembership?.owner_id && currentMembership?.resort_id && currentStart) {
+      const nextStart = new Date(currentStart);
+      if (Number.isNaN(nextStart.getTime())) {
+        return;
+      }
+      nextStart.setUTCFullYear(nextStart.getUTCFullYear() + 1);
+      const nextISO = nextStart.toISOString().slice(0, 10);
       const { data: nextMembership, error: nextMembershipError } = await adminClient
         .from('owner_memberships')
         .select('id, points_reserved')
         .eq('owner_id', currentMembership.owner_id)
         .eq('resort_id', currentMembership.resort_id)
-        .eq('contract_year', currentYear + 1)
+        .eq('use_year_start', nextISO)
         .maybeSingle();
 
       if (nextMembershipError) {

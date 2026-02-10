@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { runMatchBookings, type MatchRunResult } from '@/lib/match-bookings';
+import { expireMembershipBuckets } from '@/lib/owner-data';
 
 function getProvidedSecret(headers: Headers) {
   const headerSecret = headers.get('x-cron-secret');
@@ -18,10 +19,28 @@ async function countTableRows(client: ReturnType<typeof getSupabaseAdminClient>,
   if (!client) return null;
   const { count, error } = await client.from(table).select('id', { head: true, count: 'exact' });
   if (error) {
+    console.error('[matcher] failed to count rows', {
+      table,
+      step,
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
     errors.push({ step, message: error.message });
     return null;
   }
   return typeof count === 'number' ? count : null;
+}
+
+function summarizeSkipReasons(evaluatedBookings: Array<{ skipReasons: string[] }>) {
+  const counts: Record<string, number> = {};
+  for (const booking of evaluatedBookings) {
+    for (const reason of booking.skipReasons) {
+      counts[reason] = (counts[reason] ?? 0) + 1;
+    }
+  }
+  return counts;
 }
 
 function parseProjectRef(url?: string | null) {
@@ -131,6 +150,7 @@ async function handleMatchBookings(request: NextRequest) {
   }
 
   const origin = request.nextUrl.origin;
+  await expireMembershipBuckets();
   const result = await runMatchBookings({
     client,
     origin,
@@ -244,6 +264,16 @@ async function handleMatchBookings(request: NextRequest) {
     projectRef,
     evaluatedBookings,
   };
+
+  if (result.eligibleBookings.length === 0) {
+    console.info('[matcher] no eligible bookings', {
+      eligibleStatuses: ['pending_match', 'submitted'],
+      candidateCount: result.evaluatedBookings.length,
+      eligibleCount: result.eligibleBookings.length,
+      skipReasons: summarizeSkipReasons(result.evaluatedBookings),
+      bookingId: payload.bookingId ?? null,
+    });
+  }
 
   if (nodeEnv === 'development') {
     payload.debug = {

@@ -19,7 +19,7 @@ type OwnerMatchEmailPayload = {
   declineUrl?: string | null;
 };
 
-const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL ?? 'bookings@pixiedvc.com';
+const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL ?? 'hello@pixiedvc.com';
 
 async function sendResendEmail({
   to,
@@ -76,7 +76,7 @@ export async function sendBookingConfirmationEmail(payload: BookingEmailPayload)
     '',
     'Our concierge team is pairing you with available owners now. We will email you as soon as we have a match (usually within 24 hours).',
     '',
-    'Need to update anything? Reply to this email or contact concierge@pixiedvc.com.',
+    'Need to update anything? Reply to this email or contact hello@pixiedvc.com.',
     '',
     'PixieDVC Concierge',
   ].join('\n');
@@ -171,5 +171,42 @@ export async function sendOwnerAgreementSignedEmail(payload: {
     subject,
     body,
     context: 'owner agreement signed email',
+  });
+}
+
+export async function sendGuestAgreementSignedEmail(payload: {
+  to: string;
+  guestName?: string | null;
+  resortName?: string | null;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  agreementUrl?: string | null;
+}) {
+  const subject = 'PixieDVC – Your signed rental agreement';
+  const guestName = payload.guestName ?? 'there';
+  const agreementLine = payload.agreementUrl
+    ? payload.agreementUrl
+    : 'A copy of your signed agreement is available in your PixieDVC trip details.';
+
+  const body = [
+    `Hi ${guestName},`,
+    '',
+    'Your PixieDVC rental agreement has been successfully signed and finalized.',
+    '',
+    'For your records, you can view or download a copy of your signed agreement using the link below:',
+    agreementLine,
+    '',
+    'If you have any questions about your reservation or need assistance at any point, our concierge team is here to help.',
+    '',
+    'Warm regards,',
+    'PixieDVC Concierge',
+    'hello@pixiedvc.com',
+  ].join('\n');
+
+  await sendResendEmail({
+    to: payload.to,
+    subject,
+    body,
+    context: 'guest agreement signed email',
   });
 }

@@ -12,10 +12,13 @@ export type GuestRequestRecord = {
   roomType: string | null;
   adults: number | null;
   children: number | null;
+  totalPoints: number | null;
   maxPrice: number | null;
   availabilityStatus?: string | null;
   availabilityCheckedAt?: string | null;
+  hasMultipleChoices: boolean;
   resortName: string | null;
+  renterId: string | null;
   renterName: string | null;
   renterEmail: string | null;
   activity: ActivityEntry[];
@@ -53,13 +56,25 @@ const FILTERS = ['all', 'submitted', 'pending', 'matched', 'confirmed', 'cancell
 export default function GuestRequestBoard({
   requests,
   statusCounts,
+  metrics,
+  bannerCount,
 }: {
   requests: GuestRequestRecord[];
   statusCounts: Record<string, number>;
+  metrics: {
+    totalOpen: number;
+    needsAvailability: number;
+    confirmedAvailability: number;
+    withMultipleChoices: number;
+  };
+  bannerCount: number;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('all');
+  const [quickFilter, setQuickFilter] = useState<
+    'needs_availability' | 'has_choices' | 'ready_to_send' | 'choices_no_availability' | null
+  >(null);
   const [selectedId, setSelectedId] = useState(requests[0]?.id ?? null);
   const [note, setNote] = useState('');
   const [availabilityNote, setAvailabilityNote] = useState('');
@@ -79,6 +94,28 @@ export default function GuestRequestBoard({
             ? status === 'pending_match' || status === 'pending_owner'
             : status === filter;
       if (!matchesFilter) {
+        return false;
+      }
+      if (quickFilter === 'needs_availability' && request.availabilityStatus !== 'needs_check') {
+        return false;
+      }
+      if (quickFilter === 'has_choices' && !request.hasMultipleChoices) {
+        return false;
+      }
+      if (
+        quickFilter === 'ready_to_send' &&
+        !(status === 'pending_match' && request.availabilityStatus === 'confirmed')
+      ) {
+        return false;
+      }
+      if (
+        quickFilter === 'choices_no_availability' &&
+        !(
+          (status === 'submitted' || status === 'pending_match') &&
+          request.hasMultipleChoices &&
+          request.availabilityStatus !== 'confirmed'
+        )
+      ) {
         return false;
       }
       if (!text) {
@@ -170,6 +207,63 @@ export default function GuestRequestBoard({
 
   return (
     <div className="space-y-6">
+      {bannerCount > 0 ? (
+        <div className="rounded-3xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-700 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="font-semibold text-slate-900">
+              {bannerCount} requests have 3 choices but no availability yet
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setFilter('all');
+                setQuickFilter('choices_no_availability');
+              }}
+              className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-700 hover:bg-slate-50"
+            >
+              Filter to these
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: 'Total open', value: metrics.totalOpen },
+          { label: 'Needs availability', value: metrics.needsAvailability },
+          { label: 'Confirmed availability', value: metrics.confirmedAvailability },
+          { label: 'With 2+ choices', value: metrics.withMultipleChoices },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm"
+          >
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{item.label}</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{item.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        {[
+          { key: 'needs_availability', label: 'Needs availability' },
+          { key: 'has_choices', label: 'Has 3 choices' },
+          { key: 'ready_to_send', label: 'Ready to send owner package' },
+        ].map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() =>
+              setQuickFilter((prev) => (prev === item.key ? null : (item.key as typeof quickFilter)))
+            }
+            className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] ${
+              quickFilter === item.key ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
       <div className="flex flex-wrap items-center gap-3">
         {FILTERS.map((key) => (
           <button
@@ -220,6 +314,9 @@ export default function GuestRequestBoard({
                         <p className="text-xs text-slate-500">
                           {request.resortName ?? 'Any resort'} · {formatDates(request.checkIn, request.checkOut)}
                         </p>
+                        <p className="text-xs text-slate-500">
+                          {request.totalPoints ? `${request.totalPoints} points` : 'Points TBD'}
+                        </p>
                       </div>
                       <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
                         {STATUS_LABELS[status] ?? status}
@@ -244,7 +341,14 @@ export default function GuestRequestBoard({
           ) : (
             <div className="space-y-5">
               <header>
-                <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Overview</p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Overview</p>
+                  {selected.id ? (
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+                      {selected.id}
+                    </span>
+                  ) : null}
+                </div>
                 <h2 className="text-2xl font-semibold text-slate-900">
                   {selected.renterName ?? selected.renterEmail ?? 'Unknown guest'}
                 </h2>
@@ -259,6 +363,7 @@ export default function GuestRequestBoard({
                 <Stat label="Availability" value={availabilityLabel} />
                 <Stat label="Room type" value={selected.roomType ?? 'Any'} />
                 <Stat label="Party size" value={partyLabel(selected.adults, selected.children)} />
+                <Stat label="Points needed" value={selected.totalPoints ? `${selected.totalPoints}` : '—'} />
                 <Stat
                   label="Max $/pt"
                   value={selected.maxPrice ? `$${selected.maxPrice.toFixed(2)}` : 'No max'}

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 
 import StayBuilderClient from './stay-builder-client';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { getCanonicalResorts } from '@/lib/resorts/getResorts';
 
 type GuestRow = {
   id: string;
@@ -29,7 +30,7 @@ export default async function StayBuilderPage() {
   const { data: draftRows } = await supabase
     .from('booking_requests')
     .select(
-      'id, status, check_in, check_out, nights, primary_resort_id, primary_room, primary_view, requires_accessibility, lead_guest_name, lead_guest_email, lead_guest_phone, address_line1, address_line2, city, state, postal_code, country, marketing_source, comments, adults, youths, accepted_terms, accepted_insurance',
+      'id, status, check_in, check_out, nights, primary_resort_id, secondary_resort_id, tertiary_resort_id, primary_room, primary_view, requires_accessibility, lead_guest_name, lead_guest_email, lead_guest_phone, address_line1, address_line2, city, state, postal_code, country, marketing_source, comments, adults, youths, accepted_terms, accepted_insurance',
     )
     .eq('renter_id', user.id)
     .eq('status', 'draft')
@@ -43,16 +44,15 @@ export default async function StayBuilderPage() {
       .from('booking_requests')
       .insert({ renter_id: user.id, lead_guest_email: user.email })
       .select(
-        'id, status, check_in, check_out, nights, primary_resort_id, primary_room, primary_view, requires_accessibility, lead_guest_name, lead_guest_email, lead_guest_phone, address_line1, address_line2, city, state, postal_code, country, marketing_source, comments, adults, youths, accepted_terms, accepted_insurance',
+        'id, status, check_in, check_out, nights, primary_resort_id, secondary_resort_id, tertiary_resort_id, primary_room, primary_view, requires_accessibility, lead_guest_name, lead_guest_email, lead_guest_phone, address_line1, address_line2, city, state, postal_code, country, marketing_source, comments, adults, youths, accepted_terms, accepted_insurance',
       )
       .single();
     draft = inserted;
   }
 
-  const { data: resorts } = await supabase
-    .from('resorts')
-    .select('id, slug, name, location, card_image, calculator_code')
-    .order('name');
+  const resorts = await getCanonicalResorts(supabase, {
+    select: 'id, slug, name, location, card_image, calculator_code',
+  });
 
   const { data: guestRows } = draft
     ? await supabase
@@ -62,5 +62,5 @@ export default async function StayBuilderPage() {
         .order('created_at', { ascending: true })
     : { data: [] };
 
-  return <StayBuilderClient userEmail={user.email ?? ''} draft={draft!} resorts={resorts ?? []} guests={(guestRows ?? []) as GuestRow[]} />;
+  return <StayBuilderClient userEmail={user.email ?? ''} draft={draft!} resorts={resorts} guests={(guestRows ?? []) as GuestRow[]} />;
 }

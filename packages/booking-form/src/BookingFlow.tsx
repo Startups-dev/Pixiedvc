@@ -41,10 +41,11 @@ const motionVariants = {
 
 type BookingFlowProps = {
   prefill: Prefill;
+  resorts: Array<{ id: string; name: string; slug?: string | null }>;
   onComplete: OnComplete;
 };
 
-export function BookingFlow({ prefill, onComplete }: BookingFlowProps) {
+export function BookingFlow({ prefill, resorts, onComplete }: BookingFlowProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const { ref } = useReferral();
@@ -60,7 +61,8 @@ export function BookingFlow({ prefill, onComplete }: BookingFlowProps) {
         points: prefill.points,
         estCash: prefill.estCash,
         accessibility: false,
-        altResortId: prefill.altResortId,
+        secondaryResortId: prefill.secondaryResortId,
+        tertiaryResortId: prefill.tertiaryResortId,
       },
       guest: {
         leadTitle: "Mr.",
@@ -297,7 +299,7 @@ export function BookingFlow({ prefill, onComplete }: BookingFlowProps) {
             transition={{ duration: 0.35, ease: "easeOut" }}
           >
             {currentStep === "trip" ? (
-              <TripDetails onNext={nextStep} />
+              <TripDetails onNext={nextStep} resorts={resorts} />
             ) : currentStep === "guest" ? (
               <GuestInfo onBack={prevStep} onNext={nextStep} />
             ) : (

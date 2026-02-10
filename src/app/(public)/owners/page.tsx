@@ -4,12 +4,13 @@ import { Button, Card, SectionHeader } from "@pixiedvc/design-system";
 
 const highlights = [
   {
-    title: "Concierge Matching",
-    description: "We only send guests who fit your use year, point totals, and resort preferences.",
+    title: "Owner-First Matching",
+    description:
+      "We don’t broadcast your points to a public marketplace. Each match is curated and presented for your approval before any reservation or contract is created.",
   },
   {
     title: "Contract Automation",
-    description: "PixieDVC drafts and tracks every intermediary agreement — you just review and sign.",
+    description: "PixieDVC drafts and tracks every intermediary agreement, you just review and sign.",
   },
   {
     title: "Transparent Payouts",
@@ -47,6 +48,9 @@ export default function OwnersPage() {
                   <Link href="/info/owners/information">Explore Owner Resources</Link>
                 </Button>
               </div>
+              <p className="text-sm text-muted">
+                No obligation. No exclusivity. You review and approve every match before anything is finalized.
+              </p>
             </div>
             <Card surface="navy" className="space-y-4 text-white">
               <p className="text-xs uppercase tracking-[0.2em] text-white/70">Matching Snapshot</p>
@@ -55,6 +59,7 @@ export default function OwnersPage() {
                 Matched 112 points for an April 5–9 (Sun–Thu) stay. Owner match completed in 5 hours, with
                 deposit secured and contract signed in under 6 hours.
               </p>
+              <p className="text-xs text-white/70">Funds are secured before contracts are finalized.</p>
               <div className="grid grid-cols-3 gap-3 text-center text-sm">
                 <div className="rounded-2xl bg-white/10 p-3">
                   <p className="text-white/60">Avg. Match Time</p>
@@ -76,7 +81,7 @@ export default function OwnersPage() {
             <SectionHeader
               eyebrow="Why Owners Choose Us"
               title="Curated matching, concierge handling, transparent payouts"
-              description="You designed the magic — we handle the operations so members and their guests enjoy flawless stays."
+              description="You designed the magic, we handle the operations so members and their guests enjoy flawless stays."
             />
             <div className="grid gap-6 sm:grid-cols-3">
               {highlights.map((item) => (
@@ -87,6 +92,9 @@ export default function OwnersPage() {
               ))}
             </div>
           </section>
+          <p className="mt-10 text-sm text-muted">
+            PixieDVC operates with owner-first safeguards, verified guests, and contract-backed payouts.
+          </p>
         </main>
       </div>
     </div>

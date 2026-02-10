@@ -34,11 +34,16 @@ export default async function AffiliateDashboardPage() {
           <p className="text-xs uppercase tracking-[0.3em] text-muted">Affiliate Portal</p>
           <h1 className="font-display text-3xl text-ink">Profile not found</h1>
           <p className="text-sm text-muted">
-            We could not find an affiliate profile linked to this email. Reach out to concierge and we will get you set up.
+            We couldn’t find an affiliate profile linked to this email yet. Our concierge team can help get you set up.
           </p>
-          <Button asChild variant="ghost">
-            <Link href="/contact">Talk to Concierge</Link>
-          </Button>
+          <div className="space-y-2">
+            <Button asChild variant="ghost">
+              <Link href="/contact">Talk to Concierge</Link>
+            </Button>
+            <Link href="/" className="block text-xs font-semibold text-muted hover:text-ink">
+              Back to PixieDVC
+            </Link>
+          </div>
         </Card>
       </div>
     );

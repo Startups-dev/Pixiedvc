@@ -48,6 +48,15 @@ type GuestRow = {
   age: number | null;
 };
 
+type ContractRow = {
+  id: number;
+  status: string | null;
+  sent_at: string | null;
+  guest_accept_token: string | null;
+  booking_request_id: string | null;
+  created_at: string | null;
+};
+
 const dateFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
 
 export default async function GuestRequestPage({
@@ -87,6 +96,26 @@ export default async function GuestRequestPage({
     .from("booking_request_guests")
     .select("first_name, last_name, age_category, age")
     .eq("booking_id", request.id);
+
+  const { data: contractsData } = await supabase
+    .from("contracts")
+    .select("id, status, sent_at, guest_accept_token, booking_request_id, created_at")
+    .eq("booking_request_id", request.id)
+    .order("created_at", { ascending: false });
+
+  const contracts = (contractsData ?? []) as ContractRow[];
+  const contract = contracts[0] ?? null;
+
+  if (process.env.NODE_ENV !== "production") {
+    if (contracts.length === 0) {
+      console.info("[guest-request-details] no contracts found", { requestId: request.id });
+    } else {
+      console.info("[guest-request-details] contracts found", {
+        requestId: request.id,
+        count: contracts.length,
+      });
+    }
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-6 py-12">
@@ -139,6 +168,36 @@ export default async function GuestRequestPage({
       />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-900">Agreement</h2>
+        {contract?.guest_accept_token ? (
+          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-emerald-700">Agreement ready</p>
+                <p className="mt-1 text-sm text-emerald-800">
+                  {formatAgreementStatus(contract.status)}
+                </p>
+              </div>
+              <Link
+                href={`/contracts/${contract.guest_accept_token}`}
+                className="inline-flex rounded-full bg-emerald-700 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white"
+              >
+                Review agreement
+              </Link>
+            </div>
+          </div>
+        ) : contract ? (
+          <p className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+            Agreement preparing. We’ll share the agreement as soon as it’s ready.
+          </p>
+        ) : (
+          <p className="mt-4 text-sm text-slate-500">
+            Agreement will appear here once it’s ready.
+          </p>
+        )}
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-900">Request timeline</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <Detail label="Submitted" value={formatDate(request.created_at)} />
@@ -169,6 +228,13 @@ function formatStatus(status: string | null) {
   if (!status) return "—";
   if (status === "pending_match" || status === "pending_owner") return "Pending";
   return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function formatAgreementStatus(status: string | null) {
+  if (!status || status === "draft") return "Agreement ready";
+  if (status === "sent") return "Agreement sent";
+  if (status === "accepted") return "Agreement signed";
+  return "Agreement ready";
 }
 
 function partyLabel(adults: number | null, youths: number | null) {

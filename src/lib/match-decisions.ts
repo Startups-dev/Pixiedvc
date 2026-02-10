@@ -180,7 +180,7 @@ export async function processMatchDecision(token: string, decision: MatchDecisio
     const reservedBorrowed = match.points_reserved_borrowed ?? 0;
     const { data: membership, error: membershipError } = await client
       .from('owner_memberships')
-      .select('id, owner_id, resort_id, contract_year, points_reserved')
+      .select('id, owner_id, resort_id, use_year_start, points_reserved')
       .eq('id', match.owner_membership_id)
       .maybeSingle();
 
@@ -204,16 +204,20 @@ export async function processMatchDecision(token: string, decision: MatchDecisio
         .eq('id', match.booking_id)
         .maybeSingle();
 
-      const bookingYear = booking?.check_in ? new Date(booking.check_in).getUTCFullYear() : null;
-      const currentYear = membership.contract_year ?? bookingYear;
-
-      if (currentYear) {
+      const currentStart = membership.use_year_start ?? null;
+      if (currentStart) {
+        const nextStart = new Date(currentStart);
+        if (Number.isNaN(nextStart.getTime())) {
+          return;
+        }
+        nextStart.setUTCFullYear(nextStart.getUTCFullYear() + 1);
+        const nextISO = nextStart.toISOString().slice(0, 10);
         const { data: nextMembership } = await client
           .from('owner_memberships')
           .select('id, points_reserved')
           .eq('owner_id', membership.owner_id)
           .eq('resort_id', membership.resort_id)
-          .eq('contract_year', currentYear + 1)
+          .eq('use_year_start', nextISO)
           .maybeSingle();
 
         if (nextMembership) {

@@ -9,7 +9,8 @@ export const tripDetailsSchema = z.object({
   points: z.number().nonnegative(),
   estCash: z.number().nonnegative(),
   accessibility: z.boolean().default(false),
-  altResortId: z.string().optional(),
+  secondaryResortId: z.string().optional(),
+  tertiaryResortId: z.string().optional(),
 });
 
 const adultGuestSchema = z.object({

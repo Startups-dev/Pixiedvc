@@ -90,20 +90,24 @@ export async function POST(
 
       const { data: currentMembership } = await adminClient
         .from("owner_memberships")
-        .select("owner_id, resort_id, contract_year")
+        .select("owner_id, resort_id, use_year_start")
         .eq("id", match.owner_membership_id)
         .maybeSingle();
 
-      const bookingYear = booking?.check_in ? new Date(booking.check_in).getUTCFullYear() : null;
-      const currentYear = currentMembership?.contract_year ?? bookingYear;
-
-      if (currentMembership?.owner_id && currentMembership?.resort_id && currentYear) {
+      const currentStart = currentMembership?.use_year_start ?? null;
+      if (currentMembership?.owner_id && currentMembership?.resort_id && currentStart) {
+        const nextStart = new Date(currentStart);
+        if (Number.isNaN(nextStart.getTime())) {
+          return NextResponse.json({ error: "expired" }, { status: 410 });
+        }
+        nextStart.setUTCFullYear(nextStart.getUTCFullYear() + 1);
+        const nextISO = nextStart.toISOString().slice(0, 10);
         const { data: nextMembership } = await adminClient
           .from("owner_memberships")
           .select("id, points_reserved")
           .eq("owner_id", currentMembership.owner_id)
           .eq("resort_id", currentMembership.resort_id)
-          .eq("contract_year", currentYear + 1)
+          .eq("use_year_start", nextISO)
           .maybeSingle();
 
         if (nextMembership) {
@@ -116,10 +120,21 @@ export async function POST(
       }
     }
 
-    await adminClient
+    const { error: expiredBookingError } = await adminClient
       .from("booking_requests")
-      .update({ status: "pending_match", matched_owner_id: null, updated_at: nowIso })
+      .update({ status: "pending_match", updated_at: nowIso })
       .eq("id", match.booking_id);
+
+    if (expiredBookingError) {
+      console.error("Failed to update booking request after match expiry", {
+        code: expiredBookingError.code,
+        message: expiredBookingError.message,
+        details: expiredBookingError.details,
+        hint: expiredBookingError.hint,
+        matchId: match.id,
+        bookingId: match.booking_id,
+      });
+    }
 
     return NextResponse.json({ error: "expired" }, { status: 410 });
   }
@@ -135,9 +150,13 @@ export async function POST(
       .eq("id", match.id);
 
     if (matchUpdateError) {
-      if (process.env.NODE_ENV !== "production") {
-        console.error("Failed to update match", matchUpdateError);
-      }
+      console.error("Failed to update match", {
+        code: matchUpdateError.code,
+        message: matchUpdateError.message,
+        details: matchUpdateError.details,
+        hint: matchUpdateError.hint,
+        matchId: match.id,
+      });
       return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
     }
   }
@@ -158,20 +177,29 @@ export async function POST(
   try {
     rentalRow = await ensureRentalForMatch({ adminClient, matchId: match.id, ownerUserId: owner.user_id ?? user.id });
   } catch (error) {
-    if (process.env.NODE_ENV !== "production") {
-      console.error("Failed to ensure rental", error);
-    }
+    console.error("Failed to ensure rental", {
+      matchId: match.id,
+      bookingId: booking.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
 
   const { error: bookingUpdateError } = await adminClient
     .from("booking_requests")
-    .update({ status: "matched", matched_owner_id: owner.id, updated_at: nowIso })
+    .update({ status: "matched", updated_at: nowIso })
     .eq("id", booking.id);
 
   if (bookingUpdateError) {
     if (process.env.NODE_ENV !== "production") {
-      console.error("Failed to update booking request", bookingUpdateError);
+      console.error("Failed to update booking request", {
+        code: bookingUpdateError.code,
+        message: bookingUpdateError.message,
+        details: bookingUpdateError.details,
+        hint: bookingUpdateError.hint,
+        matchId: match.id,
+        bookingId: booking.id,
+      });
     }
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }

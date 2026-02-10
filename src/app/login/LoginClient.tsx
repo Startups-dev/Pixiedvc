@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { supabaseBrowser } from '@/lib/supabase-browser';
+import { getHomeForRole } from '@/lib/routes/home';
 
 const googleIcon = (
   <svg viewBox="0 0 20 20" aria-hidden="true" className="h-5 w-5">
@@ -37,6 +38,10 @@ export default function LoginClient() {
   const passwordRedirect = useMemo(() => {
     if (typeof window === 'undefined') return '/login?mode=update';
     return new URL('/login?mode=update', window.location.origin).toString();
+  }, []);
+  const signupRedirect = useMemo(() => {
+    if (typeof window === 'undefined') return '/auth/callback';
+    return new URL('/auth/callback', window.location.origin).toString();
   }, []);
 
   const [mode, setMode] = useState<Mode>('login');
@@ -147,7 +152,7 @@ export default function LoginClient() {
             email,
             password,
             options: {
-              emailRedirectTo: passwordRedirect,
+              emailRedirectTo: signupRedirect,
             },
           });
 
@@ -172,8 +177,26 @@ export default function LoginClient() {
       if (mode === 'login') {
         setLoginErrorState(null);
       }
-      const redirectPath = searchParams.get('redirect') ?? '/owner/dashboard';
-      await router.replace(redirectPath);
+      const redirectPath = searchParams.get('redirect');
+      if (redirectPath) {
+        await router.replace(redirectPath);
+        router.refresh();
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const metaRole = (user?.user_metadata?.role as string | undefined) ?? null;
+      let role = metaRole === 'owner' || metaRole === 'guest' ? metaRole : null;
+
+      if (user?.id && !role) {
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+        const profileRole = (profile?.role as string | undefined) ?? null;
+        role = profileRole === 'owner' || profileRole === 'guest' ? profileRole : null;
+      }
+
+      await router.replace(getHomeForRole(role));
       router.refresh();
     }
   }
@@ -207,7 +230,7 @@ export default function LoginClient() {
       options: {
         redirectTo:
           typeof window !== 'undefined'
-            ? `${window.location.origin}/auth/callback?next=${encodeURIComponent('/owner/dashboard')}`
+            ? `${window.location.origin}/auth/callback`
             : undefined,
       },
     });

@@ -29,12 +29,33 @@ import {
 import { useReferral } from "@/hooks/useReferral";
 import { appendRefToUrl } from "@/lib/referral";
 
+function parseYMDToLocalDate(ymd: string) {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1);
+}
+
+function formatYMDForDisplay(ymd: string) {
+  return parseYMDToLocalDate(ymd).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function getLocalTodayYMD() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export default function DvcCalculator() {
   const router = useRouter();
   const { ref } = useReferral();
   const searchParams = useSearchParams();
   const [mode, setMode] = useState<"single" | "compare">("single");
-  const [checkIn, setCheckIn] = useState(new Date().toISOString().slice(0, 10));
+  const [checkIn, setCheckIn] = useState(getLocalTodayYMD());
   const [nights, setNights] = useState(5);
 
   const [diningInterested, setDiningInterested] = useState(false);
@@ -474,11 +495,7 @@ export default function DvcCalculator() {
                   <SummaryRow
                     icon={CalendarDaysIcon}
                     label="Dates"
-                    value={`${new Date(checkIn).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })} — ${nights} night${nights !== 1 ? "s" : ""}`}
+                    value={`${formatYMDForDisplay(checkIn)} — ${nights} night${nights !== 1 ? "s" : ""}`}
                   />
                   <SummaryRow
                     icon={HomeIcon}

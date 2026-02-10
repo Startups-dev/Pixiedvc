@@ -10,7 +10,9 @@ export default function AffiliateLoginClient() {
   const supabase = useMemo(() => createClient(), []);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const redirectTo = searchParams.get("redirect") ?? "/affiliate/dashboard";
+  const rawRedirect = searchParams.get("redirect") ?? "/affiliate/dashboard";
+  const allowedRedirects = new Set(["/affiliate", "/affiliate/dashboard", "/affiliate/guides"]);
+  const redirectTo = allowedRedirects.has(rawRedirect) ? rawRedirect : "/affiliate";
 
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");

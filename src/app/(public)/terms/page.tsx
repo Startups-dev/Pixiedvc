@@ -157,8 +157,8 @@ export default function TermsPage() {
                 <p>PixieDVC</p>
                 <p>
                   <span className="mr-2">📧</span>
-                  <Link href="mailto:support@pixiedvc.com" className="underline underline-offset-4">
-                    support@pixiedvc.com
+                  <Link href="mailto:hello@pixiedvc.com" className="underline underline-offset-4">
+                    hello@pixiedvc.com
                   </Link>
                 </p>
               </div>

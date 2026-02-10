@@ -9,11 +9,15 @@ export default function UploadBox({
   documentType,
   label,
   helper,
+  confirmationNumber,
+  disabledMessage,
 }: {
   rentalId: string;
   documentType: string;
   label: string;
   helper?: string;
+  confirmationNumber?: string | null;
+  disabledMessage?: string;
 }) {
   const supabase = createClient();
   const [file, setFile] = useState<File | null>(null);
@@ -42,7 +46,12 @@ export default function UploadBox({
     const response = await fetch(`/api/owner/rentals/${rentalId}/confirmation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ storage_path: path, original_name: file.name, type: documentType }),
+      body: JSON.stringify({
+        storage_path: path,
+        original_name: file.name,
+        type: documentType,
+        confirmation_number: confirmationNumber ?? null,
+      }),
     });
 
     if (!response.ok) {
@@ -57,6 +66,8 @@ export default function UploadBox({
     window.location.reload();
   };
 
+  const uploadDisabled = !confirmationNumber;
+
   return (
     <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4">
       <p className="text-sm font-semibold text-ink">{label}</p>
@@ -70,11 +81,14 @@ export default function UploadBox({
       <button
         type="button"
         onClick={handleUpload}
-        disabled={!file || loading}
+        disabled={!file || loading || uploadDisabled}
         className="mt-3 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white disabled:opacity-50"
       >
         {loading ? "Uploading…" : "Upload"}
       </button>
+      {uploadDisabled && disabledMessage ? (
+        <p className="mt-2 text-xs text-slate-500">{disabledMessage}</p>
+      ) : null}
       {message ? <p className="mt-2 text-xs text-emerald-700">{message}</p> : null}
     </div>
   );

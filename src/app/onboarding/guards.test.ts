@@ -12,6 +12,7 @@ vi.mock('next/navigation', () => ({
 import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/supabase-server';
 import { ensureOnboardingNotComplete, requireOnboardingInProgress } from './guards';
+import { getHomeForRole } from '@/lib/routes/home';
 
 const mockedRedirect = vi.mocked(redirect);
 const mockedSupabaseServer = vi.mocked(supabaseServer);
@@ -64,9 +65,9 @@ describe('onboarding guards', () => {
     expect(stub.from).toHaveBeenCalledWith('profiles');
   });
 
-  test('requireOnboardingInProgress redirects when already completed', async () => {
+  test('requireOnboardingInProgress redirects to owner home when completed', async () => {
     const stub = createSupabaseStub({
-      profile: { onboarding_completed: true },
+      profile: { onboarding_completed: true, role: 'owner' },
       owner: null,
       membership: null,
       user: { id: 'owner-1' },
@@ -75,11 +76,39 @@ describe('onboarding guards', () => {
     const cookieStore = { set: vi.fn(), delete: vi.fn() } as any;
 
     await expect(requireOnboardingInProgress(cookieStore)).rejects.toThrow('redirect');
-    expect(mockedRedirect).toHaveBeenCalledWith('/owner/dashboard');
+    expect(mockedRedirect).toHaveBeenCalledWith(getHomeForRole('owner'));
     expect(cookieStore.set).toHaveBeenCalledWith('onboarding_completed_message', '1', {
       path: '/',
       maxAge: 60,
     });
+  });
+
+  test('requireOnboardingInProgress redirects to guest home when completed', async () => {
+    const stub = createSupabaseStub({
+      profile: { onboarding_completed: true, role: 'guest' },
+      owner: null,
+      membership: null,
+      user: { id: 'guest-1' },
+    });
+    mockedSupabaseServer.mockReturnValue(stub);
+    const cookieStore = { set: vi.fn(), delete: vi.fn() } as any;
+
+    await expect(requireOnboardingInProgress(cookieStore)).rejects.toThrow('redirect');
+    expect(mockedRedirect).toHaveBeenCalledWith(getHomeForRole('guest'));
+  });
+
+  test('requireOnboardingInProgress redirects to onboarding when role is missing', async () => {
+    const stub = createSupabaseStub({
+      profile: { onboarding_completed: true, role: null },
+      owner: null,
+      membership: null,
+      user: { id: 'user-1' },
+    });
+    mockedSupabaseServer.mockReturnValue(stub);
+    const cookieStore = { set: vi.fn(), delete: vi.fn() } as any;
+
+    await expect(requireOnboardingInProgress(cookieStore)).rejects.toThrow('redirect');
+    expect(mockedRedirect).toHaveBeenCalledWith(getHomeForRole(null));
   });
 
   test('requireOnboardingInProgress continues when not completed', async () => {

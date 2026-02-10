@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { runMatchBookings, type MatchRunResult } from '@/lib/match-bookings';
+import { expireMembershipBuckets } from '@/lib/owner-data';
 import { computePaymentSchedule, type PaymentScheduleResult } from '@/lib/payments/schedule';
 import { computeTaxes, type TaxRateRow } from '@/lib/tax/computeTaxes';
 
@@ -91,6 +92,8 @@ export async function runAdminMatcher(options: RunAdminMatcherOptions) {
   const client = options.client ?? getSupabaseAdminClient();
   if (!client) throw new Error('Supabase admin client not available');
   const origin = resolveOrigin(options.origin);
+
+  await expireMembershipBuckets();
 
   return runMatchBookings({
     client,

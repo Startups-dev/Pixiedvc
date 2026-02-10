@@ -9,13 +9,14 @@ import { getMaxOccupancyForSelection } from "@/lib/occupancy";
 
 type TripDetailsProps = {
   onNext: () => void;
+  resorts: Array<{ id: string; name: string; slug?: string | null }>;
 };
 
 type FormValues = {
   trip: TripDetailsInput;
 };
 
-export function TripDetails({ onNext }: TripDetailsProps) {
+export function TripDetails({ onNext, resorts }: TripDetailsProps) {
   const {
     register,
     control,
@@ -23,7 +24,20 @@ export function TripDetails({ onNext }: TripDetailsProps) {
   } = useFormContext<FormValues>();
   const villaType = useWatch({ control, name: "trip.villaType" });
   const resortId = useWatch({ control, name: "trip.resortId" });
+  const resortName = useWatch({ control, name: "trip.resortName" });
+  const secondaryResortId = useWatch({ control, name: "trip.secondaryResortId" });
+  const tertiaryResortId = useWatch({ control, name: "trip.tertiaryResortId" });
   const maxOccupancy = getMaxOccupancyForSelection({ roomLabel: villaType, resortCode: resortId });
+  const selectedResort = resorts.find((resort) => resort.id === resortId) ?? null;
+  const resortNameFallback = resortName?.toLowerCase() ?? "";
+  const isIsolatedDestination = Boolean(
+    (selectedResort?.slug && ["aulani", "vero-beach", "hilton-head-island"].includes(selectedResort.slug)) ||
+      ["aulani", "vero beach", "hilton head"].some((token) => resortNameFallback.includes(token)),
+  );
+  const hasDuplicateResorts = Boolean(
+    (resortId && (resortId === secondaryResortId || resortId === tertiaryResortId)) ||
+      (secondaryResortId && tertiaryResortId && secondaryResortId === tertiaryResortId),
+  );
   const { field: estCashField } = useController({
     name: "trip.estCash",
     control,
@@ -101,8 +115,51 @@ export function TripDetails({ onNext }: TripDetailsProps) {
               />
 
               <div className="sm:col-span-2">
-                <FieldLabel htmlFor="trip.altResortId">Alternate Resort Preference</FieldLabel>
-                <TextInput id="trip.altResortId" placeholder="Optional" {...register("trip.altResortId")} />
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-slate-700">
+                    Second choice resort (optional)
+                    <select
+                      id="trip.secondaryResortId"
+                      {...register("trip.secondaryResortId")}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                    >
+                      <option value="">No second choice</option>
+                      {resorts.map((resort) => (
+                        <option key={resort.id} value={resort.id}>
+                          {resort.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="text-sm font-medium text-slate-700">
+                    Third choice resort (optional)
+                    <select
+                      id="trip.tertiaryResortId"
+                      {...register("trip.tertiaryResortId")}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                    >
+                      <option value="">No third choice</option>
+                      {resorts.map((resort) => (
+                        <option key={resort.id} value={resort.id}>
+                          {resort.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <p className="text-xs text-slate-500">
+                    {isIsolatedDestination
+                      ? "If availability is limited, we may suggest flexible dates to secure this resort."
+                      : "We’ll check your selected resorts; if none are available we may suggest a high-availability option."}
+                  </p>
+
+                  {hasDuplicateResorts ? (
+                    <p className="text-xs font-semibold text-rose-600">
+                      Choose different resorts for each option.
+                    </p>
+                  ) : null}
+                </div>
               </div>
 
               <div className="sm:col-span-2">
@@ -119,7 +176,9 @@ export function TripDetails({ onNext }: TripDetailsProps) {
           ) : null}
 
           <div className="mt-8 flex justify-end">
-            <Button onClick={onNext}>Continue</Button>
+            <Button onClick={onNext} disabled={hasDuplicateResorts}>
+              Continue
+            </Button>
           </div>
         </Card>
       </div>

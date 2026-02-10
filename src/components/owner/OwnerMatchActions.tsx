@@ -47,10 +47,6 @@ export default function OwnerMatchActions({
   const [uiState, setUiState] = useState<UiState>(deriveUiState(initialStatus));
   const [successVisible, setSuccessVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showConfirmationForm, setShowConfirmationForm] = useState(true);
-  const [confirmationNumber, setConfirmationNumber] = useState("");
-  const [confirmationError, setConfirmationError] = useState<string | null>(null);
-  const [confirmationSuccess, setConfirmationSuccess] = useState(false);
   const [bookingInProgress, setBookingInProgress] = useState(false);
   const [bookingProgressVisible, setBookingProgressVisible] = useState(false);
   const [rentalId, setRentalId] = useState<string | null>(initialRentalId ?? null);
@@ -122,8 +118,6 @@ export default function OwnerMatchActions({
   const handleAction = async (action: "accept" | "decline") => {
     setSubmitting(true);
     setError(null);
-    setConfirmationError(null);
-    setConfirmationSuccess(false);
     setBookingInProgress(false);
     try {
       setUiState("accepting");
@@ -157,54 +151,6 @@ export default function OwnerMatchActions({
       }
       setError("Something went wrong. Please try again.");
       setUiState("error");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleConfirmationSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setConfirmationError(null);
-    setConfirmationSuccess(false);
-
-    const cleaned = confirmationNumber.trim();
-    if (cleaned.length < 6) {
-      setConfirmationError("Please enter a valid confirmation number.");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const response = await fetch(`/api/owner/matches/${matchId}/confirmation`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirmationNumber: cleaned }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as {
-        error?: string;
-        debug?: string;
-      };
-
-      if (response.status === 410 || payload.error === "expired") {
-        router.push("/owner/matches");
-        router.refresh();
-        return;
-      }
-
-      if (!response.ok) {
-        const detail = payload.debug || payload.error || "";
-        throw new Error(detail || "Save confirmation failed");
-      }
-
-      setMatchStatus("booked");
-      setConfirmationSuccess(true);
-      setBookingInProgress(true);
-      setConfirmationNumber("");
-    } catch (err) {
-      if (process.env.NODE_ENV !== "production") {
-        console.error("Confirmation save failed", err);
-      }
-      setConfirmationError("We couldn’t save that just now. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -357,38 +303,6 @@ export default function OwnerMatchActions({
         </div>
       ) : null}
 
-      {showConfirmationForm ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
-          <form onSubmit={handleConfirmationSubmit} className="space-y-3">
-            <label className="flex flex-col gap-2 text-sm font-semibold text-slate-700">
-              Disney confirmation number
-              <input
-                value={confirmationNumber}
-                onChange={(event) => setConfirmationNumber(event.target.value)}
-                className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                placeholder="Enter confirmation number"
-              />
-            </label>
-            {confirmationError ? <p className="text-sm text-rose-600">{confirmationError}</p> : null}
-            <div className="flex flex-wrap gap-2">
-              <Button type="submit" disabled={isSubmitting}>
-                Save confirmation
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  setConfirmationNumber("");
-                  setConfirmationError(null);
-                }}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </div>
-      ) : null}
     </div>
   );
 }

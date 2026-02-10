@@ -80,7 +80,7 @@ describe('LoginPage', () => {
         email: 'new@pixiedvc.com',
         password: 'StrongPass9!',
         options: expect.objectContaining({
-          emailRedirectTo: expect.stringMatching(/\/login\?mode=update$/),
+          emailRedirectTo: expect.stringMatching(/\/auth\/callback$/),
         }),
       });
     });

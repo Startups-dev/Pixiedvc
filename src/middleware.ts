@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 
 import { emailIsAllowedForAdmin } from '@/lib/admin-emails';
+import { getHomeForRole } from '@/lib/routes/home';
 
 const PUBLIC_PATHS = [
   /^\/login/,
@@ -52,6 +53,7 @@ export async function middleware(req: NextRequest) {
   }
 
   let onboardingComplete = user.user_metadata?.onboarding_completed === true;
+  let role = (user.user_metadata?.role as string | undefined) ?? null;
 
   if (!onboardingComplete) {
     const { data: profile } = await supabase
@@ -59,6 +61,11 @@ export async function middleware(req: NextRequest) {
       .select('onboarding_completed, role')
       .eq('id', user.id)
       .maybeSingle();
+
+    const profileRole = (profile?.role as string | undefined) ?? null;
+    if (!role && profileRole) {
+      role = profileRole;
+    }
 
     if (profile?.onboarding_completed) {
       onboardingComplete = true;
@@ -75,6 +82,12 @@ export async function middleware(req: NextRequest) {
       url.pathname = '/onboarding';
       return NextResponse.redirect(url);
     }
+  }
+
+  const normalizedRole = role === 'owner' || role === 'guest' ? role : null;
+  if (url.pathname.startsWith('/owner') && normalizedRole !== 'owner') {
+    url.pathname = getHomeForRole(normalizedRole);
+    return NextResponse.redirect(url);
   }
 
   return res;

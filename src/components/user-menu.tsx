@@ -86,13 +86,13 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
       {open ? (
         <div
           ref={menuRef}
-          className="absolute right-0 mt-2 w-64 rounded-2xl border border-white/15 bg-[#0f2148]/95 p-3 text-sm text-white/80 shadow-[0_18px_36px_rgba(15,33,72,0.42)] backdrop-blur"
+          className="absolute right-0 mt-2 w-64 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-3 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%]"
         >
-          <div className="px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/50">Account</div>
+          <div className="px-3 py-2 text-[11px] uppercase tracking-[0.22em] text-white/60">Account</div>
 
           <Link
             href="/my-trip"
-            className="block rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
+            className="block rounded-[10px] px-3 py-2 text-white/90 transition hover:bg-white/10 hover:text-white"
             onClick={() => setOpen(false)}
           >
             My Trip
@@ -100,15 +100,15 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
 
           <Link
             href="/plan"
-            className="block rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
+            className="block rounded-[10px] px-3 py-2 text-white/90 transition hover:bg-white/10 hover:text-white"
             onClick={() => setOpen(false)}
           >
-            Trip Builder
+            Pixie Booking
           </Link>
 
           <Link
             href="/guest"
-            className="block rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
+            className="block rounded-[10px] px-3 py-2 text-white/90 transition hover:bg-white/10 hover:text-white"
             onClick={() => setOpen(false)}
           >
             Requests
@@ -116,7 +116,7 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
 
           <Link
             href="/profile"
-            className="block rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
+            className="block rounded-[10px] px-3 py-2 text-white/90 transition hover:bg-white/10 hover:text-white"
             onClick={() => setOpen(false)}
           >
             Profile
@@ -124,7 +124,7 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
 
           <Link
             href="/profile"
-            className="block rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
+            className="block rounded-[10px] px-3 py-2 text-white/90 transition hover:bg-white/10 hover:text-white"
             onClick={() => setOpen(false)}
           >
             Settings
@@ -132,31 +132,31 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
 
           {isOwner ? (
             <>
-              <div className="mt-2 px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/50">Owners</div>
+              <div className="mt-2 px-3 py-2 text-[11px] uppercase tracking-[0.22em] text-white/60">Owners</div>
 
               <Link
                 href="/owner"
-                className="block rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
+                className="block rounded-[10px] px-3 py-2 text-white/90 transition hover:bg-white/10 hover:text-white"
                 onClick={() => setOpen(false)}
               >
                 Owner Dashboard
               </Link>
 
-              <span className="block cursor-not-allowed rounded-xl px-3 py-2 text-white/45">
+              <span className="block cursor-not-allowed rounded-[10px] px-3 py-2 text-white/45">
                 My Listings
                 <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/50">
                   Coming soon
                 </span>
               </span>
 
-              <span className="block cursor-not-allowed rounded-xl px-3 py-2 text-white/45">
+              <span className="block cursor-not-allowed rounded-[10px] px-3 py-2 text-white/45">
                 Payouts &amp; History
                 <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/50">
                   Coming soon
                 </span>
               </span>
 
-              <span className="block cursor-not-allowed rounded-xl px-3 py-2 text-white/45">
+              <span className="block cursor-not-allowed rounded-[10px] px-3 py-2 text-white/45">
                 Documents &amp; Agreements
                 <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/50">
                   Coming soon
@@ -171,7 +171,7 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
           {isAdmin ? (
             <Link
               href="/admin"
-              className="block rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
+              className="block rounded-[10px] px-3 py-2 text-white/90 transition hover:bg-white/10 hover:text-white"
               onClick={() => setOpen(false)}
             >
               Admin
@@ -181,7 +181,7 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
           <button
             type="button"
             onClick={handleLogout}
-            className="mt-1 w-full rounded-xl px-3 py-2 text-left text-white/85 transition hover:bg-red-500/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-70"
+            className="mt-1 w-full rounded-[10px] px-3 py-2 text-left text-white/90 transition hover:bg-red-500/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-70"
             disabled={signingOut}
           >
             {signingOut ? 'Signing out…' : 'Logout'}

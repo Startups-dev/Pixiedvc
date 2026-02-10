@@ -57,28 +57,30 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
     : [];
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-20">
-      <GuideHeader title={title} subtitle={excerpt} category={category} updatedLabel={updatedLabel} />
+    <div className="bg-[#F7F5F2] py-20">
+      <div className="mx-auto max-w-6xl px-6">
+        <GuideHeader title={title} subtitle={excerpt} category={category} updatedLabel={updatedLabel} />
 
-      <div className="mt-12 grid gap-10 lg:grid-cols-12">
-        <main className="space-y-8 lg:col-span-8">
-          <Card className="border border-ink/10 bg-white/90">
-            <p className="text-xs uppercase tracking-[0.25em] text-muted">Owner Essentials</p>
-            <h2 className="mt-3 font-display text-2xl text-ink">
-              Step-by-step support from listing to payout
-            </h2>
-            <p className="mt-3 text-sm text-muted">{excerpt}</p>
-          </Card>
+        <div className="mt-12 grid gap-10 lg:grid-cols-12">
+          <main className="space-y-8 lg:col-span-8">
+            <Card className="rounded-2xl border border-ink/10 bg-white p-6 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+              <p className="text-xs uppercase tracking-[0.25em] text-muted">Owner Essentials</p>
+              <h2 className="mt-3 font-display text-2xl text-ink">
+                Step-by-step support from listing to payout
+              </h2>
+              <p className="mt-3 text-sm text-muted">{excerpt}</p>
+            </Card>
 
-          <GuideTOC items={guide.toc} />
+            <GuideTOC items={guide.toc} />
 
-          <article className="space-y-6">{guide.content}</article>
-        </main>
+            <article className="space-y-8">{guide.content}</article>
+          </main>
 
-        <aside className="space-y-6 lg:col-span-4">
-          <GuideResources items={resources} />
-          <RelatedGuidesList guides={related} />
-        </aside>
+          <aside className="space-y-6 lg:col-span-4">
+            <GuideResources items={resources} />
+            <RelatedGuidesList guides={related} />
+          </aside>
+        </div>
       </div>
     </div>
   );

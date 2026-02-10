@@ -67,26 +67,16 @@ const DROPDOWNS: Record<string, DropdownConfig> = {
       {
         title: "Renting",
         items: [
-          { label: "Rent DVC Points", href: "/guests/rent-dvc-points", icon: Sparkles },
-          { label: "How Guest Renting Works", href: "/guests/how-renting-works", icon: BookOpen },
+          { label: "Rent DVC Points", href: "/guests", icon: Sparkles },
+          { label: "How Guest Renting Works", href: "/guides/how-renting-dvc-points-works", icon: BookOpen },
           { label: "Confirmed Reservations", enabled: false, icon: CheckCircle2 },
           { label: "Guest Policies & Rules", href: "/guests/policies", icon: FileText },
         ],
       },
       {
-        title: "Explore",
-        items: [
-          { label: "Available Resorts", enabled: false, icon: Users },
-          { label: "Room Types", enabled: false, icon: Users },
-          { label: "Popular Dates", enabled: false, icon: Calendar },
-          { label: "Last-Minute Deals", enabled: false, icon: Sparkles },
-        ],
-      },
-      {
         title: "Support",
         items: [
-          { label: "Guest FAQ", href: "/guests/faq", icon: HelpCircle },
-          { label: "Pricing & Fees", enabled: false, icon: FileText },
+          { label: "Guest FAQ", href: "/faq", icon: HelpCircle },
           { label: "Cancellation Policy", href: "/guests/cancellation-policy", icon: FileText },
         ],
       },
@@ -122,36 +112,19 @@ const DROPDOWNS: Record<string, DropdownConfig> = {
     ],
   },
   "Get to Know": {
-    columns: 2,
+    columns: 1,
     sections: [
       {
         title: "About PixieDVC",
         items: [
           { label: "Our Approach", href: "/our-approach", icon: Sparkles },
-          { label: "Concierge Model", href: "/our-approach", icon: Users },
-          { label: "Owner-First Protection", href: "/owner-first-protection", icon: ShieldCheck },
-        ],
-      },
-      {
-        title: "Company",
-        items: [
           { label: "About Us", href: "/about-us", icon: Users },
-          { label: "How We're Different", enabled: false, icon: Sparkles },
-          { label: "Trust & Transparency", href: "/guides/trust", icon: ShieldCheck },
-        ],
-      },
-      {
-        title: "Social Proof",
-        items: [
-          { label: "Testimonials", enabled: false, icon: Sparkles },
-          { label: "Owner Stories", enabled: false, icon: Users },
-          { label: "Guest Reviews", enabled: false, icon: Users },
         ],
       },
     ],
   },
   Contact: {
-    columns: 3,
+    columns: 2,
     sections: [
       {
         title: "Policies",
@@ -165,38 +138,26 @@ const DROPDOWNS: Record<string, DropdownConfig> = {
         title: "General Help",
         items: [
           { label: "FAQ", href: "/faq", icon: HelpCircle },
-          { label: "Support Center", href: "/faq", icon: HelpCircle },
         ],
       },
       {
         title: "Talk to a Concierge",
         items: [
           { label: "Chat with Concierge", action: "chat", icon: MessageCircle, note: "AI to human handoff" },
-          { label: "Email Support", href: "mailto:concierge@pixiedvc.com", icon: Mail, note: "concierge@pixiedvc.com" },
+          { label: "Email Support", href: "mailto:hello@pixiedvc.com", icon: Mail, note: "hello@pixiedvc.com" },
           { label: "Contact Form", href: "/contact", icon: FileText },
-        ],
-      },
-      {
-        title: "Call Us Now",
-        items: [
-          { label: "Owners: (000) 000-0000", href: "tel:+10000000000", icon: Phone, note: "Placeholder" },
-          { label: "Guests: (000) 000-0000", href: "tel:+10000000000", icon: Phone, note: "Placeholder" },
-          { label: "Mon-Sat · 8a-8p ET", icon: Calendar },
         ],
       },
     ],
   },
   Partners: {
-    columns: 2,
+    columns: 1,
     sections: [
       {
-        title: "Partners",
+        title: "Partner with PixieDVC",
         items: [
           { label: "Become a Partner", href: "/partners/become-a-partner", icon: Users },
           { label: "Affiliate Program", href: "/partners/affiliate-program", icon: Sparkles },
-          { label: "Travel Advisors", enabled: false, icon: Users },
-          { label: "Group / Corporate Travel", enabled: false, icon: Users },
-          { label: "Press / Media", enabled: false, icon: FileText },
         ],
       },
     ],
@@ -336,12 +297,16 @@ export default function HeaderClient({ userLabel, userRole, isAdmin, isAuthentic
                 );
               }
               const isOpen = openDropdown === item.label;
+              const alignRight =
+                item.label === "Contact" || item.label === "Partners" || item.label === "Get to Know";
+              const isContactMenu = item.label === "Contact";
+              const effectiveColumns = Math.min(dropdown.columns, dropdown.sections.length);
               return (
                 <div
                   key={item.href}
                   className="relative"
-                  onMouseEnter={isDesktop ? () => openDropdownWithDelay(item.label) : undefined}
-                  onMouseLeave={isDesktop ? closeDropdownWithDelay : undefined}
+                  onMouseEnter={() => openDropdownWithDelay(item.label)}
+                  onMouseLeave={closeDropdownWithDelay}
                 >
                   <Link
                     href={item.href}
@@ -365,23 +330,25 @@ export default function HeaderClient({ userLabel, userRole, isAdmin, isAuthentic
                   </Link>
                   {isOpen ? (
                     <div
-                      className="absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-900 shadow-[0_28px_70px_rgba(15,33,72,0.18)]"
-                      style={{
-                        width: "min(900px, calc(100vw - 2rem))",
-                        minWidth: "640px",
-                        maxWidth: "calc(100vw - 2rem)",
-                      }}
+                      className={[
+                        "absolute top-full z-50 mt-2",
+                        alignRight ? "right-0" : "left-0",
+                        "rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90",
+                        "shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)]",
+                        "backdrop-blur-[18px] saturate-[120%]",
+                        "max-w-[calc(100vw-2rem)]",
+                        "max-h-[calc(100vh-140px)] overflow-auto",
+                        effectiveColumns === 1
+                          ? "w-[320px]"
+                          : effectiveColumns === 2
+                            ? "w-[720px]"
+                            : "w-[900px]",
+                      ].join(" ")}
                     >
-                      <div
-                        className={`grid w-full gap-6 ${
-                          dropdown.columns === 3
-                            ? "sm:grid-cols-3"
-                            : "sm:grid-cols-2"
-                        }`}
-                      >
-                        {dropdown.sections.map((section) => (
+                      {(() => {
+                        const renderSection = (section: NavItem) => (
                           <div key={section.title} className="space-y-3">
-                            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
+                            <p className="text-[11px] uppercase tracking-[0.22em] text-white/60">
                               {section.title}
                             </p>
                             <div className="space-y-2">
@@ -394,13 +361,13 @@ export default function HeaderClient({ userLabel, userRole, isAdmin, isAuthentic
                                       key={itemKey}
                                       type="button"
                                       onClick={handleChat}
-                                      className="flex w-full items-start gap-3 rounded-xl px-3 py-2 text-left font-semibold text-slate-900 transition hover:bg-slate-100"
+                                      className="flex w-full items-start gap-3 rounded-[10px] px-3 py-2 text-left font-medium text-white/90 transition hover:bg-white/10"
                                     >
-                                      {Icon ? <Icon className="mt-0.5 h-4 w-4 text-slate-500" /> : null}
+                                      {Icon ? <Icon className="mt-0.5 h-4 w-4 text-white/60" /> : null}
                                       <span>
                                         {child.label}
                                         {child.note ? (
-                                          <span className="mt-1 block text-xs font-normal text-slate-500">
+                                          <span className="mt-1 block text-xs font-normal text-white/55">
                                             {child.note}
                                           </span>
                                         ) : null}
@@ -412,9 +379,9 @@ export default function HeaderClient({ userLabel, userRole, isAdmin, isAuthentic
                                   return (
                                     <div
                                       key={itemKey}
-                                      className="flex items-center gap-3 rounded-xl px-3 py-2 text-slate-400"
+                                      className="flex items-center gap-3 rounded-[10px] px-3 py-2 text-white/40"
                                     >
-                                      {Icon ? <Icon className="h-4 w-4 text-slate-400" /> : null}
+                                      {Icon ? <Icon className="h-4 w-4 text-white/40" /> : null}
                                       <span className="flex-1 text-sm font-semibold">
                                         {child.label}
                                       </span>
@@ -425,9 +392,9 @@ export default function HeaderClient({ userLabel, userRole, isAdmin, isAuthentic
                                   return (
                                     <div
                                       key={itemKey}
-                                      className="flex items-center gap-3 rounded-xl px-3 py-2 text-slate-600"
+                                      className="flex items-center gap-3 rounded-[10px] px-3 py-2 text-white/70"
                                     >
-                                      {Icon ? <Icon className="h-4 w-4 text-slate-500" /> : null}
+                                      {Icon ? <Icon className="h-4 w-4 text-white/55" /> : null}
                                       <span className="text-sm font-semibold">{child.label}</span>
                                     </div>
                                   );
@@ -436,14 +403,14 @@ export default function HeaderClient({ userLabel, userRole, isAdmin, isAuthentic
                                   <Link
                                     key={itemKey}
                                     href={child.href}
-                                    className="flex items-start gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+                                    className="flex items-start gap-3 rounded-[10px] px-3 py-2 text-sm font-medium text-white/90 transition hover:bg-white/10"
                                     onClick={() => setOpenDropdown(null)}
                                   >
-                                    {Icon ? <Icon className="mt-0.5 h-4 w-4 text-slate-500" /> : null}
+                                    {Icon ? <Icon className="mt-0.5 h-4 w-4 text-white/60" /> : null}
                                     <span>
                                       {child.label}
                                       {child.note ? (
-                                        <span className="mt-1 block text-xs font-normal text-slate-500">
+                                        <span className="mt-1 block text-xs font-normal text-white/55">
                                           {child.note}
                                         </span>
                                       ) : null}
@@ -453,8 +420,40 @@ export default function HeaderClient({ userLabel, userRole, isAdmin, isAuthentic
                               })}
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        );
+
+                        if (isContactMenu) {
+                          const policies = dropdown.sections.find((section) => section.title === "Policies");
+                          const generalHelp = dropdown.sections.find((section) => section.title === "General Help");
+                          const concierge = dropdown.sections.find((section) => section.title === "Talk to a Concierge");
+                          return (
+                            <div className="grid w-full gap-6 sm:grid-cols-2">
+                              <div className="space-y-6">
+                                {policies ? renderSection(policies) : null}
+                                {generalHelp ? renderSection(generalHelp) : null}
+                              </div>
+                              <div className="space-y-6">
+                                {concierge ? renderSection(concierge) : null}
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div
+                            className={[
+                              "grid w-full gap-6",
+                          effectiveColumns === 1
+                            ? "grid-cols-1"
+                            : effectiveColumns === 2
+                              ? "sm:grid-cols-2"
+                              : "sm:grid-cols-3",
+                            ].join(" ")}
+                          >
+                            {dropdown.sections.map((section) => renderSection(section))}
+                          </div>
+                        );
+                      })()}
                     </div>
                   ) : null}
                 </div>

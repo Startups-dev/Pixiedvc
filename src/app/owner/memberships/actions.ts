@@ -8,13 +8,16 @@ import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { applyPointsDelta, resolveResortMapping } from "@/lib/owner-membership-utils";
 
 type MembershipInput = {
-  membershipId?: string | null;
   resort_id: string;
   use_year: string;
-  contract_year: number;
-  points_owned: number;
-  points_available: number;
-  points_reserved?: number | null;
+  borrowing_enabled?: boolean;
+  max_points_to_borrow?: number | null;
+  buckets: Array<{
+    use_year_start: string;
+    use_year_end: string;
+    points_available: number;
+    points_holding: number;
+  }>;
   purchase_channel?: string | null;
   acquired_at?: string | null;
 };
@@ -47,7 +50,7 @@ export async function upsertOwnerMembership(input: MembershipInput) {
     return { ok: false, error: "Owner record not found" };
   }
 
-  if (!input.resort_id || !input.use_year || !Number.isFinite(input.contract_year)) {
+  if (!input.resort_id || !input.use_year || input.buckets.length === 0) {
     return { ok: false, error: "Missing required membership fields" };
   }
 
@@ -63,24 +66,25 @@ export async function upsertOwnerMembership(input: MembershipInput) {
 
   const homeResort = resortRow?.calculator_code ?? null;
 
-  const payload = {
+  const payload = input.buckets.map((bucket) => ({
     owner_id: ownerId,
     resort_id: input.resort_id,
     home_resort: homeResort,
     use_year: input.use_year,
-    contract_year: input.contract_year,
-    points_owned: input.points_owned,
-    points_available: input.points_available,
-    points_reserved: input.points_reserved ?? 0,
+    use_year_start: bucket.use_year_start,
+    use_year_end: bucket.use_year_end,
+    points_owned: bucket.points_available + bucket.points_holding,
+    points_available: bucket.points_available,
     purchase_channel: input.purchase_channel ?? "unknown",
     acquired_at: input.acquired_at ?? null,
-  };
+    borrowing_enabled: input.borrowing_enabled ?? false,
+    max_points_to_borrow: input.max_points_to_borrow ?? null,
+  }));
 
   const { data, error } = await supabase
     .from("owner_memberships")
-    .upsert(payload, { onConflict: "owner_id,resort_id,use_year,contract_year" })
-    .select("id")
-    .maybeSingle();
+    .upsert(payload, { onConflict: "owner_id,resort_id,use_year,use_year_start" })
+    .select("id");
 
   if (error) {
     return { ok: false, error: error.message };
@@ -113,7 +117,7 @@ export async function upsertOwnerMembership(input: MembershipInput) {
   }
 
   revalidatePath("/owner/dashboard");
-  return { ok: true, id: data?.id ?? null };
+  return { ok: true, id: Array.isArray(data) ? data[0]?.id ?? null : null };
 }
 
 export async function adjustOwnerMembershipPoints(membershipId: string, delta: number) {

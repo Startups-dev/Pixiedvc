@@ -7,6 +7,27 @@ import { ResultsTable } from "./ResultsTable";
 import { BuildingOffice2Icon, CalendarDaysIcon, HomeIcon, SparklesIcon, BanknotesIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 
 export function DvcCalculator() {
+  function parseYMDToLocalDate(ymd: string) {
+    const [y, m, d] = ymd.split("-").map(Number);
+    return new Date(y, (m ?? 1) - 1, d ?? 1);
+  }
+
+  function formatYMDForDisplay(ymd: string) {
+    return parseYMDToLocalDate(ymd).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
+  function getLocalTodayYMD() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
   const RESORT_SLUG_TO_CODE: Record<string, string> = {
     "animal-kingdom-villas": "AKV",
     "aulani": "AUL",
@@ -23,7 +44,7 @@ export function DvcCalculator() {
   const [mode, setMode] = useState<"single" | "compare">("single");
 
   // shared inputs
-  const [checkIn, setCheckIn] = useState(new Date().toISOString().slice(0, 10));
+  const [checkIn, setCheckIn] = useState(getLocalTodayYMD());
   const [nights, setNights] = useState(7);
 
   // single mode inputs
@@ -391,7 +412,7 @@ export function DvcCalculator() {
                     <CalendarDaysIcon className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-0.5" />
                     <div>
                       <div className="font-semibold text-gray-700">Dates</div>
-                      <div className="text-gray-900">{new Date(checkIn).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} — {nights} night{nights !== 1 ? 's' : ''}</div>
+                      <div className="text-gray-900">{formatYMDForDisplay(checkIn)} — {nights} night{nights !== 1 ? 's' : ''}</div>
                     </div>
                   </div>
 

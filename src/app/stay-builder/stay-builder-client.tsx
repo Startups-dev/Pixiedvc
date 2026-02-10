@@ -22,6 +22,8 @@ type BookingDraft = {
   check_out: string | null;
   nights: number | null;
   primary_resort_id: string | null;
+  secondary_resort_id: string | null;
+  tertiary_resort_id: string | null;
   primary_room: string | null;
   primary_view: string | null;
   requires_accessibility: boolean | null;
@@ -279,6 +281,8 @@ function StepOne({
   const [checkIn, setCheckIn] = useState(draft.check_in ?? '');
   const [checkOut, setCheckOut] = useState(draft.check_out ?? '');
   const [resortId, setResortId] = useState(draft.primary_resort_id ?? '');
+  const [secondaryResortId, setSecondaryResortId] = useState(draft.secondary_resort_id ?? '');
+  const [tertiaryResortId, setTertiaryResortId] = useState(draft.tertiary_resort_id ?? '');
   const [roomCode, setRoomCode] = useState<RoomCode | ''>((draft.primary_room as RoomCode) ?? '');
   const [viewCode, setViewCode] = useState<ViewCode | ''>((draft.primary_view as ViewCode) ?? '');
   const [requiresAccessibility, setRequiresAccessibility] = useState<boolean>(draft.requires_accessibility ?? false);
@@ -292,6 +296,9 @@ function StepOne({
   const selectedResort = useMemo(() => (resortId ? resorts.find((resort) => resort.id === resortId) ?? null : null), [resortId, resorts]);
   const calculatorCode = resolveCalculatorCode(selectedResort);
   const calculatorMeta = useMemo(() => CalculatorResorts.find((meta) => meta.code === calculatorCode) ?? null, [calculatorCode]);
+  const isIsolatedDestination = Boolean(
+    selectedResort?.slug && ['aulani', 'vero-beach', 'hilton-head-island'].includes(selectedResort.slug),
+  );
 
   useEffect(() => {
     if (!calculatorMeta) {
@@ -345,6 +352,8 @@ function StepOne({
           checkIn,
           checkOut,
           resortId,
+          secondaryResortId: secondaryResortId || null,
+          tertiaryResortId: tertiaryResortId || null,
           requiresAccessibility,
           roomType: roomCode,
           viewCode,
@@ -354,6 +363,8 @@ function StepOne({
           check_out: checkOut,
           nights: result.nights ?? null,
           primary_resort_id: resortId,
+          secondary_resort_id: secondaryResortId || null,
+          tertiary_resort_id: tertiaryResortId || null,
           primary_room: roomCode,
           primary_view: viewCode,
           requires_accessibility: requiresAccessibility,
@@ -401,23 +412,65 @@ function StepOne({
       </div>
       <p className="text-sm text-slate-500">{nights ? `${nights} night stay` : 'Select both dates to see nights.'}</p>
 
-      <div>
-        <p className="text-sm font-semibold text-slate-800">Select your first-choice resort</p>
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          {resorts.map((resort) => (
-            <button
-              key={resort.id}
-              type="button"
-              onClick={() => setResortId(resort.id)}
-              className={`rounded-2xl border px-4 py-3 text-left text-sm transition hover:border-emerald-500 ${
-                resortId === resort.id ? 'border-emerald-600 bg-emerald-50 text-emerald-900' : 'border-slate-200'
-              }`}
-            >
-              <p className="font-semibold">{resort.name}</p>
-              <p className="text-xs text-slate-500">{resort.location ?? '—'}</p>
-            </button>
-          ))}
+      <div className="space-y-4">
+        <div>
+          <p className="text-sm font-semibold text-slate-800">Select your resort choices</p>
+          <p className="mt-1 text-sm text-slate-500">
+            {isIsolatedDestination
+              ? 'If availability is limited, we may suggest flexible dates to secure this resort.'
+              : 'If none are available, we may suggest a high-availability resort.'}
+          </p>
         </div>
+
+        <label className="text-sm font-medium text-slate-700">
+          First choice (required)
+          <select
+            value={resortId}
+            onChange={(event) => setResortId(event.target.value)}
+            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
+          >
+            <option value="">Select a resort</option>
+            {resorts.map((resort) => (
+              <option key={resort.id} value={resort.id}>
+                {resort.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="text-sm font-medium text-slate-700">
+          Second choice (optional)
+          <span className="ml-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Premium</span>
+          <select
+            value={secondaryResortId}
+            onChange={(event) => setSecondaryResortId(event.target.value)}
+            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
+          >
+            <option value="">No second choice</option>
+            {resorts.map((resort) => (
+              <option key={resort.id} value={resort.id}>
+                {resort.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="text-sm font-medium text-slate-700">
+          Third choice (optional)
+          <span className="ml-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Best availability</span>
+          <select
+            value={tertiaryResortId}
+            onChange={(event) => setTertiaryResortId(event.target.value)}
+            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
+          >
+            <option value="">No third choice</option>
+            {resorts.map((resort) => (
+              <option key={resort.id} value={resort.id}>
+                {resort.name}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {calculatorMeta ? (

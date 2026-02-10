@@ -216,8 +216,8 @@ export default function PoliciesPage() {
           <p className="text-sm leading-6 text-[#0F2148]/80">PixieDVC</p>
           <p className="text-sm leading-6 text-[#0F2148]/80">
             <span className="mr-2">📧</span>
-            <Link href="mailto:support@pixiedvc.com" className="underline underline-offset-4">
-              support@pixiedvc.com
+            <Link href="mailto:hello@pixiedvc.com" className="underline underline-offset-4">
+              hello@pixiedvc.com
             </Link>
           </p>
         </div>

@@ -13,7 +13,7 @@ export default function GuideResources({ items }: { items: ResourceItem[] }) {
   if (items.length === 0) return null;
 
   return (
-    <Card className="space-y-4">
+    <Card className="space-y-4 rounded-2xl border border-slate-200/70 bg-white p-6 shadow-[0_16px_34px_rgba(15,23,42,0.06)]">
       <div>
         <p className="text-xs uppercase tracking-[0.25em] text-muted">Resources</p>
         <h3 className="mt-2 font-display text-xl text-ink">Owner-ready documents</h3>
@@ -22,7 +22,7 @@ export default function GuideResources({ items }: { items: ResourceItem[] }) {
         {items.map((item) => (
           <div
             key={item.title}
-            className="rounded-2xl border border-slate-100 bg-white/80 p-4 text-sm text-slate-600"
+            className="rounded-2xl border border-slate-200/70 bg-white p-4 text-sm text-slate-600 shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
           >
             <p className="font-semibold text-ink">{item.title}</p>
             <p className="mt-1 text-xs text-slate-500">{item.description}</p>

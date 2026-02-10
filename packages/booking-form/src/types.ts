@@ -6,7 +6,8 @@ export type Prefill = {
   checkOut: string;
   points: number;
   estCash: number;
-  altResortId?: string;
+  secondaryResortId?: string;
+  tertiaryResortId?: string;
 };
 
 export type OnComplete = (bookingId: string) => void;
