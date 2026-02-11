@@ -31,17 +31,43 @@ export default async function ContractSuccessPage({
     notFound();
   }
 
+  if (!contract.booking_request_id) {
+    console.error('[contracts/success] Missing booking_request_id', {
+      contractId: contract.id,
+      guestAcceptToken: token,
+    });
+  }
+
   const snapshot = (contract.snapshot ?? {}) as ContractSnapshot;
   const summary = snapshot.summary ?? {};
-  const resortName = summary.resortName ?? snapshot.resortName ?? 'Pixie DVC';
-  const resortCode = summary.resortCode ?? undefined;
-  const resortSlug = summary.resortSlug ?? undefined;
-  const tripId =
-    summary.tripId ??
-    snapshot.rentalId ??
-    contract.booking_request_id ??
-    null;
-  const myTripHref = tripId ? `/my-trip/${tripId}` : '/my-trip';
+  const bookingRequestId = contract.booking_request_id ?? null;
+  const myTripHref = bookingRequestId ? `/my-trip/${bookingRequestId}` : '/my-trip';
+
+  type ResortRecord = {
+    name: string | null;
+    slug: string | null;
+    calculator_code: string | null;
+  };
+
+  let resortRecord: ResortRecord | null = null;
+  if (bookingRequestId) {
+    const { data: bookingRequest } = await supabase
+      .from('booking_requests')
+      .select(
+        `
+        primary_resort:resorts!booking_requests_primary_resort_id_fkey(name, slug, calculator_code),
+        confirmed_resort:resorts!booking_requests_confirmed_resort_id_fkey(name, slug, calculator_code)
+      `,
+      )
+      .eq('id', bookingRequestId)
+      .maybeSingle();
+
+    resortRecord = (bookingRequest?.confirmed_resort ?? bookingRequest?.primary_resort ?? null) as ResortRecord | null;
+  }
+
+  const resortName = resortRecord?.name ?? summary.resortName ?? snapshot.resortName ?? 'Pixie DVC';
+  const resortCode = resortRecord?.calculator_code ?? summary.resortCode ?? undefined;
+  const resortSlug = resortRecord?.slug ?? summary.resortSlug ?? undefined;
   const bannerImage = resolveResortImage({
     resortCode: resortCode ?? undefined,
     resortSlug: resortSlug ?? undefined,
