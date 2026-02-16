@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { emailIsAllowedForAdmin } from "@/lib/admin-emails";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { calculatePayoutAmountCents, getPayoutStageForMilestone } from "@/lib/owner-portal";
+import { maybeEnrollOwnerRewardsForRental, recordOwnerCompletedRental } from "@/lib/owner-rewards";
 
 export async function POST(
   request: NextRequest,
@@ -39,6 +40,15 @@ export async function POST(
   if (!rental) {
     return NextResponse.json({ error: "Rental not found" }, { status: 404 });
   }
+
+  const { data: existingMilestone } = await client
+    .from("rental_milestones")
+    .select("status")
+    .eq("rental_id", rentalId)
+    .eq("code", code)
+    .maybeSingle();
+
+  const wasCompleted = existingMilestone?.status === "completed";
 
   const { error } = await client
     .from("rental_milestones")
@@ -82,6 +92,45 @@ export async function POST(
             body: "Check-out is complete. Your final payout is now eligible for release.",
             link: "/owner/payouts",
           });
+      }
+    }
+
+    if (code === "check_out") {
+      const { error: enrollError } = await maybeEnrollOwnerRewardsForRental({
+        adminClient: client,
+        rentalId,
+      });
+
+      if (enrollError) {
+        console.error("[owner-rewards] enrollment failed", {
+          code: enrollError.code,
+          message: enrollError.message,
+          details: enrollError.details,
+          hint: enrollError.hint,
+          rental_id: rentalId,
+        });
+      }
+
+      if (!wasCompleted) {
+        const pointsRequired = Number(rental.points_required ?? 0);
+        if (Number.isFinite(pointsRequired) && pointsRequired > 0 && rental.owner_id) {
+          const { error: statsError } = await recordOwnerCompletedRental({
+            adminClient: client,
+            ownerId: rental.owner_id,
+            pointsRequired,
+          });
+
+          if (statsError) {
+            console.error("[owner-rewards] failed to update stats", {
+              code: statsError.code,
+              message: statsError.message,
+              details: statsError.details,
+              hint: statsError.hint,
+              rental_id: rentalId,
+              owner_id: rental.owner_id,
+            });
+          }
+        }
       }
     }
   }

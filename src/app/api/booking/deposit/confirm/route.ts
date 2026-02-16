@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   if (session.payment_status === "paid" && bookingId && amountPaid) {
     const supabase = getSupabaseAdminClient();
     if (supabase) {
-      await supabase
+      const { error: bookingError } = await supabase
         .from("booking_requests")
         .update({
           deposit_paid: amountPaid,
@@ -43,6 +43,18 @@ export async function GET(request: Request) {
           updated_at: new Date().toISOString(),
         })
         .eq("id", bookingId);
+
+      if (bookingError) {
+        console.error("[booking/deposit/confirm] update failed", {
+          code: bookingError.code,
+          message: bookingError.message,
+          details: bookingError.details,
+          hint: bookingError.hint,
+          booking_request_id: bookingId,
+        });
+      }
+
+      // Enrollment is explicit (user-driven) and no longer automatic here.
     }
 
     if (process.env.NODE_ENV !== "production") {

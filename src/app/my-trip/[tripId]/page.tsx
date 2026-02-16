@@ -13,10 +13,11 @@
 // - If you later want true timed rotation (changing the primary image), we can add a tiny client helper.
 
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { notFound, redirect } from "next/navigation";
 import { ConfirmationCopy } from "./TripDetailsClient";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { isAdminEmailStrict } from "@/lib/admin-emails";
 
 type ResortRecord = {
   name: string | null;
@@ -230,27 +231,18 @@ export default async function TripDetailsPage({
 }) {
   const { tripId } = await params;
 
-  // Supabase server client (cookie-based auth)
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          // In server components, Next may disallow setting cookies.
-          // We keep this no-op to remain conservative.
-          // If you need refresh tokens here, move auth to middleware or a route handler.
-          cookiesToSet.forEach(() => {});
-        },
-      },
-    }
-  );
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/login");
+  }
+  const adminClient = getSupabaseAdminClient();
+  const isAdmin = isAdminEmailStrict(user.email);
+  const dataClient = isAdmin && adminClient ? adminClient : supabase;
 
-  const { data: bookingRequest, error } = await supabase
+  let bookingQuery = dataClient
     .from("booking_requests")
     .select(
       `
@@ -265,8 +257,13 @@ export default async function TripDetailsPage({
       confirmed_resort:resorts!booking_requests_confirmed_resort_id_fkey(name, slug, calculator_code)
     `
     )
-    .eq("id", tripId)
-    .maybeSingle<BookingRequest>();
+    .eq("id", tripId);
+
+  if (!isAdmin) {
+    bookingQuery = bookingQuery.eq("renter_id", user.id);
+  }
+
+  const { data: bookingRequest, error } = await bookingQuery.maybeSingle<BookingRequest>();
 
   if (error) {
     // Avoid leaking details to user; surface 404-ish UX.
@@ -276,13 +273,13 @@ export default async function TripDetailsPage({
     notFound();
   }
 
-  const { data: contract } = await supabase
+  const { data: contract } = await dataClient
     .from("contracts")
     .select("snapshot")
     .eq("booking_request_id", tripId)
     .maybeSingle<{ snapshot: Record<string, unknown> | null }>();
 
-  const { data: matchRow } = await supabase
+  const { data: matchRow } = await dataClient
     .from("booking_matches")
     .select("id, rental:rentals!rentals_match_id_fkey(dvc_confirmation_number, disney_confirmation_number)")
     .eq("booking_id", tripId)
@@ -290,7 +287,7 @@ export default async function TripDetailsPage({
     .limit(1)
     .maybeSingle<MatchRow>();
 
-  const { data: matchRows } = await supabase
+  const { data: matchRows } = await dataClient
     .from("booking_matches")
     .select("id")
     .eq("booking_id", tripId)
@@ -301,7 +298,7 @@ export default async function TripDetailsPage({
   let rentalsData: RentalRow[] | null = null;
 
   if (matchIds.length > 0) {
-    const { data: rentals } = await supabase
+    const { data: rentals } = await dataClient
       .from("rentals")
       .select("dvc_confirmation_number, disney_confirmation_number")
       .in("match_id", matchIds);
@@ -317,7 +314,7 @@ export default async function TripDetailsPage({
   const snapshotRentalId =
     (contract?.snapshot as { rentalId?: string } | null)?.rentalId ?? null;
   if (snapshotRentalId) {
-    const { data: rentalById } = await supabase
+    const { data: rentalById } = await dataClient
       .from("rentals")
       .select("disney_confirmation_number, dvc_confirmation_number")
       .eq("id", snapshotRentalId)
@@ -382,7 +379,7 @@ export default async function TripDetailsPage({
       <section className="mt-4 overflow-hidden rounded-2xl border border-[#0B1B3A]/10 bg-[#071a33] shadow-sm lg:flex">
         <div className="flex flex-col justify-between gap-6 px-6 py-8 text-white lg:w-[52%]">
           <div className="text-xs uppercase tracking-[0.32em] text-white/60">
-            Disney Vacation Club • Confirmed
+            Disney Vacation Club
           </div>
 
           <div className="space-y-3">

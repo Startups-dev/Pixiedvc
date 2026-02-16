@@ -118,6 +118,12 @@ const SECTIONS: QuickLinkSection[] = [
     title: 'System',
     links: [
       {
+        id: 'promotions',
+        title: 'Promotions',
+        description: 'Control enrollment switches for guest and owner perks.',
+        href: '/admin/promotions',
+      },
+      {
         id: 'compliance',
         title: 'Compliance',
         description: 'SOC readiness, audit log, access reviews, incidents, vendors & policies.',

@@ -394,6 +394,55 @@ export async function evaluateMatchBookings(options: {
       }
     }
 
+    const rewardsStatsMap = new Map<
+      string,
+      { lifetime_points_rented: number | null; tier: string | null }
+    >();
+    if (ownerIds.length > 0) {
+      const { data: statsRows, error: statsError } = await client
+        .from('owner_rewards_stats')
+        .select('owner_id, lifetime_points_rented, tier')
+        .in('owner_id', ownerIds);
+
+      if (statsError) {
+        errors.push({
+          bookingId: booking.id,
+          step: 'load_owner_rewards_stats',
+          message: statsError.message,
+        });
+      } else {
+        for (const row of statsRows ?? []) {
+          rewardsStatsMap.set(row.owner_id, {
+            lifetime_points_rented: row.lifetime_points_rented ?? null,
+            tier: row.tier ?? null,
+          });
+        }
+      }
+    }
+
+    const lastMatchMap = new Map<string, string | null>();
+    if (ownerIds.length > 0) {
+      const { data: lastMatches, error: lastMatchError } = await client
+        .from('booking_matches')
+        .select('owner_id, created_at')
+        .in('owner_id', ownerIds);
+
+      if (lastMatchError) {
+        errors.push({
+          bookingId: booking.id,
+          step: 'load_owner_last_match',
+          message: lastMatchError.message,
+        });
+      } else {
+        for (const row of lastMatches ?? []) {
+          const existing = lastMatchMap.get(row.owner_id);
+          if (!existing || new Date(row.created_at) > new Date(existing)) {
+            lastMatchMap.set(row.owner_id, row.created_at);
+          }
+        }
+      }
+    }
+
     const checkOutDate = new Date(booking.check_out);
 
     let bestCandidate: {
@@ -538,13 +587,40 @@ export async function evaluateMatchBookings(options: {
           ? 1000 - (currentAvailable - booking.total_points)
           : 600 - reserveBorrowed * 2 - leftover;
       const scoreWithPreference = premiumEligible ? score + 150 : score;
+      const rewardStats = rewardsStatsMap.get(membership.owner_id) ?? {
+        lifetime_points_rented: null,
+        tier: null,
+      };
+      const tier = rewardStats.tier ?? 'base';
+      const rewardPenalty = (() => {
+        switch (tier) {
+          case 'tier1':
+            return 10;
+          case 'tier2':
+            return 25;
+          case 'tier3':
+            return 45;
+          case 'tier4':
+            return 70;
+          default:
+            return 0;
+        }
+      })();
+      const lastMatchAt = lastMatchMap.get(membership.owner_id) ?? null;
+      const daysSinceMatch = lastMatchAt
+        ? Math.floor(
+            (today.getTime() - new Date(lastMatchAt).getTime()) / (1000 * 60 * 60 * 24),
+          )
+        : Number.POSITIVE_INFINITY;
+      const fairnessBoost = Number.isFinite(daysSinceMatch) && daysSinceMatch > 21 ? 50 : 0;
+      const finalScore = scoreWithPreference - rewardPenalty + fairnessBoost;
       const useEndISO = membership.use_year_end ?? computeUseYearEnd(membership.use_year_start ?? '');
       const useEndScore = useEndISO ? new Date(useEndISO).getTime() : Number.POSITIVE_INFINITY;
 
       if (
         !bestCandidate ||
-        scoreWithPreference > bestCandidate.score ||
-        (scoreWithPreference === bestCandidate.score && useEndScore < bestCandidate.useEndScore)
+        finalScore > bestCandidate.score ||
+        (finalScore === bestCandidate.score && useEndScore < bestCandidate.useEndScore)
       ) {
         bestCandidate = {
           membership,
@@ -552,7 +628,7 @@ export async function evaluateMatchBookings(options: {
           ownerProfile: profile,
           reserveCurrent,
           reserveBorrowed,
-          score: scoreWithPreference,
+          score: finalScore,
           useEndScore,
         };
       }
@@ -566,6 +642,51 @@ export async function evaluateMatchBookings(options: {
         Object.keys(candidateRejectionCounts).length > 0 ? candidateRejectionCounts : undefined;
       evaluatedBookings.push(evaluated);
       continue;
+    }
+
+    {
+      const rewardStats = rewardsStatsMap.get(bestCandidate.membership.owner_id) ?? {
+        lifetime_points_rented: null,
+        tier: null,
+      };
+      const tier = rewardStats.tier ?? 'base';
+      const rewardPenalty = (() => {
+        switch (tier) {
+          case 'tier1':
+            return 10;
+          case 'tier2':
+            return 25;
+          case 'tier3':
+            return 45;
+          case 'tier4':
+            return 70;
+          default:
+            return 0;
+        }
+      })();
+      const lastMatchAt = lastMatchMap.get(bestCandidate.membership.owner_id) ?? null;
+      const daysSinceMatch = lastMatchAt
+        ? Math.floor(
+            (today.getTime() - new Date(lastMatchAt).getTime()) / (1000 * 60 * 60 * 24),
+          )
+        : Number.POSITIVE_INFINITY;
+      const fairnessBoost = Number.isFinite(daysSinceMatch) && daysSinceMatch > 21 ? 50 : 0;
+
+      console.info('[matches] scoring_selected_owner', {
+        bookingId: booking.id,
+        ownerId: bestCandidate.membership.owner_id,
+        baseScore: bestCandidate.score,
+        premiumEligible: withinPremiumWindow &&
+          (bestCandidate.membership.resort_id === booking.primary_resort_id ||
+            (resortCode &&
+              typeof bestCandidate.membership.home_resort === 'string' &&
+              bestCandidate.membership.home_resort.toUpperCase() === resortCode.toUpperCase())),
+        penalty: rewardPenalty,
+        boost: fairnessBoost,
+        finalScore: bestCandidate.score,
+        tier,
+        lifetime_points_rented: rewardStats.lifetime_points_rented ?? null,
+      });
     }
 
     const ownerPayout = computeOwnerPayout({

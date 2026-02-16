@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { createServiceClient } from '@/lib/supabase-service-client';
+import { getActivePromotion } from '@/lib/pricing-promotions';
+import GuestEnrollButton from '@/components/rewards/GuestEnrollButton';
 import type { ContractSnapshot } from '@/lib/contracts/contractSnapshot';
 import { resolveResortImage } from '@/lib/resort-image';
 import AnimatedHeading from './AnimatedHeading';
@@ -50,11 +52,13 @@ export default async function ContractSuccessPage({
   };
 
   let resortRecord: ResortRecord | null = null;
+  let guestProfile: { guest_rewards_enrolled_at: string | null } | null = null;
   if (bookingRequestId) {
     const { data: bookingRequest } = await supabase
       .from('booking_requests')
       .select(
         `
+        renter_id,
         primary_resort:resorts!booking_requests_primary_resort_id_fkey(name, slug, calculator_code),
         confirmed_resort:resorts!booking_requests_confirmed_resort_id_fkey(name, slug, calculator_code)
       `,
@@ -63,6 +67,15 @@ export default async function ContractSuccessPage({
       .maybeSingle();
 
     resortRecord = (bookingRequest?.confirmed_resort ?? bookingRequest?.primary_resort ?? null) as ResortRecord | null;
+
+    if (bookingRequest?.renter_id) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('guest_rewards_enrolled_at')
+        .eq('id', bookingRequest.renter_id)
+        .maybeSingle();
+      guestProfile = profile ?? null;
+    }
   }
 
   const resortName = resortRecord?.name ?? summary.resortName ?? snapshot.resortName ?? 'Pixie DVC';
@@ -98,6 +111,10 @@ export default async function ContractSuccessPage({
         confirmationNumber;
     }
   }
+
+  const { data: activePromotion } = await getActivePromotion({ adminClient: supabase });
+  const promotionActive = Boolean(activePromotion);
+  const showEnrollPrompt = promotionActive && !guestProfile?.guest_rewards_enrolled_at;
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#0b1b3a] via-[#0d2148] to-[#0b1b3a] px-6 py-16">
@@ -152,6 +169,20 @@ export default async function ContractSuccessPage({
               Link in My Disney Experience
             </Link>
           </div>
+
+          {showEnrollPrompt ? (
+            <div className="mt-8 rounded-2xl border border-[#0b1b3a]/15 bg-[#0b1b3a]/5 px-6 py-4 text-center">
+              <p className="text-sm font-semibold text-[#0b1b3a]">
+                You’re eligible — enroll now to activate Pixie Perks.
+              </p>
+              <p className="mt-1 text-xs text-[#0b1b3a]/70">
+                Enrollment may close for new participants; existing members keep benefits.
+              </p>
+              <div className="mt-3 flex justify-center">
+                <GuestEnrollButton />
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </main>

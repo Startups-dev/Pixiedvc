@@ -198,9 +198,11 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
   const payouts = (rental.payout_ledger ?? []) as any[];
   const agreementDoc = documents.find((doc) => doc.type === "agreement_pdf");
   const approvalCompleted = getMilestoneStatus("owner_approved", milestones) === "completed";
+  const isOwnerReservation = !rental.match_id;
   const confirmationCompleted = getMilestoneStatus("disney_confirmation_uploaded", milestones) === "completed";
   const paymentVerified = getMilestoneStatus("payment_verified", milestones) === "completed";
   const hasConfirmationNumber = Boolean(rental.dvc_confirmation_number);
+  const showConfirmationSection = approvalCompleted || isOwnerReservation;
   const bookingPackage = (rental.booking_package ?? {}) as Record<string, unknown>;
   const leadGuestName =
     rental.lead_guest_name ?? (bookingPackage.lead_guest_name as string | null) ?? null;
@@ -315,6 +317,24 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
         </div>
       </header>
 
+      {isOwnerReservation ? (
+        <Card className="flex flex-wrap items-center justify-between gap-3 border border-slate-200 bg-slate-50">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Ready stays</p>
+            <p className="text-sm text-slate-700">
+              Once verified, your reservation can be listed as a Ready Stay for instant guest booking.
+            </p>
+          </div>
+          {confirmationCompleted ? (
+            <Button asChild>
+              <Link href={`/owner/ready-stays/new?rentalId=${rental.id}`}>List a Ready Stay</Link>
+            </Button>
+          ) : (
+            <Button disabled>List a Ready Stay</Button>
+          )}
+        </Card>
+      ) : null}
+
       <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <Card className="space-y-4">
           <p className="text-xs uppercase tracking-[0.3em] text-muted">Milestones</p>
@@ -388,7 +408,7 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
               </div>
             ) : null}
           </div>
-          {!approvalCompleted ? (
+          {!approvalCompleted && !isOwnerReservation ? (
             <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-xs text-slate-600">
               <div className="mt-3">
                 <OwnerApprovalButton rentalId={rental.id} disabled={!approvalEnabled} missing={missingLabels} />
@@ -397,13 +417,17 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
                 After approval, you’ll book the stay in Disney and upload the confirmation to unlock payout.
               </p>
             </div>
+          ) : isOwnerReservation && !approvalCompleted ? (
+            <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-xs text-slate-600">
+              This is your owner-held reservation. Upload the Disney confirmation once it is booked.
+            </p>
           ) : (
             <p className="rounded-2xl bg-emerald-50 p-4 text-xs text-emerald-700">Booking package approved.</p>
           )}
         </Card>
       </section>
 
-      {approvalCompleted ? (
+      {showConfirmationSection ? (
         <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
           <DocumentList documents={documents} />
           <div className="space-y-4">
@@ -411,7 +435,7 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
               rentalId={rental.id}
               initialConfirmationNumber={rental.dvc_confirmation_number}
             />
-            {hasConfirmationNumber ? (
+            {hasConfirmationNumber && !isOwnerReservation ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
                 <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Agreement</p>
                 {agreementDoc?.signed_url ? (

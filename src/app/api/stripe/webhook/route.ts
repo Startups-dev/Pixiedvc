@@ -73,6 +73,7 @@ export async function POST(request: Request) {
       session.client_reference_id ??
       session.metadata?.booking_id ??
       null;
+    const paymentType = session.metadata?.payment_type ?? null;
     const amountPaid = typeof session.amount_total === "number" ? session.amount_total / 100 : null;
     const currency = session.currency?.toUpperCase() ?? "USD";
 
@@ -86,15 +87,53 @@ export async function POST(request: Request) {
     if (bookingId && amountPaid && session.payment_status === "paid") {
       const supabase = getSupabaseAdminClient();
       if (supabase) {
-        const { data, error } = await supabase
-          .from("booking_requests")
+        let data: unknown = null;
+        let error: unknown = null;
+
+        // Only mark booking requests as submitted for deposit sessions.
+        // This prevents contract/booking checkouts from stomping booking lifecycle state.
+        if (paymentType === "deposit") {
+          const depositUpdate = await supabase
+            .from("booking_requests")
+            .update({
+              deposit_paid: amountPaid,
+              deposit_currency: currency,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", bookingId);
+          data = depositUpdate.data;
+          error = depositUpdate.error;
+          if (depositUpdate.error) {
+            console.error("[stripe/webhook] deposit update failed", {
+              booking_request_id: bookingId,
+              session_id: event.id,
+              code: depositUpdate.error.code,
+              message: depositUpdate.error.message,
+              details: depositUpdate.error.details,
+              hint: depositUpdate.error.hint,
+            });
+          }
+
+          // Only promote lifecycle status when the request is still draft.
+          await supabase
+            .from("booking_requests")
+            .update({
+              status: "submitted",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", bookingId)
+            .eq("status", "draft");
+        }
+
+        await supabase
+          .from("ready_stays")
           .update({
-            deposit_paid: amountPaid,
-            deposit_currency: currency,
-            status: "submitted",
+            status: "sold",
+            locked_until: null,
+            lock_session_id: null,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", bookingId);
+          .eq("lock_session_id", bookingId);
 
         if (process.env.NODE_ENV !== "production") {
           console.info("[stripe/webhook] update", {
@@ -103,6 +142,8 @@ export async function POST(request: Request) {
             error: Boolean(error),
           });
         }
+
+        // Enrollment is explicit (user-driven) and no longer automatic here.
       }
 
       if (process.env.NODE_ENV !== "production") {
@@ -110,6 +151,29 @@ export async function POST(request: Request) {
           booking_request_id: bookingId,
           amount_paid: amountPaid,
         });
+      }
+    }
+  }
+
+  if (event.type === "checkout.session.expired" || event.type === "checkout.session.async_payment_failed") {
+    const session = event.data.object;
+    const bookingId =
+      session.metadata?.booking_request_id ??
+      session.client_reference_id ??
+      session.metadata?.booking_id ??
+      null;
+
+    if (bookingId) {
+      const supabase = getSupabaseAdminClient();
+      if (supabase) {
+        await supabase
+          .from("ready_stays")
+          .update({
+            locked_until: null,
+            lock_session_id: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("lock_session_id", bookingId);
       }
     }
   }

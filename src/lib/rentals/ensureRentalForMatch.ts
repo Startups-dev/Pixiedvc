@@ -2,6 +2,19 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { resolveCalculatorCode } from "@/lib/resort-calculator";
 import { computeOwnerPayout } from "@/lib/pricing";
+import {
+  countCompletedGuestBookings,
+  getGuestPerksDiscountPct,
+  isGuestPerksEnrolled,
+} from "@/lib/guest-rewards";
+import {
+  applyOwnerBonusWithMargin,
+  getOwnerPreferredBonusCents,
+  getOwnerPreferredTier,
+  isOwnerRewardsEnrolled,
+  sumOwnerCompletedPoints,
+} from "@/lib/owner-rewards";
+import { getActivePromotion } from "@/lib/pricing-promotions";
 
 type EnsureRentalResult = {
   rentalId: string;
@@ -68,7 +81,7 @@ export async function ensureRentalForMatch(params: {
   const { data: booking } = await adminClient
     .from("booking_requests")
     .select(
-      "id, renter_id, check_in, check_out, nights, primary_resort_id, primary_room, primary_view, total_points, max_price_per_point, est_cash, guest_total_cents, guest_rate_per_point_cents, adults, youths, requires_accessibility, comments, lead_guest_name, lead_guest_email, lead_guest_phone, address_line1, address_line2, city, state, postal_code, country, deposit_due, deposit_paid, deposit_currency, guest_profile_complete_at, guest_agreement_accepted_at, primary_resort:resorts!booking_requests_primary_resort_id_fkey(slug, calculator_code, name)",
+      "id, renter_id, check_in, check_out, nights, primary_resort_id, primary_room, primary_view, total_points, max_price_per_point, est_cash, guest_total_cents, guest_total_cents_original, guest_total_cents_final, guest_rate_per_point_cents, adults, youths, requires_accessibility, comments, lead_guest_name, lead_guest_email, lead_guest_phone, address_line1, address_line2, city, state, postal_code, country, deposit_due, deposit_paid, deposit_currency, guest_profile_complete_at, guest_agreement_accepted_at, primary_resort:resorts!booking_requests_primary_resort_id_fkey(slug, calculator_code, name)",
     )
     .eq("id", match.booking_id)
     .maybeSingle();
@@ -107,6 +120,13 @@ export async function ensureRentalForMatch(params: {
       calculator_code: resortMeta?.calculator_code ?? null,
     }) ?? resortMeta?.slug ?? "TBD";
 
+  let guestTotalCents =
+    typeof booking.guest_total_cents === "number" ? booking.guest_total_cents : null;
+  let guestRatePerPointCents =
+    typeof booking.guest_rate_per_point_cents === "number"
+      ? booking.guest_rate_per_point_cents
+      : null;
+
   const bookingPackage = {
     booking_request_id: booking.id,
     resort_name: resortMeta?.name ?? null,
@@ -142,8 +162,8 @@ export async function ensureRentalForMatch(params: {
     deposit_currency: booking.deposit_currency ?? "USD",
     max_price_per_point: booking.max_price_per_point ?? null,
     est_cash: booking.est_cash ?? null,
-    guest_total_cents: booking.guest_total_cents ?? null,
-    guest_rate_per_point_cents: booking.guest_rate_per_point_cents ?? null,
+    guest_total_cents: guestTotalCents ?? null,
+    guest_rate_per_point_cents: guestRatePerPointCents ?? null,
   };
 
   let membershipResortId: string | null = null;
@@ -162,10 +182,242 @@ export async function ensureRentalForMatch(params: {
     bookingResortId: booking.primary_resort_id ?? null,
   });
 
-  const owner_total_cents =
+  let owner_total_cents =
     typeof match.owner_total_cents === "number"
       ? match.owner_total_cents
       : ownerPayout.owner_total_cents;
+  let ownerRatePerPointCents = ownerPayout.owner_rate_per_point_cents;
+  let ownerBaseRateCents = ownerPayout.owner_base_rate_per_point_cents;
+  let ownerPremiumCents = ownerPayout.owner_premium_per_point_cents;
+  let ownerPremiumApplied = ownerPayout.owner_home_resort_premium_applied;
+  let ownerBonusCandidate = 0;
+  let ownerRewardsPoints = 0;
+  let ownerRewardsTier: ReturnType<typeof getOwnerPreferredTier> | null = null;
+
+  if (resolvedOwnerUserId) {
+    const { data: ownerProfile, error: ownerProfileError } = await adminClient
+      .from("profiles")
+      .select("id, owner_rewards_enrolled_at")
+      .eq("id", resolvedOwnerUserId)
+      .maybeSingle();
+
+    if (ownerProfileError) {
+      console.error("[owner-rewards] failed to load owner profile", {
+        code: ownerProfileError.code,
+        message: ownerProfileError.message,
+        details: ownerProfileError.details,
+        hint: ownerProfileError.hint,
+        owner_user_id: resolvedOwnerUserId,
+      });
+    }
+
+    if (isOwnerRewardsEnrolled(ownerProfile)) {
+      const { points, error: pointsError } = await sumOwnerCompletedPoints({
+        adminClient,
+        ownerUserId: resolvedOwnerUserId,
+      });
+
+      if (pointsError) {
+        console.error("[owner-rewards] failed to sum completed points", {
+          code: pointsError.code,
+          message: pointsError.message,
+          details: pointsError.details,
+          hint: pointsError.hint,
+          owner_user_id: resolvedOwnerUserId,
+        });
+      }
+
+      ownerRewardsPoints = points;
+      ownerRewardsTier = getOwnerPreferredTier(points);
+      ownerBonusCandidate = getOwnerPreferredBonusCents(points);
+    }
+  }
+
+  const guestTotalCentsBeforePerks =
+    typeof guestTotalCents === "number" && guestTotalCents > 0 ? guestTotalCents : null;
+
+  if (
+    typeof owner_total_cents === "number" &&
+    owner_total_cents > 0 &&
+    typeof guestTotalCents === "number" &&
+    guestTotalCents > 0 &&
+    booking.guest_total_cents_final === null
+  ) {
+    if (!booking.renter_id) {
+      console.warn("[pricing] missing renter id for guest perks", {
+        booking_request_id: booking.id,
+      });
+    } else {
+      const { data: guestProfile, error: guestProfileError } = await adminClient
+      .from("profiles")
+      .select("id, guest_rewards_enrolled_at")
+      .eq("id", booking.renter_id)
+      .maybeSingle();
+
+    if (guestProfileError) {
+      console.error("[pricing] failed to load guest rewards profile", {
+        code: guestProfileError.code,
+        message: guestProfileError.message,
+        details: guestProfileError.details,
+        hint: guestProfileError.hint,
+        booking_request_id: booking.id,
+      });
+    }
+
+      if (guestProfileError) {
+        console.error("[pricing] failed to load guest rewards profile", {
+          code: guestProfileError.code,
+          message: guestProfileError.message,
+          details: guestProfileError.details,
+          hint: guestProfileError.hint,
+          booking_request_id: booking.id,
+        });
+      }
+
+      if (isGuestPerksEnrolled(guestProfile)) {
+        const { count, error: countError } = await countCompletedGuestBookings({
+          adminClient,
+          renterId: booking.renter_id,
+        });
+
+        if (countError) {
+          console.error("[pricing] failed to count completed bookings", {
+            code: countError.code,
+            message: countError.message,
+            details: countError.details,
+            hint: countError.hint,
+            booking_request_id: booking.id,
+          });
+        }
+
+        const discountPct = getGuestPerksDiscountPct(count);
+        const pixieFeeCents = guestTotalCents - owner_total_cents;
+        if (discountPct > 0 && pixieFeeCents > 0) {
+          const discountedPixieFee = Math.round(pixieFeeCents * (1 - discountPct / 100));
+          const newGuestTotal = owner_total_cents + discountedPixieFee;
+          const pointsTotal = typeof booking.total_points === "number" ? booking.total_points : null;
+          const newRate =
+            typeof pointsTotal === "number" && pointsTotal > 0
+              ? Math.round(newGuestTotal / pointsTotal)
+              : null;
+
+          const { error: updateError } = await adminClient
+            .from("booking_requests")
+            .update({
+              guest_total_cents_original: booking.guest_total_cents_original ?? guestTotalCents,
+              guest_total_cents_final: newGuestTotal,
+              guest_total_cents: newGuestTotal,
+              guest_rate_per_point_cents: newRate ?? guestRatePerPointCents,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", booking.id);
+
+          if (updateError) {
+            console.error("[pricing] failed to apply guest perks", {
+              code: updateError.code,
+              message: updateError.message,
+              details: updateError.details,
+              hint: updateError.hint,
+              booking_request_id: booking.id,
+            });
+          } else {
+            guestTotalCents = newGuestTotal;
+            guestRatePerPointCents = newRate ?? guestRatePerPointCents;
+            bookingPackage.guest_total_cents = newGuestTotal;
+            bookingPackage.guest_rate_per_point_cents = newRate ?? guestRatePerPointCents;
+            console.info("[pricing] guest perks applied", {
+              booking_request_id: booking.id,
+              pixie_fee_original: pixieFeeCents,
+              discount_pct: discountPct,
+              guest_total_final: newGuestTotal,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  if (ownerBonusCandidate > 0) {
+    const totalPoints = Number(booking.total_points ?? 0);
+    if (Number.isFinite(totalPoints) && totalPoints > 0) {
+      const { data: activePromotion, error: promoError } = await getActivePromotion({
+        adminClient,
+      });
+
+      if (promoError) {
+        console.error("[owner-rewards] failed to load pricing promotion", {
+          code: (promoError as { code?: string }).code,
+          message: promoError.message,
+        });
+      }
+
+      const pointsTotal = totalPoints;
+      const currentGuestRate =
+        typeof guestRatePerPointCents === "number" && guestRatePerPointCents > 0
+          ? guestRatePerPointCents
+          : typeof guestTotalCents === "number" && guestTotalCents > 0
+            ? Math.round(guestTotalCents / pointsTotal)
+            : null;
+
+      let appliedBonus = ownerBonusCandidate;
+      if (activePromotion && currentGuestRate !== null) {
+        const guestRewardPerPointRaw =
+          guestTotalCentsBeforePerks !== null && typeof guestTotalCents === "number"
+            ? Math.max(Math.round((guestTotalCentsBeforePerks - guestTotalCents) / pointsTotal), 0)
+            : 0;
+        const guestRewardPerPoint = Math.min(
+          guestRewardPerPointRaw,
+          activePromotion.guest_max_reward_per_point_cents,
+        );
+        const spreadPerPoint = currentGuestRate - ownerPayout.owner_rate_per_point_cents;
+        appliedBonus = applyOwnerBonusWithMargin({
+          owner_bonus_candidate_cents: ownerBonusCandidate,
+          owner_max_bonus_cents: activePromotion.owner_max_bonus_per_point_cents,
+          guest_reward_per_point_cents: guestRewardPerPoint,
+          spread_per_point_cents: spreadPerPoint,
+          min_spread_per_point_cents: activePromotion.min_spread_per_point_cents,
+        });
+      }
+
+      if (appliedBonus > 0) {
+        ownerBaseRateCents = ownerPayout.owner_base_rate_per_point_cents;
+        ownerPremiumCents = ownerPayout.owner_premium_per_point_cents;
+        ownerPremiumApplied = ownerPayout.owner_home_resort_premium_applied;
+        ownerRatePerPointCents = ownerPayout.owner_rate_per_point_cents + appliedBonus;
+        owner_total_cents = pointsTotal * ownerRatePerPointCents;
+
+        const { error: matchUpdateError } = await adminClient
+          .from("booking_matches")
+          .update({
+            owner_base_rate_per_point_cents: ownerBaseRateCents,
+            owner_premium_per_point_cents: ownerPremiumCents,
+            owner_rate_per_point_cents: ownerRatePerPointCents,
+            owner_total_cents,
+            owner_home_resort_premium_applied: ownerPremiumApplied,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", match.id);
+
+        if (matchUpdateError) {
+          console.error("[owner-rewards] failed to update match payout", {
+            code: matchUpdateError.code,
+            message: matchUpdateError.message,
+            details: matchUpdateError.details,
+            hint: matchUpdateError.hint,
+            match_id: match.id,
+          });
+        }
+
+        console.info("[owner-rewards] bonus applied", {
+          owner_user_id: resolvedOwnerUserId,
+          owner_membership_id: match.owner_membership_id ?? null,
+          tier: ownerRewardsTier ?? getOwnerPreferredTier(ownerRewardsPoints),
+          bonus_cents_per_point: appliedBonus,
+          owner_total_cents,
+        });
+      }
+    }
+  }
 
   const fullPayload = {
     match_id: match.id,
