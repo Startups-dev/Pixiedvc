@@ -124,27 +124,36 @@ export default async function ReadyStaysPage({
 
       <section id="how-it-works" className="space-y-4">
         <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">How Ready Stays Works</h2>
-          <div className="mt-4 space-y-3 text-sm text-muted">
-            <p>1. Start with your private Disney reservation details.</p>
-            <p>2. Upload your existing Disney confirmation number to verify the reservation.</p>
-            <p>3. Once verified, your reservation can be listed as a Ready Stay for instant guest booking.</p>
-            <p>4. Guests can book instantly, sign the agreement, and complete payment.</p>
-            <p>5. Finalize transferring the reservation to guests via DVC.</p>
-            <p>6. Collect your payout.</p>
+          <div className="mb-3">
+            <Link href="/owner/ready-stays/faq" className="text-xs font-semibold text-brand hover:underline">
+              Read the Ready Stays FAQ
+            </Link>
           </div>
+          <details>
+            <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.2em] text-ink">
+              How Ready Stays Works
+            </summary>
+            <div className="mt-4 space-y-3 text-sm text-muted">
+              <p>1. Start with your private Disney reservation details.</p>
+              <p>2. Upload your existing Disney confirmation number to verify the reservation.</p>
+              <p>3. Once verified, your reservation can be listed as a Ready Stay for instant guest booking.</p>
+              <p>4. Guests can book instantly, sign the agreement, and complete payment.</p>
+              <p>5. Finalize transferring the reservation to guests via DVC.</p>
+              <p>6. Collect your payout.</p>
+            </div>
+          </details>
         </Card>
       </section>
 
       <section id="post-ready-stay" className="space-y-4">
         <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">List a Ready Stay</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Add a Ready Stay</h2>
           <p className="mt-2 text-sm text-muted">
             Have a confirmed reservation? Verify your private reservation, then list it as a public Ready Stay for guest booking.
           </p>
           <div className="mt-5">
             <Button asChild>
-              <Link href="/owner/dashboard?tab=listings">List a Ready Stay</Link>
+              <Link href="/owner/dashboard?tab=listings">Add Ready Stay</Link>
             </Button>
           </div>
         </Card>

@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
       check_out: rental.check_out,
       points: rental.points_required,
       room_type: rental.room_type,
-      season_type: band.seasonType,
+      season_type: caps.strictestSeasonType,
       owner_price_per_point_cents: ownerPrice,
       guest_price_per_point_cents: guestPrice,
       status: "active",

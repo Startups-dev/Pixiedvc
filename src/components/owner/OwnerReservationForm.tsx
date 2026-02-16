@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -99,16 +100,6 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
       : null;
 
   useEffect(() => {
-    if (!pricing) return;
-    if (!ownerPayoutPerPoint) {
-      const fallback = pricing.suggestions[pricing.suggestions.length - 1] ?? pricing.maxOwnerPayout;
-      if (fallback > 0) {
-        setOwnerPayoutPerPoint(String(fallback));
-      }
-    }
-  }, [ownerPayoutPerPoint, pricing]);
-
-  useEffect(() => {
     pointsValueRef.current = points;
     pointsManuallyEditedRef.current = pointsManuallyEdited;
   }, [points, pointsManuallyEdited]);
@@ -180,6 +171,10 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
       setPoints(String(calculatedPoints));
     }
   }, [points, pointsManuallyEdited, calculatedPoints]);
+
+  useEffect(() => {
+    setOwnerPayoutPerPoint("");
+  }, [resortId, roomType, checkIn, checkOut]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -270,7 +265,7 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
       <div className="grid gap-4 md:grid-cols-2">
         <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
           Resort
@@ -315,7 +310,14 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
             type="date"
             className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
             value={checkIn}
-            onChange={(event) => setCheckIn(event.target.value)}
+            onChange={(event) => {
+              const nextCheckIn = event.target.value;
+              setCheckIn(nextCheckIn);
+              if (!checkOut && nextCheckIn) {
+                // Seed checkout with check-in so the native picker opens in the same month.
+                setCheckOut(nextCheckIn);
+              }
+            }}
             required
           />
         </label>
@@ -327,6 +329,7 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
             className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
             value={checkOut}
             onChange={(event) => setCheckOut(event.target.value)}
+            min={checkIn || undefined}
             required
           />
         </label>
@@ -371,8 +374,9 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Pricing Tool</p>
           {pricing ? (
-            <p className="text-xs font-semibold text-slate-600">
-              Strictest season: {seasonLabel(pricing.seasonType)} · Guest cap {formatDollars(pricing.capDollars)}/pt
+            <p className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+              Strictest season: {seasonLabel(pricing.seasonType)} · Max owner payout{" "}
+              {formatDollars(pricing.maxOwnerPayout)}/pt
             </p>
           ) : (
             <p className="text-xs text-slate-500">Choose dates to load season and cap.</p>
@@ -386,24 +390,32 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
             min="1"
             step="0.01"
             inputMode="decimal"
+            autoComplete="off"
             className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
             value={ownerPayoutPerPoint}
-            onChange={(event) => setOwnerPayoutPerPoint(event.target.value)}
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              setOwnerPayoutPerPoint(nextValue);
+            }}
             required
           />
         </label>
         {pricing && checkIn && checkOut ? (
           <p className="mt-2 text-xs text-slate-600">
             Max payout for these dates:{" "}
-            <span className="font-semibold">{formatDollars(pricing.maxOwnerPayout)}/pt</span> (guest cap{" "}
-            {formatDollars(pricing.capDollars)}/pt minus Pixie fee {formatDollars(FEE_PER_POINT)}/pt). You can
-            enter any lower amount.
+            <span className="font-semibold">{formatDollars(pricing.maxOwnerPayout)}/pt</span>. You can set any
+            lower amount — higher isn’t allowed.
           </p>
         ) : (
           <p className="mt-2 text-xs text-slate-500">
             Pick check-in and check-out to calculate your max payout and suggestions.
           </p>
         )}
+        <p className="mt-1 text-xs">
+          <Link href="/owner/ready-stays/faq" className="font-semibold text-brand hover:underline">
+            Why is there a max payout? (Ready Stays FAQ)
+          </Link>
+        </p>
         {payoutTooHigh && pricing ? (
           <p className="mt-2 text-xs text-rose-600">
             Too high - the maximum allowed is {formatDollars(pricing.maxOwnerPayout)}/pt for these dates.
@@ -418,7 +430,9 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
                 <button
                   key={value}
                   type="button"
-                  onClick={() => setOwnerPayoutPerPoint(String(value))}
+                  onClick={() => {
+                    setOwnerPayoutPerPoint(String(value));
+                  }}
                   className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300"
                 >
                   {label} · {formatDollars(value)}/pt
@@ -432,13 +446,9 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
           <p>You receive {ownerPayoutValid ? `${formatDollars(ownerPayout)}/pt` : "—"}</p>
           <p>Total owner payout: {totalOwnerPayout !== null ? formatDollars(totalOwnerPayout) : "—"}</p>
           <p className="mt-2 text-xs text-slate-500">
-            Disclosure: the platform charges the guest an additional fee on top of your payout.
+            Heads up: guests pay a PixieDVC service fee on top of your payout.
           </p>
         </div>
-
-        <p className="mt-3 text-xs text-slate-500">
-          Caps are market ceilings for brand protection and pricing consistency. You can price below the cap.
-        </p>
       </div>
 
       <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">

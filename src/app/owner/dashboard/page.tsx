@@ -23,7 +23,6 @@ import { formatCurrency, normalizeMilestones, getMilestoneStatus } from "@/lib/o
 import { getMembershipExpirationDate, getMembershipNudge } from "@/lib/owner-nudges";
 import { getOwnerPreferredBonusCents, getOwnerPreferredTier } from "@/lib/owner-rewards";
 import { getPromotionsSetting } from "@/lib/promotions-settings";
-import { computeReadyStayDashboardMetrics, type ReadyStayDashboardMetricsRow } from "@/lib/ready-stays/dashboardMetrics";
 import OwnerDashboardClient from "./OwnerDashboardClient";
 
 export const dynamic = "force-dynamic";
@@ -118,7 +117,7 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
   const client = adminClient ?? supabase;
   const owner = await getOwnerProfile(user.id, cookieStore);
 
-  const [memberships, rentals, payouts, notifications, matches, resorts, rewardsProfile, rewardsStats, rewardsFlag, readyStayRows] =
+  const [memberships, rentals, payouts, notifications, matches, resorts, rewardsProfile, rewardsStats, rewardsFlag] =
     await Promise.all([
       getOwnerMemberships(user.id, cookieStore),
       getOwnerRentals(user.id, cookieStore),
@@ -135,10 +134,6 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
             .maybeSingle()
         : Promise.resolve({ data: null }),
       getPromotionsSetting("promotions_owner_enrollment_enabled"),
-      client
-        .from("ready_stays")
-        .select("rental_id, status, owner_price_per_point_cents, points, created_at")
-        .eq("owner_id", user.id),
     ]);
 
   await Promise.all([
@@ -177,23 +172,6 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
 
   const pendingMatches = matches.filter((match) => match.status === "pending_owner");
   const recentMatches = pendingMatches.slice(0, 3);
-  if (readyStayRows.error) {
-    console.error("[owner/dashboard] failed to load ready stays", readyStayRows.error);
-  }
-  const readyStayData = (readyStayRows.data ?? []) as Array<ReadyStayDashboardMetricsRow & { rental_id: string | null }>;
-  const readyStayRentalIds = new Set(
-    readyStayData
-      .map((row) => row.rental_id)
-      .filter(Boolean),
-  );
-  const readyStayMetrics = computeReadyStayDashboardMetrics(readyStayData);
-  const ownerReservations = rentals
-    .filter((rental) => !rental.match_id)
-    .map((rental) => ({
-      ...rental,
-      isReadyStay: readyStayRentalIds.has(rental.id),
-    }));
-
   const bookingIds = matches
     .map((match) => match.booking?.id)
     .filter((id): id is string => Boolean(id));
@@ -339,11 +317,6 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
       pendingPayoutAmount={pendingPayoutAmount}
       pendingPayouts={pendingPayouts}
       rewardsSummary={rewardsSummary}
-      ownerReservations={ownerReservations}
-      activeListings={readyStayMetrics.activeListings}
-      soldThisYear={readyStayMetrics.soldThisYear}
-      totalRevenueCents={readyStayMetrics.totalRevenueCents}
-      avgTimeToSellDays={readyStayMetrics.avgTimeToSellDays}
     />
   );
 }

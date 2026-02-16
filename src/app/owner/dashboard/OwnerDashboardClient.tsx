@@ -52,11 +52,6 @@ type OwnerDashboardClientProps = {
   pendingPayoutAmount: number;
   pendingPayouts: any[];
   rewardsSummary: RewardsSummary | null;
-  ownerReservations: any[];
-  activeListings: number;
-  soldThisYear: number;
-  totalRevenueCents: number;
-  avgTimeToSellDays: number | null;
 };
 
 function formatDate(value: string | null) {
@@ -162,13 +157,7 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
     pendingPayoutAmount,
     pendingPayouts,
     rewardsSummary,
-    ownerReservations,
-    activeListings,
-    soldThisYear,
-    totalRevenueCents,
-    avgTimeToSellDays,
   } = props;
-  const avgTimeToSellLabel = avgTimeToSellDays == null ? "—" : `${avgTimeToSellDays} days`;
 
   return (
     <div className="mx-auto max-w-6xl space-y-12 px-6 py-12">
@@ -186,44 +175,13 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
       <OwnerDashboardTabs tabs={tabs} activeTab={activeTab} />
 
       {activeTab === "listings" ? (
-        <header className="relative overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-[#0C1A37] via-[#10264D] to-[#0A1733] px-8 py-10 text-white shadow-[0_40px_90px_rgba(6,17,40,0.45)]">
-          <div
-            className="absolute inset-0 bg-[radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.12),transparent_55%)]"
-            aria-hidden="true"
-          />
-          <div className="relative flex flex-wrap items-start justify-between gap-8">
-            <div className="max-w-2xl space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-white/60">Ready Stays</p>
-              <h1 className="text-[2.75rem] font-semibold tracking-tight !text-white">Your Ready Stay Inventory</h1>
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <p className="text-sm text-white/85">Turn verified reservations into immediate bookings.</p>
-                <Button asChild size="sm" className="px-8 py-3">
-                  <Link href="#add-reservation-form">Add Ready Stay</Link>
-                </Button>
-              </div>
-            </div>
-            <div className="min-w-[235px] rounded-2xl border border-[#1f3b78]/70 bg-white/10 p-6 text-xs text-white/70">
-              <div className="grid grid-cols-2 gap-5">
-                <div>
-                  <p className="text-[10px] text-white/60">Active Listings</p>
-                  <p className="mt-1 text-2xl font-semibold text-white">{activeListings}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-white/60">Sold This Year</p>
-                  <p className="mt-1 text-2xl font-semibold text-white">{soldThisYear}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-white/60">Total Revenue</p>
-                  <p className="mt-1 text-2xl font-semibold text-white">{formatCurrency(totalRevenueCents)}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-white/60">Avg Time to Sell</p>
-                  <p className="mt-1 text-2xl font-semibold text-white">{avgTimeToSellLabel}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
+        <section className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted">Listings</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-ink">Add a Ready Stay</h1>
+          <p className="text-sm text-muted">
+            Add and verify your Disney reservation to list it for instant booking.
+          </p>
+        </section>
       ) : null}
 
       {activeTab === "overview" ? (
@@ -703,47 +661,12 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
 
       {activeTab === "listings" ? (
         <section className="space-y-6">
-          <Card id="how-it-works" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">How Ready Stays Works</h2>
-            <div className="mt-4 space-y-3 text-sm text-muted">
-              <p>1. Add your owner-held reservation in My Reservations.</p>
-              <p>2. Upload your Disney confirmation to verify the stay.</p>
-              <p>3. Once verified, publish it as a Ready Stay.</p>
-              <p>4. Guests can book instantly, sign the agreement, and complete payment.</p>
-            </div>
-          </Card>
-
           <Card id="add-reservation-form" className="space-y-4">
             <OwnerReservationForm resorts={resorts} />
           </Card>
-
-          {ownerReservations.length === 0 ? (
-            <p className="rounded-2xl bg-slate-50 p-4 text-sm text-muted">
-              No owner reservations yet.
-            </p>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {ownerReservations.map((rental) => (
-                <Card key={rental.id} className="space-y-2">
-                  {rental.isReadyStay ? (
-                    <span className="inline-flex rounded-full bg-indigo-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-indigo-700">
-                      READY STAY
-                    </span>
-                  ) : null}
-                  <p className="text-sm font-semibold text-ink">{rental.resort_code ?? "Resort"}</p>
-                  <p className="text-xs text-muted">
-                    {formatDate(rental.check_in)} – {formatDate(rental.check_out)}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {rental.points_required ? `${rental.points_required} points` : "Points pending"}
-                  </p>
-                  <Link href={`/owner/rentals/${rental.id}`} className="text-xs font-semibold text-brand hover:underline">
-                    View reservation
-                  </Link>
-                </Card>
-              ))}
-            </div>
-          )}
+          <p className="text-xs text-slate-500">
+            After publishing, manage active, pending, and sold Ready Stays on the inventory page.
+          </p>
         </section>
       ) : null}
 
