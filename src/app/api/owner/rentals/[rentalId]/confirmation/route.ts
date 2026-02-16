@@ -57,6 +57,21 @@ export async function POST(
     return NextResponse.json({ error: rentalUpdateError.message }, { status: 400 });
   }
 
+  const { error: milestoneError } = await client
+    .from("rental_milestones")
+    .upsert({
+      rental_id: rentalId,
+      code: "disney_confirmation_uploaded",
+      status: "completed",
+      occurred_at: new Date().toISOString(),
+    })
+    .eq("rental_id", rentalId)
+    .eq("code", "disney_confirmation_uploaded");
+
+  if (milestoneError) {
+    return NextResponse.json({ error: milestoneError.message }, { status: 400 });
+  }
+
   if (storage_path) {
     const { error: docError } = await client
       .from("rental_documents")
@@ -70,21 +85,6 @@ export async function POST(
 
     if (docError) {
       return NextResponse.json({ error: docError.message }, { status: 400 });
-    }
-
-    const { error: milestoneError } = await client
-      .from("rental_milestones")
-      .upsert({
-        rental_id: rentalId,
-        code: "disney_confirmation_uploaded",
-        status: "completed",
-        occurred_at: new Date().toISOString(),
-      })
-      .eq("rental_id", rentalId)
-      .eq("code", "disney_confirmation_uploaded");
-
-    if (milestoneError) {
-      return NextResponse.json({ error: milestoneError.message }, { status: 400 });
     }
 
     const amountCents = calculatePayoutAmountCents(rental.rental_amount_cents, 70);

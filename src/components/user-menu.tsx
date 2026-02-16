@@ -88,7 +88,46 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
           ref={menuRef}
           className="absolute right-0 mt-2 w-64 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-3 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%]"
         >
-          <div className="px-3 py-2 text-[11px] uppercase tracking-[0.22em] text-white/60">Account</div>
+          {isOwner ? (
+            <>
+              <div className="flex items-center gap-3 px-3 py-2">
+                <span className="h-5 w-[2px] rounded-full bg-sky-200/70" aria-hidden="true" />
+                <span className="text-xs uppercase tracking-[0.22em] text-white/70">
+                  Owner tools
+                </span>
+              </div>
+
+              <Link
+                href="/owner"
+                className="block rounded-[10px] px-3 py-2 text-white/90 transition hover:bg-white/10 hover:text-white"
+                onClick={() => setOpen(false)}
+              >
+                Owner Dashboard
+              </Link>
+
+              <Link
+                href="/owner/ready-stays"
+                className="block rounded-[10px] px-3 py-2 text-white/90 transition hover:bg-white/10 hover:text-white"
+                onClick={() => setOpen(false)}
+              >
+                Ready Stays
+              </Link>
+
+              <Link
+                href="/owner/rewards"
+                className="block rounded-[10px] px-3 py-2 text-white/90 transition hover:bg-white/10 hover:text-white"
+                onClick={() => setOpen(false)}
+              >
+                Earnings &amp; Rewards
+              </Link>
+            </>
+          ) : null}
+
+          <div className="my-1 h-px w-full bg-white/10" />
+
+          <div className="px-3 py-2 text-[11px] uppercase tracking-[0.22em] text-white/60">
+            Travel
+          </div>
 
           <Link
             href="/my-trip"
@@ -115,6 +154,20 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
           </Link>
 
           <Link
+            href="/guest/rewards"
+            className="block rounded-[10px] px-3 py-2 text-white/90 transition hover:bg-white/10 hover:text-white"
+            onClick={() => setOpen(false)}
+          >
+            Guest Rewards
+          </Link>
+
+          <div className="my-1 h-px w-full bg-white/10" />
+
+          <div className="px-3 py-2 text-[11px] uppercase tracking-[0.22em] text-white/60">
+            Account
+          </div>
+
+          <Link
             href="/profile"
             className="block rounded-[10px] px-3 py-2 text-white/90 transition hover:bg-white/10 hover:text-white"
             onClick={() => setOpen(false)}
@@ -129,44 +182,6 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
           >
             Settings
           </Link>
-
-          {isOwner ? (
-            <>
-              <div className="mt-2 px-3 py-2 text-[11px] uppercase tracking-[0.22em] text-white/60">Owners</div>
-
-              <Link
-                href="/owner"
-                className="block rounded-[10px] px-3 py-2 text-white/90 transition hover:bg-white/10 hover:text-white"
-                onClick={() => setOpen(false)}
-              >
-                Owner Dashboard
-              </Link>
-
-              <span className="block cursor-not-allowed rounded-[10px] px-3 py-2 text-white/45">
-                My Listings
-                <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/50">
-                  Coming soon
-                </span>
-              </span>
-
-              <span className="block cursor-not-allowed rounded-[10px] px-3 py-2 text-white/45">
-                Payouts &amp; History
-                <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/50">
-                  Coming soon
-                </span>
-              </span>
-
-              <span className="block cursor-not-allowed rounded-[10px] px-3 py-2 text-white/45">
-                Documents &amp; Agreements
-                <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/50">
-                  Coming soon
-                </span>
-              </span>
-            </>
-          ) : null}
-
-          {/* Divider instead of "System" */}
-          <div className="my-2 h-px w-full bg-white/10" />
 
           {isAdmin ? (
             <Link

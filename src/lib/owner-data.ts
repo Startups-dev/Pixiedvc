@@ -12,6 +12,7 @@ export type OwnerProfile = {
   payout_email: string | null;
   verification: string | null;
   profile_display_name: string | null;
+  profile_full_name: string | null;
 };
 
 export type OwnerMembership = {
@@ -190,7 +191,7 @@ export async function getOwnerProfile(userId: string, cookieStore?: RequestCooki
   const supabase = await getServerClient(cookieStore);
   const { data } = await supabase
     .from("owners")
-    .select("id, user_id, display_name, payout_email, verification, profiles:profiles(display_name)")
+    .select("id, user_id, payout_email, verification, profiles:profiles!owners_user_id_fkey(display_name, full_name)")
     .or(`id.eq.${userId},user_id.eq.${userId}`)
     .maybeSingle();
 
@@ -199,10 +200,11 @@ export async function getOwnerProfile(userId: string, cookieStore?: RequestCooki
   return {
     id: data.id,
     user_id: data.user_id ?? null,
-    display_name: data.display_name ?? null,
+    display_name: null,
     payout_email: data.payout_email ?? null,
     verification: data.verification ?? null,
     profile_display_name: data.profiles?.display_name ?? null,
+    profile_full_name: data.profiles?.full_name ?? null,
   } satisfies OwnerProfile;
 }
 

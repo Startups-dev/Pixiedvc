@@ -68,6 +68,7 @@ const DROPDOWNS: Record<string, DropdownConfig> = {
         title: "Renting",
         items: [
           { label: "Rent DVC Points", href: "/guests", icon: Sparkles },
+          { label: "Ready Stays (Instant Booking)", href: "/ready-stays", icon: Calendar },
           { label: "How Guest Renting Works", href: "/guides/how-renting-dvc-points-works", icon: BookOpen },
           { label: "Confirmed Reservations", enabled: false, icon: CheckCircle2 },
           { label: "Guest Policies & Rules", href: "/guests/policies", icon: FileText },

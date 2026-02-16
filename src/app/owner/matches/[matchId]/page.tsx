@@ -63,7 +63,12 @@ function formatAddress(matchBooking: OwnerMatchBooking | null | undefined) {
   return parts.length ? parts.join(", ") : "—";
 }
 
-export default async function OwnerMatchDetailPage({ params }: { params: { matchId: string } }) {
+export default async function OwnerMatchDetailPage({
+  params,
+}: {
+  params: Promise<{ matchId: string }>;
+}) {
+  const { matchId } = await params;
   const cookieStore = await cookies();
   const supabase = await createSupabaseServerClient();
   const {
@@ -71,10 +76,10 @@ export default async function OwnerMatchDetailPage({ params }: { params: { match
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/login?redirect=/owner/matches/${params.matchId}`);
+    redirect(`/login?redirect=/owner/matches/${matchId}`);
   }
 
-  const matchDetail = await getOwnerMatchDetail(user.id, params.matchId, cookieStore);
+  const matchDetail = await getOwnerMatchDetail(user.id, matchId, cookieStore);
   if (!matchDetail) {
     notFound();
   }
