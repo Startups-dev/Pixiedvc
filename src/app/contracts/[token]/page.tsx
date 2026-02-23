@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase-service-client';
 import { renderPixieAgreementHTML } from '@/lib/agreements/renderPixieAgreement';
 import type { ContractSnapshot } from '@/lib/contracts/contractSnapshot';
+import { isReadyStayBookingRequest } from '@/lib/ready-stays/flow';
 import AcceptanceFormClient from './AcceptanceFormClient';
 import { acceptContractAction, declineContractAction } from './actions';
 
@@ -95,6 +96,7 @@ export default async function ContractTokenPage({ params }: { params: Promise<{ 
     acceptanceId: contract.id ?? null,
     acceptanceIp: maskIp(acceptanceIpRaw),
   });
+  const isReadyStay = await isReadyStayBookingRequest(supabase, contract.booking_request_id);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-6 py-12">
@@ -132,7 +134,11 @@ export default async function ContractTokenPage({ params }: { params: Promise<{ 
         </div>
       ) : (
         <>
-          <AcceptanceFormClient token={token} onAccept={acceptContractAction} />
+          <AcceptanceFormClient
+            token={token}
+            onAccept={acceptContractAction}
+            submitLabel={isReadyStay ? 'Sign & Pay 100%' : 'Accept Agreement & Continue to Payment'}
+          />
           <form action={declineContractAction} className="text-center">
             <input type="hidden" name="token" value={token} />
             <button type="submit" className="text-xs font-semibold text-rose-600">

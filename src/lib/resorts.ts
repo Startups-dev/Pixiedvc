@@ -113,6 +113,259 @@ const PHOTO_FOLDER_OVERRIDES: Record<string, { folder: string; prefix: string }>
   "old-key-west": { folder: "old-key-west", prefix: "OKW" },
   "polynesian-villas": { folder: "Polynesian-villas-and-bungalows", prefix: "PVB" },
   "disneyland-hotel-villas": { folder: "villas-at-disneyland-hotel", prefix: "VDH" },
+  "fort-wilderness-cabins": { folder: "Fort-Wilderness-Cabins", prefix: "CFW" },
+};
+const GETTING_AROUND_OVERRIDES: Record<string, string> = {
+  "animal-kingdom-villas": [
+    "Animal Kingdom: Bus service",
+    "Magic Kingdom: Bus service",
+    "Epcot: Bus service",
+    "Hollywood Studios: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Resort Shuttle: Complimentary shuttle between Jambo House and Kidani Village (approximately every 15 minutes)",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "animal-kingdom-lodge": [
+    "Animal Kingdom: Bus service",
+    "Magic Kingdom: Bus service",
+    "Epcot: Bus service",
+    "Hollywood Studios: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Resort Shuttle: Complimentary shuttle between Jambo House and Kidani Village (approximately every 15 minutes)",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "animal-kingdom-jambo": [
+    "Animal Kingdom: Bus service",
+    "Magic Kingdom: Bus service",
+    "Epcot: Bus service",
+    "Hollywood Studios: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Resort Shuttle: Complimentary shuttle between Jambo House and Kidani Village (approximately every 15 minutes)",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "animal-kingdom-kidani": [
+    "Animal Kingdom: Bus service",
+    "Magic Kingdom: Bus service",
+    "Epcot: Bus service",
+    "Hollywood Studios: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Resort Shuttle: Complimentary shuttle between Kidani Village and Jambo House (approximately every 15 minutes)",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  kidani: [
+    "Animal Kingdom: Bus service",
+    "Magic Kingdom: Bus service",
+    "Epcot: Bus service",
+    "Hollywood Studios: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Resort Shuttle: Complimentary shuttle between Kidani Village and Jambo House (approximately every 15 minutes)",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "bay-lake-tower": [
+    "Magic Kingdom: Walk or monorail access",
+    "Epcot: Monorail access (transfer required)",
+    "Hollywood Studios: Bus service",
+    "Animal Kingdom: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "boardwalk-villas": [
+    "Epcot: Walk or boat access",
+    "Hollywood Studios: Walk or boat access",
+    "Magic Kingdom: Bus service",
+    "Animal Kingdom: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  boardwalk: [
+    "Epcot: Walk or boat access",
+    "Hollywood Studios: Walk or boat access",
+    "Magic Kingdom: Bus service",
+    "Animal Kingdom: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "beach-club-villas": [
+    "Epcot: Walk or boat access",
+    "Hollywood Studios: Walk or boat access",
+    "Magic Kingdom: Bus service",
+    "Animal Kingdom: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "beach-club-villa": [
+    "Epcot: Walk or boat access",
+    "Hollywood Studios: Walk or boat access",
+    "Magic Kingdom: Bus service",
+    "Animal Kingdom: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "grand-floridian-villas": [
+    "Magic Kingdom: Monorail or boat access",
+    "Epcot: Monorail access (transfer required)",
+    "Hollywood Studios: Bus service",
+    "Animal Kingdom: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "old-key-west": [
+    "Disney Springs: Boat, walk, or bus access",
+    "Magic Kingdom: Bus service",
+    "Epcot: Bus service",
+    "Hollywood Studios: Bus service",
+    "Animal Kingdom: Bus service",
+    "Water Parks: Bus service",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "polynesian-villas": [
+    "Magic Kingdom: Monorail access",
+    "Epcot: Monorail access (transfer required)",
+    "Hollywood Studios: Bus service",
+    "Animal Kingdom: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "polynesian-villas-and-bungalows": [
+    "Magic Kingdom: Monorail access",
+    "Epcot: Monorail access (transfer required)",
+    "Hollywood Studios: Bus service",
+    "Animal Kingdom: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "riviera-resort": [
+    "Epcot: Skyliner access",
+    "Hollywood Studios: Skyliner access",
+    "Magic Kingdom: Bus service",
+    "Animal Kingdom: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  riviera: [
+    "Epcot: Skyliner access",
+    "Hollywood Studios: Skyliner access",
+    "Magic Kingdom: Bus service",
+    "Animal Kingdom: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "boulder-ridge-villas": [
+    "Magic Kingdom: Boat or bus access",
+    "Epcot: Bus service",
+    "Hollywood Studios: Bus service",
+    "Animal Kingdom: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "copper-creek-villas": [
+    "Magic Kingdom: Boat or bus access",
+    "Epcot: Bus service",
+    "Hollywood Studios: Bus service",
+    "Animal Kingdom: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "copper-creek-villas-and-cabins": [
+    "Magic Kingdom: Boat or bus access",
+    "Epcot: Bus service",
+    "Hollywood Studios: Bus service",
+    "Animal Kingdom: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "fort-wilderness-cabins": [
+    "Magic Kingdom: Boat access",
+    "Epcot: Bus service",
+    "Hollywood Studios: Bus service",
+    "Animal Kingdom: Bus service",
+    "Disney Springs: Bus service",
+    "Water Parks: Bus service",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "grand-californian-villas": [
+    "Disney California Adventure: Direct park access",
+    "Disneyland Park: Walkable access",
+    "Downtown Disney: Walkable access",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from nearby airports.",
+  ].join("\n"),
+  "grand-californian": [
+    "Disney California Adventure: Direct park access",
+    "Disneyland Park: Walkable access",
+    "Downtown Disney: Walkable access",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from nearby airports.",
+  ].join("\n"),
+  "disneyland-hotel-villas": [
+    "Disneyland Park: Walkable access",
+    "Disney California Adventure: Walkable access",
+    "Downtown Disney: Walkable access",
+    "Airport Transportation: No direct Disney shuttle. Rental cars, rideshare, and private transfers are available from nearby airports.",
+  ].join("\n"),
+  "villas-at-disneyland-hotel": [
+    "Disneyland Park: Walkable access",
+    "Disney California Adventure: Walkable access",
+    "Downtown Disney: Walkable access",
+    "Airport Transportation: No direct Disney shuttle. Rental cars, rideshare, and private transfers are available from nearby airports.",
+  ].join("\n"),
+  "hilton-head-island": [
+    "Resort Area: Shuttle service throughout the resort",
+    "Beach Access: Complimentary shuttle to Disney's Beach House",
+    "Local Area: Biking and walking paths available nearby",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from nearby airports.",
+  ].join("\n"),
+  "hilton-head": [
+    "Resort Area: Shuttle service throughout the resort",
+    "Beach Access: Complimentary shuttle to Disney's Beach House",
+    "Local Area: Biking and walking paths available nearby",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from nearby airports.",
+  ].join("\n"),
+  aulani: [
+    "Resort Experience: Fully self-contained with beach, pools, dining, and activities on site",
+    "Local Area: Easy access to Ko Olina lagoons and nearby attractions",
+    "Airport Transportation: No direct shuttle service. Rental cars and private transfers are available from Honolulu International Airport.",
+  ].join("\n"),
+  "vero-beach": [
+    "Resort Experience: Quiet, self-contained beachfront resort",
+    "Local Area: Best explored by car for nearby dining and attractions",
+    "Walt Disney World: Approximately 90–120 minutes by car",
+    "Airport Transportation: No direct Disney shuttle. Most guests rent a car or arrange private transportation from Orlando International Airport.",
+  ].join("\n"),
+  "saratoga-springs": [
+    "Magic Kingdom: Convenient bus service",
+    "Epcot: Convenient bus service",
+    "Hollywood Studios: Convenient bus service",
+    "Animal Kingdom: Convenient bus service",
+    "Disney Springs: Walk, boat, or bus access",
+    "Water Parks: Bus service",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
+  "saratoga-springs-resort": [
+    "Magic Kingdom: Convenient bus service",
+    "Epcot: Convenient bus service",
+    "Hollywood Studios: Convenient bus service",
+    "Animal Kingdom: Convenient bus service",
+    "Disney Springs: Walk, boat, or bus access",
+    "Water Parks: Bus service",
+    "Airport Transportation: No direct Disney shuttle. Rental cars and private transfers are available from Orlando International Airport.",
+  ].join("\n"),
 };
 
 type JsonRecord = Record<string, unknown>;
@@ -301,11 +554,17 @@ async function mapResortRow(row: ResortRow | null): Promise<Resort | null> {
       title: layout.title ?? "Villa Layout",
       bullets: layoutBullets,
       notes: layout.notes ?? null,
-      image: layout.image ?? null,
+      image:
+        layout.image ??
+        (row.slug === "fort-wilderness-cabins"
+          ? "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/Fort-Wilderness-Cabins/CFW%20floor%20plan.png"
+          : null),
     },
     photos: finalPhotos,
     essentials: {
-      transportation: typeof row.essentials?.transportation === "string" ? row.essentials?.transportation : "",
+      transportation:
+        GETTING_AROUND_OVERRIDES[row.slug] ??
+        (typeof row.essentials?.transportation === "string" ? row.essentials?.transportation : ""),
       amenities,
       dining,
       notices: noticesArray.length ? noticesArray : undefined,
@@ -480,18 +739,6 @@ export async function getResortPhotos(
   const reachable = await filterReachablePhotos(mapped as { src: string; caption: string; alt?: string | null }[]);
   if (reachable.length > 0) {
     return reachable;
-  const filtered = mapped.filter((photo) => {
-    if (!photo.src) {
-      return false;
-    }
-    if (photo.src.startsWith("/")) {
-      return true;
-    }
-    return Boolean(allowedPrefix && photo.src.startsWith(allowedPrefix));
-  });
-
-  if (filtered.length > 0) {
-    return filtered;
   }
 
   const { data: resortRow } = await supabase

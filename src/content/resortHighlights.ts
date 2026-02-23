@@ -568,4 +568,24 @@ export const resortHighlights: Record<string, ResortHighlight> = {
     recommendation:
       "PixieDVC recommends the Villas at Disneyland Hotel for guests who want maximum proximity to Disneyland Resort attractions with a modern villa experience and seamless access to Downtown Disney.",
   },
+  "fort-wilderness-cabins": {
+    slug: "fort-wilderness-cabins",
+    title: "Why guests love The Cabins at Fort Wilderness",
+    intro:
+      "The Cabins at Fort Wilderness offers a unique Disney Vacation Club stay with wooded surroundings, extra indoor-outdoor space, and a peaceful retreat minutes from Magic Kingdom.",
+    bullets: [
+      "Standalone cabin experience: Unlike standard hotel-style layouts, each cabin gives guests a more private, residential-style stay with separate living and sleeping areas.",
+      "Boat access to Magic Kingdom: Water transportation from Fort Wilderness offers a scenic route to Magic Kingdom and a relaxed start to park days.",
+      "Nature-forward resort setting: Pine-lined pathways, wildlife sightings, and open green space create a calm atmosphere away from the busiest resort corridors.",
+      "Space for longer stays: Cabins are ideal for families who want extra room, kitchen access, and a flexible home base between park days.",
+      "Fort Wilderness recreation: Campfire activities, trails, and outdoor amenities make this resort especially appealing for guests who want more than just park touring.",
+    ],
+    goodToKnow: [
+      "Resort is more spread out, so internal transportation can be helpful",
+      "Best fit for guests who value space and quieter surroundings",
+      "Boat service can be weather-dependent at times",
+    ],
+    recommendation:
+      "PixieDVC recommends The Cabins at Fort Wilderness for guests who want a spacious, nature-focused Disney stay with unique accommodations and easy Magic Kingdom access.",
+  },
 };

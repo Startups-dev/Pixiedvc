@@ -806,7 +806,7 @@ function StepThree({
         id: guest.id,
         title:
           guest.age_category === 'youth'
-            ? ['Master', 'Ms.'].includes(guest.title ?? '') ? (guest.title as string) : defaultChildTitle
+            ? ['Master', 'Miss'].includes(guest.title ?? '') ? (guest.title as string) : defaultChildTitle
             : ['Mr.', 'Mrs.'].includes(guest.title ?? '') ? (guest.title as string) : defaultAdultTitle,
         firstName: guest.first_name ?? '',
         lastName: guest.last_name ?? '',
@@ -941,7 +941,7 @@ function StepThree({
                   onChange={(event) => updateForm(index, { title: event.target.value })}
                   className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
                 >
-                  {(guest.ageCategory === 'youth' ? ['Master', 'Ms.'] : ['Mr.', 'Mrs.']).map((option) => (
+                  {(guest.ageCategory === 'youth' ? ['Master', 'Miss'] : ['Mr.', 'Mrs.']).map((option) => (
                     <option key={option} value={option}>
                       {option}
                     </option>

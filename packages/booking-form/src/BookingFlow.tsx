@@ -24,8 +24,6 @@ const depositAmount = 99;
 
 type StepKey = "trip" | "guest" | "agreement";
 
-const stepOrder: StepKey[] = ["trip", "guest", "agreement"];
-
 type FormValues = {
   trip: TripDetailsInput;
   guest: GuestInfoInput;
@@ -43,9 +41,32 @@ type BookingFlowProps = {
   prefill: Prefill;
   resorts: Array<{ id: string; name: string; slug?: string | null }>;
   onComplete: OnComplete;
+  startAtGuestInfo?: boolean;
+  flowLabel?: string;
+  hideDepositBadge?: boolean;
+  stepDisplayOffset?: number;
+  totalStepsOverride?: number;
+  disableAddressAutocomplete?: boolean;
+  onGuestInfoNext?: () => void;
+  onGuestInfoSubmit?: (guest: GuestInfoInput) => Promise<void>;
 };
 
-export function BookingFlow({ prefill, resorts, onComplete }: BookingFlowProps) {
+export function BookingFlow({
+  prefill,
+  resorts,
+  onComplete,
+  startAtGuestInfo = false,
+  flowLabel = "Booking Flow",
+  hideDepositBadge = false,
+  stepDisplayOffset = 0,
+  totalStepsOverride,
+  disableAddressAutocomplete = false,
+  onGuestInfoNext,
+  onGuestInfoSubmit,
+}: BookingFlowProps) {
+  const stepOrder = startAtGuestInfo
+    ? (["guest", "agreement"] as StepKey[])
+    : (["trip", "guest", "agreement"] as StepKey[]);
   const [stepIndex, setStepIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const { ref } = useReferral();
@@ -104,7 +125,10 @@ export function BookingFlow({ prefill, resorts, onComplete }: BookingFlowProps) 
     }
   }, [form, ref]);
 
-  const currentStep = stepOrder[stepIndex];
+  const currentStep = stepOrder[stepIndex] ?? stepOrder[0];
+  const displayedStep = stepIndex + 1 + stepDisplayOffset;
+  const displayedTotalSteps = totalStepsOverride ?? stepOrder.length;
+  const progressPercent = Math.min(100, Math.max(0, (displayedStep / displayedTotalSteps) * 100));
 
   const nextStep = () => setStepIndex((i) => Math.min(i + 1, stepOrder.length - 1));
   const prevStep = () => setStepIndex((i) => Math.max(i - 1, 0));
@@ -264,20 +288,22 @@ export function BookingFlow({ prefill, resorts, onComplete }: BookingFlowProps) 
         <Card className="border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Booking Flow</p>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">{flowLabel}</p>
               <h2 className="font-display text-3xl text-ink">
-                {stepIndex + 1} / {stepOrder.length} — {stepLabel}
+                {displayedStep} / {displayedTotalSteps} — {stepLabel}
               </h2>
             </div>
-            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs uppercase tracking-[0.2em] text-slate-600 shadow-sm">
-              <span className="inline-flex h-2 w-2 rounded-full bg-brand" aria-hidden />
-              Deposit ${depositAmount}
-            </div>
+            {hideDepositBadge ? null : (
+              <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs uppercase tracking-[0.2em] text-slate-600 shadow-sm">
+                <span className="inline-flex h-2 w-2 rounded-full bg-brand" aria-hidden />
+                Deposit ${depositAmount}
+              </div>
+            )}
           </div>
           <div className="mt-4 h-1 rounded-full bg-slate-100">
             <div
               className="h-full rounded-full bg-brand transition-all"
-              style={{ width: `${((stepIndex + 1) / stepOrder.length) * 100}%` }}
+              style={{ width: `${progressPercent}%` }}
             />
           </div>
         </Card>
@@ -301,7 +327,21 @@ export function BookingFlow({ prefill, resorts, onComplete }: BookingFlowProps) 
             {currentStep === "trip" ? (
               <TripDetails onNext={nextStep} resorts={resorts} />
             ) : currentStep === "guest" ? (
-              <GuestInfo onBack={prevStep} onNext={nextStep} />
+              <GuestInfo
+                onBack={prevStep}
+                onNext={async () => {
+                  if (onGuestInfoSubmit) {
+                    await onGuestInfoSubmit(form.getValues("guest"));
+                    return;
+                  }
+                  if (onGuestInfoNext) {
+                    onGuestInfoNext();
+                    return;
+                  }
+                  nextStep();
+                }}
+                disableAddressAutocomplete={disableAddressAutocomplete}
+              />
             ) : (
               <AgreementAndPayment onBack={prevStep} onSubmit={handleComplete} estimatedDeposit={depositAmount} />
             )}

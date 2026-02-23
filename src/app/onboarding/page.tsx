@@ -15,6 +15,7 @@ import {
 import { createClient } from '@/lib/supabase';
 import { getCanonicalResorts } from '@/lib/resorts/getResorts';
 import { usePlacesAutocomplete } from '@/hooks/usePlacesAutocomplete';
+import VacationPointsTable, { type VacationPointsRow } from '@/components/onboarding/VacationPointsTable';
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -696,6 +697,14 @@ const MONTHS = [
   'November',
   'December',
 ];
+const FIXED_USE_YEARS = [2025, 2026, 2027] as const;
+
+function createDefaultYearMap() {
+  return FIXED_USE_YEARS.reduce<Record<number, { available: number; holding: number }>>((acc, year) => {
+    acc[year] = { available: 0, holding: 0 };
+    return acc;
+  }, {});
+}
 
 type ContractForm = {
   resortId: string;
@@ -737,7 +746,7 @@ function OwnerContractsStep({
     {
       resortId: '',
       useYearMonth: '',
-      years: {},
+      years: createDefaultYearMap(),
       borrowing: { enabled: false, maxBorrow: 0 },
       fastMove: false,
       helpOpen: false,
@@ -768,7 +777,7 @@ function OwnerContractsStep({
         grouped.set(key, {
           resortId: membership.resort_id,
           useYearMonth: membership.use_year,
-          years: {},
+          years: createDefaultYearMap(),
           borrowing: {
             enabled: Boolean(membership.borrowing_enabled),
             maxBorrow: membership.max_points_to_borrow ?? 0,
@@ -817,7 +826,7 @@ function OwnerContractsStep({
       {
         resortId: '',
         useYearMonth: '',
-        years: {},
+        years: createDefaultYearMap(),
         borrowing: { enabled: false, maxBorrow: 0 },
         fastMove: false,
         helpOpen: false,
@@ -838,28 +847,27 @@ function OwnerContractsStep({
       if (!contract.resortId || !contract.useYearMonth) continue;
       const monthIndex = MONTHS.findIndex((month) => month === contract.useYearMonth);
       if (monthIndex < 0) continue;
-
-      const startThisYear = new Date(today.getFullYear(), monthIndex, 1);
-      const currentUseYear = today < startThisYear ? today.getFullYear() - 1 : today.getFullYear();
-      const nextUseYear = currentUseYear + 1;
-
-      const yearsToSave = [currentUseYear, nextUseYear, nextUseYear + 1];
-      for (const year of yearsToSave) {
-        const row = contract.years[year];
-        const available = Number(row?.available) || 0;
-        const holding = Number(row?.holding) || 0;
-        const useYearStart = new Date(Date.UTC(year, monthIndex, 1));
-        const useYearStartISO = useYearStart.toISOString().slice(0, 10);
-        payload.push({
-          resort_id: contract.resortId,
-          use_year: contract.useYearMonth,
-          use_year_start: useYearStartISO,
-          points_owned: available + holding,
-          points_available: available,
-          borrowing_enabled: contract.borrowing.enabled,
-          max_points_to_borrow: contract.borrowing.enabled ? contract.borrowing.maxBorrow : 0,
-        });
-      }
+      const pointsRows = FIXED_USE_YEARS.map((year) => {
+        const row = contract.years[year] ?? { available: 0, holding: 0 };
+        return {
+          use_year: year,
+          available: Math.max(0, Number(row.available) || 0),
+          holding: Math.max(0, Number(row.holding) || 0),
+        };
+      });
+      const pointsAvailable = pointsRows.reduce((sum, row) => sum + row.available, 0);
+      const pointsOwned = pointsRows.reduce((sum, row) => sum + row.available + row.holding, 0);
+      const useYearStart = new Date(Date.UTC(today.getFullYear(), monthIndex, 1));
+      payload.push({
+        resort_id: contract.resortId,
+        use_year: contract.useYearMonth,
+        use_year_start: useYearStart.toISOString().slice(0, 10),
+        points_owned: pointsOwned,
+        points_available: pointsAvailable,
+        borrowing_enabled: contract.borrowing.enabled,
+        max_points_to_borrow: contract.borrowing.enabled ? contract.borrowing.maxBorrow : 0,
+        vacation_points: pointsRows,
+      });
     }
 
     onNext({
@@ -966,17 +974,8 @@ function OwnerContractsStep({
       </div>
       <HowToFindContractInfo />
       {contracts.map((contract, index) => {
-        const monthIndex = MONTHS.findIndex((month) => month === contract.useYearMonth);
-        const today = new Date();
-        const startThisYear = monthIndex >= 0 ? new Date(today.getFullYear(), monthIndex, 1) : null;
-        const currentUseYear = startThisYear && today < startThisYear ? today.getFullYear() - 1 : today.getFullYear();
-        const years = [currentUseYear, currentUseYear + 1, currentUseYear + 2];
-        const showTable = Boolean(contract.useYearMonth);
-        const endCurrent =
-          monthIndex >= 0 ? new Date(currentUseYear + 1, monthIndex, 0) : null;
-        const nearExpiration =
-          endCurrent && (endCurrent.getTime() - today.getTime()) / (1000 * 60 * 60 * 24) <= 90;
-        const currentRow = contract.years[currentUseYear] ?? { available: 0, holding: 0 };
+        const showTable = true;
+        const currentRow = contract.years[2025] ?? { available: 0, holding: 0 };
 
         return (
         <div key={index} className="rounded-2xl border border-slate-200 p-4 shadow-sm">
@@ -1011,20 +1010,7 @@ function OwnerContractsStep({
                 value={contract.useYearMonth}
                 onChange={(event) => {
                   const nextMonth = event.target.value;
-                  const nextIndex = MONTHS.findIndex((month) => month === nextMonth);
-                  if (nextIndex < 0) {
-                    updateContract(index, { useYearMonth: nextMonth, years: {} });
-                    return;
-                  }
-                  const today = new Date();
-                  const startThisYear = new Date(today.getFullYear(), nextIndex, 1);
-                  const currentUseYear = today < startThisYear ? today.getFullYear() - 1 : today.getFullYear();
-                  const nextYears = [currentUseYear, currentUseYear + 1, currentUseYear + 2];
-                  const nextYearsMap: Record<number, { available: number; holding: number }> = {};
-                  for (const year of nextYears) {
-                    nextYearsMap[year] = contract.years[year] ?? { available: 0, holding: 0 };
-                  }
-                  updateContract(index, { useYearMonth: nextMonth, years: nextYearsMap });
+                  updateContract(index, { useYearMonth: nextMonth });
                 }}
                 className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
               >
@@ -1113,66 +1099,23 @@ function OwnerContractsStep({
           ) : null}
 
           {showTable ? (
-            <div className="mt-4 rounded-2xl border border-slate-200 p-4">
-              <div className="grid gap-3">
-                <div className="grid gap-2 text-xs font-semibold text-slate-500 sm:grid-cols-3">
-                  <span>Use Year</span>
-                  <span>Available</span>
-                  <span>In Holding</span>
-                </div>
-                {years.map((year) => {
-                  const start = monthIndex >= 0 ? new Date(year, monthIndex, 1) : null;
-                  const end = monthIndex >= 0 ? new Date(year + 1, monthIndex, 0) : null;
-                  const row = contract.years[year] ?? { available: 0, holding: 0 };
-                  return (
-                    <div key={year} className="grid gap-2 sm:grid-cols-3">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-700">{year} Use Year</p>
-                        {start && end ? (
-                          <p className="text-xs text-slate-500">
-                            {start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} –{' '}
-                            {end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </p>
-                        ) : null}
-                      </div>
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
-                        value={row.available}
-                        onChange={(event) => {
-                          const nextValue = Math.max(0, Number(event.target.value) || 0);
-                          updateContract(index, {
-                            years: {
-                              ...contract.years,
-                              [year]: { ...row, available: nextValue },
-                            },
-                          });
-                        }}
-                      />
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
-                        value={row.holding}
-                        onChange={(event) => {
-                          const nextValue = Math.max(0, Number(event.target.value) || 0);
-                          updateContract(index, {
-                            years: {
-                              ...contract.years,
-                              [year]: { ...row, holding: nextValue },
-                            },
-                          });
-                        }}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
+            <div className="mt-4">
+              <VacationPointsTable
+                value={FIXED_USE_YEARS.map((year) => ({
+                  useYear: year,
+                  available: contract.years[year]?.available ?? 0,
+                  holding: contract.years[year]?.holding ?? 0,
+                }))}
+                onChange={(rows: VacationPointsRow[]) => {
+                  const nextYears = { ...contract.years };
+                  rows.forEach((row) => {
+                    nextYears[row.useYear] = { available: row.available, holding: row.holding };
+                  });
+                  updateContract(index, { years: nextYears });
+                }}
+              />
 
-              {nearExpiration && Number(currentRow.available) > 0 ? (
+              {Number(currentRow.available) > 0 ? (
                 <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
                   <p>⚠️ These points are close to expiration.</p>
                   <p className="mt-1">Points in this window often rent best when priced for a quick match.</p>

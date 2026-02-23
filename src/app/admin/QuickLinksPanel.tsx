@@ -57,6 +57,12 @@ const SECTIONS: QuickLinkSection[] = [
         description: 'Review live rentals and milestones.',
         href: '/admin/rentals',
       },
+      {
+        id: 'ready-stays',
+        title: 'Ready Stays',
+        description: 'Monitor instant-book listings and statuses.',
+        href: '/admin/ready-stays',
+      },
     ],
   },
   {

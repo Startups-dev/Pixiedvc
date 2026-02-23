@@ -28,6 +28,8 @@ type ResortRecord = {
 type BookingRequest = {
   id: string;
   status: string | null;
+  owner_transfer_confirmed_at: string | null;
+  disney_confirmation_number: string | null;
   check_in: string | null;
   check_out: string | null;
   created_at: string | null;
@@ -45,6 +47,9 @@ type MatchRow = {
 type RentalRow = {
   dvc_confirmation_number: string | null;
   disney_confirmation_number: string | null;
+};
+type ReadyStayLinkRow = {
+  rental_id: string | null;
 };
 
 type EnhanceItem = {
@@ -241,6 +246,7 @@ export default async function TripDetailsPage({
   const adminClient = getSupabaseAdminClient();
   const isAdmin = isAdminEmailStrict(user.email);
   const dataClient = isAdmin && adminClient ? adminClient : supabase;
+  const relationClient = adminClient ?? dataClient;
 
   let bookingQuery = dataClient
     .from("booking_requests")
@@ -248,6 +254,8 @@ export default async function TripDetailsPage({
       `
       id,
       status,
+      owner_transfer_confirmed_at,
+      disney_confirmation_number,
       check_in,
       check_out,
       created_at,
@@ -273,13 +281,13 @@ export default async function TripDetailsPage({
     notFound();
   }
 
-  const { data: contract } = await dataClient
+  const { data: contract } = await relationClient
     .from("contracts")
     .select("snapshot")
     .eq("booking_request_id", tripId)
     .maybeSingle<{ snapshot: Record<string, unknown> | null }>();
 
-  const { data: matchRow } = await dataClient
+  const { data: matchRow } = await relationClient
     .from("booking_matches")
     .select("id, rental:rentals!rentals_match_id_fkey(dvc_confirmation_number, disney_confirmation_number)")
     .eq("booking_id", tripId)
@@ -287,7 +295,7 @@ export default async function TripDetailsPage({
     .limit(1)
     .maybeSingle<MatchRow>();
 
-  const { data: matchRows } = await dataClient
+  const { data: matchRows } = await relationClient
     .from("booking_matches")
     .select("id")
     .eq("booking_id", tripId)
@@ -298,7 +306,7 @@ export default async function TripDetailsPage({
   let rentalsData: RentalRow[] | null = null;
 
   if (matchIds.length > 0) {
-    const { data: rentals } = await dataClient
+    const { data: rentals } = await relationClient
       .from("rentals")
       .select("dvc_confirmation_number, disney_confirmation_number")
       .in("match_id", matchIds);
@@ -314,7 +322,7 @@ export default async function TripDetailsPage({
   const snapshotRentalId =
     (contract?.snapshot as { rentalId?: string } | null)?.rentalId ?? null;
   if (snapshotRentalId) {
-    const { data: rentalById } = await dataClient
+    const { data: rentalById } = await relationClient
       .from("rentals")
       .select("disney_confirmation_number, dvc_confirmation_number")
       .eq("id", snapshotRentalId)
@@ -322,6 +330,26 @@ export default async function TripDetailsPage({
     rentalByIdConfirmation =
       rentalById?.disney_confirmation_number ??
       rentalById?.dvc_confirmation_number ??
+      null;
+  }
+
+  const { data: readyStayLink } = await relationClient
+    .from("ready_stays")
+    .select("rental_id")
+    .or(`booking_request_id.eq.${tripId},sold_booking_request_id.eq.${tripId}`)
+    .limit(1)
+    .maybeSingle<ReadyStayLinkRow>();
+
+  let readyStayRentalConfirmation: string | null = null;
+  if (readyStayLink?.rental_id) {
+    const { data: readyStayRental } = await relationClient
+      .from("rentals")
+      .select("disney_confirmation_number, dvc_confirmation_number")
+      .eq("id", readyStayLink.rental_id)
+      .maybeSingle<RentalRow>();
+    readyStayRentalConfirmation =
+      readyStayRental?.disney_confirmation_number ??
+      readyStayRental?.dvc_confirmation_number ??
       null;
   }
 
@@ -348,12 +376,22 @@ export default async function TripDetailsPage({
     (contract?.snapshot as { confirmationNumber?: string } | null)?.confirmationNumber ?? null;
 
   const confirmationNumber =
+    bookingRequest.disney_confirmation_number ??
     snapshotConfirmation ??
+    readyStayRentalConfirmation ??
     rentalByIdConfirmation ??
     matchRow?.rental?.disney_confirmation_number ??
     matchRow?.rental?.dvc_confirmation_number ??
     rentalConfirmation ??
     null;
+  const transferConfirmed =
+    Boolean(bookingRequest.owner_transfer_confirmed_at) || bookingRequest.status === "transferred";
+  const isReadyStayTrip = Boolean(readyStayLink);
+  const readyStayTransferConfirmed = Boolean(bookingRequest.owner_transfer_confirmed_at);
+  const readyStayDisplayConfirmationNumber = readyStayTransferConfirmed
+    ? bookingRequest.disney_confirmation_number ?? confirmationNumber
+    : null;
+  const displayConfirmationNumber = transferConfirmed ? confirmationNumber : null;
 
   const resortRecord =
     bookingRequest.confirmed_resort ?? bookingRequest.primary_resort ?? null;
@@ -447,11 +485,38 @@ export default async function TripDetailsPage({
           Confirmation number
         </div>
         <div className="mt-4 flex justify-center">
-          <ConfirmationCopy confirmationNumber={confirmationNumber} />
+          <ConfirmationCopy
+            confirmationNumber={isReadyStayTrip ? readyStayDisplayConfirmationNumber : displayConfirmationNumber}
+          />
         </div>
-        <p className="mt-4 text-sm text-[#0B1B3A]/70">
-          Add this confirmation number to the My Disney Experience app to manage your plans.
-        </p>
+        {isReadyStayTrip ? (
+          readyStayTransferConfirmed ? (
+            <>
+              <p className="mt-4 text-sm text-[#0B1B3A]/70">
+                Ready to link in My Disney Experience
+              </p>
+              <div className="mt-3 text-left text-sm text-[#0B1B3A]/70">
+                <p>1) Open My Disney Experience</p>
+                <p>2) My Plans → Link a Reservation</p>
+                <p>3) Paste your confirmation number</p>
+              </div>
+            </>
+          ) : (
+            <p className="mt-4 text-sm text-[#0B1B3A]/70">
+              Owner transfer in progress. You&apos;ll be notified when it&apos;s ready to link.
+            </p>
+          )
+        ) : (
+          transferConfirmed ? (
+            <p className="mt-4 text-sm text-[#0B1B3A]/70">
+              Transferred — ready to link in My Disney Experience.
+            </p>
+          ) : (
+            <p className="mt-4 text-sm text-[#0B1B3A]/70">
+              Waiting for owner transfer. Your confirmation number will appear when transfer is complete.
+            </p>
+          )
+        )}
         <Link
           href="/guides/link-to-disney-experience"
           className="mt-3 inline-flex items-center text-xs font-semibold uppercase tracking-[0.2em] text-[#0B1B3A]/70 hover:text-[#0B1B3A]"

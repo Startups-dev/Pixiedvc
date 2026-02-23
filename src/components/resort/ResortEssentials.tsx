@@ -12,13 +12,23 @@ type Props = {
 
 export default function ResortEssentials({ essentials, id }: Props) {
   const { transportation, amenities, dining, notices } = essentials;
+  const gettingAroundItems = transportation
+    .split(/\n|•|;|\.(?=\s+[A-Z])/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 
   return (
     <section id={id} className="mx-auto max-w-5xl px-6 py-12">
       <h2 className="mb-6 text-2xl font-serif text-[#0F2148]">Resort Essentials</h2>
       <Accordion>
-        <AccordionItem title="Transportation" defaultOpen>
-          <p>{transportation}</p>
+        <AccordionItem title="Getting Around" defaultOpen>
+          <ul className="space-y-1 pl-5 text-[#0F2148]/80">
+            {(gettingAroundItems.length ? gettingAroundItems : [transportation]).map((item) => (
+              <li key={item} className="list-disc">
+                {item}
+              </li>
+            ))}
+          </ul>
         </AccordionItem>
         <AccordionItem title="Amenities">
           <ul className="space-y-1 pl-5 text-[#0F2148]/80">

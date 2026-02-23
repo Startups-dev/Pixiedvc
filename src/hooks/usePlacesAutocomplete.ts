@@ -24,15 +24,17 @@ type Options = {
   onSelect: (address: PlaceAddress) => void;
   debugLabel?: string;
   countryCode?: string;
+  disabled?: boolean;
 };
 
-export function usePlacesAutocomplete({ inputRef, onSelect, debugLabel, countryCode }: Options) {
+export function usePlacesAutocomplete({ inputRef, onSelect, debugLabel, countryCode, disabled = false }: Options) {
   const autocompleteRef = useRef<unknown>(null);
   const listenerRef = useRef<{ remove?: () => void } | null>(null);
   const countryRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (disabled) return;
 
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY ?? "";
 
@@ -112,5 +114,5 @@ export function usePlacesAutocomplete({ inputRef, onSelect, debugLabel, countryC
       listenerRef.current?.remove?.();
       listenerRef.current = null;
     };
-  }, [debugLabel, inputRef, onSelect]);
+  }, [countryCode, debugLabel, disabled, inputRef, onSelect]);
 }

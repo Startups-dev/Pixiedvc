@@ -16,6 +16,7 @@ export const FALLBACK_CALC_CODE_BY_SLUG: Record<string, string> = {
   'disneyland-hotel-villas': 'VDH',
   'grand-californian-villas': 'VGC',
   'grand-floridian-villas': 'VGF',
+  'fort-wilderness-cabins': 'CFW',
   'vero-beach': 'VB',
 };
 

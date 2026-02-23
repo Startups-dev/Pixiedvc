@@ -8,11 +8,16 @@ type Props = {
 };
 
 function labelFor(section: ResortInfoSection) {
+  if (section.type === "overview") return "About This Resort";
+  if (section.type === "transportation") return "Getting Around";
+  if (section.type === "amenities") return "What You Get with PixieDVC";
+  if (section.type === "policies") return "Good to Know";
   return section.title;
 }
 
 export default function ResortSectionNav({ sections }: Props) {
   const [activeId, setActiveId] = useState<string | null>(sections[0]?.id ?? null);
+  const [showNav, setShowNav] = useState(true);
 
   const ids = useMemo(() => sections.map((section) => section.id), [sections]);
 
@@ -46,6 +51,26 @@ export default function ResortSectionNav({ sections }: Props) {
     return () => observer.disconnect();
   }, [ids]);
 
+  useEffect(() => {
+    const handleVisibility = () => {
+      const essentials = document.getElementById("essentials");
+      if (!essentials) {
+        setShowNav(true);
+        return;
+      }
+      const top = essentials.getBoundingClientRect().top;
+      setShowNav(top > 96);
+    };
+
+    handleVisibility();
+    window.addEventListener("scroll", handleVisibility, { passive: true });
+    window.addEventListener("resize", handleVisibility);
+    return () => {
+      window.removeEventListener("scroll", handleVisibility);
+      window.removeEventListener("resize", handleVisibility);
+    };
+  }, []);
+
   function handleClick(id: string) {
     const target = document.getElementById(id);
     if (!target) {
@@ -55,6 +80,10 @@ export default function ResortSectionNav({ sections }: Props) {
   }
 
   if (!sections.length) {
+    return null;
+  }
+
+  if (!showNav) {
     return null;
   }
 

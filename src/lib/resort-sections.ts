@@ -72,14 +72,56 @@ export type ResortInfoSection =
   | ResortPlaceholderSection;
 
 const DEFAULT_HIGHLIGHTS = ["Signature location", "Concierge favorite", "Family friendly"];
+const ABOUT_THIS_RESORT_COPY: Record<string, string> = {
+  "animal-kingdom-villas":
+    "Disney's Animal Kingdom Villas blends Disney service with immersive savanna views, ideal for guests seeking wildlife atmosphere, unique theming, and a resort-first pace.",
+  "animal-kingdom-kidani":
+    "Kidani Village blends Disney service with spacious villa layouts and savanna surroundings, ideal for families who want extra room, quieter evenings, and a relaxed rhythm.",
+  aulani:
+    "Aulani blends Disney service with a beachfront Hawaiian resort experience, ideal for guests seeking relaxation, space, and a slower pace.",
+  "bay-lake-tower":
+    "Bay Lake Tower blends Disney service with skyline views and easy Magic Kingdom access, ideal for guests who prioritize convenience and park proximity.",
+  "beach-club-villas":
+    "Beach Club Villas blends Disney service with walkable EPCOT access and resort-style pool amenities, ideal for guests balancing park days with downtime.",
+  "boardwalk-villas":
+    "BoardWalk Villas blends Disney service with waterfront energy and walkable EPCOT-area access, ideal for guests who enjoy lively evenings and central location.",
+  "boulder-ridge-villas":
+    "Boulder Ridge Villas blends Disney service with a lodge-style retreat atmosphere, ideal for guests seeking calm surroundings and convenient Magic Kingdom boat access.",
+  "copper-creek-villas":
+    "Copper Creek blends Disney service with modern villa comfort in a wilderness setting, ideal for guests wanting premium finishes and easy Magic Kingdom access.",
+  "disneyland-hotel-villas":
+    "The Villas at Disneyland Hotel blends Disney service with modern design and unbeatable walkability, ideal for guests focused on fast, flexible Disneyland days.",
+  "fort-wilderness-cabins":
+    "The Cabins at Fort Wilderness blends Disney service with private cabin-style accommodations, ideal for guests seeking extra space, nature, and a calmer stay experience.",
+  "grand-californian-villas":
+    "Grand Californian Villas blends Disney service with craftsman-style luxury and direct park convenience, ideal for guests prioritizing proximity and elevated resort comfort.",
+  "grand-floridian-villas":
+    "Grand Floridian Villas blends Disney service with flagship-level elegance, ideal for guests seeking refined accommodations and effortless Magic Kingdom access.",
+  "hilton-head-island":
+    "Disney's Hilton Head Island Resort blends Disney service with coastal Lowcountry charm, ideal for guests seeking beach time, nature, and a non-park vacation pace.",
+  "old-key-west":
+    "Old Key West blends Disney service with spacious layouts and laid-back Florida charm, ideal for guests who value comfort, flexibility, and longer stays.",
+  "polynesian-villas":
+    "Polynesian Villas blends Disney service with island-inspired atmosphere and top-tier transportation access, ideal for guests seeking iconic style and easy Magic Kingdom days.",
+  "riviera-resort":
+    "Riviera Resort blends Disney service with modern European-inspired design, ideal for guests seeking upscale villas, Skyliner convenience, and a polished resort feel.",
+  "saratoga-springs":
+    "Saratoga Springs blends Disney service with expansive grounds and Disney Springs access, ideal for guests who want space, flexibility, and relaxed resort living.",
+  "vero-beach":
+    "Disney's Vero Beach Resort blends Disney service with oceanfront relaxation, ideal for guests seeking a quiet coastal getaway away from theme park crowds.",
+};
 
-function defaultSections(name: string): ResortInfoSection[] {
+function defaultSections(slug: string, name: string): ResortInfoSection[] {
+  const displayName = name.replace(/\b\w/g, (char) => char.toUpperCase());
+  const aboutCopy =
+    ABOUT_THIS_RESORT_COPY[slug] ??
+    `${displayName} blends Disney service with a resort-specific stay experience, ideal for guests seeking comfort, space, and a smoother booking path.`;
   return [
     {
       id: "overview",
       type: "overview",
-      title: "Overview",
-      body: `${name} blends PixieDVC concierge service with resort-specific planning. We will help align dates, room categories, and points for a smooth stay.`,
+      title: "About This Resort",
+      body: aboutCopy,
     },
     {
       id: "amenities",
@@ -122,9 +164,9 @@ export function getResortSections(slug: string): ResortInfoSection[] {
       {
         id: "overview",
         type: "overview",
-        title: "Overview",
+        title: "About This Resort",
         body:
-          "Bay Lake Tower offers skyline views and effortless access to Magic Kingdom. PixieDVC pairs you with owners who can secure park-facing studios, lake views, and premium weekend availability.",
+          "Bay Lake Tower blends Disney service with skyline views and easy Magic Kingdom access, ideal for guests who want convenience, comfort, and a streamlined stay.",
       },
       {
         id: "highlights",
@@ -204,7 +246,7 @@ export function getResortSections(slug: string): ResortInfoSection[] {
     ];
   }
 
-  return defaultSections(slug.replace(/-/g, " "));
+  return defaultSections(slug, slug.replace(/-/g, " "));
 }
 
 export function getHighlightsForResort(options: {

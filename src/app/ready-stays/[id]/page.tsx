@@ -131,9 +131,14 @@ export default async function ReadyStayDetailPage({
               </div>
               <div className="space-y-3">
                 <p className="text-xs uppercase tracking-[0.3em] text-muted">Policies</p>
-                <p className="text-sm text-muted">
-                  Transfers follow PixieDVC policies. Cancellation and transfer terms will be confirmed at booking.
-                </p>
+                <div className="space-y-2 text-sm text-muted">
+                  <p>
+                    Ready Stays follow PixieDVC&apos;s rental policies. Because these reservations are already confirmed through Disney Vacation Club, cancellation and change terms are defined in your rental agreement prior to payment.
+                  </p>
+                  <p>
+                    Ready Stays are best suited for guests with firm travel plans. We encourage you to review your agreement carefully before securing your reservation.
+                  </p>
+                </div>
               </div>
             </div>
           </Card>
@@ -147,7 +152,7 @@ export default async function ReadyStayDetailPage({
               <ul className="mt-4 space-y-2 text-sm text-muted">
                 <li>Guest books and signs the transfer agreement.</li>
                 <li>Owner transfers the reservation in Disney.</li>
-                <li>Confirmation is delivered and payout is released.</li>
+                <li>Confirmation is delivered and you link it to Disney Experience App.</li>
               </ul>
             </details>
           </Card>
@@ -177,8 +182,10 @@ export default async function ReadyStayDetailPage({
 
             <div className="my-5 h-px w-full bg-slate-200" />
 
-            <Button asChild className="mt-6 w-full">
-              <Link href={ctaHref}>{isLoggedIn ? "Book this stay" : "Log in to book"}</Link>
+            <Button asChild className="mt-6 w-full !text-white hover:!text-white visited:!text-white">
+              <Link href={ctaHref} prefetch={false} className="!text-white hover:!text-white visited:!text-white">
+                {isLoggedIn ? "Book this stay" : "Log in to book"}
+              </Link>
             </Button>
             <div className="mt-4 space-y-2 text-xs text-slate-500">
               <div className="flex items-center gap-2">

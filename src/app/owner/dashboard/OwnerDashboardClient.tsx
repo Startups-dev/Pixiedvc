@@ -5,7 +5,7 @@ import { Card, Button } from "@pixiedvc/design-system";
 import { formatCurrency } from "@/lib/owner-portal";
 import { getMembershipExpirationDate, getMembershipNudge } from "@/lib/owner-nudges";
 import StatTiles from "@/components/owner/StatTiles";
-import MatchedRequestsInbox, { deriveMatchStatus } from "@/components/owner/MatchedRequestsInbox";
+import MatchedRequestsInbox from "@/components/owner/MatchedRequestsInbox";
 import OwnerMembershipManager from "@/components/owner/OwnerMembershipManager";
 import LiquidationIntentButton from "@/components/owner/LiquidationIntentButton";
 import BankedPointsButton from "@/components/owner/BankedPointsButton";
@@ -28,6 +28,7 @@ type RewardsSummary = {
 
 type OwnerDashboardClientProps = {
   activeTab: string;
+  listingsMode: "hub" | "add";
   tabs: OwnerDashboardTab[];
   displayName: string | null;
   showOnboardingMessage: boolean;
@@ -49,6 +50,7 @@ type OwnerDashboardClientProps = {
   expiringPoints: any[];
   approvalNeeded: any[];
   confirmationNeeded: any[];
+  pendingReadyStayTransfers: any[];
   pendingPayoutAmount: number;
   pendingPayouts: any[];
   rewardsSummary: RewardsSummary | null;
@@ -70,6 +72,17 @@ function getUseYearEndDate(start: string | null | undefined, end: string | null 
   endDate.setUTCFullYear(endDate.getUTCFullYear() + 1);
   endDate.setUTCDate(endDate.getUTCDate() - 1);
   return endDate.toISOString().slice(0, 10);
+}
+
+function deriveMatchStatus(match: any, rental: any) {
+  if (match.status === "expired" || match.status === "rematched") return "expired";
+  if (match.status === "declined") return "declined";
+  if (rental?.status === "cancelled") return "cancelled";
+  if (rental?.status === "completed") return "completed";
+  if (rental?.status === "needs_dvc_booking") return "needs_dvc_booking";
+  if (rental?.status === "booked_pending_agreement" || rental?.status === "booked") return "pending_confirmation";
+  if (match.status === "accepted") return "needs_dvc_booking";
+  return "awaiting_owner_approval";
 }
 
 function OwnerDashboardTabs({ tabs, activeTab }: { tabs: OwnerDashboardTab[]; activeTab: string }) {
@@ -138,6 +151,7 @@ function ComingSoonCard({ title, body }: { title: string; body: string }) {
 export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
   const {
     activeTab,
+    listingsMode,
     tabs,
     displayName,
     showOnboardingMessage,
@@ -154,6 +168,7 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
     expiringPoints,
     approvalNeeded,
     confirmationNeeded,
+    pendingReadyStayTransfers,
     pendingPayoutAmount,
     pendingPayouts,
     rewardsSummary,
@@ -175,13 +190,45 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
       <OwnerDashboardTabs tabs={tabs} activeTab={activeTab} />
 
       {activeTab === "listings" ? (
-        <section className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted">Listings</p>
-          <h1 className="text-3xl font-semibold tracking-tight text-ink">Add a Ready Stay</h1>
-          <p className="text-sm text-muted">
-            Add and verify your Disney reservation to list it for instant booking.
-          </p>
-        </section>
+        listingsMode === "add" ? (
+          <section className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted">Listings</p>
+            <h1 className="text-3xl font-semibold tracking-tight text-ink">Add a Ready Stay</h1>
+            <p className="text-sm text-muted">
+              Add and verify your Disney reservation to list it for instant booking.
+            </p>
+          </section>
+        ) : (
+          <section className="space-y-6">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted">Listings</p>
+              <h1 className="text-3xl font-semibold tracking-tight text-ink">Ready Stay Listings</h1>
+              <p className="text-sm text-muted">Choose where you want to go.</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card className="space-y-3">
+                <p className="text-xs uppercase tracking-[0.3em] text-muted">Manage</p>
+                <h2 className="text-xl font-semibold text-ink">My Posted Reservations</h2>
+                <p className="text-sm text-muted">
+                  View active, pending transfer, and sold Ready Stays.
+                </p>
+                <Button asChild>
+                  <Link href="/owner/ready-stays">Open inventory</Link>
+                </Button>
+              </Card>
+              <Card className="space-y-3">
+                <p className="text-xs uppercase tracking-[0.3em] text-muted">Create</p>
+                <h2 className="text-xl font-semibold text-ink">Add Reservation</h2>
+                <p className="text-sm text-muted">
+                  Add a new reservation and publish it as a Ready Stay.
+                </p>
+                <Button asChild variant="ghost">
+                  <Link href="/owner/dashboard?tab=listings&mode=add">Add reservation</Link>
+                </Button>
+              </Card>
+            </div>
+          </section>
+        )
       ) : null}
 
       {activeTab === "overview" ? (
@@ -240,36 +287,61 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-muted">Pending owner action</p>
                 <h2 className="text-xl font-semibold text-ink">
-                  {pendingMatches.length} matches awaiting your review
+                  {pendingMatches.length + pendingReadyStayTransfers.length} items awaiting your review
                 </h2>
               </div>
               <Link href="/owner/dashboard?tab=matches" className="text-xs font-semibold text-brand hover:underline">
                 View all matches
               </Link>
             </div>
-            {pendingMatches.length === 0 ? (
+            {pendingMatches.length === 0 && pendingReadyStayTransfers.length === 0 ? (
               <p className="rounded-2xl bg-slate-50 p-4 text-sm text-muted">
                 No pending matches right now. We will notify you as soon as a guest is ready for your approval.
               </p>
             ) : (
-              <div className="grid gap-3 md:grid-cols-3">
-                {recentMatches.map((match) => {
-                  const booking = match.booking;
-                  const resortName = booking?.primary_resort?.name ?? "Resort TBD";
-                  const points = booking?.total_points ?? match.points_reserved ?? 0;
-                  return (
-                    <Link key={match.id} href={`/owner/matches/${match.id}`} className="group">
-                      <div className="rounded-2xl border border-slate-200 bg-white p-4 transition group-hover:border-brand/50">
-                        <p className="text-xs uppercase tracking-[0.2em] text-muted">Match</p>
-                        <p className="mt-2 text-base font-semibold text-ink">{resortName}</p>
-                        <p className="text-sm text-slate-600">
-                          {formatDate(booking?.check_in ?? null)} → {formatDate(booking?.check_out ?? null)}
-                        </p>
-                        <p className="text-xs text-slate-500">{points.toLocaleString("en-US")} pts reserved</p>
-                      </div>
-                    </Link>
-                  );
-                })}
+              <div className="space-y-4">
+                {pendingReadyStayTransfers.length > 0 ? (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted">Ready Stay transfers</p>
+                      <Link href="/owner/ready-stays" className="text-xs font-semibold text-brand hover:underline">
+                        Open Ready Stays
+                      </Link>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {pendingReadyStayTransfers.slice(0, 2).map((item) => (
+                        <div key={item.id} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-sm">
+                          <p className="font-semibold text-ink">{item.resortName ?? "Ready Stay"}</p>
+                          <p className="text-xs text-slate-600">
+                            {formatDate(item.checkIn)} → {formatDate(item.checkOut)} · {(item.points ?? 0).toLocaleString("en-US")} pts
+                          </p>
+                          <p className="text-xs text-slate-600">Guest: {item.guestName ?? "—"}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {recentMatches.length > 0 ? (
+                  <div className="grid gap-3 md:grid-cols-3">
+                    {recentMatches.map((match) => {
+                      const booking = match.booking;
+                      const resortName = booking?.primary_resort?.name ?? "Resort TBD";
+                      const points = booking?.total_points ?? match.points_reserved ?? 0;
+                      return (
+                        <Link key={match.id} href={`/owner/matches/${match.id}`} className="group">
+                          <div className="rounded-2xl border border-slate-200 bg-white p-4 transition group-hover:border-brand/50">
+                            <p className="text-xs uppercase tracking-[0.2em] text-muted">Match</p>
+                            <p className="mt-2 text-base font-semibold text-ink">{resortName}</p>
+                            <p className="text-sm text-slate-600">
+                              {formatDate(booking?.check_in ?? null)} → {formatDate(booking?.check_out ?? null)}
+                            </p>
+                            <p className="text-xs text-slate-500">{points.toLocaleString("en-US")} pts reserved</p>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
             )}
           </Card>
@@ -659,7 +731,7 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
         </section>
       ) : null}
 
-      {activeTab === "listings" ? (
+      {activeTab === "listings" && listingsMode === "add" ? (
         <section className="space-y-6">
           <Card id="add-reservation-form" className="space-y-4">
             <OwnerReservationForm resorts={resorts} />

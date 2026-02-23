@@ -29,17 +29,12 @@ const flowSteps = [
   { title: "Share availability", body: "Resort • use year • dates" },
   { title: "We match & verify guests", body: "ID verified • payment secured" },
   { title: "You approve & book", body: "Agreement reviewed • reservation made" },
-  { title: "Payout released", body: "After check-out • ≤ 5 business days" },
+  { title: "Payout released", body: "After check-out" },
 ];
 
 export default function OwnerInformationDashboard() {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-6xl px-6 lg:px-8">
-        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-amber-900">
-          DEBUG: OwnerInformationDashboard RENDERED
-        </div>
-      </div>
       <div className="mx-auto max-w-6xl px-6 lg:px-8">
         <section className="py-12">
           <div className="grid gap-10 lg:grid-cols-12">
@@ -157,7 +152,7 @@ export default function OwnerInformationDashboard() {
               <span className="text-slate-300">→</span>
               <span>Check-out</span>
               <span className="text-slate-300">→</span>
-              <span>Payout released (≤ 5 business days)</span>
+              <span>Payout released</span>
             </div>
             <p className="mt-3 text-sm text-slate-600">No chasing. No guessing. Clear release timing.</p>
           </div>
@@ -209,8 +204,8 @@ export default function OwnerInformationDashboard() {
           <div className="rounded-[24px] border border-slate-200 bg-slate-900 px-6 py-6 text-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h3 className="text-xl font-semibold">You stay in control. We handle the rest.</h3>
-                <p className="mt-2 text-sm text-white/75">List your points when you’re ready.</p>
+                <h3 className="text-xl font-semibold !text-white">You stay in control. We handle the rest.</h3>
+                <p className="mt-2 text-sm text-slate-400">List your points when you’re ready.</p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <Link

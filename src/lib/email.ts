@@ -19,6 +19,29 @@ type OwnerMatchEmailPayload = {
   declineUrl?: string | null;
 };
 
+type ReadyStayBookingPackageEmailPayload = {
+  to: string;
+  ownerName?: string | null;
+  resortName?: string | null;
+  roomType?: string | null;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  points?: number | null;
+  guestName?: string | null;
+  guestEmail?: string | null;
+  guestPhone?: string | null;
+  accessibilityRequired?: boolean;
+  notes?: string | null;
+  guests?: Array<{
+    name: string;
+    ageCategory?: string | null;
+    age?: number | null;
+    email?: string | null;
+    phone?: string | null;
+  }>;
+  transferUrl?: string | null;
+};
+
 const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL ?? 'hello@pixiedvc.com';
 
 async function sendResendEmail({
@@ -208,5 +231,61 @@ export async function sendGuestAgreementSignedEmail(payload: {
     subject,
     body,
     context: 'guest agreement signed email',
+  });
+}
+
+export async function sendReadyStayBookingPackageToOwner(payload: ReadyStayBookingPackageEmailPayload) {
+  const subject = 'PixieDVC – Ready Stay booking package';
+  const ownerName = payload.ownerName ?? 'Owner';
+  const guests = payload.guests ?? [];
+
+  const guestLines =
+    guests.length > 0
+      ? guests
+          .map((guest, index) => {
+            const detailParts = [
+              guest.ageCategory ? `type: ${guest.ageCategory}` : null,
+              typeof guest.age === 'number' ? `age: ${guest.age}` : null,
+              guest.email ? `email: ${guest.email}` : null,
+              guest.phone ? `phone: ${guest.phone}` : null,
+            ].filter(Boolean);
+            return `${index + 1}. ${guest.name}${detailParts.length ? ` (${detailParts.join(', ')})` : ''}`;
+          })
+          .join('\n')
+      : 'No additional guests provided.';
+
+  const body = [
+    `Hi ${ownerName},`,
+    '',
+    'A Ready Stay has been paid in full and is waiting for transfer confirmation.',
+    '',
+    'Stay details',
+    `• Resort: ${payload.resortName ?? '—'}`,
+    `• Room: ${payload.roomType ?? '—'}`,
+    `• Dates: ${payload.checkIn ?? '—'} → ${payload.checkOut ?? '—'}`,
+    `• Points: ${payload.points ?? '—'}`,
+    '',
+    'Guest details',
+    `• Lead guest: ${payload.guestName ?? '—'}`,
+    `• Email: ${payload.guestEmail ?? '—'}`,
+    `• Phone: ${payload.guestPhone ?? '—'}`,
+    `• Accessibility notes: ${payload.accessibilityRequired ? 'Yes' : 'No'}`,
+    `• Notes: ${payload.notes && payload.notes.trim() ? payload.notes.trim() : '—'}`,
+    '',
+    'Additional guests',
+    guestLines,
+    '',
+    payload.transferUrl
+      ? `Confirm transfer here: ${payload.transferUrl}`
+      : 'Open the Ready Stays owner page to confirm transfer.',
+    '',
+    'PixieDVC Concierge',
+  ].join('\n');
+
+  await sendResendEmail({
+    to: payload.to,
+    subject,
+    body,
+    context: 'ready stay booking package email',
   });
 }

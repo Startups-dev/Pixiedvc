@@ -107,6 +107,11 @@ export type ContractInput = {
   max_points_to_borrow?: number;
   points_owned?: number;
   points_available?: number;
+  vacation_points?: Array<{
+    use_year: number;
+    available: number;
+    holding: number;
+  }>;
 };
 
 export async function saveOwnerContracts(input: {
@@ -126,8 +131,18 @@ export async function saveOwnerContracts(input: {
 
   await ensureOnboardingNotComplete(sb, user.id);
   const validContracts = input.contracts.filter((contract) => contract.resort_id);
-  const totalOwned = validContracts.reduce((sum, contract) => sum + (contract.points_owned ?? 0), 0);
-  const totalAvailable = validContracts.reduce((sum, contract) => sum + (contract.points_available ?? 0), 0);
+  const totalOwned = validContracts.reduce((sum, contract) => {
+    if (contract.vacation_points?.length) {
+      return sum + contract.vacation_points.reduce((inner, row) => inner + (row.available ?? 0) + (row.holding ?? 0), 0);
+    }
+    return sum + (contract.points_owned ?? 0);
+  }, 0);
+  const totalAvailable = validContracts.reduce((sum, contract) => {
+    if (contract.vacation_points?.length) {
+      return sum + contract.vacation_points.reduce((inner, row) => inner + (row.available ?? 0), 0);
+    }
+    return sum + (contract.points_available ?? 0);
+  }, 0);
 
   const ownerPayload = {
     id: user.id,
@@ -182,8 +197,14 @@ export async function saveOwnerContracts(input: {
       resort_id: contract.resort_id,
       use_year: contract.use_year,
       use_year_start: contract.use_year_start ?? null,
-      points_owned: contract.points_owned ?? null,
-      points_available: contract.points_available ?? null,
+      points_owned:
+        contract.vacation_points?.length
+          ? contract.vacation_points.reduce((inner, row) => inner + (row.available ?? 0) + (row.holding ?? 0), 0)
+          : (contract.points_owned ?? null),
+      points_available:
+        contract.vacation_points?.length
+          ? contract.vacation_points.reduce((inner, row) => inner + (row.available ?? 0), 0)
+          : (contract.points_available ?? null),
       matching_mode: input.matching_mode,
       allow_standard_rate_fallback:
         membershipPreferenceMap.get(
@@ -194,9 +215,10 @@ export async function saveOwnerContracts(input: {
       max_points_to_borrow: contract.max_points_to_borrow ?? null,
     }));
 
-    const { error } = await sb
+    const { data: savedMemberships, error } = await sb
       .from('owner_memberships')
-      .upsert(rows, { onConflict: 'owner_id,resort_id,use_year,use_year_start' });
+      .upsert(rows, { onConflict: 'owner_id,resort_id,use_year,use_year_start' })
+      .select('id, resort_id, use_year, use_year_start');
     if (error) {
       console.error('[onboarding] failed to upsert owner memberships', {
         code: error.code,
@@ -205,6 +227,56 @@ export async function saveOwnerContracts(input: {
         hint: error.hint,
       });
       throw new Error(error.message);
+    }
+
+    const membershipMap = new Map(
+      (savedMemberships ?? []).map((row) => [
+        `${row.resort_id}:${row.use_year ?? 'none'}:${row.use_year_start ?? 'none'}`,
+        row.id,
+      ]),
+    );
+
+    const pointsRows = validContracts.flatMap((contract) => {
+      const membershipId = membershipMap.get(
+        `${contract.resort_id}:${contract.use_year ?? 'none'}:${contract.use_year_start ?? 'none'}`,
+      );
+      if (!membershipId || !contract.vacation_points?.length) return [];
+      return contract.vacation_points
+        .filter((row) => [2025, 2026, 2027].includes(row.use_year))
+        .map((row) => ({
+          owner_membership_id: membershipId,
+          use_year: row.use_year,
+          available: Math.max(0, Number(row.available) || 0),
+          holding: Math.max(0, Number(row.holding) || 0),
+          updated_at: new Date().toISOString(),
+        }));
+    });
+
+    if (pointsRows.length) {
+      const { error: pointsError } = await sb
+        .from('owner_membership_use_year_points')
+        .upsert(pointsRows, { onConflict: 'owner_membership_id,use_year' });
+      if (pointsError) {
+        throw new Error(pointsError.message);
+      }
+
+      const pointsAvailableByMembership = new Map<string | number, number>();
+      for (const row of pointsRows) {
+        pointsAvailableByMembership.set(
+          row.owner_membership_id,
+          (pointsAvailableByMembership.get(row.owner_membership_id) ?? 0) + row.available,
+        );
+      }
+
+      for (const [membershipId, availableSum] of pointsAvailableByMembership.entries()) {
+        const { error: syncError } = await sb
+          .from('owner_memberships')
+          .update({ points_available: availableSum })
+          .eq('id', membershipId as any);
+        if (syncError) {
+          throw new Error(syncError.message);
+        }
+      }
     }
   }
 
@@ -345,5 +417,8 @@ export async function completeOnboarding() {
   }
 
   const role = profile?.role === 'owner' || profile?.role === 'guest' ? profile?.role : null;
+  if (role === 'owner') {
+    return { ok: true, next: '/owner/onboarding/agreement' };
+  }
   return { ok: true, next: getHomeForRole(role) };
 }

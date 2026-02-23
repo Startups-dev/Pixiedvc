@@ -1,7 +1,15 @@
-import { cookies } from "next/headers";
+import Link from "next/link";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import ReadyStaysMarketplaceClient from "@/components/ready-stays/ReadyStaysMarketplaceClient";
+
+const READY_STAY_GUIDE_LINKS = [
+  { href: "/guides/ready-stays-transfer-linking#what-is-ready-stay", label: "1. What Is a Ready Stay?" },
+  { href: "/guides/ready-stays-transfer-linking#how-ready-stay-works", label: "2. How the Ready Stay Process Works" },
+  { href: "/guides/ready-stays-transfer-linking#when-can-i-link", label: "3. When Can I Link My Reservation?" },
+  { href: "/guides/ready-stays-transfer-linking#how-to-link", label: "4. How to Link Your Reservation" },
+  { href: "/guides/ready-stays-transfer-linking#transfer-in-progress", label: "5. Transfer in Progress, What That Means" },
+];
 
 export default async function ReadyStaysPublicPage({
   searchParams,
@@ -17,7 +25,6 @@ export default async function ReadyStaysPublicPage({
     sort?: string;
   };
 }) {
-  const cookieStore = await cookies();
   const supabase = await createSupabaseServerClient();
 
   const { data: resorts } = await supabase
@@ -85,6 +92,28 @@ export default async function ReadyStaysPublicPage({
         resorts={(resorts ?? []) as { id: string; name: string }[]}
         searchParams={searchParams ?? {}}
       />
+
+      <section id="ready-stays-guide" className="space-y-5">
+        <div className="space-y-2">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted">Guide</p>
+          <h2 className="text-2xl font-semibold text-ink">Ready Stays Guide</h2>
+          <p className="text-sm text-muted">
+            Read the full Ready Stays guide in the Guides section, including payment, transfer timing, and linking steps.
+          </p>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {READY_STAY_GUIDE_LINKS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-ink"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }

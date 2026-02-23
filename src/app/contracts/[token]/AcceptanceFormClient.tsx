@@ -8,9 +8,14 @@ type ActionState = { error?: string | null };
 type Props = {
   token: string;
   onAccept: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
+  submitLabel?: string;
 };
 
-export default function AcceptanceFormClient({ token, onAccept }: Props) {
+export default function AcceptanceFormClient({
+  token,
+  onAccept,
+  submitLabel = "Accept Agreement & Continue to Payment",
+}: Props) {
   const [checked, setChecked] = useState(false);
   const [state, formAction] = useActionState(onAccept, { error: null });
 
@@ -44,11 +49,11 @@ export default function AcceptanceFormClient({ token, onAccept }: Props) {
           disabled={!checked}
           className="w-full rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-transform duration-150 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:bg-slate-900 disabled:hover:shadow-none"
         >
-          Accept Agreement &amp; Continue to Payment
+          {submitLabel}
         </button>
         <p className="text-xs text-slate-500">
-          By clicking “Accept Agreement &amp; Continue to Payment,” you confirm that you are the authorized guest and
-          agree to be legally bound by this agreement. This constitutes an electronic signature.
+          By clicking “{submitLabel},” you confirm that you are the authorized guest and agree to be legally bound by
+          this agreement. This constitutes an electronic signature.
         </p>
         {state?.error ? <p className="text-sm text-rose-600">{state.error}</p> : null}
       </form>

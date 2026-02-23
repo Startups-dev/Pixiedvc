@@ -29,6 +29,15 @@ export function ConfirmationCopy({ confirmationNumber }: { confirmationNumber?: 
       >
         {confirmationNumber ?? 'Pending'}
       </button>
+      {canCopy ? (
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="rounded-full border border-[#0B1B3A]/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0B1B3A]/70 hover:border-[#0B1B3A]/35 hover:text-[#0B1B3A]"
+        >
+          Copy
+        </button>
+      ) : null}
       <div className="h-4 text-[0.65rem] uppercase tracking-[0.2em] text-[#0B1B3A]/50">{copied ? 'Copied' : ''}</div>
     </div>
   );
@@ -133,4 +142,3 @@ export function MonetizationCarousel({ items }: { items: MonetizationItem[] }) {
     </div>
   );
 }
-

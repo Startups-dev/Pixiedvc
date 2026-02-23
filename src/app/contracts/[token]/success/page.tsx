@@ -6,6 +6,7 @@ import { getActivePromotion } from '@/lib/pricing-promotions';
 import GuestEnrollButton from '@/components/rewards/GuestEnrollButton';
 import type { ContractSnapshot } from '@/lib/contracts/contractSnapshot';
 import { resolveResortImage } from '@/lib/resort-image';
+import { isReadyStayBookingRequest } from '@/lib/ready-stays/flow';
 import AnimatedHeading from './AnimatedHeading';
 
 function formatConfirmation(value: string | null | undefined) {
@@ -44,6 +45,18 @@ export default async function ContractSuccessPage({
   const summary = snapshot.summary ?? {};
   const bookingRequestId = contract.booking_request_id ?? null;
   const myTripHref = bookingRequestId ? `/my-trip/${bookingRequestId}` : '/my-trip';
+  const readyStayBooking = await isReadyStayBookingRequest(supabase, bookingRequestId);
+  let readyStayTransfer:
+    | { status: string | null; disney_confirmation_number: string | null }
+    | null = null;
+  if (readyStayBooking && bookingRequestId) {
+    const { data } = await supabase
+      .from('booking_requests')
+      .select('status, disney_confirmation_number')
+      .eq('id', bookingRequestId)
+      .maybeSingle();
+    readyStayTransfer = data ?? null;
+  }
 
   type ResortRecord = {
     name: string | null;
@@ -162,12 +175,36 @@ export default async function ContractSuccessPage({
             >
               Go to My Trip
             </Link>
-            <Link
-              href="/guides/link-to-disney-experience"
-              className="text-sm font-semibold text-[#0b1b3a] underline underline-offset-4 hover:text-[#0b1b3a]"
-            >
-              Link in My Disney Experience
-            </Link>
+            {readyStayBooking ? (
+              readyStayTransfer?.status === 'transferred' ? (
+                <>
+                  <p className="text-sm text-[#0b1b3a]/80">
+                    Reservation transferred successfully. Disney confirmation:{' '}
+                    <span className="font-semibold text-[#0b1b3a]">
+                      {formatConfirmation(readyStayTransfer.disney_confirmation_number)}
+                    </span>
+                  </p>
+                  <Link
+                    href="/guides/link-to-disney-experience"
+                    className="text-sm font-semibold text-[#0b1b3a] underline underline-offset-4 hover:text-[#0b1b3a]"
+                  >
+                    Link in My Disney Experience
+                  </Link>
+                </>
+              ) : (
+                <p className="text-sm text-[#0b1b3a]/70">
+                  We’re waiting for the owner to transfer your reservation. You’ll see My Disney linking details once
+                  transfer is confirmed.
+                </p>
+              )
+            ) : (
+              <Link
+                href="/guides/link-to-disney-experience"
+                className="text-sm font-semibold text-[#0b1b3a] underline underline-offset-4 hover:text-[#0b1b3a]"
+              >
+                Link in My Disney Experience
+              </Link>
+            )}
           </div>
 
           {showEnrollPrompt ? (

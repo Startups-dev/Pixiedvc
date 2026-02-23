@@ -16,8 +16,9 @@ import { getMaxOccupancyForSelection, suggestNextVillaType } from "@/lib/occupan
 import { usePlacesAutocomplete } from "@/hooks/usePlacesAutocomplete";
 
 type GuestInfoProps = {
-  onNext: () => void;
+  onNext: () => void | Promise<void>;
   onBack: () => void;
+  disableAddressAutocomplete?: boolean;
 };
 
 type FormValues = {
@@ -34,7 +35,52 @@ const referralOptions = [
   "Other",
 ];
 
-export function GuestInfo({ onNext, onBack }: GuestInfoProps) {
+function splitCombinedAddress(value: string) {
+  const parts = value
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length < 2) return null;
+
+  const line1 = parts[0] ?? "";
+  const city = parts[1] ?? "";
+  const regionPostal = parts[2] ?? "";
+  const regionTokens = regionPostal.split(/\s+/).filter(Boolean);
+  const region = regionTokens[0] ?? "";
+  const postalFromRegion = regionTokens.slice(1).join(" ");
+  const country = parts[parts.length - 1] ?? "";
+
+  const canadaPostal = value.match(/\b([A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d)\b/)?.[1]?.toUpperCase();
+  const usPostal = value.match(/\b(\d{5}(?:-\d{4})?)\b/)?.[1];
+  const postalCode = canadaPostal ?? usPostal ?? postalFromRegion ?? "";
+
+  return {
+    line1,
+    city,
+    region,
+    postalCode,
+    country,
+  };
+}
+
+async function resolvePostalFromGeocoder(address: string) {
+  if (typeof window === "undefined") return "";
+  const google = (window as Window & { google?: typeof window.google }).google;
+  if (!google?.maps?.Geocoder) return "";
+
+  const geocoder = new google.maps.Geocoder();
+  try {
+    const result = await geocoder.geocode({ address });
+    const first = result.results?.[0];
+    if (!first?.address_components) return "";
+    const postal = first.address_components.find((c) => c.types?.includes("postal_code"));
+    return postal?.long_name ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function GuestInfo({ onNext, onBack, disableAddressAutocomplete = false }: GuestInfoProps) {
   const {
     register,
     control,
@@ -45,6 +91,7 @@ export function GuestInfo({ onNext, onBack }: GuestInfoProps) {
   const [occupancyError, setOccupancyError] = useState<string | null>(null);
   const occupancyWarningRef = useRef<HTMLDivElement | null>(null);
   const addressRef = useRef<HTMLInputElement>(null);
+  const [addressUnlocked, setAddressUnlocked] = useState(false);
   const villaType = useWatch({ control, name: "trip.villaType" });
   const resortId = useWatch({ control, name: "trip.resortId" });
   const adultGuests = useWatch({ control, name: "guest.adultGuests" }) ?? [];
@@ -79,6 +126,7 @@ export function GuestInfo({ onNext, onBack }: GuestInfoProps) {
     debugLabel: "booking-form",
     countryCode: countryCodeMap[country],
     onSelect: (address) => {
+      if (disableAddressAutocomplete) return;
       if (address.line1) setValue("guest.address", address.line1, { shouldDirty: true });
       if (address.city) setValue("guest.city", address.city, { shouldDirty: true });
       if (address.state) setValue("guest.region", address.state, { shouldDirty: true });
@@ -109,7 +157,9 @@ export function GuestInfo({ onNext, onBack }: GuestInfoProps) {
     occupancyWarningRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [isOverCapacity, occupancyError]);
 
-  const handleNext = () => {
+  const [submittingNext, setSubmittingNext] = useState(false);
+
+  const handleNext = async () => {
     const current = getValues();
     const currentTotal =
       1 +
@@ -121,28 +171,23 @@ export function GuestInfo({ onNext, onBack }: GuestInfoProps) {
       return;
     }
     setOccupancyError(null);
-    onNext();
+    try {
+      setSubmittingNext(true);
+      await onNext();
+    } finally {
+      setSubmittingNext(false);
+    }
   };
 
   return (
     <div className="mx-auto max-w-4xl">
       <Card className="border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
         <div className="space-y-2 border-b border-slate-200 pb-6">
-          <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Step 2 of 3 · Provide guest info</p>
           <h3 className="font-display text-3xl text-ink">Tell us who is traveling</h3>
-          <p className="text-sm text-slate-600">
-            Pixie concierges use this information to personalize room assignments and celebrations.
-          </p>
+          <p className="text-sm text-slate-600">Add guest details for your reservation.</p>
         </div>
 
         <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/60 p-6">
-          <div className="mb-6 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-600 shadow-sm">
-            <p className="font-semibold text-slate-900">Personal information disclosure</p>
-            <p className="mt-1">
-              We use this information only to prepare your Disney reservation, confirm availability, and
-              keep you updated about your stay. We never sell your data.
-            </p>
-          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <FieldLabel htmlFor="guest.leadTitle">Lead Guest Title</FieldLabel>
@@ -154,6 +199,8 @@ export function GuestInfo({ onNext, onBack }: GuestInfoProps) {
                 <option value="Mr.">Mr.</option>
                 <option value="Mrs.">Mrs.</option>
                 <option value="Ms.">Ms.</option>
+                <option value="Miss">Miss</option>
+                <option value="Master">Master</option>
               </select>
             </div>
             <div>
@@ -204,10 +251,50 @@ export function GuestInfo({ onNext, onBack }: GuestInfoProps) {
                   <TextInput
                     id="guest.address"
                     placeholder="Start typing to search..."
-                    autoComplete="street-address"
+                    autoComplete="off"
+                    name="booking_lookup_address"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    data-form-type="other"
+                    readOnly={!addressUnlocked}
+                    onFocus={() => setAddressUnlocked(true)}
                     value={field.value ?? ""}
                     onChange={field.onChange}
-                    onBlur={field.onBlur}
+                    onBlur={async (event) => {
+                      field.onBlur();
+                      const currentAddress = event.currentTarget.value ?? "";
+                      const currentCity = getValues("guest.city") ?? "";
+                      const currentRegion = getValues("guest.region") ?? "";
+                      const currentPostal = getValues("guest.postalCode") ?? "";
+                      if (!currentAddress.includes(",")) return;
+                      if (currentCity && currentRegion && currentPostal) return;
+
+                      const split = splitCombinedAddress(currentAddress);
+                      if (!split) return;
+
+                      setValue("guest.address", split.line1, { shouldDirty: true });
+                      if (!currentCity && split.city) setValue("guest.city", split.city, { shouldDirty: true });
+                      if (!currentRegion && split.region) setValue("guest.region", split.region, { shouldDirty: true });
+                      let resolvedPostal = currentPostal;
+                      if (!resolvedPostal && split.postalCode) {
+                        resolvedPostal = split.postalCode;
+                      }
+                      if (!resolvedPostal) {
+                        const lookupAddress = [split.line1, split.city, split.region, split.country]
+                          .filter(Boolean)
+                          .join(", ");
+                        resolvedPostal = await resolvePostalFromGeocoder(lookupAddress);
+                      }
+                      if (!currentPostal && resolvedPostal) {
+                        setValue("guest.postalCode", resolvedPostal, { shouldDirty: true });
+                      }
+                      const currentCountry = getValues("guest.country") ?? "";
+                      if (!currentCountry && split.country) {
+                        setValue("guest.country", split.country, { shouldDirty: true });
+                      }
+                    }}
                     ref={(node) => {
                       field.ref(node);
                       addressRef.current = node;
@@ -250,6 +337,8 @@ export function GuestInfo({ onNext, onBack }: GuestInfoProps) {
                           <option value="Mr.">Mr.</option>
                           <option value="Mrs.">Mrs.</option>
                           <option value="Ms.">Ms.</option>
+                          <option value="Miss">Miss</option>
+                          <option value="Master">Master</option>
                         </select>
                       </label>
                       <label className="text-xs font-semibold text-slate-600">
@@ -291,6 +380,9 @@ export function GuestInfo({ onNext, onBack }: GuestInfoProps) {
                         >
                           <option value="Master">Master</option>
                           <option value="Ms.">Ms.</option>
+                          <option value="Miss">Miss</option>
+                          <option value="Mr.">Mr.</option>
+                          <option value="Mrs.">Mrs.</option>
                         </select>
                       </label>
                       <label className="text-xs font-semibold text-slate-600">
@@ -404,7 +496,9 @@ export function GuestInfo({ onNext, onBack }: GuestInfoProps) {
           <Button onClick={onBack} variant="ghost">
             Back
           </Button>
-          <Button onClick={handleNext}>Review Agreement</Button>
+          <Button onClick={handleNext} disabled={submittingNext}>
+            {submittingNext ? "Saving..." : "Review Agreement"}
+          </Button>
         </div>
       </Card>
     </div>

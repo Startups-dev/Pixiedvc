@@ -297,7 +297,7 @@ export default function ReadyStaysMarketplaceClient({
   );
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
+    <div className="grid gap-6 lg:grid-cols-[250px_1fr]">
       <aside className="hidden lg:block">
         <div className="sticky top-24 space-y-4">{renderFilters("sidebar")}</div>
       </aside>
@@ -336,16 +336,22 @@ export default function ReadyStaysMarketplaceClient({
 
         {sortedReadyStays.length === 0 ? (
           <Card className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-            <p className="text-lg font-semibold text-ink">No Ready Stays match your filters</p>
-            <p className="mt-2 text-sm text-muted">
-              Try clearing filters or selecting a different month.
+            <p className="text-lg font-semibold text-ink">
+              {hasActiveFilters ? "No Ready Stays match your filters" : "No Ready Stays available right now"}
             </p>
-            <Button asChild className="mt-6">
-              <Link href="/ready-stays">Clear filters</Link>
-            </Button>
+            <p className="mt-2 text-sm text-muted">
+              {hasActiveFilters
+                ? "Try clearing filters or selecting a different month."
+                : "Please check back soon for new inventory."}
+            </p>
+            {hasActiveFilters ? (
+              <Button asChild className="mt-6">
+                <Link href="/ready-stays">Clear filters</Link>
+              </Button>
+            ) : null}
           </Card>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
             {sortedReadyStays.map((stay) => {
               const resortName = stay.resorts?.name ?? "Resort";
               const resortSlug = stay.resorts?.slug ?? null;
@@ -361,6 +367,7 @@ export default function ReadyStaysMarketplaceClient({
                   : typeof daysToCheckIn === "number" && daysToCheckIn <= 60
                     ? "Check-in Soon"
                     : null;
+              const secondaryBadgeText = [badge, "Only 1 left"].filter(Boolean).join(" · ");
 
               return (
                 <Card key={stay.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -368,18 +375,13 @@ export default function ReadyStaysMarketplaceClient({
                     <img src={image.url} alt={resortName} className="h-full w-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/35 to-transparent" />
                     <div className="absolute left-4 top-4 flex flex-col gap-2">
-                      {badge ? (
-                        <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700">
-                          {badge}
-                        </span>
-                      ) : null}
                       {urgencyBadge ? (
                         <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                          {urgencyBadge}
+                          {urgencyBadge === "Last-Minute Stay" ? "🔥 Last-Minute" : urgencyBadge}
                         </span>
                       ) : null}
-                      <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700">
-                        Only 1 available
+                      <span className="inline-flex items-center rounded-full bg-white/85 px-3 py-1 text-[11px] font-medium text-slate-600">
+                        {secondaryBadgeText}
                       </span>
                     </div>
                   </div>
@@ -403,16 +405,19 @@ export default function ReadyStaysMarketplaceClient({
                       </div>
                       <div>
                         <p className="uppercase tracking-[0.2em] text-muted">Total</p>
-                        <p className="text-sm font-semibold text-ink">
+                        <p className="text-lg font-bold text-slate-900">
                           {formatCurrencyFromCents(totalPriceCents)}
                         </p>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500">
-                      Confirmed Disney reservation • Secure transfer
-                    </p>
-                    <Button asChild size="sm" className="w-full">
-                      <Link href={`/ready-stays/${stay.id}`}>View stay</Link>
+                    <div className="space-y-1 text-xs text-slate-600">
+                      <p>✔ Confirmed Disney Reservation</p>
+                      <p>✔ Secure Transfer</p>
+                    </div>
+                    <Button asChild size="sm" className="w-full [&_a]:!text-white">
+                      <Link href={`/ready-stays/${stay.id}`} className="!text-white">
+                        View Details
+                      </Link>
                     </Button>
                   </div>
                 </Card>

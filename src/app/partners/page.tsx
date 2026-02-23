@@ -5,7 +5,6 @@ export default function PartnersPage() {
     <main className="min-h-screen bg-white text-[#0F2148]">
       <section className="mx-auto max-w-6xl px-6 py-16">
         <div className="max-w-2xl space-y-3">
-          <p className="text-xs uppercase tracking-[0.3em] text-[#0F2148]/60">Partners</p>
           <h1 className="text-3xl font-semibold text-[#0F2148] sm:text-4xl">
             Partners
           </h1>
@@ -22,7 +21,7 @@ export default function PartnersPage() {
             </p>
             <Link
               href="/affiliate/login"
-              className="mt-4 inline-flex items-center rounded-full border border-[#0F2148]/15 bg-[#0F2148] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#0B1B3A]"
+              className="mt-4 inline-flex items-center rounded-full border border-[#0F2148]/15 bg-[#0F2148] px-4 py-2 text-xs font-semibold !text-white transition hover:bg-[#0B1B3A]"
             >
               Go to Affiliate Portal
             </Link>

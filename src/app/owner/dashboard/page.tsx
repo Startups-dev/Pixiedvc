@@ -93,7 +93,7 @@ function buildDisplayMilestones(rental: any) {
 }
 
 type OwnerDashboardPageProps = {
-  searchParams?: { tab?: string };
+  searchParams?: { tab?: string; mode?: string };
 };
 
 export default async function OwnerDashboardPage({ searchParams }: OwnerDashboardPageProps) {
@@ -116,6 +116,13 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
   const adminClient = getSupabaseAdminClient();
   const client = adminClient ?? supabase;
   const owner = await getOwnerProfile(user.id, cookieStore);
+  const readyStayOwnerIds = Array.from(
+    new Set(
+      [user.id, owner?.id ?? null, owner?.user_id ?? null].filter(
+        (value): value is string => typeof value === "string" && value.length > 0,
+      ),
+    ),
+  );
 
   const [memberships, rentals, payouts, notifications, matches, resorts, rewardsProfile, rewardsStats, rewardsFlag] =
     await Promise.all([
@@ -135,6 +142,49 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
         : Promise.resolve({ data: null }),
       getPromotionsSetting("promotions_owner_enrollment_enabled"),
     ]);
+
+  const { data: readyStayRows } = await client
+    .from("ready_stays")
+    .select("id, sold_booking_request_id, booking_request_id, check_in, check_out, points, resorts(name)")
+    .in("owner_id", readyStayOwnerIds)
+    .eq("status", "sold")
+    .order("updated_at", { ascending: false });
+
+  const soldBookingIds = Array.from(
+    new Set(
+      (readyStayRows ?? [])
+        .map((row) => row.sold_booking_request_id ?? row.booking_request_id ?? null)
+        .filter((value): value is string => typeof value === "string" && value.length > 0),
+    ),
+  );
+
+  const { data: readyStayBookings } = soldBookingIds.length
+    ? await client
+        .from("booking_requests")
+        .select("id, status, lead_guest_name")
+        .in("id", soldBookingIds)
+    : { data: [] };
+
+  const readyStayBookingById = new Map((readyStayBookings ?? []).map((booking) => [booking.id, booking]));
+  const pendingReadyStayTransfers = (readyStayRows ?? [])
+    .map((stay) => {
+      const linkedBookingId = stay.sold_booking_request_id ?? stay.booking_request_id ?? null;
+      const booking =
+        linkedBookingId && readyStayBookingById.has(linkedBookingId)
+          ? readyStayBookingById.get(linkedBookingId)
+          : null;
+      if (!booking || booking.status !== "paid_waiting_owner_transfer") return null;
+      return {
+        id: stay.id,
+        bookingId: booking.id,
+        guestName: booking.lead_guest_name ?? null,
+        resortName: stay.resorts?.name ?? null,
+        checkIn: stay.check_in ?? null,
+        checkOut: stay.check_out ?? null,
+        points: stay.points ?? null,
+      };
+    })
+    .filter((value): value is NonNullable<typeof value> => Boolean(value));
 
   await Promise.all([
     ensurePointsExpiringNotification(user.id, memberships),
@@ -284,6 +334,7 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
     : null;
 
   const tabParam = searchParams?.tab ?? "overview";
+  const listingsMode = searchParams?.mode === "add" ? "add" : "hub";
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "matches", label: "Matches" },
@@ -298,6 +349,7 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
   return (
     <OwnerDashboardClient
       activeTab={activeTab}
+      listingsMode={listingsMode}
       tabs={tabs}
       displayName={displayName}
       showOnboardingMessage={showOnboardingMessage}
@@ -314,6 +366,7 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
       expiringPoints={expiringPoints}
       approvalNeeded={approvalNeeded}
       confirmationNeeded={confirmationNeeded}
+      pendingReadyStayTransfers={pendingReadyStayTransfers}
       pendingPayoutAmount={pendingPayoutAmount}
       pendingPayouts={pendingPayouts}
       rewardsSummary={rewardsSummary}

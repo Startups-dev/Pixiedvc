@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const guestTitleSchema = z.enum(["Mr.", "Mrs.", "Ms.", "Miss", "Master"]);
+
 export const tripDetailsSchema = z.object({
   resortId: z.string().min(1),
   resortName: z.string().min(1),
@@ -14,7 +16,7 @@ export const tripDetailsSchema = z.object({
 });
 
 const adultGuestSchema = z.object({
-  title: z.enum(["Mr.", "Mrs.", "Ms."]),
+  title: guestTitleSchema,
   firstName: z.string().min(1, "Required"),
   middleInitial: z.string().max(3).optional(),
   lastName: z.string().min(1, "Required"),
@@ -22,7 +24,7 @@ const adultGuestSchema = z.object({
 });
 
 const childGuestSchema = z.object({
-  title: z.enum(["Master", "Ms."]),
+  title: guestTitleSchema,
   firstName: z.string().min(1, "Required"),
   middleInitial: z.string().max(3).optional(),
   lastName: z.string().min(1, "Required"),
@@ -31,7 +33,7 @@ const childGuestSchema = z.object({
 });
 
 export const guestInfoSchema = z.object({
-  leadTitle: z.enum(["Mr.", "Mrs.", "Ms."]),
+  leadTitle: guestTitleSchema,
   leadFirstName: z.string().min(1, "Required"),
   leadMiddleInitial: z.string().max(3).optional(),
   leadLastName: z.string().min(1, "Required"),

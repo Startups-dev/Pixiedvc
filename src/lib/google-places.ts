@@ -107,16 +107,19 @@ export function parseGooglePlace(place: PlaceResult): PlaceAddress {
   const city =
     findComponent(place.address_components, "locality")?.long_name ??
     findComponent(place.address_components, "postal_town")?.long_name ??
-    findComponent(place.address_components, "sublocality")?.long_name ??
+    findComponent(place.address_components, "administrative_area_level_2")?.long_name ??
     "";
-  const state = findComponent(place.address_components, "administrative_area_level_1")?.short_name ?? "";
+  const state =
+    findComponent(place.address_components, "administrative_area_level_1")?.short_name ??
+    findComponent(place.address_components, "administrative_area_level_1")?.long_name ??
+    "";
   const postalCode = findComponent(place.address_components, "postal_code")?.long_name ?? "";
   const country = findComponent(place.address_components, "country")?.long_name ?? "";
 
   const line1 = [streetNumber, route].filter(Boolean).join(" ").trim();
 
   return {
-    line1: line1 || place.formatted_address || undefined,
+    line1: line1 || undefined,
     city: city || undefined,
     state: state || undefined,
     postalCode: postalCode || undefined,

@@ -57,6 +57,84 @@ export default function Home() {
   return (
     <>
       <Hero />
+      <section className="mx-auto max-w-7xl px-6 py-20">
+        <div className="text-center">
+          <h2 className="text-3xl font-semibold text-slate-900">Two Ways to Secure Your Stay</h2>
+          <p className="mt-3 text-slate-500">
+            Choose the approach that fits how you plan. Flexible matching or confirmed reservations ready now.
+          </p>
+        </div>
+
+        <div className="mt-12 grid gap-8 md:grid-cols-2">
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="mb-6 h-48 w-full overflow-hidden rounded-xl bg-slate-100">
+              <img
+                src="https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/main%20page%20ready-stay/PixieMatching.png"
+                alt="Family planning a Disney Vacation Club stay"
+                className="h-full w-full object-cover"
+              />
+            </div>
+
+            <h3 className="text-xl font-semibold text-slate-900">Request Your Stay</h3>
+
+            <p className="mt-3 text-slate-600">
+              Share your dates, preferred resort, and party details. We verify availability with real DVC owners and
+              guide you step by step.
+            </p>
+
+            <ul className="mt-4 space-y-2 text-sm text-slate-500">
+              <li>• Personalized matching</li>
+              <li>• Transparent pricing before you commit</li>
+              <li>• Concierge support from start to confirmation</li>
+            </ul>
+
+            <div className="mt-6">
+              <Link
+                href="/check-dates"
+                className="inline-flex items-center rounded-xl bg-indigo-600 px-5 py-3 text-sm font-medium !text-white transition hover:bg-indigo-500"
+              >
+                Check My Dates →
+              </Link>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="mb-6 h-48 w-full overflow-hidden rounded-xl bg-slate-100">
+              <img
+                src="https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/main%20page%20ready-stay/ready-stay.png"
+                alt="Confirmed Disney Vacation Club villa"
+                className="h-full w-full object-cover"
+              />
+            </div>
+
+            <h3 className="text-xl font-semibold text-slate-900">Browse Ready Stays</h3>
+
+            <p className="mt-3 text-slate-600">
+              Confirmed DVC reservations available now. Secure premium villas without waiting for matching.
+            </p>
+
+            <ul className="mt-4 space-y-2 text-sm text-slate-500">
+              <li>• Pre-confirmed reservations</li>
+              <li>• Ideal for flexible or last-minute trips</li>
+              <li>• Updated inventory</li>
+            </ul>
+
+            <div className="mt-6">
+              <Link
+                href="/ready-stays"
+                className="inline-flex items-center rounded-xl border border-slate-300 px-5 py-3 text-sm font-medium text-slate-700 transition transform-gpu hover:-translate-y-0.5 hover:bg-slate-50"
+              >
+                View Ready Stays →
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-10 text-center text-sm text-slate-500">
+          Verified owners • Secure payments • Concierge-led support
+        </div>
+      </section>
+      <section className="h-24 bg-gradient-to-b from-white to-slate-100" aria-hidden="true" />
 
       <main className="bg-surface text-ink">
         {/* // Static Bridge Section */}
@@ -78,7 +156,7 @@ export default function Home() {
         {/* // Resort Showcase Section */}
         <ResortShowcase />
 
-        <section id="resorts" className="bg-white/70 py-16 backdrop-blur">
+        <section id="resorts" className="bg-slate-50 pt-24 pb-20">
             <div className="mx-auto max-w-6xl px-6">
               <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
                 <div>

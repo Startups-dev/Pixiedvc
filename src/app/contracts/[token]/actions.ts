@@ -2,12 +2,12 @@
 
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import crypto from 'crypto';
 
 import { createServiceClient } from '@/lib/supabase-service-client';
 import type { ContractSnapshot } from '@/lib/contracts/contractSnapshot';
 import { sendGuestAgreementSignedEmail, sendOwnerAgreementSignedEmail } from '@/lib/email';
-import { logContractEvent } from '@/server/contracts';
+import { isReadyStayBookingRequest } from '@/lib/ready-stays/flow';
+import { ensureGuestAgreementForBooking, logContractEvent } from '@/server/contracts';
 
 export async function acceptContractAction(_: { error?: string | null }, formData: FormData) {
   const token = formData.get('token');
@@ -36,15 +36,73 @@ export async function acceptContractAction(_: { error?: string | null }, formDat
   if (!role) {
     return { error: 'Invalid token' };
   }
+  const isReadyStay = await isReadyStayBookingRequest(supabase, contract.booking_request_id);
+
+  if (role === 'guest' && isReadyStay && contract.booking_request_id) {
+    const { data: readyStay } = await supabase
+      .from('ready_stays')
+      .select('owner_id')
+      .eq('booking_request_id', contract.booking_request_id)
+      .limit(1)
+      .maybeSingle();
+
+    if (readyStay?.owner_id) {
+      let { data: ownerRecord } = await supabase
+        .from('owners')
+        .select('id, full_legal_name, user_id')
+        .eq('id', readyStay.owner_id)
+        .maybeSingle();
+
+      if (!ownerRecord) {
+        const { data: fallbackOwner } = await supabase
+          .from('owners')
+          .select('id, full_legal_name, user_id')
+          .eq('user_id', readyStay.owner_id)
+          .maybeSingle();
+        ownerRecord = fallbackOwner ?? null;
+      }
+
+      const { data: ownerMembership } = await supabase
+        .from('owner_memberships')
+        .select('owner_legal_full_name')
+        .eq('owner_id', readyStay.owner_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const ownerLegalName =
+        ownerRecord?.full_legal_name?.trim() ||
+        ownerMembership?.owner_legal_full_name?.trim() ||
+        null;
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[contracts/accept] ready stay owner legal name source', {
+          readyStayOwnerId: readyStay.owner_id,
+          source: ownerRecord?.full_legal_name?.trim()
+            ? 'owners.full_legal_name'
+            : ownerMembership?.owner_legal_full_name?.trim()
+              ? 'owner_memberships.owner_legal_full_name'
+              : 'none',
+          hasValue: Boolean(ownerLegalName),
+        });
+      }
+      if (!ownerLegalName) {
+        return { error: 'Owner legal name is missing. Payment cannot be started yet.' };
+      }
+    }
+  }
 
   const column = role === 'owner' ? 'owner_accepted_at' : 'guest_accepted_at';
-  if (contract[column]) {
+  const allowReadyStayPaymentRetry = role === 'guest' && isReadyStay && contract.status === 'sent';
+  if (contract[column] && !allowReadyStayPaymentRetry) {
     return { error: 'Agreement already accepted.' };
   }
 
-  const updates: Record<string, unknown> = { [column]: new Date().toISOString() };
+  const updates: Record<string, unknown> = {};
+  if (!contract[column]) {
+    updates[column] = new Date().toISOString();
+  }
   if (role === 'guest') {
-    updates.status = 'accepted';
+    updates.status = isReadyStay ? 'sent' : 'accepted';
   } else if (contract.owner_accepted_at && contract.guest_accepted_at) {
     updates.status = 'accepted';
   }
@@ -123,9 +181,74 @@ export async function acceptContractAction(_: { error?: string | null }, formDat
   }
 
   if (role === 'guest' && contract.booking_request_id) {
-    const snapshot = (contract.snapshot ?? {}) as ContractSnapshot;
+    let latestContract = contract;
+
+    if (isReadyStay && contract.booking_request_id) {
+      const { data: readyStay } = await supabase
+        .from('ready_stays')
+        .select('owner_id, rental_id')
+        .eq('booking_request_id', contract.booking_request_id)
+        .limit(1)
+        .maybeSingle();
+
+      if (readyStay?.owner_id && readyStay?.rental_id) {
+        let { data: ownerRecord } = await supabase
+          .from('owners')
+          .select('id, user_id')
+          .eq('id', readyStay.owner_id)
+          .maybeSingle();
+        if (!ownerRecord) {
+          const { data: fallbackOwner } = await supabase
+            .from('owners')
+            .select('id, user_id')
+            .eq('user_id', readyStay.owner_id)
+            .maybeSingle();
+          ownerRecord = fallbackOwner ?? null;
+        }
+        if (ownerRecord?.id) {
+          await ensureGuestAgreementForBooking({
+            supabase,
+            ownerId: ownerRecord.id,
+            bookingRequestId: contract.booking_request_id,
+            rentalId: readyStay.rental_id,
+          });
+          const { data: refreshedContract } = await supabase
+            .from('contracts')
+            .select('*')
+            .eq('id', contract.id)
+            .maybeSingle();
+          if (refreshedContract) {
+            latestContract = refreshedContract;
+          }
+        }
+      }
+    }
+
+    const snapshot = (latestContract.snapshot ?? {}) as ContractSnapshot;
     const summary = snapshot.summary;
-    const amountCents = typeof summary?.paidNowCents === 'number' ? summary.paidNowCents : null;
+    let readyStayAmountCents: number | null = null;
+    let readyStayIdForMetadata: string | null = null;
+    if (isReadyStay && contract.booking_request_id) {
+      const { data: readyStayPricing } = await supabase
+        .from('ready_stays')
+        .select('id, points, guest_price_per_point_cents')
+        .eq('booking_request_id', contract.booking_request_id)
+        .limit(1)
+        .maybeSingle();
+      if (
+        typeof readyStayPricing?.points === 'number' &&
+        typeof readyStayPricing?.guest_price_per_point_cents === 'number'
+      ) {
+        readyStayAmountCents = readyStayPricing.points * readyStayPricing.guest_price_per_point_cents;
+      }
+      readyStayIdForMetadata = readyStayPricing?.id ?? null;
+    }
+    const amountCents = isReadyStay
+      ? (readyStayAmountCents ??
+        (typeof summary?.totalPayableByGuestCents === 'number' ? summary.totalPayableByGuestCents : null))
+      : typeof summary?.paidNowCents === 'number'
+        ? summary.paidNowCents
+        : null;
     const currency = typeof summary?.currency === 'string' ? summary.currency : 'USD';
 
     if (!amountCents || amountCents <= 0) {
@@ -153,12 +276,19 @@ export async function acceptContractAction(_: { error?: string | null }, formDat
       params.set('customer_email', snapshot.parties.guest.email);
     }
     params.append('line_items[0][price_data][currency]', currency.toLowerCase());
-    params.append('line_items[0][price_data][product_data][name]', 'PixieDVC Reservation Payment');
+    params.append(
+      'line_items[0][price_data][product_data][name]',
+      isReadyStay ? 'PixieDVC Ready Stay Payment (Full)' : 'PixieDVC Reservation Payment',
+    );
     params.append('line_items[0][price_data][unit_amount]', String(amountCents));
     params.append('line_items[0][quantity]', '1');
-    params.append('client_reference_id', contract.booking_request_id);
-    params.append('metadata[booking_request_id]', contract.booking_request_id);
-    params.append('metadata[payment_type]', 'booking');
+    params.append('client_reference_id', latestContract.booking_request_id);
+    params.append('metadata[booking_request_id]', latestContract.booking_request_id);
+    params.append('metadata[payment_type]', isReadyStay ? 'full' : 'booking');
+    params.append('metadata[contract_id]', String(latestContract.id));
+    if (isReadyStay && readyStayIdForMetadata) {
+      params.append('metadata[ready_stay_id]', readyStayIdForMetadata);
+    }
 
     const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
       method: 'POST',
@@ -169,9 +299,29 @@ export async function acceptContractAction(_: { error?: string | null }, formDat
       body: params.toString(),
     });
 
-    const json = (await response.json()) as { url?: string; error?: { message?: string } };
+    const json = (await response.json()) as { id?: string; url?: string; error?: { message?: string } };
     if (!response.ok || !json.url) {
       return { error: json.error?.message ?? 'Unable to create Stripe checkout session.' };
+    }
+
+    if (isReadyStay) {
+      await supabase
+        .from('booking_requests')
+        .update({
+          status: 'pending_payment',
+          payment_status: 'pending',
+          stripe_checkout_session_id: json.id ?? null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', latestContract.booking_request_id);
+
+      await supabase
+        .from('contracts')
+        .update({
+          status: 'pending_payment',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', latestContract.id);
     }
 
     redirect(json.url);

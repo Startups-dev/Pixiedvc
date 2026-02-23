@@ -17,6 +17,17 @@ type Props = {
   sections: ResortInfoSection[];
 };
 
+const PIXIE_DVC_VALUE_ITEMS = [
+  "Concierge reservation matching",
+  "Seamless booking and planning",
+  "Support for multi-room and split stays",
+];
+const GOOD_TO_KNOW_ITEMS = [
+  "Best suited for longer, relaxed stays",
+  "Focused on resort experience over park access",
+  "Availability may vary by season",
+];
+
 const ICONS: Record<ResortHighlightIcon, typeof Sparkles> = {
   castle: Castle,
   train: Train,
@@ -40,7 +51,15 @@ export default function ResortSections({ sections }: Props) {
           className="scroll-mt-32 border-t border-slate-200/60 py-10 first:border-t-0"
         >
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-[#0F2148]">{section.title}</h2>
+            <h2 className="text-2xl font-semibold text-[#0F2148]">
+              {section.type === "transportation"
+                ? "Getting Around"
+                : section.type === "amenities"
+                  ? "What You Get with PixieDVC"
+                  : section.type === "policies"
+                    ? "Good to Know"
+                  : section.title}
+            </h2>
           </div>
 
           {section.type === "overview" ? (
@@ -72,17 +91,20 @@ export default function ResortSections({ sections }: Props) {
           ) : null}
 
           {section.type === "transportation" ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="space-y-3 text-sm text-[#0F2148]/80">
               {section.items.map((item) => (
-                <div
+                <li
                   key={item.title}
-                  className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 text-sm text-[#0F2148]/80"
+                  className="flex items-start gap-2"
                 >
-                  <p className="font-semibold text-[#0F2148]">{item.title}</p>
-                  <p className="mt-2 text-xs text-[#0F2148]/70">{item.note}</p>
-                </div>
+                  <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[#0F2148]/50" />
+                  <p>
+                    <span className="font-semibold text-[#0F2148]">{item.title}:</span>{" "}
+                    <span className="text-[#0F2148]/75">{item.note}</span>
+                  </p>
+                </li>
               ))}
-            </div>
+            </ul>
           ) : null}
 
           {section.type === "dining" ? (
@@ -101,7 +123,7 @@ export default function ResortSections({ sections }: Props) {
 
           {section.type === "amenities" ? (
             <ul className="grid gap-3 text-sm text-[#0F2148]/80 sm:grid-cols-2 lg:grid-cols-3">
-              {section.items.map((item) => (
+              {PIXIE_DVC_VALUE_ITEMS.map((item) => (
                 <li
                   key={item}
                   className="rounded-2xl border border-slate-200/70 bg-white/70 px-4 py-3"
@@ -114,14 +136,14 @@ export default function ResortSections({ sections }: Props) {
 
           {section.type === "policies" ? (
             <div className="rounded-2xl border border-slate-200/70 bg-white/80 p-5">
-              <dl className="grid gap-4 text-sm text-[#0F2148]/75 sm:grid-cols-2">
-                {section.items.map((item) => (
-                  <div key={item.label}>
-                    <dt className="text-xs uppercase tracking-[0.2em] text-[#0F2148]/50">{item.label}</dt>
-                    <dd className="mt-1 text-sm text-[#0F2148]">{item.value}</dd>
-                  </div>
+              <ul className="space-y-3 text-sm text-[#0F2148]/80">
+                {GOOD_TO_KNOW_ITEMS.map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[#0F2148]/50" />
+                    <span>{item}</span>
+                  </li>
                 ))}
-              </dl>
+              </ul>
             </div>
           ) : null}
 

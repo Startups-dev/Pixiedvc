@@ -205,11 +205,17 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
   const showConfirmationSection = approvalCompleted || isOwnerReservation;
   const bookingPackage = (rental.booking_package ?? {}) as Record<string, unknown>;
   const leadGuestName =
-    rental.lead_guest_name ?? (bookingPackage.lead_guest_name as string | null) ?? null;
+    rental.lead_guest_name ??
+    (bookingPackage.lead_guest_name as string | null) ??
+    null;
   const leadGuestEmail =
-    rental.lead_guest_email ?? (bookingPackage.lead_guest_email as string | null) ?? null;
+    rental.lead_guest_email ??
+    (bookingPackage.lead_guest_email as string | null) ??
+    null;
   const leadGuestPhone =
-    rental.lead_guest_phone ?? (bookingPackage.lead_guest_phone as string | null) ?? null;
+    rental.lead_guest_phone ??
+    (bookingPackage.lead_guest_phone as string | null) ??
+    null;
   const familyLabel = getFamilyLabel(leadGuestName);
   const checkInLabel = formatShortDate(rental.check_in ?? null);
   const checkOutLabel = formatShortDate(rental.check_out ?? null);
@@ -229,6 +235,7 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
     typeof bookingPackage.guest_total_cents === "number" ? bookingPackage.guest_total_cents : null;
   const guestRatePerPointCents =
     typeof bookingPackage.guest_rate_per_point_cents === "number" ? bookingPackage.guest_rate_per_point_cents : null;
+  const partyLabel = formatParty(rental);
   const stage70 = payouts.find((payout) => Number(payout.stage) === 70) ?? null;
   const stage30 = payouts.find((payout) => Number(payout.stage) === 30) ?? null;
   const derivedRentalAmount = deriveOwnerPayoutCents(
@@ -275,7 +282,6 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
       occurred_at: stage30?.released_at ?? stage30?.eligible_at ?? null,
     },
   ];
-
   const missingApproval = getMissingApprovalPrerequisites(displayMilestones);
   const missingLabels = missingApproval.map((code) => getMilestoneLabel(code as any));
   const approvalEnabled = missingApproval.length === 0;
@@ -311,26 +317,31 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
             <p className="text-xs text-slate-500">
               {leadGuestEmail ?? "Email pending"} · {formatPhone(leadGuestPhone)}
             </p>
-            <p className="text-xs text-slate-400">Party: {formatParty(rental)}</p>
+            <p className="text-xs text-slate-400">Party: {partyLabel}</p>
           </div>
           <span className={statusPill(rental.status)}>{rental.status.replace(/_/g, " ")}</span>
         </div>
       </header>
 
       {isOwnerReservation ? (
-        <Card className="flex flex-wrap items-center justify-between gap-3 border border-slate-200 bg-slate-50">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Ready stays</p>
-            <p className="text-sm text-slate-700">
+        <Card className="flex flex-wrap items-center justify-between gap-3 border border-[#1E2F63] bg-[#0F2454] px-5 py-4">
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-[0.3em] text-white/70">Ready stays</p>
+            <p className="text-sm text-white/95">
               Once verified, your reservation can be listed as a Ready Stay for instant guest booking.
             </p>
           </div>
           {confirmationCompleted ? (
-            <Button asChild>
-              <Link href={`/owner/ready-stays/new?rentalId=${rental.id}`}>List a Ready Stay</Link>
-            </Button>
+            <Link
+              className="inline-flex h-11 items-center justify-center rounded-full bg-gradient-to-r from-[#2A3E7F] to-[#7B8EF2] px-6 text-sm font-semibold !text-white shadow-sm"
+              href={`/owner/ready-stays/new?rentalId=${rental.id}`}
+            >
+              List a Ready Stay
+            </Link>
           ) : (
-            <Button disabled>List a Ready Stay</Button>
+            <span className="inline-flex h-11 items-center justify-center rounded-full border border-white/25 bg-white/10 px-6 text-sm font-semibold text-white/70">
+              List a Ready Stay
+            </span>
           )}
         </Card>
       ) : null}
@@ -354,18 +365,6 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
               <span className="font-semibold text-ink">{rental.room_type ?? "Pending"}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span>Points required</span>
-              <span className="font-semibold text-ink">{rental.points_required ?? "—"}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Owner payout</span>
-              <span className="font-semibold text-ink">{formatCurrency(derivedRentalAmount)}</span>
-            </div>
-            <p className="text-xs text-slate-500">
-              Rate: {ownerRatePerPointCents !== null ? `$${(ownerRatePerPointCents / 100).toFixed(2)}/pt` : "—"}
-              {premiumApplied && ownerPremiumCents ? ` (+$${(ownerPremiumCents / 100).toFixed(2)} home resort premium)` : ""}
-            </p>
-            <div className="flex items-center justify-between">
               <span>Lead guest</span>
               <span className="font-semibold text-ink">{leadGuestName ?? "—"}</span>
             </div>
@@ -379,7 +378,7 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
             </div>
             <div className="flex items-center justify-between">
               <span>Party size</span>
-              <span className="font-semibold text-ink">{formatParty(rental)}</span>
+              <span className="font-semibold text-ink">{partyLabel}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Guest address</span>
@@ -407,6 +406,21 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
                 Special needs: {rental.special_needs_notes ?? "Noted by guest."}
               </div>
             ) : null}
+            <div className="flex items-center justify-between">
+              <span>Points required</span>
+              <span className="font-semibold text-ink">{rental.points_required ?? "—"}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Rate</span>
+              <span className="font-semibold text-ink">
+                {ownerRatePerPointCents !== null ? `$${(ownerRatePerPointCents / 100).toFixed(2)}/pt` : "—"}
+                {premiumApplied && ownerPremiumCents ? ` (+$${(ownerPremiumCents / 100).toFixed(2)} home resort premium)` : ""}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Owner payout</span>
+              <span className="font-semibold text-ink">{formatCurrency(derivedRentalAmount)}</span>
+            </div>
           </div>
           {!approvalCompleted && !isOwnerReservation ? (
             <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-xs text-slate-600">
@@ -417,13 +431,7 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
                 After approval, you’ll book the stay in Disney and upload the confirmation to unlock payout.
               </p>
             </div>
-          ) : isOwnerReservation && !approvalCompleted ? (
-            <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-xs text-slate-600">
-              This is your owner-held reservation. Upload the Disney confirmation once it is booked.
-            </p>
-          ) : (
-            <p className="rounded-2xl bg-emerald-50 p-4 text-xs text-emerald-700">Booking package approved.</p>
-          )}
+          ) : null}
         </Card>
       </section>
 

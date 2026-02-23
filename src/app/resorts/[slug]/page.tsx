@@ -70,7 +70,7 @@ export default async function ResortPage({ params }: Props) {
     notFound();
   }
 
-  const photos = await getResortPhotos(slug);
+  const photos = (await getResortPhotos(slug)) ?? [];
   const sections = getResortSections(slug);
   const resortData = resort;
   const resortCode = resolveCalculatorCode({ slug: resortData.slug });

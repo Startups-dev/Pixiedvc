@@ -139,6 +139,54 @@ export type MatchRunResult = {
 };
 
 const DEFAULT_LIMIT = 20;
+const USE_YEAR_BUCKETS_ENABLED = process.env.MATCH_USE_YEAR_BUCKETS === '1';
+
+function addYears(d: Date, years: number) {
+  const x = new Date(d);
+  x.setFullYear(x.getFullYear() + years);
+  return x;
+}
+
+/**
+ * Returns the "use year label" = YEAR of the use-year START date
+ * that contains booking.check_in.
+ */
+function resolveUseYearLabelForCheckIn(args: {
+  checkInISO: string | null | undefined;
+  useYearStartISO: string | null | undefined;
+  useYearEndISO: string | null | undefined;
+}): number | null {
+  const { checkInISO, useYearStartISO, useYearEndISO } = args;
+  if (!checkInISO || !useYearStartISO || !useYearEndISO) return null;
+
+  const checkIn = new Date(checkInISO);
+  if (Number.isNaN(checkIn.getTime())) return null;
+
+  let start = new Date(useYearStartISO);
+  let end = new Date(useYearEndISO);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+  if (end.getTime() < start.getTime()) return null;
+
+  let guard = 0;
+
+  while (checkIn.getTime() > end.getTime() && guard < 6) {
+    start = addYears(start, 1);
+    end = addYears(end, 1);
+    guard++;
+  }
+
+  while (checkIn.getTime() < start.getTime() && guard < 12) {
+    start = addYears(start, -1);
+    end = addYears(end, -1);
+    guard++;
+  }
+
+  if (checkIn.getTime() < start.getTime() || checkIn.getTime() > end.getTime()) {
+    return null;
+  }
+
+  return start.getFullYear();
+}
 
 function normalizeProfile(owner: OwnerRow | null) {
   if (!owner) return null;
@@ -366,6 +414,51 @@ export async function evaluateMatchBookings(options: {
       continue;
     }
 
+    // -----------------------------
+    // Dynamic Use-Year Bucket Fetch
+    // -----------------------------
+    const bucketAvailByMembershipYear = new Map<string, number>();
+
+    if (USE_YEAR_BUCKETS_ENABLED && booking?.check_in && membershipRows?.length) {
+      const membershipIds = membershipRows
+        .map((m) => m.id)
+        .filter((x) => typeof x === 'number');
+
+      const first = membershipRows[0];
+
+      const baseLabel = resolveUseYearLabelForCheckIn({
+        checkInISO: booking.check_in,
+        useYearStartISO: first.use_year_start ?? null,
+        useYearEndISO: first.use_year_end ?? null,
+      });
+
+      const yearsToFetch =
+        baseLabel != null ? [baseLabel, baseLabel + 1] : [];
+
+      if (yearsToFetch.length > 0) {
+        const { data, error } = await client
+          .from('owner_membership_use_year_points')
+          .select('owner_membership_id,use_year,available')
+          .in('owner_membership_id', membershipIds)
+          .in('use_year', yearsToFetch);
+
+        if (!error && data) {
+          for (const row of data as any[]) {
+            if (
+              typeof row.owner_membership_id === 'number' &&
+              typeof row.use_year === 'number' &&
+              typeof row.available === 'number'
+            ) {
+              bucketAvailByMembershipYear.set(
+                `${row.owner_membership_id}:${row.use_year}`,
+                row.available,
+              );
+            }
+          }
+        }
+      }
+    }
+
     const membershipMap = new Map(
       membershipRows.map((row) => [
         `${row.owner_id}:${row.resort_id}:${row.use_year_start ?? 'none'}`,
@@ -515,6 +608,8 @@ export async function evaluateMatchBookings(options: {
         }
       }
 
+      // NOTE: owner_membership_use_year_points contains per-year buckets, but matching still consumes
+      // owner_memberships.points_available aggregate until year-bucket matching is implemented.
       const rawAvailable =
         (membership.points_available ?? 0) -
         (membership.banked_points_amount ?? 0) -
@@ -528,7 +623,25 @@ export async function evaluateMatchBookings(options: {
         });
       }
       const effectiveAvailable = Math.max(rawAvailable, 0);
-      const currentAvailable = effectiveAvailable;
+      let currentAvailable = effectiveAvailable;
+
+      if (USE_YEAR_BUCKETS_ENABLED && booking?.check_in) {
+        const label = resolveUseYearLabelForCheckIn({
+          checkInISO: booking.check_in,
+          useYearStartISO: membership.use_year_start ?? null,
+          useYearEndISO: membership.use_year_end ?? null,
+        });
+
+        if (label != null) {
+          const bucketAvail = bucketAvailByMembershipYear.get(
+            `${membership.id}:${label}`,
+          );
+
+          if (typeof bucketAvail === 'number') {
+            currentAvailable = Math.min(currentAvailable, bucketAvail);
+          }
+        }
+      }
       let nextMembership: MembershipRow | null = null;
       let borrowable = 0;
       if (membership.borrowing_enabled && membership.use_year_start) {
@@ -538,13 +651,32 @@ export async function evaluateMatchBookings(options: {
           : `${membership.owner_id}:${membership.resort_id}:none`;
         const candidateNext = membershipMap.get(nextKey) ?? null;
         if (candidateNext) {
-          const nextAvailable = Math.max(
+          let nextAvailable = Math.max(
             (candidateNext.points_available ?? 0) -
               (candidateNext.banked_points_amount ?? 0) -
               (candidateNext.points_rented ?? 0) -
               (candidateNext.points_reserved ?? 0),
             0,
           );
+          if (USE_YEAR_BUCKETS_ENABLED && booking?.check_in) {
+            const label = resolveUseYearLabelForCheckIn({
+              checkInISO: booking.check_in,
+              useYearStartISO: membership.use_year_start ?? null,
+              useYearEndISO: membership.use_year_end ?? null,
+            });
+
+            const nextLabel = label != null ? label + 1 : null;
+
+            if (nextLabel != null) {
+              const bucketAvailNext = bucketAvailByMembershipYear.get(
+                `${candidateNext.id}:${nextLabel}`,
+              );
+
+              if (typeof bucketAvailNext === 'number') {
+                nextAvailable = Math.min(nextAvailable, bucketAvailNext);
+              }
+            }
+          }
           const maxBorrow = Math.max(membership.max_points_to_borrow ?? 0, 0);
           borrowable = Math.min(maxBorrow, nextAvailable);
           nextMembership = candidateNext;
