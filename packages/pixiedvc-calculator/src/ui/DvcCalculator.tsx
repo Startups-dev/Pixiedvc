@@ -466,6 +466,18 @@ export function DvcCalculator() {
                   </div>
                 </div>
 
+                {(resort === "AUL" || resort === "VDH") ? (
+                  <div className="mt-5 rounded-xl border border-indigo-200 bg-white/70 p-4">
+                    <div className="font-semibold text-indigo-900">Taxes due at checkout</div>
+                    <div className="mt-1 text-sm text-gray-700">
+                      {resort === "VDH"
+                        ? "Anaheim requires a nightly transient occupancy tax for DVC stays at The Villas at Disneyland Hotel. This tax is not included in points or your PixieDVC estimate and is paid to the resort at checkout."
+                        : "Hawai‘i requires transient accommodations taxes for DVC stays at Aulani. This tax is not included in points or your PixieDVC estimate and is paid to the resort at checkout."}
+                    </div>
+                    <div className="mt-2 text-xs text-gray-500">Rates vary by year and are subject to change.</div>
+                  </div>
+                ) : null}
+
                 <button
                   onClick={() => {
                     // Navigate to booking form with prefilled data

@@ -29,7 +29,7 @@ export type TravelPeriod = {
 
 export type ResortYearChart = {
   resortCode: string;             // "AKV"
-  year: number;                   // 2025 or 2026
+  year: number;                   // 2025+
   periods: TravelPeriod[];
 };
 
@@ -52,6 +52,7 @@ export type QuoteInput = {
   checkIn: string;                // yyyy-mm-dd
   nights: number;                 // 1..30
   year?: number;                  // default from check-in
+  chartYear?: number;             // alias for year (preferred explicit naming)
   bookingDate?: string;           // yyyy-mm-dd (defaults to today for booking window calculation)
 };
 

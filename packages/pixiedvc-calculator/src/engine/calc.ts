@@ -64,7 +64,7 @@ function pointsForNight(period: any, room: string, view: string, iso: string) {
 
 export function quoteStay(input: QuoteInput): QuoteResult {
   const { resortCode, room, view, checkIn, nights, bookingDate } = input;
-  const year = input.year ?? Number(checkIn.slice(0, 4));
+  const year = input.chartYear ?? input.year ?? Number(checkIn.slice(0, 4));
   const chart = loadResortYearChart(resortCode, year);
   if (!chart) throw new Error(`No chart for ${resortCode} in ${year}`);
 
@@ -113,15 +113,16 @@ export async function quoteAllResorts(params: Omit<QuoteInput, "resortCode" | "r
     const combos = params.roomViews[r.code] ?? [{ room: "STUDIO", view: "S" }];
     results[r.code] = {};
     for (const combo of combos) {
-      results[r.code][`${combo.room}`] = await quoteStay({
-        resortCode: r.code,
-        room: combo.room,
-        view: combo.view,
-        checkIn: params.checkIn,
-        nights: params.nights,
-        year: params.year
-      });
-    }
+        results[r.code][`${combo.room}`] = await quoteStay({
+          resortCode: r.code,
+          room: combo.room,
+          view: combo.view,
+          checkIn: params.checkIn,
+          nights: params.nights,
+          year: params.year,
+          chartYear: params.chartYear
+        });
+      }
   }
   return results;
 }

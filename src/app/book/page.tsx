@@ -51,7 +51,7 @@ export default async function BookingPage({ searchParams }: { searchParams?: Sea
   const priceValue = Number.parseFloat(getParam(searchParams ?? {}, "price") ?? "");
 
   const resortMeta = Resorts.find((resort) => resort.code === resortCode);
-  const resortName = resortMeta?.name ?? resortCode || fallbackPrefill.resortName;
+  const resortName = resortMeta?.name ?? (resortCode || fallbackPrefill.resortName);
   const checkOut = checkIn ? addDays(checkIn, nights) : "";
 
   const prefill = {

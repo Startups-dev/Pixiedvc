@@ -35,4 +35,30 @@ describe("DVC Calculator Engine", () => {
     // and totalUSD = baseUSD + (baseUSD * feePct/100)
     expect(true).toBe(true);
   });
+
+  it("loads 2027 charts successfully", async () => {
+    const result = quoteStay({
+      resortCode: "BLT",
+      room: "STUDIO",
+      view: "S",
+      checkIn: "2027-09-07",
+      nights: 2,
+      chartYear: 2027
+    });
+
+    expect(result.totalPoints).toBeGreaterThan(0);
+  });
+
+  it("falls back to default charts when requested year is missing", async () => {
+    const result = quoteStay({
+      resortCode: "BLT",
+      room: "STUDIO",
+      view: "S",
+      checkIn: "2026-09-07",
+      nights: 2,
+      chartYear: 2099
+    });
+
+    expect(result.totalPoints).toBeGreaterThan(0);
+  });
 });

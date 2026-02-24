@@ -36,6 +36,24 @@ import VB_2026 from "./2026/VB.json";
 import VDH_2026 from "./2026/VDH.json";
 import VGC_2026 from "./2026/VGC.json";
 import VGF_2026 from "./2026/VGF.json";
+// Import all 2027 charts
+import AKV_2027 from "./2027/AKV.json";
+import AUL_2027 from "./2027/AUL.json";
+import BCV_2027 from "./2027/BCV.json";
+import BLT_2027 from "./2027/BLT.json";
+import BRV_2027 from "./2027/BRV.json";
+import BWV_2027 from "./2027/BWV.json";
+import CCV_2027 from "./2027/CCV.json";
+import CFW_2027 from "./2027/CFW.json";
+import HHI_2027 from "./2027/HHI.json";
+import OKW_2027 from "./2027/OKW.json";
+import PVB_2027 from "./2027/PVB.json";
+import RVA_2027 from "./2027/RVA.json";
+import SSR_2027 from "./2027/SSR.json";
+import VB_2027 from "./2027/VB.json";
+import VDH_2027 from "./2027/VDH.json";
+import VGC_2027 from "./2027/VGC.json";
+import VGF_2027 from "./2027/VGF.json";
 
 // Registry mapping
 const chartRegistry: Record<string, Record<string, ResortYearChart>> = {
@@ -74,11 +92,33 @@ const chartRegistry: Record<string, Record<string, ResortYearChart>> = {
     VDH: VDH_2026 as ResortYearChart,
     VGC: VGC_2026 as ResortYearChart,
     VGF: VGF_2026 as ResortYearChart,
+  },
+  "2027": {
+    AKV: AKV_2027 as ResortYearChart,
+    AUL: AUL_2027 as ResortYearChart,
+    BCV: BCV_2027 as ResortYearChart,
+    BLT: BLT_2027 as ResortYearChart,
+    BRV: BRV_2027 as ResortYearChart,
+    BWV: BWV_2027 as ResortYearChart,
+    CCV: CCV_2027 as ResortYearChart,
+    CFW: CFW_2027 as ResortYearChart,
+    HHI: HHI_2027 as ResortYearChart,
+    OKW: OKW_2027 as ResortYearChart,
+    PVB: PVB_2027 as ResortYearChart,
+    RVA: RVA_2027 as ResortYearChart,
+    SSR: SSR_2027 as ResortYearChart,
+    VB: VB_2027 as ResortYearChart,
+    VDH: VDH_2027 as ResortYearChart,
+    VGC: VGC_2027 as ResortYearChart,
+    VGF: VGF_2027 as ResortYearChart,
   }
 };
 
 export function getResortYearChart(resortCode: string, year: number): ResortYearChart | null {
   const yearData = chartRegistry[year.toString()];
-  if (!yearData) return null;
-  return yearData[resortCode] || null;
+  if (yearData?.[resortCode]) return yearData[resortCode];
+
+  // Fallback to the most recent stable baseline year when a chart is missing.
+  const fallbackYearData = chartRegistry["2026"];
+  return fallbackYearData?.[resortCode] ?? null;
 }

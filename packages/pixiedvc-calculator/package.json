@@ -34,6 +34,7 @@
     "@types/node": "^20.11.19",
     "@types/react": "^18.2.56",
     "@vitejs/plugin-react": "^4.2.1",
+    "diff-sequences": "^29.6.3",
     "esbuild": "0.14.54",
     "tsup": "6.7.0",
     "typescript": "^5.3.3",
@@ -50,4 +51,3 @@
   ],
   "sideEffects": false
 }
-

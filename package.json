@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env-shell \"next dev --turbopack -p ${PORT:-3000}\"",
+    "dev": "cross-env-shell \"next dev -p ${PORT:-3000}\"",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",

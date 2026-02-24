@@ -225,7 +225,7 @@ export default function OnboardingPage() {
           role={role}
           onFinish={async (nextOverride) => {
             const { next } = await completeOnboarding();
-            router.replace(nextOverride ?? next || '/');
+            router.replace(nextOverride ?? next ?? '/');
           }}
         />
       ) : null}
@@ -235,7 +235,7 @@ export default function OnboardingPage() {
           role={role}
           onFinish={async (nextOverride) => {
             const { next } = await completeOnboarding();
-            router.replace(nextOverride ?? next || '/');
+            router.replace(nextOverride ?? next ?? '/');
           }}
         />
       ) : null}
