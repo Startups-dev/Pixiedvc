@@ -1,0 +1,286 @@
+{
+  "resortCode": "PVB",
+  "year": 2027,
+  "periods": [
+    {
+      "id": 1,
+      "name": "Travel Period 1",
+      "ranges": [
+        { "start": "2027-09-01", "end": "2027-09-30" }
+      ],
+      "points": {
+        "STUDIO": {
+          "R": { "sunThu": 14, "friSat": 17 }
+        },
+        "TWOBRBUNGALOW": {
+          "P": { "sunThu": 112, "friSat": 132 }
+        },
+        "DUOSTUDIO": {
+          "R": { "sunThu": 12, "friSat": 16 },
+          "P": { "sunThu": 16, "friSat": 19 },
+          "PM": { "sunThu": 19, "friSat": 21 }
+        },
+        "DELUXESTUDIO": {
+          "R": { "sunThu": 14, "friSat": 19 },
+          "P": { "sunThu": 19, "friSat": 24 },
+          "TP": { "sunThu": 24, "friSat": 27 }
+        },
+        "ONEBR": {
+          "R": { "sunThu": 28, "friSat": 38 },
+          "P": { "sunThu": 38, "friSat": 45 },
+          "TP": { "sunThu": 47, "friSat": 52 }
+        },
+        "TWOBR": {
+          "R": { "sunThu": 42, "friSat": 53 },
+          "P": { "sunThu": 53, "friSat": 63 },
+          "TP": { "sunThu": 64, "friSat": 75 }
+        },
+        "PENTHOUSE": {
+          "P": { "sunThu": 86, "friSat": 104 },
+          "TP": { "sunThu": 108, "friSat": 126 }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "Travel Period 2",
+      "ranges": [
+        { "start": "2027-01-01", "end": "2027-01-31" },
+        { "start": "2027-05-01", "end": "2027-05-14" }
+      ],
+      "points": {
+        "STUDIO": {
+          "R": { "sunThu": 17, "friSat": 20 }
+        },
+        "TWOBRBUNGALOW": {
+          "P": { "sunThu": 120, "friSat": 139 }
+        },
+        "DUOSTUDIO": {
+          "R": { "sunThu": 14, "friSat": 16 },
+          "P": { "sunThu": 18, "friSat": 20 },
+          "PM": { "sunThu": 21, "friSat": 24 }
+        },
+        "DELUXESTUDIO": {
+          "R": { "sunThu": 17, "friSat": 22 },
+          "P": { "sunThu": 22, "friSat": 26 },
+          "TP": { "sunThu": 27, "friSat": 30 }
+        },
+        "ONEBR": {
+          "R": { "sunThu": 34, "friSat": 42 },
+          "P": { "sunThu": 42, "friSat": 48 },
+          "TP": { "sunThu": 50, "friSat": 56 }
+        },
+        "TWOBR": {
+          "R": { "sunThu": 47, "friSat": 54 },
+          "P": { "sunThu": 54, "friSat": 66 },
+          "TP": { "sunThu": 71, "friSat": 82 }
+        },
+        "PENTHOUSE": {
+          "P": { "sunThu": 95, "friSat": 110 },
+          "TP": { "sunThu": 117, "friSat": 135 }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "Travel Period 3",
+      "ranges": [
+        { "start": "2027-05-15", "end": "2027-06-10" },
+        { "start": "2027-12-01", "end": "2027-12-23" }
+      ],
+      "points": {
+        "STUDIO": {
+          "R": { "sunThu": 18, "friSat": 22 }
+        },
+        "TWOBRBUNGALOW": {
+          "P": { "sunThu": 128, "friSat": 147 }
+        },
+        "DUOSTUDIO": {
+          "R": { "sunThu": 16, "friSat": 19 },
+          "P": { "sunThu": 19, "friSat": 21 },
+          "PM": { "sunThu": 22, "friSat": 26 }
+        },
+        "DELUXESTUDIO": {
+          "R": { "sunThu": 19, "friSat": 22 },
+          "P": { "sunThu": 22, "friSat": 26 },
+          "TP": { "sunThu": 27, "friSat": 32 }
+        },
+        "ONEBR": {
+          "R": { "sunThu": 38, "friSat": 47 },
+          "P": { "sunThu": 47, "friSat": 52 },
+          "TP": { "sunThu": 53, "friSat": 61 }
+        },
+        "TWOBR": {
+          "R": { "sunThu": 54, "friSat": 63 },
+          "P": { "sunThu": 63, "friSat": 67 },
+          "TP": { "sunThu": 82, "friSat": 97 }
+        },
+        "PENTHOUSE": {
+          "P": { "sunThu": 102, "friSat": 119 },
+          "TP": { "sunThu": 122, "friSat": 144 }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "name": "Travel Period 4",
+      "ranges": [
+        { "start": "2027-02-01", "end": "2027-02-15" },
+        { "start": "2027-06-11", "end": "2027-08-31" }
+      ],
+      "points": {
+        "STUDIO": {
+          "R": { "sunThu": 20, "friSat": 23 }
+        },
+        "TWOBRBUNGALOW": {
+          "P": { "sunThu": 136, "friSat": 157 }
+        },
+        "DUOSTUDIO": {
+          "R": { "sunThu": 17, "friSat": 20 },
+          "P": { "sunThu": 19, "friSat": 22 },
+          "PM": { "sunThu": 24, "friSat": 27 }
+        },
+        "DELUXESTUDIO": {
+          "R": { "sunThu": 20, "friSat": 24 },
+          "P": { "sunThu": 24, "friSat": 27 },
+          "TP": { "sunThu": 29, "friSat": 35 }
+        },
+        "ONEBR": {
+          "R": { "sunThu": 40, "friSat": 48 },
+          "P": { "sunThu": 48, "friSat": 54 },
+          "TP": { "sunThu": 56, "friSat": 63 }
+        },
+        "TWOBR": {
+          "R": { "sunThu": 56, "friSat": 65 },
+          "P": { "sunThu": 65, "friSat": 79 },
+          "TP": { "sunThu": 88, "friSat": 98 }
+        },
+        "PENTHOUSE": {
+          "P": { "sunThu": 108, "friSat": 122 },
+          "TP": { "sunThu": 128, "friSat": 162 }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "name": "Travel Period 5",
+      "ranges": [
+        { "start": "2027-10-01", "end": "2027-11-23" },
+        { "start": "2027-11-27", "end": "2027-11-30" }
+      ],
+      "points": {
+        "STUDIO": {
+          "R": { "sunThu": 22, "friSat": 26 }
+        },
+        "TWOBRBUNGALOW": {
+          "P": { "sunThu": 160, "friSat": 172 }
+        },
+        "DUOSTUDIO": {
+          "R": { "sunThu": 18, "friSat": 21 },
+          "P": { "sunThu": 20, "friSat": 24 },
+          "PM": { "sunThu": 26, "friSat": 29 }
+        },
+        "DELUXESTUDIO": {
+          "R": { "sunThu": 22, "friSat": 25 },
+          "P": { "sunThu": 25, "friSat": 30 },
+          "TP": { "sunThu": 31, "friSat": 38 }
+        },
+        "ONEBR": {
+          "R": { "sunThu": 44, "friSat": 53 },
+          "P": { "sunThu": 53, "friSat": 60 },
+          "TP": { "sunThu": 62, "friSat": 70 }
+        },
+        "TWOBR": {
+          "R": { "sunThu": 62, "friSat": 70 },
+          "P": { "sunThu": 70, "friSat": 84 },
+          "TP": { "sunThu": 90, "friSat": 101 }
+        },
+        "PENTHOUSE": {
+          "P": { "sunThu": 115, "friSat": 132 },
+          "TP": { "sunThu": 140, "friSat": 162 }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "name": "Travel Period 6",
+      "ranges": [
+        { "start": "2027-02-16", "end": "2027-03-20" },
+        { "start": "2027-03-29", "end": "2027-04-30" },
+        { "start": "2027-11-24", "end": "2027-11-26" }
+      ],
+      "points": {
+        "STUDIO": {
+          "R": { "sunThu": 25, "friSat": 28 }
+        },
+        "TWOBRBUNGALOW": {
+          "P": { "sunThu": 162, "friSat": 185 }
+        },
+        "DUOSTUDIO": {
+          "R": { "sunThu": 20, "friSat": 23 },
+          "P": { "sunThu": 22, "friSat": 26 },
+          "PM": { "sunThu": 28, "friSat": 32 }
+        },
+        "DELUXESTUDIO": {
+          "R": { "sunThu": 25, "friSat": 28 },
+          "P": { "sunThu": 28, "friSat": 32 },
+          "TP": { "sunThu": 34, "friSat": 39 }
+        },
+        "ONEBR": {
+          "R": { "sunThu": 48, "friSat": 54 },
+          "P": { "sunThu": 54, "friSat": 64 },
+          "TP": { "sunThu": 69, "friSat": 75 }
+        },
+        "TWOBR": {
+          "R": { "sunThu": 68, "friSat": 75 },
+          "P": { "sunThu": 75, "friSat": 90 },
+          "TP": { "sunThu": 96, "friSat": 119 }
+        },
+        "PENTHOUSE": {
+          "P": { "sunThu": 126, "friSat": 144 },
+          "TP": { "sunThu": 153, "friSat": 179 }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "name": "Travel Period 7",
+      "ranges": [
+        { "start": "2027-03-21", "end": "2027-03-28" },
+        { "start": "2027-12-24", "end": "2027-12-31" }
+      ],
+      "points": {
+        "STUDIO": {
+          "R": { "sunThu": 34, "friSat": 38 }
+        },
+        "TWOBRBUNGALOW": {
+          "P": { "sunThu": 199, "friSat": 226 }
+        },
+        "DUOSTUDIO": {
+          "R": { "sunThu": 27, "friSat": 32 },
+          "P": { "sunThu": 30, "friSat": 36 },
+          "PM": { "sunThu": 39, "friSat": 43 }
+        },
+        "DELUXESTUDIO": {
+          "R": { "sunThu": 34, "friSat": 41 },
+          "P": { "sunThu": 41, "friSat": 43 },
+          "TP": { "sunThu": 48, "friSat": 53 }
+        },
+        "ONEBR": {
+          "R": { "sunThu": 68, "friSat": 78 },
+          "P": { "sunThu": 78, "friSat": 86 },
+          "TP": { "sunThu": 89, "friSat": 105 }
+        },
+        "TWOBR": {
+          "R": { "sunThu": 92, "friSat": 105 },
+          "P": { "sunThu": 105, "friSat": 129 },
+          "TP": { "sunThu": 149, "friSat": 175 }
+        },
+        "PENTHOUSE": {
+          "P": { "sunThu": 178, "friSat": 198 },
+          "TP": { "sunThu": 197, "friSat": 229 }
+        }
+      }
+    }
+  ]
+}

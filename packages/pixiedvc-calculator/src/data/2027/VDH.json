@@ -1,0 +1,258 @@
+{
+  "resortCode": "VDH",
+  "year": 2027,
+  "periods": [
+    {
+      "id": 1,
+      "name": "Travel Period 1",
+      "ranges": [
+        { "start": "2027-01-01", "end": "2027-01-31" }
+      ],
+      "points": {
+        "DUOSTUDIO": {
+          "S": { "sunThu": 11, "friSat": 13 },
+          "P": { "sunThu": 13, "friSat": 14 }
+        },
+        "DELUXESTUDIO": {
+          "S": { "sunThu": 16, "friSat": 16 },
+          "P": { "sunThu": 19, "friSat": 19 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 30, "friSat": 37 },
+          "P": { "sunThu": 30, "friSat": 37 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 43, "friSat": 53 },
+          "P": { "sunThu": 43, "friSat": 53 }
+        },
+        "GRANDVILLA": {
+          "S": { "sunThu": 96, "friSat": 118 },
+          "P": { "sunThu": 96, "friSat": 118 }
+        },
+        "GARDENDUOSTUDIO": {
+          "S": { "sunThu": 12, "friSat": 15 }
+        },
+        "GARDENDELUXESTUDIO": {
+          "S": { "sunThu": 19, "friSat": 23 }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "Travel Period 2",
+      "ranges": [
+        { "start": "2027-05-01", "end": "2027-05-22" },
+        { "start": "2027-08-16", "end": "2027-09-15" }
+      ],
+      "points": {
+        "DUOSTUDIO": {
+          "S": { "sunThu": 12, "friSat": 14 },
+          "P": { "sunThu": 13, "friSat": 15 }
+        },
+        "DELUXESTUDIO": {
+          "S": { "sunThu": 15, "friSat": 18 },
+          "P": { "sunThu": 18, "friSat": 22 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 33, "friSat": 40 },
+          "P": { "sunThu": 33, "friSat": 40 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 49, "friSat": 59 },
+          "P": { "sunThu": 49, "friSat": 59 }
+        },
+        "GRANDVILLA": {
+          "S": { "sunThu": 106, "friSat": 128 },
+          "P": { "sunThu": 106, "friSat": 128 }
+        },
+        "GARDENDUOSTUDIO": {
+          "S": { "sunThu": 14, "friSat": 17 }
+        },
+        "GARDENDELUXESTUDIO": {
+          "S": { "sunThu": 21, "friSat": 25 }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "Travel Period 3",
+      "ranges": [
+        { "start": "2027-02-01", "end": "2027-03-14" },
+        { "start": "2027-09-16", "end": "2027-09-30" }
+      ],
+      "points": {
+        "DUOSTUDIO": {
+          "S": { "sunThu": 13, "friSat": 15 },
+          "P": { "sunThu": 14, "friSat": 17 }
+        },
+        "DELUXESTUDIO": {
+          "S": { "sunThu": 17, "friSat": 20 },
+          "P": { "sunThu": 20, "friSat": 24 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 36, "friSat": 42 },
+          "P": { "sunThu": 36, "friSat": 42 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 52, "friSat": 67 },
+          "P": { "sunThu": 52, "friSat": 67 }
+        },
+        "GRANDVILLA": {
+          "S": { "sunThu": 122, "friSat": 146 },
+          "P": { "sunThu": 122, "friSat": 146 }
+        },
+        "GARDENDUOSTUDIO": {
+          "S": { "sunThu": 16, "friSat": 19 }
+        },
+        "GARDENDELUXESTUDIO": {
+          "S": { "sunThu": 24, "friSat": 28 }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "name": "Travel Period 4",
+      "ranges": [
+        { "start": "2027-05-23", "end": "2027-05-31" },
+        { "start": "2027-10-01", "end": "2027-11-22" },
+        { "start": "2027-11-28", "end": "2027-12-17" }
+      ],
+      "points": {
+        "DUOSTUDIO": {
+          "S": { "sunThu": 14, "friSat": 16 },
+          "P": { "sunThu": 15, "friSat": 17 }
+        },
+        "DELUXESTUDIO": {
+          "S": { "sunThu": 20, "friSat": 23 },
+          "P": { "sunThu": 23, "friSat": 26 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 40, "friSat": 46 },
+          "P": { "sunThu": 40, "friSat": 46 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 60, "friSat": 69 },
+          "P": { "sunThu": 60, "friSat": 69 }
+        },
+        "GRANDVILLA": {
+          "S": { "sunThu": 129, "friSat": 152 },
+          "P": { "sunThu": 129, "friSat": 152 }
+        },
+        "GARDENDUOSTUDIO": {
+          "S": { "sunThu": 17, "friSat": 20 }
+        },
+        "GARDENDELUXESTUDIO": {
+          "S": { "sunThu": 28, "friSat": 32 }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "name": "Travel Period 5",
+      "ranges": [
+        { "start": "2027-06-01", "end": "2027-08-15" }
+      ],
+      "points": {
+        "DUOSTUDIO": {
+          "S": { "sunThu": 16, "friSat": 18 },
+          "P": { "sunThu": 18, "friSat": 20 }
+        },
+        "DELUXESTUDIO": {
+          "S": { "sunThu": 23, "friSat": 26 },
+          "P": { "sunThu": 26, "friSat": 29 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 42, "friSat": 48 },
+          "P": { "sunThu": 42, "friSat": 48 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 65, "friSat": 73 },
+          "P": { "sunThu": 65, "friSat": 73 }
+        },
+        "GRANDVILLA": {
+          "S": { "sunThu": 149, "friSat": 169 },
+          "P": { "sunThu": 149, "friSat": 169 }
+        },
+        "GARDENDUOSTUDIO": {
+          "S": { "sunThu": 21, "friSat": 23 }
+        },
+        "GARDENDELUXESTUDIO": {
+          "S": { "sunThu": 31, "friSat": 34 }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "name": "Travel Period 6",
+      "ranges": [
+        { "start": "2027-03-15", "end": "2027-03-20" },
+        { "start": "2027-03-29", "end": "2027-04-30" }
+      ],
+      "points": {
+        "DUOSTUDIO": {
+          "S": { "sunThu": 18, "friSat": 19 },
+          "P": { "sunThu": 24, "friSat": 21 }
+        },
+        "DELUXESTUDIO": {
+          "S": { "sunThu": 27, "friSat": 27 },
+          "P": { "sunThu": 30, "friSat": 30 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 42, "friSat": 50 },
+          "P": { "sunThu": 42, "friSat": 50 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 65, "friSat": 75 },
+          "P": { "sunThu": 65, "friSat": 75 }
+        },
+        "GRANDVILLA": {
+          "S": { "sunThu": 149, "friSat": 174 },
+          "P": { "sunThu": 149, "friSat": 174 }
+        },
+        "GARDENDUOSTUDIO": {
+          "S": { "sunThu": 21, "friSat": 24 }
+        },
+        "GARDENDELUXESTUDIO": {
+          "S": { "sunThu": 31, "friSat": 35 }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "name": "Travel Period 7",
+      "ranges": [
+        { "start": "2027-03-21", "end": "2027-03-28" },
+        { "start": "2027-11-23", "end": "2027-11-26" },
+        { "start": "2027-12-18", "end": "2027-12-31" }
+      ],
+      "points": {
+        "DUOSTUDIO": {
+          "S": { "sunThu": 22, "friSat": 25 },
+          "P": { "sunThu": 24, "friSat": 27 }
+        },
+        "DELUXESTUDIO": {
+          "S": { "sunThu": 28, "friSat": 31 },
+          "P": { "sunThu": 31, "friSat": 34 }
+        },
+        "ONEBR": {
+          "S": { "sunThu": 54, "friSat": 62 },
+          "P": { "sunThu": 54, "friSat": 62 }
+        },
+        "TWOBR": {
+          "S": { "sunThu": 82, "friSat": 92 },
+          "P": { "sunThu": 82, "friSat": 92 }
+        },
+        "GRANDVILLA": {
+          "S": { "sunThu": 174, "friSat": 204 },
+          "P": { "sunThu": 174, "friSat": 204 }
+        },
+        "GARDENDUOSTUDIO": {
+          "S": { "sunThu": 26, "friSat": 30 }
+        },
+        "GARDENDELUXESTUDIO": {
+          "S": { "sunThu": 37, "friSat": 41 }
+        }
+      }
+    }
+  ]
+}
