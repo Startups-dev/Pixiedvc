@@ -1,18 +1,17 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-
 import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { emailIsAllowedForAdmin } from "@/lib/admin-emails";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { requireAdminEmail } from "@/lib/require-admin";
 
 export async function PATCH(request: Request) {
-  const cookieStore = await cookies();
   const authClient = await createSupabaseServerClient();
   const {
     data: { user },
   } = await authClient.auth.getUser();
 
-  if (!user || !emailIsAllowedForAdmin(user.email)) {
+  try {
+    requireAdminEmail(user?.email);
+  } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -23,7 +22,13 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Missing conversion id" }, { status: 400 });
   }
 
-  const client = getSupabaseAdminClient() ?? authClient;
+  const client = getSupabaseAdminClient();
+  if (!client) {
+    return NextResponse.json(
+      { error: "Server misconfigured: missing service role client" },
+      { status: 500 },
+    );
+  }
   const { error } = await client
     .from("affiliate_conversions")
     .update({

@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { supabaseServer } from '@/lib/supabase-server';
 import { sendBookingConfirmationEmail } from '@/lib/email';
 import { attachAffiliateLead } from '@/lib/affiliate-leads';
+import { getAffiliateRef } from '@/lib/affiliate-cookies';
 import { resolveCalculatorCode } from '@/lib/resort-calculator';
 import { quoteStay } from 'pixiedvc-calculator/engine/calc';
 import type { RoomCode, ViewCode } from 'pixiedvc-calculator/engine/types';
@@ -239,17 +240,15 @@ export async function submitStayRequest(input: { bookingId: string; acceptTerms:
     throw new Error(error.message);
   }
 
-  const referralCode = cookieStore.get('pixiedvc_ref')?.value ?? null;
-  const referralSetAt = cookieStore.get('pixiedvc_ref_set_at')?.value ?? null;
-  const referralLanding = cookieStore.get('pixiedvc_ref_landing')?.value ?? null;
+  const referralCode = getAffiliateRef(cookieStore);
   if (referralCode) {
     try {
       await sb
         .from('booking_requests')
         .update({
           referral_code: referralCode,
-          referral_set_at: referralSetAt,
-          referral_landing: referralLanding,
+          referral_set_at: null,
+          referral_landing: null,
         })
         .eq('id', input.bookingId)
         .eq('renter_id', user.id)

@@ -47,13 +47,13 @@ export default function AdminAffiliateConversionsClient({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-muted">Conversions</p>
-          <h2 className="text-lg font-semibold text-slate-900">Recent affiliate bookings</h2>
+          <p className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0]">Conversions</p>
+          <h2 className="text-lg font-semibold" style={{ color: "#64748b" }}>Recent affiliate bookings</h2>
         </div>
-        <span className="text-xs uppercase tracking-[0.2em] text-slate-500">No guest PII</span>
+        <span className="text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">No guest PII</span>
       </div>
 
-      <div className="space-y-3 text-sm text-slate-600">
+      <div className="space-y-3 text-sm text-[#b4b4b4]">
         {conversions.length === 0 ? (
           <p>No conversions yet.</p>
         ) : (
@@ -81,40 +81,40 @@ function ConversionRow({
   );
 
   return (
-    <div className="rounded-2xl border border-slate-100 p-4">
+    <div className="rounded-2xl border border-[#3a3a3a] bg-[#212121] p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-semibold text-slate-900">{conversion.affiliate?.display_name ?? "Affiliate"}</p>
-          <p className="text-xs text-slate-500">
+          <p className="font-semibold text-[#ececec]">{conversion.affiliate?.display_name ?? "Affiliate"}</p>
+          <p className="text-xs text-[#8e8ea0]">
             {conversion.confirmed_at
               ? new Date(conversion.confirmed_at).toLocaleDateString()
               : new Date(conversion.created_at).toLocaleDateString()}
           </p>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[#8e8ea0]">
             Commission {Math.round(conversion.commission_rate * 100)}%
           </p>
         </div>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-600">
+        <span className="rounded-full border border-[#3a3a3a] bg-[#2a2a2a] px-3 py-1 text-xs uppercase tracking-[0.2em] text-[#b4b4b4]">
           {conversion.status}
         </span>
       </div>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-        <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.2em] text-slate-400">
+        <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">
           Booking amount (USD)
           <input
             value={bookingAmount}
             onChange={(event) => setBookingAmount(event.target.value)}
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700"
+            className="rounded-xl border border-[#3a3a3a] bg-[#2a2a2a] px-3 py-2 text-sm text-[#ececec] placeholder:text-[#8e8ea0]"
             placeholder="2500"
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.2em] text-slate-400">
+        <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">
           Status
           <select
             value={status}
             onChange={(event) => setStatus(event.target.value)}
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700"
+            className="rounded-xl border border-[#3a3a3a] bg-[#2a2a2a] px-3 py-2 text-sm text-[#ececec]"
           >
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
@@ -126,7 +126,7 @@ function ConversionRow({
           <button
             type="button"
             onClick={() => onSave(conversion.id, status, bookingAmount)}
-            className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+            className="rounded-full bg-[#10a37f] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d8c6d]"
             disabled={savingId === conversion.id}
           >
             {savingId === conversion.id ? "Saving…" : "Save"}
@@ -135,7 +135,7 @@ function ConversionRow({
       </div>
 
       {conversion.commission_amount_usd ? (
-        <p className="mt-2 text-xs text-slate-500">
+        <p className="mt-2 text-xs text-[#8e8ea0]">
           Current commission: {formatCurrency(Number(conversion.commission_amount_usd))}
         </p>
       ) : null}

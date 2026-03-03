@@ -73,11 +73,13 @@ export default function PromotionsToggleClient({
   };
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
+    <div className="rounded-3xl border border-[#3a3a3a] bg-[#2f2f2f] p-6 shadow-[0_18px_45px_rgba(0,0,0,0.35)]">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-slate-900">{label}</p>
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
+          <p className="text-sm font-semibold" style={{ color: '#64748b' }}>
+            {label}
+          </p>
+          <p className="mt-1 text-sm text-[#b4b4b4]">{description}</p>
         </div>
         <button
           type="button"
@@ -85,14 +87,14 @@ export default function PromotionsToggleClient({
           disabled={isSaving}
           className={`inline-flex h-10 w-20 items-center rounded-full border transition ${
             enabled
-              ? 'border-emerald-400 bg-emerald-400'
-              : 'border-slate-300 bg-slate-200'
+              ? 'border-[#10a37f] bg-[#10a37f]'
+              : 'border-[#3a3a3a] bg-[#212121]'
           } ${isSaving ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}
           aria-pressed={enabled}
         >
           <span
-            className={`ml-1 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-xs font-semibold shadow transition ${
-              enabled ? 'translate-x-10 text-emerald-600' : 'translate-x-0 text-slate-500'
+            className={`ml-1 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#ececec] text-xs font-semibold shadow transition ${
+              enabled ? 'translate-x-10 text-[#0d8c6d]' : 'translate-x-0 text-[#5f6368]'
             }`}
           >
             {enabled ? 'ON' : 'OFF'}

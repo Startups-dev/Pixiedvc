@@ -22,7 +22,7 @@ export default function GuideResources({ items }: { items: ResourceItem[] }) {
         {items.map((item) => (
           <div
             key={item.title}
-            className="rounded-2xl border border-slate-200/70 bg-white p-4 text-sm text-slate-600 shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
+            className="rounded-2xl border border-slate-200/70 bg-white p-4 text-sm text-slate-500 shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
           >
             <p className="font-semibold text-ink">{item.title}</p>
             <p className="mt-1 text-xs text-slate-500">{item.description}</p>

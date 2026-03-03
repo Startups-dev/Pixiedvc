@@ -133,9 +133,9 @@ function statusBadge(status: string) {
     case "cancelled":
       return `${base} bg-rose-100 text-rose-700`;
     case "expired":
-      return `${base} bg-slate-200 text-slate-600`;
+      return `${base} bg-slate-200 text-slate-500`;
     default:
-      return `${base} bg-slate-100 text-slate-600`;
+      return `${base} bg-slate-100 text-slate-500`;
   }
 }
 
@@ -263,7 +263,7 @@ export default function MatchedRequestsInbox({
                   className="flex w-full flex-wrap items-center justify-between gap-4 px-4 py-4 text-left"
                 >
                   <div className="flex flex-wrap items-center gap-3">
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                       {resortCode}
                     </span>
                     <p className="text-sm font-semibold text-ink">{lastName}</p>
@@ -282,7 +282,7 @@ export default function MatchedRequestsInbox({
                       {points.toLocaleString("en-US")} pts
                     </span>
                     {rental?.dvc_confirmation_number ? (
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">
                         Confirmation #{rental.dvc_confirmation_number}
                       </span>
                     ) : null}
@@ -334,7 +334,7 @@ export default function MatchedRequestsInbox({
                         <p className="mt-2 font-semibold text-ink">{booking?.lead_guest_name ?? "Guest TBD"}</p>
                         <p>{booking?.lead_guest_email ?? "Email TBD"}</p>
                         <p>{booking?.lead_guest_phone ?? "Phone TBD"}</p>
-                        <p className="mt-2 text-slate-600">{formatAddress(booking ?? null)}</p>
+                        <p className="mt-2 text-slate-500">{formatAddress(booking ?? null)}</p>
                       </div>
 
                       <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
@@ -342,7 +342,7 @@ export default function MatchedRequestsInbox({
                         {guests.length === 0 ? (
                           <p className="mt-2 text-sm text-slate-500">No additional guests listed.</p>
                         ) : (
-                          <table className="mt-3 min-w-full text-left text-sm text-slate-600">
+                          <table className="mt-3 min-w-full text-left text-sm text-slate-500">
                             <thead className="border-b border-slate-100 text-xs uppercase tracking-[0.2em] text-slate-400">
                               <tr>
                                 <th className="px-2 py-2">Guest</th>
@@ -385,7 +385,7 @@ export default function MatchedRequestsInbox({
                       <MilestoneStepper milestones={buildMatchMilestones(match, rental)} compact />
                       <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
                         <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Action</p>
-                        <p className="mt-2 text-sm text-slate-600">
+                        <p className="mt-2 text-sm text-slate-500">
                           {statusLabel(displayStatus)}
                         </p>
                         <div className="mt-3">

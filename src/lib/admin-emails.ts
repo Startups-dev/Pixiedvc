@@ -1,4 +1,4 @@
-const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? '')
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? '')
   .split(',')
   .map((value) => value.trim().toLowerCase())
   .filter(Boolean);
@@ -15,11 +15,11 @@ export function isAdminEmailStrict(email?: string | null) {
 }
 
 export function emailIsAllowedForAdmin(email?: string | null) {
-  if (adminListIsEmpty()) {
-    return true;
-  }
   if (!email) {
     return false;
+  }
+  if (adminListIsEmpty()) {
+    return process.env.NODE_ENV !== 'production';
   }
   return ADMIN_EMAILS.includes(email.toLowerCase());
 }

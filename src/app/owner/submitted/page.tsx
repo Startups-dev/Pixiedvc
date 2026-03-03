@@ -25,7 +25,7 @@ export default function OwnerSubmittedPage() {
 
       <h1 className="text-3xl font-semibold text-slate-900">Your Owner Application Has Been Submitted!</h1>
 
-      <p className="mt-4 max-w-md text-slate-600">
+      <p className="mt-4 max-w-md text-slate-500">
         Thank you for submitting your DVC ownership details. Our verification team is reviewing your documents. We’ll email you as soon as your account is approved.
       </p>
 

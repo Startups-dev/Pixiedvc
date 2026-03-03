@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -10,11 +10,11 @@ type UserMenuProps = {
   label: string;
   isAdmin?: boolean;
   userRole?: string | null;
+  hasAffiliateAccess?: boolean;
 };
 
-export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuProps) {
+export default function UserMenu({ label, isAdmin = false, userRole, hasAffiliateAccess = false }: UserMenuProps) {
   const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -46,14 +46,14 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
     if (signingOut) return;
     setSigningOut(true);
     try {
-      await supabase.auth.signOut();
+      await createClient().auth.signOut();
       setOpen(false);
       router.push('/login');
       router.refresh();
     } finally {
       setSigningOut(false);
     }
-  }, [router, signingOut, supabase]);
+  }, [router, signingOut]);
 
   return (
     <div className="relative">
@@ -182,6 +182,16 @@ export default function UserMenu({ label, isAdmin = false, userRole }: UserMenuP
           >
             Settings
           </Link>
+
+          {hasAffiliateAccess ? (
+            <Link
+              href="/affiliate/dashboard"
+              className="block rounded-[10px] px-3 py-2 text-white/90 transition hover:bg-white/10 hover:text-white"
+              onClick={() => setOpen(false)}
+            >
+              Affiliate Portal
+            </Link>
+          ) : null}
 
           {isAdmin ? (
             <Link

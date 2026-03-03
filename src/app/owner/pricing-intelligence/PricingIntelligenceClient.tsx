@@ -307,9 +307,9 @@ export default function PricingIntelligenceClient({ resorts }: { resorts: Resort
                 {(caps?.nights ?? []).map((night) => (
                   <tr key={night.night}>
                     <td className="px-4 py-3 text-ink">{night.night}</td>
-                    <td className="px-4 py-3 text-slate-600">{seasonLabel(night.seasonType)}</td>
-                    <td className="px-4 py-3 text-slate-600">{formatDollarsFromCents(night.baseCapCents)}</td>
-                    <td className="px-4 py-3 text-slate-600">{formatDollarsFromCents(night.resortModifierCents)}</td>
+                    <td className="px-4 py-3 text-slate-500">{seasonLabel(night.seasonType)}</td>
+                    <td className="px-4 py-3 text-slate-500">{formatDollarsFromCents(night.baseCapCents)}</td>
+                    <td className="px-4 py-3 text-slate-500">{formatDollarsFromCents(night.resortModifierCents)}</td>
                     <td className="px-4 py-3 font-semibold text-slate-900">{formatDollarsFromCents(night.finalCapCents)}</td>
                   </tr>
                 ))}

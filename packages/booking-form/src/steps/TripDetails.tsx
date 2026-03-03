@@ -59,14 +59,14 @@ export function TripDetails({ onNext, resorts }: TripDetailsProps) {
             <div className="space-y-2">
               <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Trip Overview</p>
               <h3 className="font-display text-3xl text-ink">Personalize your stay</h3>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-slate-500">
                 These details were pulled from the trip builder. Update anything that changed before we
                 begin matching.
               </p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-700 shadow-sm">
               <p className="font-semibold text-slate-900">PixieDVC Concierge</p>
-              <p className="text-slate-600">Deposits stay refundable until we confirm a match.</p>
+              <p className="text-slate-500">Deposits stay refundable until we confirm a match.</p>
             </div>
           </div>
 

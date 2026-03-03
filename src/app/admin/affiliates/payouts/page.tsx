@@ -26,20 +26,28 @@ export default async function AdminAffiliatePayoutsPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 px-6 py-12">
-      <header className="space-y-2">
-        <p className="text-xs uppercase tracking-[0.3em] text-muted">Admin</p>
-        <h1 className="font-display text-3xl text-ink">Affiliate payouts</h1>
-        <p className="text-sm text-muted">Generate manual payout runs, export CSVs, and mark payments.</p>
-      </header>
+    <main className="min-h-screen bg-[#212121] text-[#ececec]">
+      <div className="mx-auto max-w-6xl space-y-8 px-6 py-12">
+        <header className="space-y-2">
+          <a href="/admin" className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0] hover:text-[#ececec]">
+            Admin
+          </a>
+          <h1 className="font-display text-3xl" style={{ color: "#64748b" }}>
+            Affiliate payouts
+          </h1>
+          <p className="text-sm text-[#b4b4b4]">
+            Generate manual payout runs, export CSVs, and mark payments.
+          </p>
+        </header>
 
-      <Card>
-        <AdminAffiliatePayoutsClient
-          affiliates={(affiliates ?? []) as AffiliateOption[]}
-          payoutRuns={(payoutRuns ?? []) as PayoutRunRow[]}
-          payoutItems={(payoutItems ?? []) as PayoutItemRow[]}
-        />
-      </Card>
-    </div>
+        <Card surface="dark" className="border border-[#3a3a3a] bg-[#2f2f2f]">
+          <AdminAffiliatePayoutsClient
+            affiliates={(affiliates ?? []) as AffiliateOption[]}
+            payoutRuns={(payoutRuns ?? []) as PayoutRunRow[]}
+            payoutItems={(payoutItems ?? []) as PayoutItemRow[]}
+          />
+        </Card>
+      </div>
+    </main>
   );
 }

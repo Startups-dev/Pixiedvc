@@ -69,6 +69,18 @@ const SECTIONS: QuickLinkSection[] = [
     title: 'Finance / Reports',
     links: [
       {
+        id: 'affiliates',
+        title: 'Affiliates',
+        description: 'Manage affiliate profiles, tiers, and statuses.',
+        href: '/admin/affiliates',
+      },
+      {
+        id: 'affiliate-applications',
+        title: 'Affiliate Applications',
+        description: 'Review pending affiliate applications.',
+        href: '/admin/affiliates/applications',
+      },
+      {
         id: 'ledger',
         title: 'Finance Ledger',
         description: 'Aggregate payments, splits, and totals.',
@@ -76,7 +88,7 @@ const SECTIONS: QuickLinkSection[] = [
       },
       {
         id: 'affiliate-payouts',
-        title: 'Affiliates / Payouts',
+        title: 'Affiliate Payouts',
         description: 'Review affiliate payouts and status.',
         href: '/admin/affiliates/payouts',
       },
@@ -199,25 +211,25 @@ export default function QuickLinksPanel() {
   }
 
   return (
-    <section className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="space-y-6 rounded-3xl border border-[#3a3a3a] bg-[#2f2f2f] p-6 shadow-sm">
       <div className="space-y-2">
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Quick Links</p>
-        <h2 className="text-xl font-semibold text-slate-900">Admin Console</h2>
-        <p className="text-sm text-slate-500">
+        <p className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0]">Quick Links</p>
+        <h2 className="text-xl font-semibold" style={{ color: '#64748b' }}>Admin Console</h2>
+        <p className="text-sm text-[#b4b4b4]">
           Jump directly to the most-used admin workspaces.
         </p>
       </div>
 
       {recentLinks.length ? (
         <div className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Recently used</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">Recently used</p>
           <div className="flex flex-wrap gap-2">
             {recentLinks.map((link) => (
               <Link
                 key={link.id}
                 href={link.href ?? '#'}
                 onClick={() => handleRecent(link)}
-                className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600 hover:border-slate-300 hover:text-slate-800"
+                className="rounded-full border border-[#3a3a3a] bg-[#212121] px-3 py-1 text-xs text-[#b4b4b4] hover:bg-[#171717] hover:text-[#ececec]"
               >
                 {link.title}
               </Link>
@@ -229,7 +241,7 @@ export default function QuickLinksPanel() {
       <div className="grid gap-6 lg:grid-cols-2">
         {activeSections.map((section) => (
           <div key={section.title} className="space-y-3">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+            <p className="text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">
               {section.title}
             </p>
             <div className="grid gap-3">
@@ -240,14 +252,14 @@ export default function QuickLinksPanel() {
                       key={link.id}
                       href={link.href}
                       onClick={() => handleRecent(link)}
-                      className="group rounded-2xl border border-slate-200 p-4 text-left transition hover:border-slate-300 hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400"
+                      className="group rounded-2xl border border-[#3a3a3a] bg-[#212121] p-4 text-left transition hover:bg-[#171717] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8e8ea0]"
                     >
                       <div className="flex items-center justify-between gap-4">
                         <div className="space-y-1">
-                          <p className="text-sm font-semibold text-slate-900">{link.title}</p>
-                          <p className="text-xs text-slate-500">{link.description}</p>
+                          <p className="text-sm font-semibold text-[#ececec]">{link.title}</p>
+                          <p className="text-xs text-[#b4b4b4]">{link.description}</p>
                         </div>
-                        <span className="text-xs text-slate-400 transition group-hover:text-slate-600">
+                        <span className="text-xs text-[#8e8ea0] transition group-hover:text-[#ececec]">
                           Open →
                         </span>
                       </div>
@@ -257,11 +269,11 @@ export default function QuickLinksPanel() {
                 return (
                   <div
                     key={link.id}
-                    className="rounded-2xl border border-dashed border-slate-200 p-4 text-left text-slate-400"
+                    className="rounded-2xl border border-dashed border-[#3a3a3a] bg-[#2a2a2a] p-4 text-left text-[#8e8ea0]"
                   >
-                    <p className="text-sm font-semibold text-slate-500">{link.title}</p>
-                    <p className="text-xs text-slate-400">{link.description}</p>
-                    <p className="mt-2 text-[11px] uppercase tracking-[0.2em] text-slate-400">
+                    <p className="text-sm font-semibold text-[#b4b4b4]">{link.title}</p>
+                    <p className="text-xs text-[#8e8ea0]">{link.description}</p>
+                    <p className="mt-2 text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">
                       Coming soon
                     </p>
                   </div>

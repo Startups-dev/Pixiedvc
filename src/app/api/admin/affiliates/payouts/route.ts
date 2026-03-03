@@ -1,36 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { emailIsAllowedForAdmin } from "@/lib/admin-emails";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
-import { calculateCommission } from "@/lib/affiliate-commissions";
-
-type AffiliateRow = {
-  id: string;
-  referral_code: string | null;
-  slug: string;
-  commission_rate: number;
-};
-
-type BookingRow = {
-  id: string;
-  referral_code: string | null;
-  created_at: string;
-  status: string | null;
-  booking_amount?: number | null;
-};
-
-const QUALIFIED_STATUSES = ["confirmed"];
-const AMOUNT_FIELD_CANDIDATES = [
-  "booking_amount_usd",
-  "total_amount_usd",
-  "total_usd",
-  "amount_usd",
-];
-
-function normalizeCode(value: string | null) {
-  return value?.trim().toLowerCase() ?? "";
-}
+import { requireAdminEmail } from "@/lib/require-admin";
 
 function startOfDay(date: Date) {
   const copy = new Date(date);
@@ -71,7 +43,9 @@ export async function POST(request: Request) {
     data: { user },
   } = await authClient.auth.getUser();
 
-  if (!user || !emailIsAllowedForAdmin(user.email)) {
+  try {
+    requireAdminEmail(user?.email);
+  } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -89,11 +63,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid date range" }, { status: 400 });
   }
 
-  // IMPORTANT: Normalize for DATE columns + consistency with overlap checks
   const rangeStartValue = isoDateOnly(start);
   const rangeEndValue = isoDateOnly(end);
 
-  const client = getSupabaseAdminClient() ?? authClient;
+  const client = getSupabaseAdminClient();
+  if (!client) {
+    return NextResponse.json(
+      { error: "Server misconfigured: missing service role client" },
+      { status: 500 },
+    );
+  }
 
   // First: pre-check overlap to give a nice error before we try insert
   const { data: existingRuns, error: existingRunsError } =
@@ -120,135 +99,38 @@ export async function POST(request: Request) {
     );
   }
 
-  // Load affiliates
-  const { data: affiliates, error: affiliateError } = await client
-    .from("affiliates")
-    .select("id, referral_code, slug, commission_rate");
-
-  if (affiliateError) {
-    return NextResponse.json({ error: affiliateError.message }, { status: 400 });
-  }
-
-  // Fetch bookings
-  let statusFilterApplied = true;
-
-  const fetchBookings = async (select: string) => {
-    const baseQuery = client
-      .from("booking_requests")
-      .select(select)
-      .gte("created_at", start.toISOString())
-      .lte("created_at", end.toISOString());
-
-    const { data, error } = statusFilterApplied
-      ? await baseQuery.in("status", QUALIFIED_STATUSES)
-      : await baseQuery;
-
-    // If status column doesn't exist, retry without status filter
-    if (error && statusFilterApplied && error.message?.toLowerCase().includes("status")) {
-      statusFilterApplied = false;
-      return client
-        .from("booking_requests")
-        .select(select)
-        .gte("created_at", start.toISOString())
-        .lte("created_at", end.toISOString());
-    }
-
-    return { data, error };
+  type EligibleConversion = {
+    id: string;
+    affiliate_id: string;
+    booking_request_id: string;
+    commission_amount_usd: number | null;
+    booking_amount_usd: number | null;
+    commission_rate: number | null;
+    status: string | null;
+    confirmed_at: string | null;
   };
 
-  let bookings: BookingRow[] = [];
-  let amountField: string | null = null;
-  let bookingError: { message: string } | null = null;
+  const { data: conversions, error: conversionError } = await client
+    .from("affiliate_conversions")
+    .select(
+      "id, affiliate_id, booking_request_id, commission_amount_usd, booking_amount_usd, commission_rate, status, confirmed_at, payout_run_id",
+    )
+    .eq("status", "approved")
+    .is("payout_run_id", null)
+    .not("confirmed_at", "is", null)
+    .gte("confirmed_at", start.toISOString())
+    .lte("confirmed_at", end.toISOString());
 
-  for (const candidate of AMOUNT_FIELD_CANDIDATES) {
-    const { data, error } = await fetchBookings(
-      `id, referral_code, created_at, status, ${candidate}`
-    );
-
-    if (!error) {
-      bookings = (data ?? []).map((row) => {
-        const rawAmount = (row as Record<string, number | null>)[candidate];
-        return {
-          ...(row as BookingRow),
-          booking_amount:
-            rawAmount === null || rawAmount === undefined ? null : Number(rawAmount),
-        };
-      });
-      amountField = candidate;
-      bookingError = null;
-      break;
-    }
-
-    if (!error?.message?.includes(candidate)) {
-      bookingError = error ?? null;
-      break;
-    }
+  if (conversionError) {
+    return NextResponse.json({ error: conversionError.message }, { status: 400 });
   }
 
-  if (!amountField && !bookingError) {
-    const { data, error } = await fetchBookings("id, referral_code, created_at, status");
-    if (error) bookingError = error;
-    else bookings = (data ?? []) as BookingRow[];
-  }
-
-  if (bookingError) {
-    return NextResponse.json({ error: bookingError.message }, { status: 400 });
-  }
-
-  const affiliateLookup = new Map<string, AffiliateRow>();
-  (affiliates ?? []).forEach((affiliate) => {
-    const code = normalizeCode(affiliate.referral_code);
-    const slug = normalizeCode(affiliate.slug);
-    if (code) affiliateLookup.set(code, affiliate);
-    if (slug) affiliateLookup.set(slug, affiliate);
+  const eligible = ((conversions ?? []) as EligibleConversion[]).filter((row) => {
+    const commission = Number(row.commission_amount_usd ?? 0);
+    return Number.isFinite(commission) && commission > 0;
   });
 
-  const grouped = new Map<string, { affiliate: AffiliateRow; bookingIds: string[]; totalAmount: number }>();
-  let unmatched = 0;
-  let missingAmounts = 0;
-
-  (bookings ?? []).forEach((booking) => {
-    const key = normalizeCode(booking.referral_code);
-    if (!key) return;
-
-    const affiliate = affiliateLookup.get(key);
-    if (!affiliate) {
-      unmatched += 1;
-      return;
-    }
-
-    const entry = grouped.get(affiliate.id) ?? {
-      affiliate,
-      bookingIds: [],
-      totalAmount: 0,
-    };
-
-    entry.bookingIds.push(booking.id);
-
-    if (amountField) {
-      if (booking.booking_amount === null || Number.isNaN(Number(booking.booking_amount))) {
-        missingAmounts += 1;
-      } else {
-        entry.totalAmount += Number(booking.booking_amount);
-      }
-    }
-
-    grouped.set(affiliate.id, entry);
-  });
-
-  const missingAmountField = !amountField;
-  const notes =
-    [
-      missingAmountField ? "Missing booking amount field; amounts set to 0." : null,
-      missingAmounts > 0
-        ? `Missing booking amounts for ${missingAmounts} bookings; amounts set to 0.`
-        : null,
-      statusFilterApplied ? null : "Status field missing; totals unverified.",
-    ]
-      .filter(Boolean)
-      .join(" ") || null;
-
-  const runStatus = grouped.size > 0 ? "ready" : "draft";
+  const runStatus = eligible.length > 0 ? "ready" : "draft";
 
   const { data: payoutRun, error: runError } = await client
     .from("affiliate_payout_runs")
@@ -256,7 +138,7 @@ export async function POST(request: Request) {
       period_start: rangeStartValue,
       period_end: rangeEndValue,
       status: runStatus,
-      notes,
+      notes: null,
     })
     .select("id, period_start, period_end, status")
     .single();
@@ -288,20 +170,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unable to create payout run" }, { status: 400 });
   }
 
-  if (grouped.size > 0) {
-    const items = Array.from(grouped.values()).map((entry) => ({
+  if (eligible.length > 0) {
+    const items = eligible.map((entry) => ({
       payout_run_id: payoutRun.id,
-      affiliate_id: entry.affiliate.id,
-      amount_usd: calculateCommission(entry.totalAmount, entry.affiliate.commission_rate),
-      booking_count: entry.bookingIds.length,
-      booking_request_ids: entry.bookingIds,
+      affiliate_id: entry.affiliate_id,
+      conversion_id: entry.id,
+      amount_usd: Number(entry.commission_amount_usd ?? 0),
+      booking_count: 1,
+      booking_request_ids: [entry.booking_request_id],
       status: "scheduled",
     }));
 
-    const { error: itemError } = await client.from("affiliate_payout_items").insert(items);
+    const { error: itemError } = await client
+      .from("affiliate_payout_items")
+      .upsert(items, { onConflict: "conversion_id" });
 
     if (itemError) {
       return NextResponse.json({ error: itemError.message }, { status: 400 });
+    }
+
+    const { error: conversionUpdateError } = await client
+      .from("affiliate_conversions")
+      .update({ payout_run_id: payoutRun.id })
+      .in("id", eligible.map((row) => row.id));
+
+    if (conversionUpdateError) {
+      return NextResponse.json({ error: conversionUpdateError.message }, { status: 400 });
     }
   }
 
@@ -310,11 +204,7 @@ export async function POST(request: Request) {
     payout_run_id: payoutRun.id,
     period_start: rangeStartValue,
     period_end: rangeEndValue,
-    missing_amount_field: missingAmountField,
-    missing_amount_count: missingAmounts,
-    amount_field: amountField,
-    status_filter_applied: statusFilterApplied,
-    unmatched_referrals: unmatched,
+    conversion_count: eligible.length,
   });
 }
 
@@ -324,14 +214,22 @@ export async function PATCH(request: Request) {
     data: { user },
   } = await authClient.auth.getUser();
 
-  if (!user || !emailIsAllowedForAdmin(user.email)) {
+  try {
+    requireAdminEmail(user?.email);
+  } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const payload = await request.json().catch(() => null);
   const { action } = payload ?? {};
 
-  const client = getSupabaseAdminClient() ?? authClient;
+  const client = getSupabaseAdminClient();
+  if (!client) {
+    return NextResponse.json(
+      { error: "Server misconfigured: missing service role client" },
+      { status: 500 },
+    );
+  }
 
   if (action === "mark_item_paid") {
     const { item_id, payout_reference, paid_at } = payload ?? {};

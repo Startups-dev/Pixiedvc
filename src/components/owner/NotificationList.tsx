@@ -40,7 +40,7 @@ export default function NotificationList({ notifications }: { notifications: Not
       <button
         type="button"
         onClick={markAllRead}
-        className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600"
+        className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
         disabled={loading}
       >
         {loading ? "Updating…" : "Mark all read"}
@@ -81,7 +81,7 @@ export default function NotificationList({ notifications }: { notifications: Not
                     <button
                       key={days}
                       type="button"
-                      className="rounded-full border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-600"
+                      className="rounded-full border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-500"
                       disabled={actionLoading === note.id}
                       onClick={async () => {
                         const membershipId = getMembershipId(note.link);

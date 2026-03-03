@@ -2,7 +2,7 @@ import { MILESTONE_SEQUENCE } from "@/lib/owner-portal";
 
 const statusStyles: Record<string, string> = {
   completed: "bg-emerald-500 text-white",
-  pending: "bg-slate-200 text-slate-600",
+  pending: "bg-slate-200 text-slate-500",
   blocked: "bg-amber-200 text-amber-700",
 };
 type MilestoneStepLike = {

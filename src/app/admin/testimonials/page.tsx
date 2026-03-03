@@ -28,7 +28,7 @@ export default async function AdminTestimonialsPage() {
   if (!supabaseAdmin) {
     return (
       <main className="mx-auto max-w-5xl px-6 py-12">
-        <p className="text-sm text-slate-600">Service role key is required to view submissions.</p>
+        <p className="text-sm text-[#b4b4b4]">Service role key is required to view submissions.</p>
       </main>
     );
   }
@@ -42,22 +42,24 @@ export default async function AdminTestimonialsPage() {
   if (error) {
     return (
       <main className="mx-auto max-w-5xl px-6 py-12">
-        <p className="text-sm text-slate-600">Unable to load submissions.</p>
+        <p className="text-sm text-[#ff6b6b]">Unable to load submissions.</p>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-5xl space-y-8 px-6 py-12">
+    <main className="min-h-screen bg-[#212121]">
+      <div className="mx-auto max-w-5xl space-y-8 px-6 py-12 text-[#ececec]">
       <header className="space-y-3">
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Admin</p>
-        <h1 className="text-2xl font-semibold text-slate-900">Pending testimonials</h1>
-        <p className="text-sm text-slate-600">
+        <a href="/admin" className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0] hover:text-[#ececec]">Admin</a>
+        <h1 className="text-2xl font-semibold" style={{ color: '#64748b' }}>Pending testimonials</h1>
+        <p className="text-sm text-[#b4b4b4]">
           Review submissions before approving them for public display.
         </p>
       </header>
 
       <AdminTestimonialsClient initial={data ?? []} />
+      </div>
     </main>
   );
 }

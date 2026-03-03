@@ -96,14 +96,15 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
   const currentSearchParams = normalizeSearchParams(searchParams);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-10 px-6 py-12">
+    <div className="min-h-screen bg-[#212121] text-[#ececec]">
+      <div className="mx-auto max-w-6xl space-y-10 px-6 py-12">
       <header className="space-y-3">
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Admin</p>
-        <h1 className="text-3xl font-semibold text-slate-900">Control Center</h1>
-        <p className="text-slate-600">
+        <p className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0]">Admin</p>
+        <h1 className="text-3xl font-semibold" style={{ color: '#64748b' }}>Control Center</h1>
+        <p className="text-[#b4b4b4]">
           Monitor onboarding, requests, and compliance before drilling into the dedicated workspaces.
         </p>
-        <div className="text-xs text-slate-500">Live data · refreshed whenever you load this page</div>
+        <div className="text-xs text-[#8e8ea0]">Live data · refreshed whenever you load this page</div>
       </header>
 
       <QuickLinksPanel />
@@ -132,8 +133,8 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
       <section className="space-y-6">
         <div>
           <div className="mb-3 flex items-baseline justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Guest Booking Requests</h2>
-            <Link href="/admin/guests" className="text-sm font-semibold text-indigo-600 hover:underline">
+            <h2 className="text-lg font-semibold" style={{ color: '#64748b' }}>Guest Booking Requests</h2>
+            <Link href="/admin/guests" className="text-sm font-semibold text-[#10a37f] hover:text-[#0d8c6d]">
               View guest workspace →
             </Link>
           </div>
@@ -143,11 +144,11 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
             <HiddenInput name="ownerQuery" value={ownerQueryParam} />
             <HiddenInput name="ownerPage" value={ownerPageQueryParam} />
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-[#8e8ea0]">Status</span>
               <select
                 name="requestStatus"
                 defaultValue={requestStatusParam}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                className="rounded-lg border border-[#3a3a3a] bg-[#2a2a2a] px-3 py-2 text-sm text-[#ececec]"
               >
                 {REQUEST_STATUS_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -162,21 +163,21 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
                 name="requestQuery"
                 defaultValue={requestQueryValue ?? ''}
                 placeholder="Search guest name or email"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-[#3a3a3a] bg-[#2a2a2a] px-3 py-2 text-sm text-[#ececec] placeholder:text-[#8e8ea0]"
               />
-              <button type="submit" className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">
+              <button type="submit" className="rounded-lg bg-[#10a37f] px-3 py-2 text-xs font-semibold text-white hover:bg-[#0d8c6d]">
                 Apply
               </button>
             </div>
           </form>
           {bookingRows.length === 0 ? (
-            <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+            <div className="mt-4 rounded-xl border border-dashed border-[#3a3a3a] bg-[#2a2a2a] px-4 py-8 text-center text-sm text-[#8e8ea0]">
               No booking requests yet. Once a guest completes the Stay Builder, their request will appear here.
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <table className="min-w-full divide-y divide-slate-100 text-sm">
-                <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div className="overflow-x-auto rounded-2xl border border-[#3a3a3a] bg-[#2f2f2f] shadow-sm">
+              <table className="min-w-full divide-y divide-[#3a3a3a] text-sm">
+                <thead className="bg-[#212121] text-left text-xs font-semibold uppercase tracking-wide text-[#8e8ea0]">
                   <tr>
                     <th className="px-4 py-3">Guest</th>
                     <th className="px-4 py-3">Dates</th>
@@ -186,17 +187,17 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
                     <th className="px-4 py-3">Submitted</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#3a3a3a]">
                   {bookingRows.map((request) => (
-                    <tr key={request.id} className="text-slate-700">
+                    <tr key={request.id} className="text-[#b4b4b4]">
                       <td className="px-4 py-3">
-                        <div className="font-semibold text-slate-900">{request.guestName ?? request.guestEmail ?? 'Unknown guest'}</div>
-                        <div className="text-xs text-slate-500">{request.guestEmail ?? '—'}</div>
+                        <div className="font-semibold text-[#ececec]">{request.guestName ?? request.guestEmail ?? 'Unknown guest'}</div>
+                        <div className="text-xs text-[#8e8ea0]">{request.guestEmail ?? '—'}</div>
                       </td>
                       <td className="px-4 py-3 text-sm">{formatDateRange(request.checkIn, request.checkOut)}</td>
                       <td className="px-4 py-3">
                         <div>{request.resortName ?? 'Any resort'}</div>
-                        <div className="text-xs text-slate-500">{request.roomLabel ?? 'Room TBD'}</div>
+                        <div className="text-xs text-[#8e8ea0]">{request.roomLabel ?? 'Room TBD'}</div>
                       </td>
                       <td className="px-4 py-3">{request.pointsRequested ? `${request.pointsRequested.toLocaleString()} pts` : '—'}</td>
                       <td className="px-4 py-3">
@@ -204,14 +205,14 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
                           {request.status.replace('_', ' ')}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-500">{request.createdAt ? dateFormatter.format(new Date(request.createdAt)) : '—'}</td>
+                      <td className="px-4 py-3 text-sm text-[#8e8ea0]">{request.createdAt ? dateFormatter.format(new Date(request.createdAt)) : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-          <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
+          <div className="mt-4 flex items-center justify-between text-xs text-[#8e8ea0]">
             <p>
               {bookingTotal === 0
                 ? 'Showing 0 of 0 requests'
@@ -236,8 +237,8 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
 
         <div>
           <div className="mb-3 flex items-baseline justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Owner Verification & Pipeline</h2>
-            <Link href="/admin/owners" className="text-sm font-semibold text-indigo-600 hover:underline">
+            <h2 className="text-lg font-semibold" style={{ color: '#64748b' }}>Owner Verification & Pipeline</h2>
+            <Link href="/admin/owners" className="text-sm font-semibold text-[#10a37f] hover:text-[#0d8c6d]">
               Review owners →
             </Link>
           </div>
@@ -247,11 +248,11 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
             <HiddenInput name="requestQuery" value={requestQueryValue} />
             <HiddenInput name="requestPage" value={requestPageQueryParam} />
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-[#8e8ea0]">Status</span>
               <select
                 name="ownerVerification"
                 defaultValue={ownerVerificationParam}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                className="rounded-lg border border-[#3a3a3a] bg-[#2a2a2a] px-3 py-2 text-sm text-[#ececec]"
               >
                 {OWNER_VERIFICATION_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -266,21 +267,21 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
                 name="ownerQuery"
                 defaultValue={ownerQueryValue ?? ''}
                 placeholder="Search owner name or email"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-[#3a3a3a] bg-[#2a2a2a] px-3 py-2 text-sm text-[#ececec] placeholder:text-[#8e8ea0]"
               />
-              <button type="submit" className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">
+              <button type="submit" className="rounded-lg bg-[#10a37f] px-3 py-2 text-xs font-semibold text-white hover:bg-[#0d8c6d]">
                 Apply
               </button>
             </div>
           </form>
           {ownerRows.length === 0 ? (
-            <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+            <div className="mt-4 rounded-xl border border-dashed border-[#3a3a3a] bg-[#2a2a2a] px-4 py-8 text-center text-sm text-[#8e8ea0]">
               No owners in the pipeline yet. When someone completes owner onboarding, they’ll show up here for review.
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <table className="min-w-full divide-y divide-slate-100 text-sm">
-                <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div className="overflow-x-auto rounded-2xl border border-[#3a3a3a] bg-[#2f2f2f] shadow-sm">
+              <table className="min-w-full divide-y divide-[#3a3a3a] text-sm">
+                <thead className="bg-[#212121] text-left text-xs font-semibold uppercase tracking-wide text-[#8e8ea0]">
                   <tr>
                     <th className="px-4 py-3">Owner</th>
                     <th className="px-4 py-3">Home resort / Use year</th>
@@ -289,34 +290,34 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
                     <th className="px-4 py-3">Submitted</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#3a3a3a]">
                   {ownerRows.map((owner) => (
-                    <tr key={owner.id} className="text-slate-700">
+                    <tr key={owner.id} className="text-[#b4b4b4]">
                       <td className="px-4 py-3">
-                        <div className="font-semibold text-slate-900">{owner.displayName ?? 'Unnamed owner'}</div>
-                        <div className="text-xs text-slate-500">{owner.email ?? 'No email'}</div>
+                        <div className="font-semibold text-[#ececec]">{owner.displayName ?? 'Unnamed owner'}</div>
+                        <div className="text-xs text-[#8e8ea0]">{owner.email ?? 'No email'}</div>
                       </td>
                       <td className="px-4 py-3">
                         <div>{owner.primaryResort ?? 'Resort TBD'}</div>
-                        <div className="text-xs text-slate-500">Use year {owner.useYear ?? '—'}</div>
+                        <div className="text-xs text-[#8e8ea0]">Use year {owner.useYear ?? '—'}</div>
                       </td>
                       <td className="px-4 py-3">
                         <div>{owner.pointsOwned ? `${owner.pointsOwned.toLocaleString()} owned` : '—'}</div>
-                        <div className="text-xs text-slate-500">{owner.pointsAvailable ? `${owner.pointsAvailable.toLocaleString()} available` : '—'}</div>
+                        <div className="text-xs text-[#8e8ea0]">{owner.pointsAvailable ? `${owner.pointsAvailable.toLocaleString()} available` : '—'}</div>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ownerVerificationBadgeClass(owner.verification)}`}>
                           {owner.verification ?? 'unknown'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-500">{owner.createdAt ? dateFormatter.format(new Date(owner.createdAt)) : '—'}</td>
+                      <td className="px-4 py-3 text-sm text-[#8e8ea0]">{owner.createdAt ? dateFormatter.format(new Date(owner.createdAt)) : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-          <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
+          <div className="mt-4 flex items-center justify-between text-xs text-[#8e8ea0]">
             <p>{ownerTotal === 0 ? 'Showing 0 of 0 owners' : `Showing ${ownerStart}–${ownerEnd} of ${ownerTotal} owners`}</p>
             <div className="inline-flex items-center gap-2">
               <PaginationLink
@@ -337,27 +338,27 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Document coverage</p>
-          <h2 className="mt-2 text-2xl font-semibold text-slate-900">{compliance.coveragePct}% owners</h2>
-          <p className="text-sm text-slate-600">{compliance.ownersWithDocs} owners have uploaded verification docs.</p>
-          <div className="mt-4 h-2 w-full rounded-full bg-slate-100">
-            <div className="h-2 rounded-full bg-emerald-500" style={{ width: `${Math.min(compliance.coveragePct, 100)}%` }} />
+        <div className="rounded-3xl border border-[#3a3a3a] bg-[#2f2f2f] p-6 shadow-sm">
+          <p className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0]">Document coverage</p>
+          <h2 className="mt-2 text-2xl font-semibold" style={{ color: '#64748b' }}>{compliance.coveragePct}% owners</h2>
+          <p className="text-sm text-[#b4b4b4]">{compliance.ownersWithDocs} owners have uploaded verification docs.</p>
+          <div className="mt-4 h-2 w-full rounded-full bg-[#212121]">
+            <div className="h-2 rounded-full bg-[#10a37f]" style={{ width: `${Math.min(compliance.coveragePct, 100)}%` }} />
           </div>
-          <p className="mt-3 text-xs text-slate-500">{compliance.documentsTotal} files stored · {compliance.ownersWithoutDocs} owners still need uploads</p>
+          <p className="mt-3 text-xs text-[#8e8ea0]">{compliance.documentsTotal} files stored · {compliance.ownersWithoutDocs} owners still need uploads</p>
         </div>
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-400">SOC readiness</p>
-          <ul className="mt-3 space-y-2 text-sm text-slate-600">
+        <div className="rounded-3xl border border-[#3a3a3a] bg-[#2f2f2f] p-6 shadow-sm">
+          <p className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0]">SOC readiness</p>
+          <ul className="mt-3 space-y-2 text-sm text-[#b4b4b4]">
             <li>• Track admin actions via owner_verification_events (complete)</li>
             <li>• Add login audit export (todo)</li>
             <li>• Automate quarterly document review (todo)</li>
           </ul>
-          <p className="mt-4 text-xs text-slate-500">Add the missing tasks above to satisfy SOC change-management requirements.</p>
+          <p className="mt-4 text-xs text-[#8e8ea0]">Add the missing tasks above to satisfy SOC change-management requirements.</p>
         </div>
-        <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-slate-600">
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Trips & rentals</p>
-          <h2 className="mt-2 text-xl font-semibold text-slate-800">Next data set</h2>
+        <div className="rounded-3xl border border-dashed border-[#3a3a3a] bg-[#2a2a2a] p-6 text-[#b4b4b4]">
+          <p className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0]">Trips & rentals</p>
+          <h2 className="mt-2 text-xl font-semibold" style={{ color: '#64748b' }}>Next data set</h2>
           <p className="text-sm">
             Hook up the future trips/rentals ledger to surface past stays, payout totals, and guest satisfaction here. Once the schema exists,
             we can wire it into this card and the owner profiles.
@@ -365,25 +366,26 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Workspaces</p>
+      <section className="rounded-3xl border border-[#3a3a3a] bg-[#2f2f2f] p-6 shadow-sm">
+        <p className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0]">Workspaces</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <Link
             href="/admin/owners"
-            className="rounded-2xl border border-slate-200 px-5 py-4 text-sm font-semibold text-slate-800 transition hover:-translate-y-0.5 hover:bg-slate-50"
+            className="rounded-2xl border border-[#3a3a3a] bg-[#212121] px-5 py-4 text-sm font-semibold text-[#ececec] transition hover:-translate-y-0.5 hover:bg-[#171717]"
           >
             Owner verification queue →
           </Link>
           <Link
             href="/admin/guests"
-            className="rounded-2xl border border-dashed border-slate-300 px-5 py-4 text-sm font-semibold text-slate-500"
+            className="rounded-2xl border border-dashed border-[#3a3a3a] bg-[#2a2a2a] px-5 py-4 text-sm font-semibold text-[#8e8ea0]"
           >
             Guest concierge (coming soon)
           </Link>
         </div>
       </section>
 
-      <div className="text-xs text-slate-400">Admin user id: {user?.id ?? '—'}</div>
+      <div className="text-xs text-[#8e8ea0]">Admin user id: {user?.id ?? '—'}</div>
+      </div>
     </div>
   );
 }
@@ -442,11 +444,11 @@ type PaginatedResult<T> = {
 
 function SummaryCard({ title, value, subtitle, footer }: { title: string; value: number; subtitle: string; footer: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white/70 p-4 shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{title}</p>
-      <p className="mt-3 text-3xl font-semibold text-slate-900">{value.toLocaleString()}</p>
-      <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
-      <p className="mt-1 text-xs text-slate-400">{footer}</p>
+    <div className="rounded-xl border border-[#3a3a3a] bg-[#2f2f2f] p-4 shadow-sm">
+      <p className="text-xs font-medium uppercase tracking-wide text-[#8e8ea0]">{title}</p>
+      <p className="mt-3 text-3xl font-semibold text-[#ececec]">{value.toLocaleString()}</p>
+      <p className="mt-1 text-xs text-[#b4b4b4]">{subtitle}</p>
+      <p className="mt-1 text-xs text-[#8e8ea0]">{footer}</p>
     </div>
   );
 }
@@ -454,31 +456,31 @@ function SummaryCard({ title, value, subtitle, footer }: { title: string; value:
 function statusBadgeClass(status: string) {
   switch (status) {
     case 'submitted':
-      return 'bg-blue-100 text-blue-700';
+      return 'border border-[#3a3a3a] bg-[#212121] text-[#b4b4b4]';
     case 'matched':
-      return 'bg-indigo-100 text-indigo-700';
+      return 'border border-[#3a3a3a] bg-[#212121] text-[#b4b4b4]';
     case 'contract_sent':
-      return 'bg-amber-100 text-amber-800';
+      return 'border border-[#3a3a3a] bg-[#212121] text-[#b4b4b4]';
     case 'contract_signed':
-      return 'bg-emerald-100 text-emerald-700';
+      return 'bg-[#10a37f] text-white';
     case 'cancelled':
     case 'expired':
-      return 'bg-rose-100 text-rose-700';
+      return 'border border-[#3a3a3a] bg-[#212121] text-[#8e8ea0]';
     default:
-      return 'bg-slate-100 text-slate-700';
+      return 'border border-[#3a3a3a] bg-[#212121] text-[#b4b4b4]';
   }
 }
 
 function ownerVerificationBadgeClass(status: string | null) {
   switch (status) {
     case 'verified':
-      return 'bg-emerald-100 text-emerald-700';
+      return 'bg-[#10a37f] text-white';
     case 'pending':
-      return 'bg-amber-100 text-amber-800';
+      return 'border border-[#3a3a3a] bg-[#212121] text-[#b4b4b4]';
     case 'rejected':
-      return 'bg-rose-100 text-rose-700';
+      return 'border border-[#3a3a3a] bg-[#212121] text-[#8e8ea0]';
     default:
-      return 'bg-slate-100 text-slate-700';
+      return 'border border-[#3a3a3a] bg-[#212121] text-[#b4b4b4]';
   }
 }
 
@@ -523,23 +525,28 @@ async function fetchRequestSummary(supabase: AdminClient) {
 
 async function countBookingRequests(
   supabase: AdminClient,
-  applyFilter?: (query: ReturnType<AdminClient['from']>) => ReturnType<AdminClient['from']>,
+  applyFilter?: (query: any) => any,
 ) {
-  let query = supabase.from('booking_requests').select('id', { count: 'exact', head: true });
-  if (applyFilter) {
-    query = applyFilter(query);
-  }
-  const { count, error } = await query;
-  if (error) {
-    console.error('Failed to count booking requests', {
-      code: error.code,
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-    });
+  try {
+    let query = supabase.from('booking_requests').select('id', { count: 'exact', head: true });
+    if (applyFilter) {
+      query = applyFilter(query);
+    }
+    const { count, error } = await query;
+    if (error) {
+      console.error('Failed to count booking requests', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      return 0;
+    }
+    return count ?? 0;
+  } catch (error) {
+    console.error('Failed to count booking requests', error);
     return 0;
   }
-  return count ?? 0;
 }
 
 async function fetchOwnerSummary(supabase: AdminClient) {
@@ -692,21 +699,26 @@ async function fetchComplianceSnapshot(supabase: AdminClient) {
 async function countRows(
   supabase: AdminClient,
   table: string,
-  applyFilter?: (query: ReturnType<AdminClient['from']>) => ReturnType<AdminClient['from']>,
+  applyFilter?: (query: any) => any,
 ) {
-  let query = supabase.from(table).select('id', { count: 'exact', head: true });
-  if (applyFilter) {
-    query = applyFilter(query);
-  }
-  const { count, error } = await query;
-  if (error) {
+  try {
+    let query = supabase.from(table).select('id', { count: 'exact', head: true });
+    if (applyFilter) {
+      query = applyFilter(query);
+    }
+    const { count, error } = await query;
+    if (error) {
+      console.error(`Failed to count ${table}`, error);
+      return 0;
+    }
+    return count ?? 0;
+  } catch (error) {
     console.error(`Failed to count ${table}`, error);
     return 0;
   }
-  return count ?? 0;
 }
 
-function applyBookingFilters(query: ReturnType<AdminClient['from']>, filters: BookingRequestFilters) {
+function applyBookingFilters(query: any, filters: BookingRequestFilters) {
   let next = query;
   if (filters.status) {
     next = next.eq('status', filters.status);
@@ -718,7 +730,7 @@ function applyBookingFilters(query: ReturnType<AdminClient['from']>, filters: Bo
   return next;
 }
 
-function applyOwnerFilters(query: ReturnType<AdminClient['from']>, filters: OwnerPipelineFilters) {
+function applyOwnerFilters(query: any, filters: OwnerPipelineFilters) {
   let next = query;
   if (filters.verification) {
     next = next.eq('verification', filters.verification);
@@ -791,13 +803,13 @@ function HiddenInput({ name, value }: { name: string; value?: string | null }) {
 function PaginationLink({ disabled, href, children }: { disabled: boolean; href: string; children: ReactNode }) {
   if (disabled) {
     return (
-      <span className="rounded-full border border-slate-200 px-3 py-1 text-slate-300">
+      <span className="rounded-full border border-[#3a3a3a] bg-[#2a2a2a] px-3 py-1 text-[#5f6368]">
         {children}
       </span>
     );
   }
   return (
-    <Link href={href} className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 hover:bg-slate-50">
+    <Link href={href} className="rounded-full border border-[#3a3a3a] bg-[#212121] px-3 py-1 text-[#ececec] hover:bg-[#171717]">
       {children}
     </Link>
   );

@@ -1,4 +1,5 @@
 import { supabaseServer } from "@/lib/supabase-server";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
 export type AffiliateSummary = {
   id: string;
@@ -9,6 +10,8 @@ export type AffiliateSummary = {
   referralCode: string | null;
   commissionRate: number;
   status: string;
+  tier: string;
+  reviewNotes: string | null;
 };
 
 export type AffiliatePayoutRunSummary = {
@@ -31,25 +34,63 @@ export type AffiliatePayoutItemRow = {
   payout_run: AffiliatePayoutRunSummary | null;
 };
 
-export async function getAffiliateForUser(userId: string) {
+export async function getAffiliateForUser(userId: string, email?: string | null) {
   const supabase = await supabaseServer();
   const { data } = await supabase
     .from("affiliates")
-    .select("id, display_name, email, payout_email, slug, referral_code, commission_rate, status")
+    .select("id, display_name, email, payout_email, slug, referral_code, commission_rate, status, tier, review_notes")
     .eq("auth_user_id", userId)
     .maybeSingle();
 
-  if (!data) return null;
+  const row =
+    data ??
+    (email
+      ? (
+          await supabase
+            .from("affiliates")
+            .select("id, display_name, email, payout_email, slug, referral_code, commission_rate, status, tier, review_notes")
+            .eq("email", email)
+            .maybeSingle()
+        ).data
+      : null);
+
+  const admin = getSupabaseAdminClient();
+  const adminRow =
+    row ??
+    (admin
+      ? (
+          await admin
+            .from("affiliates")
+            .select("id, display_name, email, payout_email, slug, referral_code, commission_rate, status, tier, review_notes")
+            .eq("auth_user_id", userId)
+            .maybeSingle()
+        ).data ??
+        (email
+          ? (
+              await admin
+                .from("affiliates")
+                .select(
+                  "id, display_name, email, payout_email, slug, referral_code, commission_rate, status, tier, review_notes",
+                )
+                .eq("email", email)
+                .maybeSingle()
+            ).data
+          : null)
+      : null);
+
+  if (!adminRow) return null;
 
   return {
-    id: data.id,
-    displayName: data.display_name,
-    email: data.email,
-    payoutEmail: data.payout_email ?? null,
-    slug: data.slug,
-    referralCode: data.referral_code ?? null,
-    commissionRate: Number(data.commission_rate ?? 0),
-    status: data.status,
+    id: adminRow.id,
+    displayName: adminRow.display_name,
+    email: adminRow.email,
+    payoutEmail: adminRow.payout_email ?? null,
+    slug: adminRow.slug,
+    referralCode: adminRow.referral_code ?? null,
+    commissionRate: Number(adminRow.commission_rate ?? 0),
+    status: adminRow.status,
+    tier: adminRow.tier ?? "basic",
+    reviewNotes: adminRow.review_notes ?? null,
   } satisfies AffiliateSummary;
 }
 
@@ -95,5 +136,5 @@ export async function getAffiliatePayoutHistory(affiliateId: string) {
     .order("created_at", { ascending: false })
     .limit(24);
 
-  return (data ?? []) as AffiliatePayoutItemRow[];
+  return (data ?? []) as unknown as AffiliatePayoutItemRow[];
 }

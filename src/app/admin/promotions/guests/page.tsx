@@ -15,28 +15,34 @@ export default async function AdminGuestPromotionsPage() {
     : { data: true, error: null };
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-12">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Admin · Promotions</p>
-          <h1 className="mt-3 text-3xl font-semibold text-slate-900">Guest Promotions</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Turning OFF stops new enrollments. Existing members keep benefits.
-          </p>
+    <main className="min-h-screen bg-[#212121] text-[#ececec]">
+      <div className="mx-auto max-w-4xl px-6 py-12">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <a href="/admin" className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0] hover:text-[#ececec]">
+              Admin · Promotions
+            </a>
+            <h1 className="mt-3 text-3xl font-semibold" style={{ color: '#64748b' }}>
+              Guest Promotions
+            </h1>
+            <p className="mt-2 text-sm text-[#b4b4b4]">
+              Turning OFF stops new enrollments. Existing members keep benefits.
+            </p>
+          </div>
+          <Link href="/admin/promotions" className="text-sm font-semibold text-[#10a37f] hover:underline">
+            ← Back to promotions
+          </Link>
         </div>
-        <Link href="/admin/promotions" className="text-sm font-semibold text-indigo-600 hover:underline">
-          ← Back to promotions
-        </Link>
-      </div>
 
-      <div className="mt-8">
-        <PromotionsToggleClient
-          label="Pixie Perks enrollment"
-          description="Turning OFF stops new enrollments. Existing members keep benefits."
-          settingKey="promotions_guest_enrollment_enabled"
-          initialEnabled={initialEnabled.data ?? true}
-        />
+        <div className="mt-8">
+          <PromotionsToggleClient
+            label="Pixie Perks enrollment"
+            description="Turning OFF stops new enrollments. Existing members keep benefits."
+            settingKey="promotions_guest_enrollment_enabled"
+            initialEnabled={initialEnabled.data ?? true}
+          />
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

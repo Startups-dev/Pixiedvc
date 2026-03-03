@@ -75,7 +75,7 @@ export default function SupportWidget() {
                   localStorage.setItem(TEASER_KEY, "1");
                 }
               }}
-              className="rounded-full p-1 text-slate-400 hover:text-slate-600"
+              className="rounded-full p-1 text-slate-400 hover:text-slate-500"
               aria-label="Dismiss support teaser"
             >
               <X className="h-3 w-3" />

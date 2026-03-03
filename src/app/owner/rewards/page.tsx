@@ -86,7 +86,7 @@ export default async function OwnerRewardsPage() {
 
       <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-slate-900">How bonuses grow</h2>
-        <ul className="grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
+        <ul className="grid gap-3 text-sm text-slate-500 sm:grid-cols-2">
           <li>0–299 points: +$0.00</li>
           <li>300–599 points: +$0.50</li>
           <li>600–999 points: +$1.00</li>
@@ -97,7 +97,7 @@ export default async function OwnerRewardsPage() {
 
       <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-slate-900">How we prioritize</h2>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-500">
           We balance speed and consistency across owners. Reward tiers are honored without
           compromising guest fit or inventory quality.
         </p>
@@ -105,7 +105,7 @@ export default async function OwnerRewardsPage() {
 
       <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-slate-900">FAQ</h2>
-        <div className="space-y-3 text-sm text-slate-600">
+        <div className="space-y-3 text-sm text-slate-500">
           <p>
             <strong>Does this change guest pricing?</strong> No. Pixie Preferred increases owner
             earnings only.

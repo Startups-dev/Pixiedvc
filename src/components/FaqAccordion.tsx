@@ -57,7 +57,7 @@ export default function FaqAccordion({ categoryId, items }: FaqAccordionProps) {
               }`}
             >
               <div className="overflow-hidden">
-                <div className="px-5 pb-5 text-sm leading-6 text-slate-600">
+                <div className="px-5 pb-5 text-sm leading-6 text-slate-500">
                   {item.answer}
                 </div>
               </div>

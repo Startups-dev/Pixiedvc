@@ -67,9 +67,9 @@ export default async function AdminGuestsPage() {
       hint: error.hint,
     });
     return (
-      <div className="mx-auto max-w-3xl px-6 py-12 text-slate-700">
-        <h1 className="text-2xl font-semibold text-rose-600">Unable to load guest requests</h1>
-        <p className="text-slate-600">Check Supabase credentials or try again shortly.</p>
+      <div className="mx-auto max-w-3xl px-6 py-12 text-[#b4b4b4]">
+        <h1 className="text-2xl font-semibold text-[#ff6b6b]">Unable to load guest requests</h1>
+        <p className="text-[#8e8ea0]">Check Supabase credentials or try again shortly.</p>
       </div>
     );
   }
@@ -89,26 +89,31 @@ export default async function AdminGuestsPage() {
 
   async function fetchCount(
     label: string,
-    applyFilter?: (query: ReturnType<typeof supabase.from>) => ReturnType<typeof supabase.from>,
+    applyFilter?: (query: any) => any,
   ) {
     if (!metricsClient) {
       return 0;
     }
-    let query = metricsClient.from('booking_requests').select('id', { count: 'exact', head: true });
-    if (applyFilter) {
-      query = applyFilter(query);
-    }
-    const { count, error: countError } = await query;
-    if (countError) {
-      console.error(`Failed to count booking_requests (${label})`, {
-        code: countError.code,
-        message: countError.message,
-        details: countError.details,
-        hint: countError.hint,
-      });
+    try {
+      let query = metricsClient.from('booking_requests').select('id', { count: 'exact', head: true });
+      if (applyFilter) {
+        query = applyFilter(query);
+      }
+      const { count, error: countError } = await query;
+      if (countError) {
+        console.error(`Failed to count booking_requests (${label})`, {
+          code: countError.code,
+          message: countError.message,
+          details: countError.details,
+          hint: countError.hint,
+        });
+        return 0;
+      }
+      return count ?? 0;
+    } catch (error) {
+      console.error(`Failed to count booking_requests (${label})`, error);
       return 0;
     }
-    return count ?? 0;
   }
 
   const statusPromise = (metricsClient ?? supabase).from('booking_requests').select('status');
@@ -234,17 +239,17 @@ export default async function AdminGuestsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f7f8] text-slate-800">
+    <div className="min-h-screen bg-[#212121] text-[#ececec]">
       <div className="mx-auto max-w-6xl px-6 py-12">
         <div className="space-y-2">
           <Link
             href="/admin"
-            className="text-xs uppercase tracking-[0.3em] text-slate-400 hover:text-slate-600"
+            className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0] hover:text-[#ececec]"
           >
             Admin
           </Link>
-          <h1 className="text-3xl font-semibold text-slate-900">Guest Requests</h1>
-          <p className="text-slate-600">Concierge workspace for reviewing new booking requests.</p>
+          <h1 className="text-3xl font-semibold" style={{ color: '#64748b' }}>Guest Requests</h1>
+          <p className="text-[#b4b4b4]">Concierge workspace for reviewing new booking requests.</p>
         </div>
 
         <div className="mt-8">

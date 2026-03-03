@@ -1,33 +1,70 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { getHomeForRole } from "@/lib/routes/home";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const tokenHash = searchParams.get("token_hash");
+  const tokenType = searchParams.get("type");
   const next = searchParams.get("next");
+  const supabase = await createSupabaseServerClient();
 
   if (code) {
-    const supabase = createRouteHandlerClient({ cookies });
     await supabase.auth.exchangeCodeForSession(code);
+  } else if (tokenHash && tokenType) {
+    await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: tokenType as
+        | "signup"
+        | "invite"
+        | "magiclink"
+        | "recovery"
+        | "email_change"
+        | "email",
+    });
   }
 
-  if (next) {
-    return NextResponse.redirect(new URL(next, origin));
-  }
-
-  const supabase = createRouteHandlerClient({ cookies });
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const metaRole = (user?.user_metadata?.role as string | undefined) ?? null;
-  let role = metaRole === "owner" || metaRole === "guest" ? metaRole : null;
+
+  if (next) {
+    const safeNext = next.startsWith("/") ? next : "/affiliate/dashboard";
+    if (!user && safeNext.startsWith("/affiliate")) {
+      return NextResponse.redirect(new URL(`/affiliate/login?redirect=${encodeURIComponent(safeNext)}&error=session`, origin));
+    }
+    return NextResponse.redirect(new URL(safeNext, origin));
+  }
+
+  const metaRole = (user?.user_metadata?.role as
+    | "owner"
+    | "guest"
+    | "affiliate"
+    | "admin"
+    | "staff"
+    | undefined) ?? null;
+  let role: "owner" | "guest" | "affiliate" | "admin" | null =
+    metaRole === "owner" || metaRole === "guest" || metaRole === "affiliate" || metaRole === "admin"
+      ? metaRole
+      : null;
 
   if (user?.id && !role) {
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-    const profileRole = (profile?.role as string | undefined) ?? null;
-    role = profileRole === "owner" || profileRole === "guest" ? profileRole : null;
+    const profileRole = (profile?.role as
+      | "owner"
+      | "guest"
+      | "affiliate"
+      | "admin"
+      | "staff"
+      | undefined) ?? null;
+    role =
+      profileRole === "owner" ||
+      profileRole === "guest" ||
+      profileRole === "affiliate" ||
+      profileRole === "admin"
+        ? profileRole
+        : null;
   }
 
   return NextResponse.redirect(new URL(getHomeForRole(role), origin));

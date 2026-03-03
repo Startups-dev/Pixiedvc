@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Star } from "lucide-react";
 
-import { supabaseBrowser } from "@/lib/supabase-browser";
 
 const FAVORITES_KEY = "pixiedvc_favorite_resorts";
 const MAX_FAVORITES = 3;
@@ -33,27 +32,6 @@ export default function FavoriteResortToggle({ resortId, resortName }: Props) {
     updatePreference();
     mediaQuery.addEventListener?.("change", updatePreference);
     return () => mediaQuery.removeEventListener?.("change", updatePreference);
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-    async function fetchUser() {
-      try {
-        const supabase = supabaseBrowser();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!isMounted) return;
-        setUserId(user?.id ?? null);
-      } catch {
-        if (!isMounted) return;
-        setUserId(null);
-      }
-    }
-    fetchUser();
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
   useEffect(() => {
@@ -138,7 +116,7 @@ export default function FavoriteResortToggle({ resortId, resortName }: Props) {
           }`}
         >
           <Star
-            className={`h-4 w-4 ${isActive ? "text-[#F5D07A]" : "text-slate-600"}`}
+            className={`h-4 w-4 ${isActive ? "text-[#F5D07A]" : "text-slate-500"}`}
             strokeWidth={1.4}
             fill={isActive ? "#F5D07A" : "none"}
           />

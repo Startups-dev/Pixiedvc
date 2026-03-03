@@ -35,7 +35,7 @@ export default async function OwnerPayoutsPage() {
           <p className="text-sm text-muted">No payouts yet.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm text-slate-600">
+            <table className="min-w-full text-left text-sm text-slate-500">
               <thead className="border-b border-slate-100 text-xs uppercase tracking-[0.2em] text-slate-400">
                 <tr>
                   <th className="px-2 py-3">Rental</th>
@@ -59,7 +59,7 @@ export default async function OwnerPayoutsPage() {
                       {payout.released_at ? new Date(payout.released_at).toLocaleDateString() : "—"}
                     </td>
                     <td className="px-2 py-3">
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                         {payout.status}
                       </span>
                     </td>

@@ -128,9 +128,9 @@ export default async function ComplianceBaselinePage() {
                 envRows.map((row) => (
                   <tr key={row.name} className="border-b border-slate-100">
                     <td className="px-4 py-3 font-semibold text-slate-900">{row.name}</td>
-                    <td className="px-4 py-3 text-slate-600">{row.hosting_provider}</td>
-                    <td className="px-4 py-3 text-slate-600">{row.database_provider}</td>
-                    <td className="px-4 py-3 text-slate-600">{row.auth_provider}</td>
+                    <td className="px-4 py-3 text-slate-500">{row.hosting_provider}</td>
+                    <td className="px-4 py-3 text-slate-500">{row.database_provider}</td>
+                    <td className="px-4 py-3 text-slate-500">{row.auth_provider}</td>
                     <td className="px-4 py-3 text-xs text-slate-500">{row.notes ?? '—'}</td>
                   </tr>
                 ))
@@ -164,9 +164,9 @@ export default async function ComplianceBaselinePage() {
                 vendorRows.map((row) => (
                   <tr key={row.name} className="border-b border-slate-100">
                     <td className="px-4 py-3 font-semibold text-slate-900">{row.name}</td>
-                    <td className="px-4 py-3 text-slate-600">{row.service_category}</td>
-                    <td className="px-4 py-3 text-slate-600">{row.data_accessed}</td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-slate-500">{row.service_category}</td>
+                    <td className="px-4 py-3 text-slate-500">{row.data_accessed}</td>
+                    <td className="px-4 py-3 text-slate-500">
                       {row.compliance_reference ?? '—'}
                     </td>
                     <td className="px-4 py-3">
@@ -174,7 +174,7 @@ export default async function ComplianceBaselinePage() {
                         className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${
                           row.in_scope
                             ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-slate-100 text-slate-600'
+                            : 'bg-slate-100 text-slate-500'
                         }`}
                       >
                         {row.in_scope ? 'Yes' : 'No'}
@@ -226,7 +226,7 @@ export default async function ComplianceBaselinePage() {
                       className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${
                         row.in_scope
                           ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-slate-100 text-slate-600'
+                          : 'bg-slate-100 text-slate-500'
                       }`}
                     >
                       {row.in_scope ? 'In scope' : 'Out of scope'}

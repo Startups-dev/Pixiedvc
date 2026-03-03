@@ -37,5 +37,5 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
 TextArea.displayName = "TextArea";
 
 export function HelperText({ children }: { children: React.ReactNode }) {
-  return <p className="mt-1 text-xs text-slate-600">{children}</p>;
+  return <p className="mt-1 text-xs text-slate-500">{children}</p>;
 }

@@ -8,7 +8,7 @@ export default function GuideTOC({ items }: { items: GuideTocItem[] }) {
   return (
     <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-[0_16px_34px_rgba(15,23,42,0.06)]">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Table of contents</p>
-      <ul className="mt-3 space-y-2 text-sm text-slate-600">
+      <ul className="mt-3 space-y-2 text-sm text-slate-500">
         {items.map((item) => (
           <li key={`${item.id}-${item.title}`} className={item.level === 3 ? "pl-3 text-slate-500" : ""}>
             <Link href={`#${item.id}`} className="transition hover:text-brand">

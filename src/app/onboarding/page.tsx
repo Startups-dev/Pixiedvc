@@ -299,7 +299,7 @@ function RoleStep({
           </span>
           <div>
             <p className="text-base font-semibold text-slate-900">I’m planning a stay</p>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-slate-500">
               Estimate points, explore resorts, and request a reservation with concierge support.
             </p>
           </div>
@@ -319,7 +319,7 @@ function RoleStep({
           </span>
           <div>
             <p className="text-base font-semibold text-slate-900">I own DVC points</p>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-slate-500">
               Rent your points through PixieDVC with verified guests and structured payouts.
             </p>
           </div>
@@ -486,19 +486,19 @@ function ProfileStep({
     >
       <p className="text-sm text-slate-500">Your profile information is saved automatically.</p>
       {profileLocked ? (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
           <p>Your profile is locked to prevent accidental changes.</p>
           <button
             type="button"
             onClick={() => setShowConfirmEdit(true)}
-            className="mt-2 text-xs font-semibold text-slate-600 underline"
+            className="mt-2 text-xs font-semibold text-slate-500 underline"
           >
             Edit profile info
           </button>
         </div>
       ) : null}
       <div>
-        <label className="text-sm text-slate-600">Display name (optional)</label>
+        <label className="text-sm text-slate-500">Display name (optional)</label>
         <input
           className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
           placeholder="Jane Pixie"
@@ -508,7 +508,7 @@ function ProfileStep({
         />
       </div>
       <div>
-        <label className="text-sm text-slate-600">Full legal name</label>
+        <label className="text-sm text-slate-500">Full legal name</label>
         <input
           className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
           placeholder="Jane Rivera"
@@ -519,7 +519,7 @@ function ProfileStep({
         />
       </div>
       <div>
-        <label className="text-sm text-slate-600">Phone number</label>
+        <label className="text-sm text-slate-500">Phone number</label>
         <input
           className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
           placeholder="(407) 555-0199"
@@ -532,7 +532,7 @@ function ProfileStep({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className="text-sm text-slate-600">Address line 1</label>
+          <label className="text-sm text-slate-500">Address line 1</label>
           <input
             ref={address1Ref}
             className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
@@ -545,7 +545,7 @@ function ProfileStep({
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="text-sm text-slate-600">Address line 2</label>
+          <label className="text-sm text-slate-500">Address line 2</label>
           <input
             className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
             placeholder="Unit, suite, building"
@@ -555,7 +555,7 @@ function ProfileStep({
           />
         </div>
         <div>
-          <label className="text-sm text-slate-600">City</label>
+          <label className="text-sm text-slate-500">City</label>
           <input
             className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
             value={city}
@@ -565,7 +565,7 @@ function ProfileStep({
           />
         </div>
         <div>
-          <label className="text-sm text-slate-600">State / Region</label>
+          <label className="text-sm text-slate-500">State / Region</label>
           <input
             className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
             value={region}
@@ -575,7 +575,7 @@ function ProfileStep({
           />
         </div>
         <div>
-          <label className="text-sm text-slate-600">Postal code</label>
+          <label className="text-sm text-slate-500">Postal code</label>
           <input
             className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
             value={postalCode}
@@ -585,7 +585,7 @@ function ProfileStep({
           />
         </div>
         <div>
-          <label className="text-sm text-slate-600">Country</label>
+          <label className="text-sm text-slate-500">Country</label>
           <input
             className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
             value={country}
@@ -627,7 +627,7 @@ function ProfileStep({
 
       {isOwner ? (
         <div>
-          <label className="text-sm text-slate-600">DVC member ID (last 4 digits, optional)</label>
+          <label className="text-sm text-slate-500">DVC member ID (last 4 digits, optional)</label>
           <input
             className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
             maxLength={4}
@@ -654,13 +654,13 @@ function ProfileStep({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-lg">
             <h3 className="text-base font-semibold text-slate-900">Edit profile information?</h3>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm text-slate-500">
               Changing your legal name or address may affect agreements and payouts. Continue?
             </p>
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
-                className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600"
+                className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500"
                 onClick={() => setShowConfirmEdit(false)}
               >
                 Cancel
@@ -879,7 +879,7 @@ function OwnerContractsStep({
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Owner basics</p>
         <div className="mt-2 space-y-2">
           <span className="inline-flex rounded-full bg-[#0B1B3A]/10 px-3 py-1 text-xs font-semibold text-[#0B1B3A]">
@@ -902,7 +902,7 @@ function OwnerContractsStep({
           </p>
         </div>
       </div>
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">How matching works</p>
         <div className="mt-3 space-y-2">
           <span className="inline-flex rounded-full bg-[#0B1B3A]/10 px-3 py-1 text-xs font-semibold text-[#0B1B3A]">
@@ -940,7 +940,7 @@ function OwnerContractsStep({
         </div>
         <p className="mt-3">We never book your points without your approval.</p>
       </div>
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">How pricing works</p>
         <div className="mt-3 space-y-2">
           <span className="inline-flex rounded-full bg-[#0B1B3A]/10 px-3 py-1 text-xs font-semibold text-[#0B1B3A]">
@@ -980,7 +980,7 @@ function OwnerContractsStep({
         return (
         <div key={index} className="rounded-2xl border border-slate-200 p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-slate-600">Contract {index + 1}</p>
+            <p className="text-sm font-semibold text-slate-500">Contract {index + 1}</p>
             {contracts.length > 1 ? (
               <button type="button" onClick={() => removeContract(index)} className="text-xs text-rose-500">
                 Remove
@@ -1033,7 +1033,7 @@ function OwnerContractsStep({
           </div>
 
           {contract.helpOpen ? (
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Guided help</p>
               <div className="mt-2 space-y-2">
                 <p>Log in to the DVC member site.</p>
@@ -1058,7 +1058,7 @@ function OwnerContractsStep({
 
           {showTable ? (
             <div className="mt-4 space-y-3">
-              <label className="flex items-start gap-2 text-sm text-slate-600">
+              <label className="flex items-start gap-2 text-sm text-slate-500">
                 <input
                   type="checkbox"
                   className="mt-1 h-4 w-4 rounded border-slate-300"
@@ -1142,7 +1142,7 @@ function OwnerContractsStep({
         <button type="button" onClick={addContract} className="text-sm font-semibold text-indigo-600">
           + Add another contract
         </button>
-        <div className="text-sm text-slate-600">
+        <div className="text-sm text-slate-500">
           <p>Total points owned: {totalOwned}</p>
           <p>Total points available: {totalAvailable}</p>
         </div>
@@ -1236,7 +1236,7 @@ function OwnerLegalInfoStep({
       }}
     >
       <div>
-        <label className="text-sm text-slate-600">Legal owner full name</label>
+        <label className="text-sm text-slate-500">Legal owner full name</label>
         <input
           className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
           placeholder="Jane Rivera"
@@ -1249,7 +1249,7 @@ function OwnerLegalInfoStep({
         </p>
       </div>
       <div>
-        <label className="text-sm text-slate-600">Co-owner legal full name (optional)</label>
+        <label className="text-sm text-slate-500">Co-owner legal full name (optional)</label>
         <input
           className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
           placeholder="Second owner name"
@@ -1279,7 +1279,7 @@ function GuestPrefsStep({ onNext }: { onNext: (payload: GuestPrefsInput) => void
       }}
     >
       <div>
-        <label className="text-sm text-slate-600">Target dates (optional)</label>
+        <label className="text-sm text-slate-500">Target dates (optional)</label>
         <input
           className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
           placeholder="July 2025"
@@ -1288,7 +1288,7 @@ function GuestPrefsStep({ onNext }: { onNext: (payload: GuestPrefsInput) => void
         />
       </div>
       <div>
-        <label className="text-sm text-slate-600">Favorite resorts</label>
+        <label className="text-sm text-slate-500">Favorite resorts</label>
         <input
           className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
           placeholder="Bay Lake, Riviera, Polynesian"

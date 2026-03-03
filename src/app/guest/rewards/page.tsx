@@ -103,7 +103,7 @@ export default async function GuestRewardsPage() {
 
       <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-slate-900">How discounts grow</h2>
-        <ul className="grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
+        <ul className="grid gap-3 text-sm text-slate-500 sm:grid-cols-2">
           <li>Stay 1: 0% discount</li>
           <li>Stay 2: 10% discount</li>
           <li>Stay 3: 20% discount</li>
@@ -117,7 +117,7 @@ export default async function GuestRewardsPage() {
 
       <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-slate-900">What you unlock next</h2>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-500">
           Complete more stays to reach the next discount tier. We’ll always show your current
           tier and the discount applied to your PixieDVC fee.
         </p>
@@ -125,7 +125,7 @@ export default async function GuestRewardsPage() {
 
       <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-slate-900">FAQ</h2>
-        <div className="space-y-3 text-sm text-slate-600">
+        <div className="space-y-3 text-sm text-slate-500">
           <p>
             <strong>Does this change owner payouts?</strong> No. Pixie Perks only reduces the
             PixieDVC service fee.

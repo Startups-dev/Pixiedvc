@@ -18,8 +18,8 @@ export default async function AdminRentalDetailPage({ params }: { params: { rent
   if (!adminClient) {
     return (
       <div className="mx-auto max-w-4xl px-6 py-12">
-        <Card>
-          <p className="text-sm text-muted">Missing service role key. Configure SUPABASE_SERVICE_ROLE_KEY to manage rentals.</p>
+        <Card surface="dark" className="border-[#3a3a3a] bg-[#2f2f2f]">
+          <p className="text-sm text-[#b4b4b4]">Missing service role key. Configure SUPABASE_SERVICE_ROLE_KEY to manage rentals.</p>
         </Card>
       </div>
     );
@@ -34,53 +34,54 @@ export default async function AdminRentalDetailPage({ params }: { params: { rent
   if (!rental) {
     return (
       <div className="mx-auto max-w-4xl px-6 py-12">
-        <Card>
-          <p className="text-sm text-muted">Rental not found.</p>
+        <Card surface="dark" className="border-[#3a3a3a] bg-[#2f2f2f]">
+          <p className="text-sm text-[#b4b4b4]">Rental not found.</p>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 px-6 py-12">
+    <div className="admin-rentals-theme min-h-screen bg-[#212121]">
+      <div className="mx-auto max-w-5xl space-y-8 px-6 py-12 text-[#ececec]">
       <header className="space-y-2">
-        <Link href="/admin" className="text-xs uppercase tracking-[0.3em] text-muted">
+        <a href="/admin" className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0] hover:text-[#ececec]">
           ← Back to admin
-        </Link>
-        <h1 className="text-2xl font-semibold text-ink">Rental milestone control</h1>
-        <p className="text-sm text-muted">Admin-only milestone completion for concierge operations.</p>
+        </a>
+        <h1 className="text-2xl font-semibold" style={{ color: '#64748b' }}>Rental milestone control</h1>
+        <p className="text-sm text-[#b4b4b4]">Admin-only milestone completion for concierge operations.</p>
       </header>
 
-      <Card className="space-y-3">
-        <p className="text-xs uppercase tracking-[0.3em] text-muted">Rental summary</p>
-        <div className="grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
+      <Card surface="dark" className="space-y-3 border-[#3a3a3a] bg-[#2f2f2f]">
+        <p className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0]">Rental summary</p>
+        <div className="grid gap-3 text-sm text-[#b4b4b4] sm:grid-cols-2">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Resort</p>
-            <p className="font-semibold text-ink">{rental.resort_code}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">Resort</p>
+            <p className="font-semibold text-[#ececec]">{rental.resort_code}</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Dates</p>
-            <p className="font-semibold text-ink">
+            <p className="text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">Dates</p>
+            <p className="font-semibold text-[#ececec]">
               {rental.check_in ?? "—"} – {rental.check_out ?? "—"}
             </p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Status</p>
-            <p className="font-semibold text-ink">{rental.status}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">Status</p>
+            <p className="font-semibold text-[#ececec]">{rental.status}</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Owner user</p>
-            <p className="font-semibold text-ink">{rental.owner_user_id}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">Owner user</p>
+            <p className="font-semibold text-[#ececec]">{rental.owner_user_id}</p>
           </div>
         </div>
       </Card>
 
-      <Card className="space-y-3">
-        <p className="text-xs uppercase tracking-[0.3em] text-muted">Pricing breakdown</p>
+      <Card surface="dark" className="space-y-3 border-[#3a3a3a] bg-[#2f2f2f]">
+        <p className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0]">Pricing breakdown</p>
         {rental.match_id ? (
           <PricingBreakdown rentalId={rental.id} matchId={rental.match_id} />
         ) : (
-          <p className="text-sm text-muted">No match linked to this rental.</p>
+          <p className="text-sm text-[#b4b4b4]">No match linked to this rental.</p>
         )}
       </Card>
 
@@ -88,6 +89,7 @@ export default async function AdminRentalDetailPage({ params }: { params: { rent
         rentalId={rental.id}
         milestones={(rental.rental_milestones ?? []) as { code: string; status: string; occurred_at: string | null }[]}
       />
+      </div>
     </div>
   );
 }
@@ -130,33 +132,33 @@ async function PricingBreakdown({ rentalId, matchId }: { rentalId: string; match
       : null;
 
   return (
-    <div className="grid gap-4 text-sm text-slate-600 sm:grid-cols-2">
+    <div className="grid gap-4 text-sm text-[#b4b4b4] sm:grid-cols-2">
       <div>
-        <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Guest</p>
-        <p className="font-semibold text-ink">{guestTotal !== null ? formatCurrency(guestTotal) : "—"}</p>
-        <p className="text-xs text-slate-500">Rate: {formatRate(guestRate)}</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">Guest</p>
+        <p className="font-semibold text-[#ececec]">{guestTotal !== null ? formatCurrency(guestTotal) : "—"}</p>
+        <p className="text-xs text-[#8e8ea0]">Rate: {formatRate(guestRate)}</p>
       </div>
       <div>
-        <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Owner</p>
-        <p className="font-semibold text-ink">{ownerTotal !== null ? formatCurrency(ownerTotal) : "—"}</p>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">Owner</p>
+        <p className="font-semibold text-[#ececec]">{ownerTotal !== null ? formatCurrency(ownerTotal) : "—"}</p>
+        <p className="text-xs text-[#8e8ea0]">
           Rate: {formatRate(ownerRate)}
           {premiumApplied && ownerPremium ? ` (+$${(ownerPremium / 100).toFixed(2)} home resort premium)` : ""}
         </p>
         {ownerBase !== null ? (
-          <p className="text-[11px] text-slate-400">Base rate: {formatRate(ownerBase)}</p>
+          <p className="text-[11px] text-[#8e8ea0]">Base rate: {formatRate(ownerBase)}</p>
         ) : null}
       </div>
       <div>
-        <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Margin</p>
-        <p className="font-semibold text-ink">{margin !== null ? formatCurrency(margin) : "—"}</p>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">Margin</p>
+        <p className="font-semibold text-[#ececec]">{margin !== null ? formatCurrency(margin) : "—"}</p>
+        <p className="text-xs text-[#8e8ea0]">
           Per-point spread: {perPointSpread !== null ? formatRate(perPointSpread) : "—"}
         </p>
       </div>
       <div>
-        <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Estimated fees</p>
-        <p className="text-xs text-slate-500">Placeholder for future payment fees.</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">Estimated fees</p>
+        <p className="text-xs text-[#8e8ea0]">Placeholder for future payment fees.</p>
       </div>
     </div>
   );

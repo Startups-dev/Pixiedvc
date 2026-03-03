@@ -203,13 +203,15 @@ export default function AdminLedgerClient() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="admin-ledger-theme space-y-6">
+      <div className="rounded-3xl border border-[#3a3a3a] bg-[#2f2f2f] p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Admin</p>
-            <h1 className="text-2xl font-semibold text-slate-900">Finance ledger</h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0]">Admin</p>
+            <h1 className="text-2xl font-semibold" style={{ color: '#64748b' }}>
+              Finance ledger
+            </h1>
+            <p className="text-sm text-[#b4b4b4]">
               Aggregated inbound payments per match for the selected date range.
             </p>
           </div>
@@ -217,53 +219,53 @@ export default function AdminLedgerClient() {
             <button
               type="button"
               onClick={() => setPresetDays(7)}
-              className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600"
+              className="rounded-full border border-[#3a3a3a] bg-[#2a2a2a] px-3 py-1 text-xs text-[#b4b4b4] transition hover:border-[#4a4a4a] hover:text-[#ececec]"
             >
               Last 7 days
             </button>
             <button
               type="button"
               onClick={() => setPresetDays(30)}
-              className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600"
+              className="rounded-full border border-[#3a3a3a] bg-[#2a2a2a] px-3 py-1 text-xs text-[#b4b4b4] transition hover:border-[#4a4a4a] hover:text-[#ececec]"
             >
               Last 30 days
             </button>
             <button
               type="button"
               onClick={setPresetThisMonth}
-              className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600"
+              className="rounded-full border border-[#3a3a3a] bg-[#2a2a2a] px-3 py-1 text-xs text-[#b4b4b4] transition hover:border-[#4a4a4a] hover:text-[#ececec]"
             >
               This month
             </button>
             <button
               type="button"
               onClick={exportCsv}
-              className="rounded-full border border-slate-200 bg-slate-900 px-3 py-1 text-xs text-white"
+              className="rounded-full border border-[#0d8c6d] bg-[#10a37f] px-3 py-1 text-xs text-white transition hover:bg-[#0d8c6d]"
             >
               Export CSV
             </button>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-3">
-          <label className="text-xs uppercase tracking-[0.2em] text-slate-400">
+          <label className="text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">
             Start
             <input
               type="date"
               value={startDate}
               onChange={(event) => setStartDate(event.target.value)}
-              className="mt-2 block rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+              className="mt-2 block rounded-2xl border border-[#3a3a3a] bg-[#212121] px-3 py-2 text-sm text-[#ececec]"
             />
           </label>
-          <label className="text-xs uppercase tracking-[0.2em] text-slate-400">
+          <label className="text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">
             End
             <input
               type="date"
               value={endDate}
               onChange={(event) => setEndDate(event.target.value)}
-              className="mt-2 block rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+              className="mt-2 block rounded-2xl border border-[#3a3a3a] bg-[#212121] px-3 py-2 text-sm text-[#ececec]"
             />
           </label>
-          <label className="text-xs uppercase tracking-[0.2em] text-slate-400">
+          <label className="text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">
             Sort
             <select
               value={`${sortKey}:${sortDir}`}
@@ -272,7 +274,7 @@ export default function AdminLedgerClient() {
                 setSortKey(key);
                 setSortDir(dir);
               }}
-              className="mt-2 block rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+              className="mt-2 block rounded-2xl border border-[#3a3a3a] bg-[#212121] px-3 py-2 text-sm text-[#ececec]"
             >
               {SORT_COLUMNS.flatMap((col) => [
                 <option key={`${col.key}-desc`} value={`${col.key}:desc`}>
@@ -287,10 +289,10 @@ export default function AdminLedgerClient() {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="rounded-3xl border border-[#3a3a3a] bg-[#2f2f2f] shadow-sm">
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-slate-200 text-xs uppercase tracking-[0.2em] text-slate-400">
+            <thead className="border-b border-[#3a3a3a] text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">
               <tr>
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Match</th>
@@ -306,7 +308,7 @@ export default function AdminLedgerClient() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-6 text-center text-slate-500">
+                  <td colSpan={9} className="px-4 py-6 text-center text-[#b4b4b4]">
                     Loading ledger…
                   </td>
                 </tr>
@@ -318,30 +320,30 @@ export default function AdminLedgerClient() {
                 </tr>
               ) : sortedRows.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-6 text-center text-slate-500">
+                  <td colSpan={9} className="px-4 py-6 text-center text-[#b4b4b4]">
                     No transactions in this range.
                   </td>
                 </tr>
               ) : (
                 sortedRows.map((row) => (
-                  <tr key={row.match_id} className="border-b border-slate-100">
-                    <td className="px-4 py-3 text-slate-600">{formatDate(row.date)}</td>
+                  <tr key={row.match_id} className="border-b border-[#3a3a3a]">
+                    <td className="px-4 py-3 text-[#b4b4b4]">{formatDate(row.date)}</td>
                     <td className="px-4 py-3">
                       <a
                         href={`/admin/matching/${row.match_id}`}
-                        className="text-slate-900 hover:text-slate-700"
+                        className="text-[#ececec] hover:text-[#b4b4b4]"
                       >
                         {row.match_id}
                       </a>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
+                    <td className="px-4 py-3 text-xs text-[#b4b4b4]">
                       <div className="flex items-center gap-2">
                         <span>{row.booking_request_id ?? '—'}</span>
                         {row.booking_request_id ? (
                           <button
                             type="button"
                             onClick={() => copyToClipboard(row.booking_request_id ?? '')}
-                            className="rounded-full border border-slate-200 px-2 py-0.5 text-[10px] text-slate-500 hover:text-slate-700"
+                            className="rounded-full border border-[#3a3a3a] bg-[#212121] px-2 py-0.5 text-[10px] text-[#b4b4b4] hover:text-[#ececec]"
                             title="Copy booking ID"
                           >
                             Copy
@@ -349,29 +351,29 @@ export default function AdminLedgerClient() {
                         ) : null}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-slate-900">
+                    <td className="px-4 py-3 text-right font-semibold text-[#ececec]">
                       {formatUsd(row.gross_cents)}
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-700">
+                    <td className="px-4 py-3 text-right text-[#b4b4b4]">
                       {formatUsd(row.platform_cents)}
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-700">
+                    <td className="px-4 py-3 text-right text-[#b4b4b4]">
                       {formatUsd(row.owner_cents)}
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-700">
+                    <td className="px-4 py-3 text-right text-[#b4b4b4]">
                       {formatUsd(row.tax_cents)}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-[#b4b4b4]">
                       {row.processors.length ? row.processors.join(', ') : '—'}
                     </td>
                     <td className="px-4 py-3">
                       <span
                         className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${
                           row.payment_status === 'PAID'
-                            ? 'bg-emerald-100 text-emerald-700'
+                            ? 'bg-[#12372f] text-[#34d399]'
                             : row.payment_status === 'PARTIAL'
-                              ? 'bg-amber-100 text-amber-700'
-                              : 'bg-slate-100 text-slate-600'
+                              ? 'bg-[#3f3418] text-[#fbbf24]'
+                              : 'bg-[#212121] text-[#b4b4b4]'
                         }`}
                       >
                         {row.payment_status}
@@ -382,7 +384,7 @@ export default function AdminLedgerClient() {
               )}
             </tbody>
             <tfoot>
-              <tr className="border-t border-slate-200 bg-slate-50 text-sm font-semibold text-slate-900">
+              <tr className="border-t border-[#3a3a3a] bg-[#2a2a2a] text-sm font-semibold text-[#ececec]">
                 <td className="px-4 py-3" colSpan={3}>
                   Totals · Rows: {sortedRows.length}
                 </td>

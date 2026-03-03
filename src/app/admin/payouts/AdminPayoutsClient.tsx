@@ -149,7 +149,7 @@ export default function AdminPayoutsClient({
 
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-slate-900">Payout history</h2>
-        <div className="space-y-3 text-sm text-slate-600">
+        <div className="space-y-3 text-sm text-slate-500">
           {payouts.length === 0 ? (
             <p>No payouts yet.</p>
           ) : (
@@ -164,7 +164,7 @@ export default function AdminPayoutsClient({
                       {new Date(payout.period_start).toLocaleDateString()} – {new Date(payout.period_end).toLocaleDateString()}
                     </p>
                   </div>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-600">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-500">
                     {payout.status}
                   </span>
                 </div>

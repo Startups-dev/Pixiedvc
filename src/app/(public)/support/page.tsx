@@ -33,7 +33,7 @@ export default async function SupportPage() {
           <h1 className="text-4xl font-semibold text-slate-900">
             Frequently Asked Questions
           </h1>
-          <p className="max-w-2xl text-base text-slate-600">
+          <p className="max-w-2xl text-base text-slate-500">
             A quick guide to booking, pricing, and resort logistics. Answers are
             sourced directly from PixieDVC help docs.
           </p>
@@ -67,7 +67,7 @@ export default async function SupportPage() {
                       <summary className="cursor-pointer text-sm font-semibold text-slate-800">
                         {faq.question}
                       </summary>
-                      <p className="mt-2 text-sm text-slate-600">
+                      <p className="mt-2 text-sm text-slate-500">
                         {faq.answer}
                       </p>
                     </details>

@@ -142,7 +142,7 @@ function ComingSoonCard({ title, body }: { title: string; body: string }) {
           </svg>
         </div>
         <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-        <p className="text-sm text-slate-600">{body}</p>
+        <p className="text-sm text-slate-500">{body}</p>
       </div>
     </Card>
   );
@@ -312,10 +312,10 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
                       {pendingReadyStayTransfers.slice(0, 2).map((item) => (
                         <div key={item.id} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-sm">
                           <p className="font-semibold text-ink">{item.resortName ?? "Ready Stay"}</p>
-                          <p className="text-xs text-slate-600">
+                          <p className="text-xs text-slate-500">
                             {formatDate(item.checkIn)} → {formatDate(item.checkOut)} · {(item.points ?? 0).toLocaleString("en-US")} pts
                           </p>
-                          <p className="text-xs text-slate-600">Guest: {item.guestName ?? "—"}</p>
+                          <p className="text-xs text-slate-500">Guest: {item.guestName ?? "—"}</p>
                         </div>
                       ))}
                     </div>
@@ -332,7 +332,7 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
                           <div className="rounded-2xl border border-slate-200 bg-white p-4 transition group-hover:border-brand/50">
                             <p className="text-xs uppercase tracking-[0.2em] text-muted">Match</p>
                             <p className="mt-2 text-base font-semibold text-ink">{resortName}</p>
-                            <p className="text-sm text-slate-600">
+                            <p className="text-sm text-slate-500">
                               {formatDate(booking?.check_in ?? null)} → {formatDate(booking?.check_out ?? null)}
                             </p>
                             <p className="text-xs text-slate-500">{points.toLocaleString("en-US")} pts reserved</p>
@@ -355,7 +355,7 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
               <p className="rounded-2xl bg-slate-50 p-4 text-sm text-muted">No memberships on file yet.</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-sm text-slate-600">
+                <table className="min-w-full text-left text-sm text-slate-500">
                   <thead className="border-b border-slate-100 text-xs uppercase tracking-[0.2em] text-slate-400">
                     <tr>
                       <th className="px-2 py-3">Resort</th>
@@ -574,7 +574,7 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
                   <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                     <div className="flex items-center gap-3">
                       <h3 className="text-sm font-semibold text-ink">{title}</h3>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
                         {count}
                       </span>
                     </div>
@@ -632,7 +632,7 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
                     <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                       <div className="flex items-center gap-3">
                         <h3 className="text-sm font-semibold text-ink">Completed / past</h3>
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
                           0
                         </span>
                       </div>
@@ -644,7 +644,7 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
                     <summary className="flex cursor-pointer items-center justify-between border-b border-slate-200 pb-2">
                       <div className="flex items-center gap-3">
                         <h3 className="text-sm font-semibold text-ink">Completed / past</h3>
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
                           {completedMatches.length}
                         </span>
                       </div>

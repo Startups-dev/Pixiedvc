@@ -79,8 +79,8 @@ export default function SupportPanel({
       userBubble: "bg-slate-900 text-white",
       input:
         "border-slate-200 bg-white text-slate-900 placeholder:text-slate-400",
-      muted: "text-slate-600",
-      chip: "bg-slate-50 border-slate-200 text-slate-600",
+      muted: "text-slate-500",
+      chip: "bg-slate-50 border-slate-200 text-slate-500",
       button:
         "bg-slate-900 text-white hover:bg-slate-800 focus-visible:ring-slate-400",
     };

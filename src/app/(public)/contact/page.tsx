@@ -26,7 +26,7 @@ export default function ContactPage() {
               <h1 className="font-display text-3xl leading-tight tracking-tight text-ink sm:text-4xl lg:text-5xl">
                 We’re one message away from your perfect DVC stay.
               </h1>
-              <div className="max-w-prose space-y-3 text-base text-slate-600 sm:text-lg">
+              <div className="max-w-prose space-y-3 text-base text-slate-500 sm:text-lg">
                 <p>In a rush? Start a live chat with a PixieDVC concierge — responses are often immediate.</p>
                 <p>Not urgent? Send us a message and we’ll follow up the same day.</p>
                 <p>Owners, guests, and partners are routed to the right concierge with clear next steps.</p>
@@ -34,7 +34,7 @@ export default function ContactPage() {
               <p className="text-sm text-slate-500">
                 If we’re offline, all messages are reviewed and answered promptly.
               </p>
-              <div className="space-y-2 text-sm text-slate-600">
+              <div className="space-y-2 text-sm text-slate-500">
                 <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Prefer email?</p>
                 <p className="text-base font-semibold text-ink">hello@pixiedvc.com</p>
               </div>

@@ -49,22 +49,22 @@ export default async function AdminAuditLogPage() {
               {rows?.length ? (
                 rows.map((row) => (
                   <tr key={row.id} className="border-b border-slate-100">
-                    <td className="px-4 py-3 text-xs text-slate-600">{row.created_at}</td>
-                    <td className="px-4 py-3 text-xs text-slate-600">
+                    <td className="px-4 py-3 text-xs text-slate-500">{row.created_at}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500">
                       {row.actor_email ?? '—'}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-700">{row.action}</td>
-                    <td className="px-4 py-3 text-xs text-slate-600">
+                    <td className="px-4 py-3 text-xs text-slate-500">
                       {row.entity_type ?? '—'}
                       {row.entity_id ? ` · ${row.entity_id}` : ''}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-600">
+                    <td className="px-4 py-3 text-xs text-slate-500">
                       {row.meta && Object.keys(row.meta).length ? (
                         <details>
                           <summary className="cursor-pointer text-xs text-slate-500">
                             View
                           </summary>
-                          <pre className="mt-2 max-h-48 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-600">
+                          <pre className="mt-2 max-h-48 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-500">
                             {JSON.stringify(row.meta, null, 2)}
                           </pre>
                         </details>

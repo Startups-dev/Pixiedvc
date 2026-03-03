@@ -169,16 +169,6 @@ export function getResortSections(slug: string): ResortInfoSection[] {
           "Bay Lake Tower blends Disney service with skyline views and easy Magic Kingdom access, ideal for guests who want convenience, comfort, and a streamlined stay.",
       },
       {
-        id: "highlights",
-        type: "highlights",
-        title: "Highlights",
-        items: [
-          { icon: "castle", label: "Magic Kingdom area", note: "Walk or take the monorail in minutes." },
-          { icon: "train", label: "Monorail access", note: "Connected to the Contemporary Resort hub." },
-          { icon: "waves", label: "Lakeside pool", note: "Relaxed Bay Lake views with sunset vibes." },
-        ],
-      },
-      {
         id: "transportation",
         type: "transportation",
         title: "Transportation",
@@ -224,24 +214,6 @@ export function getResortSections(slug: string): ResortInfoSection[] {
           { label: "Payment", value: "Invoice sent after match acceptance." },
           { label: "Insurance", value: "Optional travel protection available." },
         ],
-      },
-      {
-        id: "room_types",
-        type: "room_types",
-        title: "Room types",
-        description: "Room-type availability details are coming soon.",
-      },
-      {
-        id: "points",
-        type: "points",
-        title: "Points charts",
-        description: "Points charts are coming soon.",
-      },
-      {
-        id: "map",
-        type: "map",
-        title: "Resort map",
-        description: "Interactive map details are coming soon.",
       },
     ];
   }

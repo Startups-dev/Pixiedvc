@@ -25,13 +25,13 @@ export default async function CompliancePolicyDetailPage({ params }: PolicyPageP
           <div className="flex items-center gap-4">
             <Link
               href="/admin/compliance"
-              className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-600"
+              className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-500"
             >
               Back to compliance
             </Link>
             <Link
               href="/admin/compliance/policies"
-              className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-600"
+              className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-500"
             >
               Back to policies
             </Link>

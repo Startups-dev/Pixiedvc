@@ -16,13 +16,13 @@ export default function PresetBar({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Quick views</p>
-          {hint ? <p className="mt-1 text-sm text-slate-600">{hint}</p> : null}
+          {hint ? <p className="mt-1 text-sm text-slate-500">{hint}</p> : null}
         </div>
         {selectedKey ? (
           <button
             type="button"
             onClick={onClearPreset}
-            className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
+            className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500"
           >
             Clear preset
           </button>
@@ -39,7 +39,7 @@ export default function PresetBar({
               className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
                 isSelected
                   ? 'border-indigo-200 bg-indigo-600 text-white'
-                  : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                  : 'border-slate-200 text-slate-500 hover:border-slate-300'
               }`}
             >
               {preset.label}

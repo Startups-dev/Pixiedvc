@@ -53,7 +53,7 @@ export default function AdminMatchDeleteButton({ matchId, disabled }: Props) {
       <button
         onClick={handleDelete}
         disabled={busy}
-        className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 disabled:opacity-50"
+        className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-500 disabled:opacity-50"
       >
         {busy ? 'Deleting…' : 'Delete match'}
       </button>

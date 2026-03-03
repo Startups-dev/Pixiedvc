@@ -69,29 +69,29 @@ export default function AdminRentalMilestonesClient({
   const milestoneLookup = new Map(milestones.map((milestone) => [milestone.code, milestone]));
 
   return (
-    <Card className="space-y-4">
+    <Card surface="dark" className="space-y-4 border-[#3a3a3a] bg-[#2f2f2f]">
       <div>
-        <p className="text-xs uppercase tracking-[0.3em] text-muted">Milestones</p>
-        <h2 className="text-xl font-semibold text-ink">Concierge actions</h2>
-        <p className="text-xs text-muted">Uses service role to bypass RLS; owners cannot trigger these milestones.</p>
+        <p className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0]">Milestones</p>
+        <h2 className="text-xl font-semibold" style={{ color: '#64748b' }}>Concierge actions</h2>
+        <p className="text-xs text-[#8e8ea0]">Uses service role to bypass RLS; owners cannot trigger these milestones.</p>
       </div>
 
-      <div className="space-y-3 text-sm text-slate-600">
+      <div className="space-y-3 text-sm text-[#b4b4b4]">
         {ADMIN_CODES.map((code) => {
           const milestone = milestoneLookup.get(code);
           const isCompleted = milestone?.status === "completed";
 
           return (
-            <div key={code} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-100 px-4 py-3">
+            <div key={code} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#3a3a3a] bg-[#2a2a2a] px-4 py-3">
               <div>
-                <p className="font-semibold text-ink">{ADMIN_LABELS[code] ?? code.replace(/_/g, " ")}</p>
-                <p className="text-xs text-muted">Completed: {formatDate(milestone?.occurred_at ?? null)}</p>
+                <p className="font-semibold text-[#ececec]">{ADMIN_LABELS[code] ?? code.replace(/_/g, " ")}</p>
+                <p className="text-xs text-[#8e8ea0]">Completed: {formatDate(milestone?.occurred_at ?? null)}</p>
               </div>
               <button
                 type="button"
                 onClick={() => handleComplete(code)}
                 disabled={isCompleted || loading === code}
-                className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600 disabled:opacity-50"
+                className="rounded-full border border-[#3a3a3a] bg-[#212121] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#ececec] disabled:opacity-50"
               >
                 {isCompleted ? "Completed" : loading === code ? "Updating…" : "Mark complete"}
               </button>
@@ -100,7 +100,7 @@ export default function AdminRentalMilestonesClient({
         })}
       </div>
 
-      {message ? <p className="text-xs text-emerald-700">{message}</p> : null}
+      {message ? <p className="text-xs text-[#10a37f]">{message}</p> : null}
     </Card>
   );
 }

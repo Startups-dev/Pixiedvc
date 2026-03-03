@@ -11,6 +11,7 @@ export default async function Header() {
   let userLabel: string | null = null;
   let userRole: string | null = null;
   let showAdminLink = false;
+  let hasAffiliateAccess = false;
   if (user?.id) {
     const { data: profile } = await supabase
       .from("profiles")
@@ -20,6 +21,26 @@ export default async function Header() {
     userLabel = profile?.display_name ?? user.email ?? "Signed in";
     userRole = profile?.role ?? null;
     showAdminLink = isAdminEmail(user.email ?? null);
+    hasAffiliateAccess = profile?.role === "affiliate" || profile?.role === "admin";
+
+    if (!hasAffiliateAccess) {
+      const { data: affiliateByAuth } = await supabase
+        .from("affiliates")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+
+      if (affiliateByAuth?.id) {
+        hasAffiliateAccess = true;
+      } else if (user.email) {
+        const { data: affiliateByEmail } = await supabase
+          .from("affiliates")
+          .select("id")
+          .eq("email", user.email)
+          .maybeSingle();
+        hasAffiliateAccess = Boolean(affiliateByEmail?.id);
+      }
+    }
   }
 
   return (
@@ -28,6 +49,7 @@ export default async function Header() {
       userRole={userRole}
       isAdmin={showAdminLink}
       isAuthenticated={Boolean(user)}
+      hasAffiliateAccess={hasAffiliateAccess}
     />
   );
 }

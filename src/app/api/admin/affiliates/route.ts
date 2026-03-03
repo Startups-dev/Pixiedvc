@@ -1,23 +1,28 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-
 import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { emailIsAllowedForAdmin } from "@/lib/admin-emails";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { requireAdminEmail } from "@/lib/require-admin";
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
   const authClient = await createSupabaseServerClient();
   const {
     data: { user },
   } = await authClient.auth.getUser();
 
-  if (!user || !emailIsAllowedForAdmin(user.email)) {
+  try {
+    requireAdminEmail(user?.email);
+  } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const payload = await request.json();
-  const client = getSupabaseAdminClient() ?? authClient;
+  const client = getSupabaseAdminClient();
+  if (!client) {
+    return NextResponse.json(
+      { error: "Server misconfigured: missing service role client" },
+      { status: 500 },
+    );
+  }
 
   const { error } = await client.from("affiliates").insert(payload);
 
@@ -29,13 +34,14 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const cookieStore = await cookies();
   const authClient = await createSupabaseServerClient();
   const {
     data: { user },
   } = await authClient.auth.getUser();
 
-  if (!user || !emailIsAllowedForAdmin(user.email)) {
+  try {
+    requireAdminEmail(user?.email);
+  } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -45,7 +51,23 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Missing affiliate id" }, { status: 400 });
   }
 
-  const client = getSupabaseAdminClient() ?? authClient;
+  const nextStatus = typeof rest?.status === "string" ? rest.status : null;
+  const suspendReason = typeof rest?.suspend_reason === "string" ? rest.suspend_reason.trim() : "";
+  if (nextStatus === "suspended" && !suspendReason) {
+    return NextResponse.json({ error: "Suspend reason is required." }, { status: 400 });
+  }
+
+  if (nextStatus && ["verified", "suspended", "rejected"].includes(nextStatus)) {
+    rest.reviewed_at = new Date().toISOString();
+  }
+
+  const client = getSupabaseAdminClient();
+  if (!client) {
+    return NextResponse.json(
+      { error: "Server misconfigured: missing service role client" },
+      { status: 500 },
+    );
+  }
   const { error } = await client.from("affiliates").update(rest).eq("id", id);
 
   if (error) {

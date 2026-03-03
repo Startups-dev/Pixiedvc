@@ -89,13 +89,13 @@ export default function ResortPhotoSqlBuilder({ slugs }: Props) {
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
         <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+          <label className="text-xs font-semibold uppercase tracking-[0.24em] text-[#8e8ea0]">
             Resort slug
           </label>
           <select
             value={slug}
             onChange={(event) => handleSlugChange(event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm"
+            className="w-full rounded-2xl border border-[#3a3a3a] bg-[#2a2a2a] px-4 py-3 text-sm text-[#ececec] shadow-sm"
           >
             {sortedSlugs.map((resortSlug) => (
               <option key={resortSlug} value={resortSlug}>
@@ -106,21 +106,21 @@ export default function ResortPhotoSqlBuilder({ slugs }: Props) {
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+          <label className="text-xs font-semibold uppercase tracking-[0.24em] text-[#8e8ea0]">
             Prefix
           </label>
           <input
             value={prefix}
             onChange={(event) => handlePrefixChange(event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm"
+            className="w-full rounded-2xl border border-[#3a3a3a] bg-[#2a2a2a] px-4 py-3 text-sm text-[#ececec] shadow-sm"
           />
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
+      <div className="rounded-3xl border border-[#3a3a3a] bg-[#2f2f2f] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.28)]">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-slate-900">Storage object paths</p>
-          <label className="flex items-center gap-2 text-xs text-slate-600">
+          <p className="text-sm font-semibold text-[#ececec]">Storage object paths</p>
+          <label className="flex items-center gap-2 text-xs text-[#b4b4b4]">
             <input
               type="checkbox"
               checked={includeAltCaption}
@@ -132,7 +132,7 @@ export default function ResortPhotoSqlBuilder({ slugs }: Props) {
         <div className="grid gap-3">
           {paths.map((path, index) => (
             <div key={`${path}-${index}`} className="flex flex-col gap-1">
-              <label className="text-xs text-slate-500">Photo {index + 1}</label>
+              <label className="text-xs text-[#8e8ea0]">Photo {index + 1}</label>
               <input
                 value={path}
                 onChange={(event) => {
@@ -140,9 +140,9 @@ export default function ResortPhotoSqlBuilder({ slugs }: Props) {
                   next[index] = event.target.value;
                   setPaths(next);
                 }}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700"
+                className="w-full rounded-2xl border border-[#3a3a3a] bg-[#212121] px-4 py-2 text-sm text-[#ececec]"
               />
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-[#8e8ea0]">
                 {buildSupabasePublicUrl(BUCKET, path) || "Missing NEXT_PUBLIC_SUPABASE_URL"}
               </p>
             </div>
@@ -150,18 +150,18 @@ export default function ResortPhotoSqlBuilder({ slugs }: Props) {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-slate-950 p-5 text-slate-100 shadow-[0_14px_50px_rgba(15,23,42,0.22)]">
+      <div className="rounded-3xl border border-[#3a3a3a] bg-[#212121] p-5 text-[#ececec] shadow-[0_14px_50px_rgba(0,0,0,0.35)]">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-white">SQL insert</p>
+          <p className="text-sm font-semibold" style={{ color: '#64748b' }}>SQL insert</p>
           <button
             type="button"
             onClick={handleCopy}
-            className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/20"
+            className="rounded-full bg-[#10a37f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#0d8c6d]"
           >
             Copy SQL
           </button>
         </div>
-        <pre className="whitespace-pre-wrap text-xs text-white/80">{sql}</pre>
+        <pre className="whitespace-pre-wrap text-xs text-[#b4b4b4]">{sql}</pre>
       </div>
     </div>
   );

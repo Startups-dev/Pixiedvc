@@ -234,7 +234,7 @@ export function DvcCalculator() {
           <button onClick={() => setMode("compare")} className={`px-3 py-1 rounded ${mode === "compare" ? "bg-indigo-600 text-white" : "bg-slate-100"}`}>Compare</button>
         </div>
       </div>
-      <div className="mt-2 text-sm text-slate-600">
+      <div className="mt-2 text-sm text-slate-500">
         Estimates do not reflect live availability. Our concierge team confirms availability before any booking.
       </div>
 
@@ -247,7 +247,7 @@ export function DvcCalculator() {
         <div className="md:col-span-3">
           <label className="text-sm font-medium">Nights</label>
           <input type="range" min={1} max={14} className="w-full" value={nights} onChange={e => setNights(Number(e.target.value))} />
-          <div className="text-xs text-slate-600">{nights} night(s)</div>
+          <div className="text-xs text-slate-500">{nights} night(s)</div>
         </div>
       </div>
 
@@ -293,11 +293,11 @@ export function DvcCalculator() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Dining Plan (Optional)</div>
-                    <div className="text-sm text-slate-600">
+                    <div className="text-sm text-slate-500">
                       Would you be interested in adding a dining plan to your reservation?
                     </div>
                   </div>
-                  <a href="/dining-plan" className="text-sm text-slate-600 hover:underline">
+                  <a href="/dining-plan" className="text-sm text-slate-500 hover:underline">
                     What is the Dining Plan?
                   </a>
                 </div>
@@ -356,7 +356,7 @@ export function DvcCalculator() {
                         onChange={(e) => setDiningChildren(Math.max(0, Number(e.target.value)))}
                       />
                     </div>
-                    <div className="md:col-span-4 text-sm text-slate-600">
+                    <div className="md:col-span-4 text-sm text-slate-500">
                       <div>
                         Estimated dining plan cost:{" "}
                         <span className="font-semibold text-slate-900">
@@ -525,7 +525,7 @@ export function DvcCalculator() {
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="bg-indigo-50 rounded p-4">
-      <div className="text-sm text-slate-600">{label}</div>
+      <div className="text-sm text-slate-500">{label}</div>
       <div className="text-xl font-bold">{value}</div>
     </div>
   );

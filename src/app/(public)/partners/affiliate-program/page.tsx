@@ -1,310 +1,346 @@
+"use client";
+
+import { FormEvent, ReactNode, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { ArrowRight, ShieldCheck, Sparkles, Clock3, BarChart3 } from "lucide-react";
 import {
-  Activity,
-  CheckCircle,
-  CheckCircle2,
-  DollarSign,
-  FileText,
-  Link as LinkIcon,
-  Link as LinkPlain,
-  Link2,
-  Pen,
-  PiggyBank,
-  Plane,
-  Shield,
-  TrendingUp,
-  Users,
-} from "lucide-react";
+  affiliateCard,
+  affiliateCard2,
+  affiliateInput,
+  affiliateLink,
+  affiliatePrimaryButton,
+  affiliateTextMuted,
+} from "@/lib/affiliate-theme";
 
-import PrimaryCtaLink from "@/components/ui/PrimaryCtaLink";
+type ApplyForm = {
+  fullName: string;
+  email: string;
+  websiteOrChannelUrl: string;
+  socialLink: string;
+  promotionPlan: string;
+  trafficEstimate: string;
+  agreed: boolean;
+};
 
-const portalFeatures = [
-  {
-    icon: Activity,
-    text: "View real-time click and booking activity",
-  },
-  {
-    icon: TrendingUp,
-    text: "Track commission status and payout history",
-  },
-  {
-    icon: LinkPlain,
-    text: "Access referral links and marketing assets",
-  },
-  {
-    icon: FileText,
-    text: "Manage payout details and tax information",
-  },
+const initialForm: ApplyForm = {
+  fullName: "",
+  email: "",
+  websiteOrChannelUrl: "",
+  socialLink: "",
+  promotionPlan: "",
+  trafficEstimate: "",
+  agreed: false,
+};
+
+const benefits = [
+  { icon: Sparkles, title: "6% commission per confirmed booking", copy: "Earn on every qualified stay you refer." },
+  { icon: Clock3, title: "90-day referral tracking window", copy: "Attribution remains active for 90 days." },
+  { icon: BarChart3, title: "Real-time performance dashboard", copy: "Track clicks, conversions, and payouts clearly." },
+  { icon: ShieldCheck, title: "Luxury positioning", copy: "Premium partner ecosystem without discount-brand feel." },
 ];
 
-const howItWorksSteps = [
+const faqs = [
   {
-    icon: Link2,
-    title: "Share your referral link",
-    description: "Use your unique tracking link across your website, content, or social channels.",
-    bgClass: "bg-feature-1",
-    iconBg: "bg-primary/10",
-    iconColor: "text-primary",
+    q: "When do I get paid?",
+    a: "Commissions are paid after confirmed stays according to our payout schedule.",
   },
   {
-    icon: Shield,
-    title: "Guests book with confidence",
-    description: "Referred guests receive the same concierge-led experience, verified inventory, and clear pricing.",
-    bgClass: "bg-feature-2",
-    iconBg: "bg-accent/10",
-    iconColor: "text-accent",
+    q: "Can anyone apply?",
+    a: "We welcome Disney-focused creators and travel partners. All accounts are subject to review.",
   },
   {
-    icon: DollarSign,
-    title: "Earn commission on completed bookings",
-    description: "Commissions are calculated automatically and paid out on a monthly schedule.",
-    bgClass: "bg-feature-3",
-    iconBg: "bg-primary/10",
-    iconColor: "text-primary",
-  },
-];
-
-const targetAudiences = [
-  {
-    icon: Pen,
-    title: "Bloggers and content creators",
+    q: "How long is the referral window?",
+    a: "90 days from initial referral click.",
   },
   {
-    icon: Users,
-    title: "Influencers and social publishers",
-  },
-  {
-    icon: PiggyBank,
-    title: "Deal and savings platforms",
-  },
-  {
-    icon: Plane,
-    title: "Travel and vacation planning sites",
+    q: "Can my account be suspended?",
+    a: "Yes. Accounts that violate brand guidelines or affiliate terms may be suspended.",
   },
 ];
 
 export default function AffiliateProgramPage() {
+  const applyRef = useRef<HTMLElement | null>(null);
+  const [form, setForm] = useState<ApplyForm>(initialForm);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [message, setMessage] = useState<string | null>(null);
+  const [referralLink, setReferralLink] = useState<string | null>(null);
+
+  const canSubmit = useMemo(() => {
+    return (
+      form.fullName.trim() &&
+      form.email.trim() &&
+      form.websiteOrChannelUrl.trim() &&
+      form.promotionPlan.trim() &&
+      form.agreed
+    );
+  }, [form]);
+
+  function scrollToApply() {
+    applyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!canSubmit) return;
+
+    setStatus("loading");
+    setMessage(null);
+    setReferralLink(null);
+
+    const response = await fetch("/api/affiliate/apply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+
+    const data = (await response.json().catch(() => null)) as
+      | { error?: string; referralLink?: string }
+      | null;
+
+    if (!response.ok) {
+      setStatus("error");
+      setMessage(data?.error ?? "Unable to submit application.");
+      return;
+    }
+
+    setStatus("success");
+    setMessage(data?.message ?? "Application submitted. We review applications within 48 hours.");
+    setReferralLink(data?.referralLink ?? null);
+    setForm(initialForm);
+  }
+
   return (
-    <main className="bg-white text-slate-900">
-      <section className="relative overflow-hidden bg-slate-50">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_0%,rgba(226,232,240,0.7),transparent_55%),radial-gradient(circle_at_0%_85%,rgba(203,213,225,0.55),transparent_45%)]" />
+    <main>
+      <section className="mx-auto grid max-w-7xl gap-14 px-6 py-24 lg:grid-cols-2 lg:items-center lg:py-32">
+        <div>
+          <p className={`mb-4 text-xs uppercase tracking-[0.24em] ${affiliateTextMuted}`}>
+            Already an affiliate?{" "}
+            <Link href="/affiliate/login" className={`font-semibold ${affiliateLink}`}>
+              Sign in here
+            </Link>
+          </p>
+          <h1 className="text-5xl font-semibold tracking-tight md:text-6xl" style={{ color: "#64748b" }}>
+            Partner With PixieDVC
+          </h1>
+          <p className={`mt-6 max-w-xl text-lg leading-relaxed ${affiliateTextMuted}`}>
+            Earn commission on every confirmed DVC booking you refer. Simple tracking. Premium positioning. Transparent
+            payouts.
+          </p>
+          <button
+            type="button"
+            onClick={scrollToApply}
+            className={`mt-8 inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition ${affiliatePrimaryButton}`}
+          >
+            Apply Now
+            <ArrowRight className="h-4 w-4" />
+          </button>
+          <Link
+            href="/affiliate/login"
+            className="ml-3 inline-flex items-center rounded-xl border border-white/10 px-6 py-3 text-sm font-semibold text-slate-500 transition hover:bg-white/5"
+          >
+            Existing Affiliate Login
+          </Link>
+        </div>
 
-        <div className="relative mx-auto max-w-6xl px-6 py-20 lg:py-28">
-          <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 lg:items-center">
-            <div>
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-200">
-                <LinkIcon className="h-4 w-4" />
-                <span>Affiliate Program</span>
+        <div className={`${affiliateCard} rounded-3xl p-6`}>
+          <div className={`${affiliateCard2} p-5`}>
+            <p className={`text-xs uppercase tracking-[0.28em] ${affiliateTextMuted}`}>Dashboard Preview</p>
+            <div className="mt-4 grid grid-cols-12 gap-3">
+              <div className="col-span-7 space-y-3">
+                <div className="h-5 rounded bg-slate-700" />
+                <div className="h-24 rounded-xl bg-slate-700/90" />
+                <div className="h-14 rounded-xl bg-slate-700/80" />
               </div>
-
-              <h1 className="text-4xl font-semibold tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
-                Earn with every{" "}
-                <span className="bg-gradient-to-r from-slate-900 via-slate-700 to-slate-400 bg-clip-text text-transparent">
-                  referral
-                </span>
-              </h1>
-
-              <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-600">
-                Refer guests to PixieDVC and earn commissions through a transparent, trackable referral system designed
-                for content creators, publishers, and trusted voices in travel.
-              </p>
-
-              <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-600">
-                PixieDVC affiliates receive access to a dedicated portal where every click, booking, and payout is
-                clearly tracked. You'll always know how your referrals are performing and when commissions are released.
-              </p>
-
-              <div className="mt-8">
-                <PrimaryCtaLink href="/affiliate/login">Apply Now</PrimaryCtaLink>
-              </div>
-            </div>
-
-            <div>
-              <div className="relative">
-                <div className="absolute inset-0 rounded-3xl bg-slate-200/70 blur-2xl" />
-
-                <div className="relative rounded-2xl border border-slate-200 bg-white p-8 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
-                  <div className="mb-4 flex items-center gap-2 text-sm font-medium uppercase tracking-wide text-slate-500">
-                    <span className="h-2 w-2 rounded-full bg-amber-300" />
-                    Portal Preview
-                  </div>
-
-                  <h3 className="text-2xl font-semibold text-slate-900">
-                    Track clicks, bookings, and payouts in one dashboard.
-                  </h3>
-
-                  <div className="mt-4 space-y-3 text-slate-600">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="h-5 w-5 text-slate-700" />
-                      <span>Transparent performance reporting</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="h-5 w-5 text-slate-700" />
-                      <span>Real-time analytics dashboard</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="h-5 w-5 text-slate-700" />
-                      <span>Automated commission tracking</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-8 border-t border-slate-200 pt-6">
-                    <div className="flex h-16 items-end gap-2">
-                      {[40, 65, 45, 80, 60, 90, 75].map((height) => (
-                        <div
-                          key={height}
-                          className="flex-1 rounded-t bg-slate-200 transition hover:bg-slate-300"
-                          style={{ height: `${height}%` }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
+              <div className="col-span-5 space-y-3">
+                <div className="h-16 rounded-xl bg-slate-700/80" />
+                <div className="h-16 rounded-xl bg-slate-700/80" />
+                <div className="h-16 rounded-xl bg-slate-700/80" />
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="how-it-works" className="bg-secondary/30 py-20 lg:py-28">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="mb-16 text-center">
-            <h2 className="text-3xl font-semibold text-slate-900 md:text-4xl">How it works</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-              Join our affiliate program in three simple steps and start earning commissions on every successful
-              referral.
+      <section className="mx-auto max-w-7xl px-6 py-20">
+        <h2 className="text-3xl font-semibold tracking-tight text-slate-500 md:text-4xl" style={{ color: "#64748b" }}>
+          Why Join
+        </h2>
+        <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          {benefits.map((benefit) => {
+            const Icon = benefit.icon;
+            return (
+              <article
+                key={benefit.title}
+                className={`${affiliateCard} p-6`}
+              >
+                <Icon className="h-5 w-5 text-[#D4AF37]" />
+                <h3 className="mt-4 text-lg font-semibold text-slate-500" style={{ color: "#64748b" }}>
+                  {benefit.title}
+                </h3>
+                <p className={`mt-2 text-sm leading-relaxed ${affiliateTextMuted}`}>{benefit.copy}</p>
+              </article>
+            );
+          })}
+        </div>
+        <p className={`mt-8 max-w-4xl text-sm leading-relaxed ${affiliateTextMuted}`}>
+          We selectively partner with Disney-focused creators, travel planners, and community leaders to maintain
+          quality and brand integrity.
+        </p>
+      </section>
+
+      <section ref={applyRef} id="affiliate-application" className="mx-auto max-w-7xl px-6 py-20">
+        <div className="max-w-3xl">
+          <h2 className="text-3xl font-semibold tracking-tight text-slate-500 md:text-4xl" style={{ color: "#64748b" }}>
+            Apply to Become a PixieDVC Affiliate
+          </h2>
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
+          className={`mt-10 rounded-3xl p-8 ${affiliateCard}`}
+        >
+          <div className="grid gap-5 md:grid-cols-2">
+            <Field label="Full Name *">
+              <input
+                value={form.fullName}
+                onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+                required
+                className={`${affiliateInput} !text-slate-400`}
+              />
+            </Field>
+            <Field label="Email *">
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required
+                className={`${affiliateInput} !text-slate-400`}
+              />
+            </Field>
+            <Field label="Website or Channel URL *">
+              <input
+                value={form.websiteOrChannelUrl}
+                onChange={(e) => setForm({ ...form, websiteOrChannelUrl: e.target.value })}
+                required
+                className={`${affiliateInput} !text-slate-400`}
+              />
+            </Field>
+            <Field label="Instagram / YouTube link (optional)">
+              <input
+                value={form.socialLink}
+                onChange={(e) => setForm({ ...form, socialLink: e.target.value })}
+                className={`${affiliateInput} !text-slate-400`}
+              />
+            </Field>
+            <Field label="Estimated monthly traffic (optional)">
+              <select
+                value={form.trafficEstimate}
+                onChange={(e) => setForm({ ...form, trafficEstimate: e.target.value })}
+                className={`${affiliateInput} !text-slate-400`}
+              >
+                <option value="">Select range</option>
+                <option value="lt_1k">&lt;1K</option>
+                <option value="1k_10k">1K–10K</option>
+                <option value="10k_50k">10K–50K</option>
+                <option value="50k_plus">50K+</option>
+              </select>
+            </Field>
+          </div>
+
+          <Field label="How do you plan to promote PixieDVC? *" className="mt-5">
+            <textarea
+              value={form.promotionPlan}
+              onChange={(e) => setForm({ ...form, promotionPlan: e.target.value })}
+              required
+              rows={4}
+              className={`${affiliateInput} !text-slate-400`}
+            />
+          </Field>
+
+          <label className={`mt-5 flex items-start gap-3 text-sm ${affiliateTextMuted}`}>
+            <input
+              type="checkbox"
+              checked={form.agreed}
+              onChange={(e) => setForm({ ...form, agreed: e.target.checked })}
+              required
+              className="mt-1 h-4 w-4 rounded border-white/10 bg-[#111827]"
+            />
+            <span>
+              I have read and agree to the PixieDVC Affiliate Agreement.{" "}
+              <Link href="/affiliate/agreement" target="_blank" className={`font-semibold ${affiliateLink}`}>
+                Read agreement
+              </Link>
+            </span>
+          </label>
+
+          <button
+            type="submit"
+            disabled={!canSubmit || status === "loading"}
+            className={`mt-6 rounded-xl px-6 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${affiliatePrimaryButton}`}
+          >
+            {status === "loading" ? "Submitting..." : "Submit Application"}
+          </button>
+
+          <p className={`mt-3 text-sm ${affiliateTextMuted}`}>Applications are reviewed within 48 hours.</p>
+          {message ? (
+            <p className={`mt-2 text-sm ${status === "error" ? "text-red-400" : "text-emerald-400"}`}>{message}</p>
+          ) : null}
+          {referralLink ? (
+            <p className={`mt-2 text-sm ${affiliateTextMuted}`}>
+              Your referral link is ready: <span className="font-semibold text-slate-500">{referralLink}</span>
             </p>
-          </div>
+          ) : null}
+        </form>
+      </section>
 
-          <div className="grid gap-6 md:grid-cols-3 lg:gap-8">
-            {howItWorksSteps.map((step, index) => {
-              const Icon = step.icon;
-              return (
-                <div key={step.title} className="group relative">
-                  {index < howItWorksSteps.length - 1 && (
-                    <div className="absolute left-[60%] top-16 hidden h-px w-[80%] bg-border md:block" />
-                  )}
+      <section className="mx-auto max-w-7xl px-6 py-20">
+        <h2 className="text-3xl font-semibold tracking-tight text-slate-500 md:text-4xl" style={{ color: "#64748b" }}>
+          What Happens Next
+        </h2>
+        <div className="mt-10 grid gap-5 md:grid-cols-3">
+          {[
+            { step: "1", title: "Apply", copy: "Submit your affiliate profile and channel details." },
+            { step: "2", title: "Get Approved", copy: "Our team reviews fit and verifies promotional alignment." },
+            { step: "3", title: "Access Your Affiliate Dashboard", copy: "Track performance and manage payouts in one place." },
+          ].map((item) => (
+            <article key={item.step} className={`${affiliateCard} p-6`}>
+              <p className={`text-xs uppercase tracking-[0.28em] ${affiliateTextMuted}`}>Step {item.step}</p>
+              <h3 className="mt-3 text-xl font-semibold text-slate-500" style={{ color: "#64748b" }}>
+                {item.title}
+              </h3>
+              <p className={`mt-2 text-sm leading-relaxed ${affiliateTextMuted}`}>{item.copy}</p>
+            </article>
+          ))}
+        </div>
+        <p className={`mt-6 text-sm ${affiliateTextMuted}`}>Payment details and tax information are collected after approval.</p>
+      </section>
 
-                  <div className="relative z-10 h-full rounded-2xl border border-slate-900 bg-[#0F2148] p-8 text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated">
-                    <div className="absolute -right-3 -top-3 flex h-16 w-16 items-center justify-center rounded-full border border-slate-200 bg-white text-4xl font-semibold text-[#0F2148] shadow-soft">
-                      {index + 1}
-                    </div>
-
-                    <div
-                      className="mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-white/10 transition-transform group-hover:scale-110"
-                    >
-                      <Icon className="h-7 w-7 text-white" />
-                    </div>
-
-                    <h3 className="mb-3 min-h-[56px] text-xl font-semibold leading-snug text-white">{step.title}</h3>
-                    <p className="leading-relaxed text-white/80">{step.description}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      <section className="mx-auto max-w-7xl px-6 py-20">
+        <h2 className="text-3xl font-semibold tracking-tight text-slate-500 md:text-4xl" style={{ color: "#64748b" }}>
+          FAQ
+        </h2>
+        <div className="mt-10 grid gap-4">
+          {faqs.map((item) => (
+            <article key={item.q} className={`${affiliateCard} p-6`}>
+              <h3 className="text-base font-semibold text-slate-500" style={{ color: "#64748b" }}>
+                {item.q}
+              </h3>
+              <p className={`mt-2 text-sm leading-relaxed ${affiliateTextMuted}`}>{item.a}</p>
+            </article>
+          ))}
         </div>
       </section>
 
-      <section className="py-20 lg:py-28">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="rounded-3xl border bg-card p-8 shadow-soft lg:p-12">
-            <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-16">
-              <div>
-                <h2 className="mb-6 text-3xl font-bold md:text-4xl">Affiliate Portal Access</h2>
-                <p className="text-lg leading-relaxed text-muted-foreground">
-                  Once approved, you'll receive access to the PixieDVC Affiliate Portal, where you can:
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                {portalFeatures.map((feature) => {
-                  const Icon = feature.icon;
-                  return (
-                    <div key={feature.text} className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-border bg-secondary/30">
-                        <Icon className="h-5 w-5 text-primary" />
-                      </div>
-                      <span className="text-muted-foreground">{feature.text}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="mt-10 flex items-center gap-2 border-t border-border pt-8 text-muted-foreground">
-              <span>Already an affiliate?</span>
-              <a href="/affiliate/login" className="font-semibold text-foreground transition-colors hover:text-primary">
-                Log in.
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-secondary/30 py-20 lg:py-28">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="rounded-3xl border bg-card p-8 shadow-soft lg:p-12">
-            <h2 className="mb-10 text-3xl font-bold md:text-4xl">Who this is for</h2>
-
-            <div className="mb-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {targetAudiences.map((audience) => {
-                const Icon = audience.icon;
-                return (
-                  <div
-                    key={audience.title}
-                    className="group flex items-center gap-4 rounded-xl border border-border/50 bg-secondary/50 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:bg-secondary hover:shadow-soft"
-                  >
-                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 transition-transform group-hover:scale-110">
-                      <Icon className="h-6 w-6 text-primary" />
-                    </div>
-                    <span className="font-medium">{audience.title}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="border-t border-border pt-8">
-              <p className="text-muted-foreground">
-                If you're looking for a deeper operational or agency-level collaboration,{" "}
-                <a href="/partners/become-a-partner" className="font-semibold text-primary hover:underline underline-offset-4">
-                  visit Become a Partner
-                </a>{" "}
-                instead.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-white py-16">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="rounded-3xl bg-[#1c2a4a] px-8 py-12 text-center text-white shadow-soft sm:px-12">
-            <h2 className="text-3xl font-semibold md:text-4xl" style={{ color: "#fff" }}>
-              Ready to start earning?
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-base text-white/80">
-              Join our affiliate program today and turn your audience into a revenue stream with transparent tracking
-              and reliable payouts.
-            </p>
-            <div className="mt-8">
-              <PrimaryCtaLink href="/affiliate/login">Apply for the Affiliate Program -&gt;</PrimaryCtaLink>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-[#0F2148]">
-        <div className="mx-auto max-w-6xl px-6 py-16 text-white">
-          <div className="flex flex-col items-start gap-4">
-            <h2 className="text-2xl font-semibold">Get Started</h2>
-            <p className="text-sm text-white/80">
-              Quality-first program. Applications are reviewed and approved before access is granted.
-            </p>
-            <p className="text-sm text-white/80">Already approved? Log in. New partners apply in minutes.</p>
-            <PrimaryCtaLink href="/affiliate/login">Affiliate Login / Apply</PrimaryCtaLink>
-          </div>
-        </div>
-      </section>
+      <section className="mx-auto max-w-7xl px-6 pb-24 pt-6" />
     </main>
+  );
+}
+
+function Field({ label, children, className = "" }: { label: string; children: ReactNode; className?: string }) {
+  return (
+    <label className={`flex flex-col gap-2 text-sm font-medium text-slate-400 ${className}`.trim()}>
+      <span>{label}</span>
+      {children}
+    </label>
   );
 }

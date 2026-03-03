@@ -14,13 +14,21 @@ export default function AffiliateTracker() {
       return;
     }
     lastRef.current = ref;
+    const storageKey = `px_aff_click_${ref}`;
+    const clickId =
+      sessionStorage.getItem(storageKey) ??
+      (() => {
+        const id = crypto.randomUUID();
+        sessionStorage.setItem(storageKey, id);
+        return id;
+      })();
 
     fetch("/api/affiliates/track", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ ref, path: pathname }),
+      body: JSON.stringify({ ref, path: pathname, click_id: clickId }),
     }).catch(() => undefined);
   }, [searchParams, pathname]);
 

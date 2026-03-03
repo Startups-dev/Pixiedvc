@@ -117,27 +117,27 @@ export default function AdminAuditTrail({
                       // ignore
                     }
                   }}
-                  className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
+                  className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500"
                 >
                   Copy JSON
                 </button>
               </div>
               <div className="mt-3 space-y-2">
-                <details className="rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600">
+                <details className="rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-500">
                   <summary className="cursor-pointer font-semibold text-slate-700">Before</summary>
-                  <pre className="mt-2 overflow-auto text-xs text-slate-600">
+                  <pre className="mt-2 overflow-auto text-xs text-slate-500">
                     {JSON.stringify(row.before ?? {}, null, 2)}
                   </pre>
                 </details>
-                <details className="rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600">
+                <details className="rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-500">
                   <summary className="cursor-pointer font-semibold text-slate-700">After</summary>
-                  <pre className="mt-2 overflow-auto text-xs text-slate-600">
+                  <pre className="mt-2 overflow-auto text-xs text-slate-500">
                     {JSON.stringify(row.after ?? {}, null, 2)}
                   </pre>
                 </details>
-                <details className="rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600">
+                <details className="rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-500">
                   <summary className="cursor-pointer font-semibold text-slate-700">Meta</summary>
-                  <pre className="mt-2 overflow-auto text-xs text-slate-600">
+                  <pre className="mt-2 overflow-auto text-xs text-slate-500">
                     {JSON.stringify(row.meta ?? {}, null, 2)}
                   </pre>
                 </details>

@@ -41,7 +41,7 @@ export default async function CompliancePoliciesPage() {
           <h2 className="text-lg font-semibold text-slate-900">Policy set</h2>
           <Link
             href="/admin/compliance"
-            className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-600"
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-500"
           >
             Back to compliance
           </Link>
@@ -64,7 +64,7 @@ export default async function CompliancePoliciesPage() {
                 </div>
                 <div className="flex items-center gap-4 text-xs uppercase tracking-[0.2em] text-slate-400">
                   <span>Last updated: {policy.meta.updated ?? '—'}</span>
-                  <Link href={`/admin/compliance/policies/${policy.slug}`} className="hover:text-slate-600">
+                  <Link href={`/admin/compliance/policies/${policy.slug}`} className="hover:text-slate-500">
                     View
                   </Link>
                 </div>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
+import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BookOpen,
@@ -39,6 +39,7 @@ type HeaderClientProps = {
   userRole: string | null;
   isAdmin: boolean;
   isAuthenticated: boolean;
+  hasAffiliateAccess: boolean;
 };
 
 type DropdownItem = {
@@ -165,14 +166,19 @@ const DROPDOWNS: Record<string, DropdownConfig> = {
   },
 };
 
-export default function HeaderClient({ userLabel, userRole, isAdmin, isAuthenticated }: HeaderClientProps) {
+export default function HeaderClient({
+  userLabel,
+  userRole,
+  isAdmin,
+  isAuthenticated,
+  hasAffiliateAccess,
+}: HeaderClientProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileSection, setMobileSection] = useState<string | null>(null);
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
   const navRef = useRef<HTMLDivElement | null>(null);
   const closeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -229,11 +235,11 @@ export default function HeaderClient({ userLabel, userRole, isAdmin, isAuthentic
   }, [pathname]);
 
   const handleLogout = useCallback(async () => {
-    await supabase.auth.signOut();
+    await createClient().auth.signOut();
     closeMobile();
     router.push("/login");
     router.refresh();
-  }, [closeMobile, router, supabase]);
+  }, [closeMobile, router]);
 
   const toggleMobileSection = useCallback((section: string) => {
     setMobileSection((prev) => (prev === section ? null : section));
@@ -461,7 +467,12 @@ export default function HeaderClient({ userLabel, userRole, isAdmin, isAuthentic
               );
             })}
             {isAuthenticated ? (
-              <UserMenu label={userLabel ?? "Signed in"} isAdmin={isAdmin} userRole={userRole} />
+              <UserMenu
+                label={userLabel ?? "Signed in"}
+                isAdmin={isAdmin}
+                userRole={userRole}
+                hasAffiliateAccess={hasAffiliateAccess}
+              />
             ) : (
               <Link
                 href="/login"
@@ -628,6 +639,15 @@ export default function HeaderClient({ userLabel, userRole, isAdmin, isAuthentic
                     >
                       Profile
                     </Link>
+                    {hasAffiliateAccess ? (
+                      <Link
+                        href="/affiliate/dashboard"
+                        onClick={closeMobile}
+                        className="rounded-xl px-3 py-2 transition hover:bg-white/10 hover:text-white"
+                      >
+                        Affiliate Portal
+                      </Link>
+                    ) : null}
                     {isAdmin ? (
                       <Link
                         href="/admin"

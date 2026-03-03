@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 
-import { AFFILIATE_COOKIE, AFFILIATE_CLICK_COOKIE, AFFILIATE_COOKIE_MAX_AGE } from "@/lib/affiliate-cookies";
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> },
@@ -19,38 +17,11 @@ export async function GET(
     return NextResponse.redirect(fallback);
   }
 
-  const affiliateId = data[0].affiliate_id as string;
-  const clickId = crypto.randomUUID();
   const url = new URL(request.url);
-  const landingPath = url.searchParams.get("to") ?? "/";
-  const referrer = request.headers.get("referer");
-  const userAgent = request.headers.get("user-agent");
-
-  await supabase.from("affiliate_clicks").insert({
-    affiliate_id: affiliateId,
-    click_id: clickId,
-    landing_path: landingPath,
-    referrer,
-    user_agent: userAgent,
-  });
+  const rawTo = url.searchParams.get("to") ?? "/";
+  const landingPath = rawTo.startsWith("/") ? rawTo : "/";
 
   const destination = new URL(landingPath, request.url);
-  const response = NextResponse.redirect(destination);
-
-  response.cookies.set(AFFILIATE_COOKIE, affiliateId, {
-    path: "/",
-    maxAge: AFFILIATE_COOKIE_MAX_AGE,
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  });
-  response.cookies.set(AFFILIATE_CLICK_COOKIE, clickId, {
-    path: "/",
-    maxAge: AFFILIATE_COOKIE_MAX_AGE,
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  });
-
-  return response;
+  destination.searchParams.set("ref", decodedSlug);
+  return NextResponse.redirect(destination);
 }

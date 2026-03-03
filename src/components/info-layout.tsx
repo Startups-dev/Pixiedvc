@@ -92,7 +92,7 @@ export function InfoLayout({
               {toc.length > 0 ? (
                 <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Table of contents</p>
-                  <ul className="mt-3 space-y-2 text-sm text-slate-600">
+                  <ul className="mt-3 space-y-2 text-sm text-slate-500">
                     {toc.map((item) => (
                       <li key={`${item.id}-${item.title}`} className={item.level === 3 ? "pl-3 text-slate-500" : ""}>
                         <Link href={`#${item.id}`} className="transition hover:text-brand">
@@ -120,7 +120,7 @@ export function InfoLayout({
                     {resources.map((item) => (
                       <div
                         key={item.href}
-                        className="rounded-2xl border border-slate-100 bg-white/80 p-4 text-sm text-slate-600"
+                        className="rounded-2xl border border-slate-100 bg-white/80 p-4 text-sm text-slate-500"
                       >
                         <p className="font-semibold text-ink">{item.title}</p>
                         <p className="mt-1 text-xs text-slate-500">{item.description}</p>

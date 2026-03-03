@@ -120,11 +120,13 @@ export default function OwnerQueue({ owners, statusFilter }: Props) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="admin-owners-theme space-y-8">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Admin</p>
-          <h1 className="text-3xl font-semibold text-slate-900">Owner Verification</h1>
+          <Link href="/admin" className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0] hover:text-[#ececec]">
+            Admin
+          </Link>
+          <h1 className="text-3xl font-semibold" style={{ color: '#64748b' }}>Owner Verification</h1>
           <p className="text-sm text-slate-500">Status filter: {statusFilter === 'all' ? 'All statuses' : statusFilter}</p>
         </div>
         <input
@@ -139,7 +141,7 @@ export default function OwnerQueue({ owners, statusFilter }: Props) {
       <div className="grid gap-6 lg:grid-cols-[1.3fr_0.8fr]">
         <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Queue ({filtered.length})</h2>
+            <h2 className="text-lg font-semibold" style={{ color: '#64748b' }}>Queue ({filtered.length})</h2>
             <Link href="/owner/onboarding" className="text-sm font-semibold text-indigo-600 hover:underline">
               View sample intake
             </Link>
@@ -175,7 +177,7 @@ export default function OwnerQueue({ owners, statusFilter }: Props) {
 
         <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           {!selectedOwner ? (
-            <p className="text-sm text-slate-600">Select an owner to preview documents.</p>
+            <p className="text-sm text-slate-500">Select an owner to preview documents.</p>
           ) : (
             <div className="space-y-6">
               <div>
@@ -214,7 +216,7 @@ export default function OwnerQueue({ owners, statusFilter }: Props) {
                 <div className="space-y-4">
                   <div>
                     <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Overview</p>
-                    <h2 className="text-2xl font-semibold text-slate-900">{selectedOwner.displayName ?? 'Unnamed owner'}</h2>
+                    <h2 className="text-2xl font-semibold" style={{ color: '#64748b' }}>{selectedOwner.displayName ?? 'Unnamed owner'}</h2>
                     <p className="text-sm text-slate-500">{selectedOwner.email ?? 'No email on file'}</p>
                     {selectedOwner.submittedAt ? (
                       <p className="text-xs text-slate-400">
@@ -404,7 +406,7 @@ function Lightbox({ doc, onClose }: { doc: QueueOwnerDocument; onClose: () => vo
             <div className="flex h-full items-center justify-center text-sm text-slate-500">Preview unavailable</div>
           )}
         </div>
-        <div className="mt-4 text-sm text-slate-600">
+        <div className="mt-4 text-sm text-slate-500">
           <p className="font-semibold text-slate-900">{formatDocKind(doc.kind)}</p>
           <p>Uploaded {new Date(doc.createdAt).toLocaleString()}</p>
         </div>

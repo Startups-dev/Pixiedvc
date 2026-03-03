@@ -909,7 +909,7 @@ export default function AdminMatchingClient() {
     }) ?? [];
 
   return (
-    <div className="space-y-6">
+    <div className="admin-matching-theme space-y-6">
       <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -986,7 +986,7 @@ export default function AdminMatchingClient() {
                       </span>{' '}
                       · {summary.points ?? '—'} pts
                     </summary>
-                    <div className="mt-2 text-xs text-slate-600">
+                    <div className="mt-2 text-xs text-slate-500">
                       <p>Booking id: {summary.bookingId}</p>
                       <p>Resort: {summary.resortName}</p>
                       <p>Dates: {summary.dates}</p>
@@ -1014,7 +1014,7 @@ export default function AdminMatchingClient() {
                 {matcherRawOpen ? 'Hide raw json' : 'Show raw json'}
               </button>
               {matcherRawOpen ? (
-                <pre className="mt-2 max-h-80 overflow-auto rounded-2xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
+                <pre className="mt-2 max-h-80 overflow-auto rounded-2xl border border-slate-200 bg-white p-3 text-xs text-slate-500">
                   {JSON.stringify(matcherResponse, null, 2)}
                 </pre>
               ) : null}
@@ -1097,7 +1097,7 @@ export default function AdminMatchingClient() {
               </select>
               <button
                 onClick={clearFilters}
-                className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600"
+                className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-500"
                 type="button"
               >
                 Clear filters
@@ -1447,7 +1447,7 @@ export default function AdminMatchingClient() {
                       {detailStatusChips.map((chip) => (
                         <span
                           key={chip}
-                          className="rounded-full border border-slate-200 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-600"
+                          className="rounded-full border border-slate-200 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500"
                         >
                           {chip}
                         </span>
@@ -1569,7 +1569,7 @@ export default function AdminMatchingClient() {
                     type="button"
                     onClick={openManualModal}
                     disabled={hasAllManualTypes || !detailMatch}
-                    className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                     title={
                       hasAllManualTypes
                         ? 'All payment rows are already marked as paid.'
@@ -1782,7 +1782,7 @@ export default function AdminMatchingClient() {
 
                       return (
                         <div key={txn.id} className="rounded-2xl border border-slate-200 p-4">
-                        <div className="grid gap-2 text-xs text-slate-600 md:grid-cols-6">
+                        <div className="grid gap-2 text-xs text-slate-500 md:grid-cols-6">
                           <div>
                             <p className="font-semibold text-slate-500">Date</p>
                             <p>{formatDate(txn.paid_at ?? txn.created_at ?? null)}</p>
@@ -1816,14 +1816,14 @@ export default function AdminMatchingClient() {
                           Ref: {txn.processor_ref ?? '—'}
                         </div>
                         {hasDetails ? (
-                          <details className="mt-3 rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600">
+                          <details className="mt-3 rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-500">
                             <summary className="cursor-pointer font-semibold text-slate-700">
                               Details
                             </summary>
                             <div className="mt-2 space-y-3">
                               {txn.splits.length ? (
                                 <div className="space-y-1">
-                                  <p className="font-semibold text-slate-600">Splits</p>
+                                  <p className="font-semibold text-slate-500">Splits</p>
                                   {txn.splits.map((split, index) => (
                                     <div
                                       key={`${txn.id}-split-${index}`}
@@ -1849,14 +1849,14 @@ export default function AdminMatchingClient() {
                               ) : null}
                               {noteValue ? (
                                 <div className="space-y-1">
-                                  <p className="font-semibold text-slate-600">Notes</p>
+                                  <p className="font-semibold text-slate-500">Notes</p>
                                   <p className="text-xs text-slate-500">{noteValue}</p>
                                 </div>
                               ) : null}
                               {metaPayload ? (
                                 <div className="space-y-1">
-                                  <p className="font-semibold text-slate-600">Meta</p>
-                                  <pre className="max-h-48 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-600">
+                                  <p className="font-semibold text-slate-500">Meta</p>
+                                  <pre className="max-h-48 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-500">
                                     {metaPayload}
                                   </pre>
                                 </div>
@@ -1919,7 +1919,7 @@ export default function AdminMatchingClient() {
               <AdminAuditTrail entityType="booking_match" entityId={detailMatch.id} />
             </>
           ) : selectedRow && selectedIsUnmatched ? (
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
               <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
                 Lead detail
               </p>
@@ -2044,7 +2044,7 @@ export default function AdminMatchingClient() {
                 <button
                   type="button"
                   onClick={() => setManualModalOpen(false)}
-                  className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-600"
+                  className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-500"
                 >
                   Cancel
                 </button>

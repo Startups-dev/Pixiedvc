@@ -11,6 +11,19 @@ export async function attachAffiliateLead(bookingRequestId: string) {
   }
 
   const supabase = await supabaseServer();
+  const { data: resolved, error: resolveError } = await supabase.rpc("resolve_affiliate", {
+    slug_or_code: attribution.affiliateRef,
+  });
+
+  if (resolveError || !resolved || resolved.length === 0) {
+    return;
+  }
+
+  const affiliateId = resolved[0]?.affiliate_id as string | undefined;
+  if (!affiliateId) {
+    return;
+  }
+
   const { data: existing } = await supabase
     .from("affiliate_leads")
     .select("id")
@@ -22,7 +35,7 @@ export async function attachAffiliateLead(bookingRequestId: string) {
   }
 
   const { error } = await supabase.from("affiliate_leads").insert({
-    affiliate_id: attribution.affiliateId,
+    affiliate_id: affiliateId,
     click_id: attribution.clickId ?? null,
     booking_request_id: bookingRequestId,
   });

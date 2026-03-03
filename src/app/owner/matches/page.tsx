@@ -34,7 +34,7 @@ export default async function OwnerMatchesPage() {
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-[0.3em] text-muted">Owner matches</p>
         <h1 className="text-3xl font-semibold text-ink">Pending owner requests</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-500">
           Review each booking package while your points are reserved.
         </p>
       </header>
@@ -54,7 +54,7 @@ export default async function OwnerMatchesPage() {
                 <div className="order-2 space-y-2 sm:order-1">
                   <p className="text-xs uppercase tracking-[0.2em] text-muted">Booking request</p>
                   <h2 className="text-lg font-semibold text-ink">{resortName}</h2>
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-slate-500">
                     {formatDate(booking?.check_in ?? null)} → {formatDate(booking?.check_out ?? null)} · {points.toLocaleString("en-US")} pts
                   </p>
                   <p className="text-xs text-slate-500">Received {formatDate(match.created_at)}</p>

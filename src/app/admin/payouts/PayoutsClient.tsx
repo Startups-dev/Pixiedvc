@@ -122,10 +122,10 @@ export default function PayoutsClient({ initialRows }: { initialRows: PayoutRow[
                   return (
                     <tr key={row.id} className="border-t">
                       <td className="px-4 py-3 font-medium text-slate-800">{resortName}</td>
-                      <td className="px-4 py-3 text-slate-600">{dateRange}</td>
-                      <td className="px-4 py-3 text-slate-600">{row.stage ?? 70}%</td>
+                      <td className="px-4 py-3 text-slate-500">{dateRange}</td>
+                      <td className="px-4 py-3 text-slate-500">{row.stage ?? 70}%</td>
                       <td className="px-4 py-3 text-slate-800">{formatCurrency(row.amount_cents)}</td>
-                      <td className="px-4 py-3 text-slate-600">{formatDate(row.eligible_at)}</td>
+                      <td className="px-4 py-3 text-slate-500">{formatDate(row.eligible_at)}</td>
                       <td className="px-4 py-3">
                         <button
                           type="button"
@@ -169,10 +169,10 @@ export default function PayoutsClient({ initialRows }: { initialRows: PayoutRow[
                   return (
                     <tr key={row.id} className="border-t">
                       <td className="px-4 py-3 font-medium text-slate-800">{resortName}</td>
-                      <td className="px-4 py-3 text-slate-600">{dateRange}</td>
-                      <td className="px-4 py-3 text-slate-600">{row.stage ?? 30}%</td>
+                      <td className="px-4 py-3 text-slate-500">{dateRange}</td>
+                      <td className="px-4 py-3 text-slate-500">{row.stage ?? 30}%</td>
                       <td className="px-4 py-3 text-slate-800">{formatCurrency(row.amount_cents)}</td>
-                      <td className="px-4 py-3 text-slate-600">{formatDate(rental?.check_in)}</td>
+                      <td className="px-4 py-3 text-slate-500">{formatDate(rental?.check_in)}</td>
                     </tr>
                   );
                 })}

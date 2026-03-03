@@ -120,13 +120,13 @@ export default async function GuestRequestPage({
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-6 py-12">
       <header className="space-y-4 rounded-3xl bg-white p-6 shadow-sm">
-        <Link href="/guest" className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400 hover:text-slate-600">
+        <Link href="/guest" className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400 hover:text-slate-500">
           ← Back to requests
         </Link>
         <div className="space-y-2">
           <p className="text-xs uppercase tracking-[0.25em] text-slate-400">Request</p>
           <h1 className="text-3xl font-semibold text-slate-900">{request.primary_resort?.name ?? "Your request"}</h1>
-          <p className="text-sm text-slate-600">Status: {formatStatus(request.status)}</p>
+          <p className="text-sm text-slate-500">Status: {formatStatus(request.status)}</p>
         </div>
       </header>
 
@@ -187,7 +187,7 @@ export default async function GuestRequestPage({
             </div>
           </div>
         ) : contract ? (
-          <p className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+          <p className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
             Agreement preparing. We’ll share the agreement as soon as it’s ready.
           </p>
         ) : (

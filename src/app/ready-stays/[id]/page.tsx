@@ -167,7 +167,7 @@ export default async function ReadyStayDetailPage({
             </p>
             <p className="text-sm text-muted">{stay.room_type}</p>
             {badge ? (
-              <span className="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+              <span className="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
                 {badge}
               </span>
             ) : null}

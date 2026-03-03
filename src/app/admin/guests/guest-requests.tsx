@@ -124,7 +124,7 @@ export default function GuestRequestBoard({
       const haystack = `${request.resortName ?? ''} ${request.renterName ?? ''} ${request.renterEmail ?? ''}`.toLowerCase();
       return haystack.includes(text);
     });
-  }, [requests, search, filter, statusOverrides]);
+  }, [requests, search, filter, quickFilter, statusOverrides]);
 
   const selected = useMemo(() => {
     if (!selectedId) {
@@ -208,9 +208,9 @@ export default function GuestRequestBoard({
   return (
     <div className="space-y-6">
       {bannerCount > 0 ? (
-        <div className="rounded-3xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-700 shadow-sm">
+        <div className="rounded-3xl border border-[#3a3a3a] bg-[#2f2f2f] px-5 py-4 text-sm text-[#b4b4b4] shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="font-semibold text-slate-900">
+            <p className="font-semibold text-[#ececec]">
               {bannerCount} requests have 3 choices but no availability yet
             </p>
             <button
@@ -219,7 +219,7 @@ export default function GuestRequestBoard({
                 setFilter('all');
                 setQuickFilter('choices_no_availability');
               }}
-              className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-700 hover:bg-slate-50"
+              className="rounded-full border border-[#3a3a3a] bg-[#212121] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#ececec] hover:bg-[#171717]"
             >
               Filter to these
             </button>
@@ -236,10 +236,10 @@ export default function GuestRequestBoard({
         ].map((item) => (
           <div
             key={item.label}
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm"
+            className="rounded-2xl border border-[#3a3a3a] bg-[#2f2f2f] px-4 py-3 text-sm shadow-sm"
           >
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{item.label}</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-900">{item.value}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">{item.label}</p>
+            <p className="mt-2 text-2xl font-semibold text-[#ececec]">{item.value}</p>
           </div>
         ))}
       </div>
@@ -256,8 +256,10 @@ export default function GuestRequestBoard({
             onClick={() =>
               setQuickFilter((prev) => (prev === item.key ? null : (item.key as typeof quickFilter)))
             }
-            className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] ${
-              quickFilter === item.key ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
+            className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] ${
+              quickFilter === item.key
+                ? 'border-[#ececec] bg-[#ececec] text-[#212121]'
+                : 'border-[#3a3a3a] bg-[#2a2a2a] text-[#b4b4b4]'
             }`}
           >
             {item.label}
@@ -270,8 +272,10 @@ export default function GuestRequestBoard({
             key={key}
             type="button"
             onClick={() => setFilter(key)}
-            className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] ${
-              filter === key ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
+            className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] ${
+              filter === key
+                ? 'border-[#ececec] bg-[#ececec] text-[#212121]'
+                : 'border-[#3a3a3a] bg-[#2a2a2a] text-[#b4b4b4]'
             }`}
           >
             {key === 'all' ? 'All' : STATUS_LABELS[key] ?? key} ({statusCounts[key] ?? 0})
@@ -280,20 +284,20 @@ export default function GuestRequestBoard({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-3xl border border-[#3a3a3a] bg-[#2f2f2f] p-5 shadow-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Requests ({filtered.length})</h2>
+            <h2 className="text-lg font-semibold" style={{ color: '#64748b' }}>Requests ({filtered.length})</h2>
             <input
               type="search"
               placeholder="Search by guest or resort"
-              className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm shadow-sm sm:w-72"
+              className="w-full rounded-2xl border border-[#3a3a3a] bg-[#212121] px-4 py-2 text-sm text-[#ececec] placeholder:text-[#8e8ea0] shadow-sm sm:w-72"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
           </div>
-          <div className="mt-4 divide-y divide-slate-100">
+          <div className="mt-4 divide-y divide-[#3a3a3a]">
             {filtered.length === 0 ? (
-              <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">No requests match this filter.</p>
+              <p className="rounded-2xl bg-[#212121] p-4 text-sm text-[#8e8ea0]">No requests match this filter.</p>
             ) : (
               filtered.map((request) => {
                 const status = statusOverrides[request.id] ?? request.status;
@@ -302,29 +306,29 @@ export default function GuestRequestBoard({
                     key={request.id}
                     type="button"
                     onClick={() => setSelectedId(request.id)}
-                    className={`flex w-full flex-col gap-2 px-3 py-4 text-left transition hover:bg-slate-50 ${
-                      selected?.id === request.id ? 'bg-slate-50' : ''
+                    className={`flex w-full flex-col gap-2 rounded-2xl px-3 py-4 text-left transition hover:bg-[#3a3a3a] ${
+                      selected?.id === request.id ? 'bg-[#3a3a3a]' : ''
                     }`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
                       <div>
-                        <p className="text-base font-semibold text-slate-900">
+                        <p className="text-base font-semibold text-[#ececec]">
                           {request.renterName ?? request.renterEmail ?? 'Unknown guest'}
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-[#b4b4b4]">
                           {request.resortName ?? 'Any resort'} · {formatDates(request.checkIn, request.checkOut)}
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-[#b4b4b4]">
                           {request.totalPoints ? `${request.totalPoints} points` : 'Points TBD'}
                         </p>
                       </div>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+                      <span className="rounded-full border border-[#3a3a3a] bg-[#212121] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#b4b4b4]">
                         {STATUS_LABELS[status] ?? status}
                       </span>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-[#b4b4b4]">
                       <span>Party size {partyLabel(request.adults, request.children)}</span>
-                      <span className="rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                      <span className="rounded-full border border-[#3a3a3a] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8e8ea0]">
                         Availability: {AVAILABILITY_LABELS[request.availabilityStatus ?? ''] ?? 'Unreviewed'}
                       </span>
                     </div>
@@ -335,27 +339,27 @@ export default function GuestRequestBoard({
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-3xl border border-[#3a3a3a] bg-[#2f2f2f] p-5 shadow-sm">
           {!selected ? (
-            <p className="text-sm text-slate-500">Select a request to view concierge tools.</p>
+            <p className="text-sm text-[#8e8ea0]">Select a request to view concierge tools.</p>
           ) : (
             <div className="space-y-5">
               <header>
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Overview</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0]">Overview</p>
                   {selected.id ? (
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+                    <span className="rounded-full border border-[#3a3a3a] bg-[#212121] px-3 py-1 text-xs font-semibold text-[#8e8ea0]">
                       {selected.id}
                     </span>
                   ) : null}
                 </div>
-                <h2 className="text-2xl font-semibold text-slate-900">
+                <h2 className="text-2xl font-semibold" style={{ color: '#64748b' }}>
                   {selected.renterName ?? selected.renterEmail ?? 'Unknown guest'}
                 </h2>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-[#b4b4b4]">
                   {selected.resortName ?? 'Any resort'} · {formatDates(selected.checkIn, selected.checkOut)}
                 </p>
-                <p className="text-xs text-slate-500">{selected.renterEmail ?? 'No email'}</p>
+                <p className="text-xs text-[#8e8ea0]">{selected.renterEmail ?? 'No email'}</p>
               </header>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -371,9 +375,9 @@ export default function GuestRequestBoard({
               </div>
 
               <div className="space-y-3">
-                <p className="text-sm font-semibold text-slate-900">Availability</p>
+                <p className="text-sm font-semibold text-[#ececec]">Availability</p>
                 <textarea
-                  className="min-h-[70px] w-full rounded-2xl border border-slate-200 p-3 text-sm"
+                  className="min-h-[70px] w-full rounded-2xl border border-[#3a3a3a] bg-[#212121] p-3 text-sm text-[#ececec] placeholder:text-[#8e8ea0]"
                   placeholder="Availability note (optional)"
                   value={availabilityNote}
                   onChange={(event) => setAvailabilityNote(event.target.value)}
@@ -388,7 +392,7 @@ export default function GuestRequestBoard({
                       key={option.value}
                       type="button"
                       onClick={() => updateAvailability(option.value)}
-                      className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                      className="rounded-full border border-[#3a3a3a] bg-[#212121] px-4 py-2 text-sm font-semibold text-[#ececec] hover:bg-[#171717] disabled:opacity-60"
                       disabled={updatingAvailability}
                     >
                       {updatingAvailability ? 'Saving…' : option.label}
@@ -398,12 +402,12 @@ export default function GuestRequestBoard({
               </div>
 
               <div className="space-y-3">
-                <p className="text-sm font-semibold text-slate-900">Actions</p>
+                <p className="text-sm font-semibold text-[#ececec]">Actions</p>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={promoteToMatching}
-                    className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700 disabled:opacity-60"
+                    className="rounded-full bg-[#10a37f] px-4 py-2 text-sm font-semibold text-white shadow hover:bg-[#0d8c6d] disabled:opacity-60"
                     disabled={promoting || !availabilityOk}
                   >
                     {promoting ? 'Saving…' : 'Promote to matching tool'}
@@ -412,16 +416,16 @@ export default function GuestRequestBoard({
               </div>
 
               <form onSubmit={handleAddNote} className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Add concierge note</label>
+                <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#8e8ea0]">Add concierge note</label>
                 <textarea
-                  className="min-h-[90px] w-full rounded-2xl border border-slate-200 p-3 text-sm"
+                  className="min-h-[90px] w-full rounded-2xl border border-[#3a3a3a] bg-[#212121] p-3 text-sm text-[#ececec] placeholder:text-[#8e8ea0]"
                   placeholder="Log outreach attempts, guest preferences, etc."
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
                 />
                 <button
                   type="submit"
-                  className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                  className="rounded-full bg-[#10a37f] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
                   disabled={savingNote}
                 >
                   {savingNote ? 'Saving…' : 'Post note'}
@@ -429,22 +433,22 @@ export default function GuestRequestBoard({
               </form>
 
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-slate-900">Activity</p>
+                <p className="text-sm font-semibold text-[#ececec]">Activity</p>
                 {selected.activity.length === 0 ? (
-                  <p className="text-sm text-slate-500">No activity yet.</p>
+                  <p className="text-sm text-[#8e8ea0]">No activity yet.</p>
                 ) : (
                   selected.activity.map((entry) => (
-                    <div key={entry.id} className="rounded-2xl border border-slate-100 p-3 text-sm text-slate-600">
-                      <p className="text-xs text-slate-400">
+                    <div key={entry.id} className="rounded-2xl border border-[#3a3a3a] bg-[#212121] p-3 text-sm text-[#b4b4b4]">
+                      <p className="text-xs text-[#8e8ea0]">
                         {new Date(entry.createdAt).toLocaleString()} · {entry.author ?? 'System'}
                       </p>
                       {entry.kind === 'status_change' ? (
-                        <p className="mt-1 text-slate-800">
+                        <p className="mt-1 text-[#ececec]">
                           Status {entry.fromStatus ?? '—'} → <span className="font-semibold">{entry.toStatus ?? '—'}</span>
                           {entry.body ? ` · ${entry.body}` : ''}
                         </p>
                       ) : (
-                        <p className="mt-1 text-slate-800">{entry.body ?? 'Availability updated.'}</p>
+                        <p className="mt-1 text-[#ececec]">{entry.body ?? 'Availability updated.'}</p>
                       )}
                     </div>
                   ))
@@ -487,9 +491,9 @@ function partyLabel(adults: number | null, children: number | null) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 p-3 text-sm text-slate-500">
+    <div className="rounded-2xl border border-[#3a3a3a] bg-[#212121] p-3 text-sm text-[#8e8ea0]">
       <p className="text-xs uppercase tracking-[0.2em]">{label}</p>
-      <p className="text-base font-semibold text-slate-900">{value}</p>
+      <p className="text-base font-semibold text-[#ececec]">{value}</p>
     </div>
   );
 }

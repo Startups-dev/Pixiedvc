@@ -16,10 +16,17 @@ export default function AffiliatePortalHeader({
   isAdmin,
   isAuthenticated,
 }: AffiliatePortalHeaderProps) {
+  const portalLinks = [
+    { href: "/affiliate/dashboard", label: "Dashboard" },
+    { href: "/affiliate/resources", label: "Resources" },
+    { href: "/affiliate/guides", label: "Guides" },
+    { href: "/affiliate/dashboard#payout-history", label: "Payouts" },
+  ];
+
   return (
     <header className="relative z-[60]">
       <div className="w-full border-b border-white/10 bg-[#0f2148]">
-        <div className="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between px-4 md:px-6">
+        <div className="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-4 px-4 md:px-6">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center">
               <Image
@@ -36,6 +43,14 @@ export default function AffiliatePortalHeader({
             </span>
           </div>
 
+          <nav className="hidden items-center gap-5 text-sm text-white/80 md:flex">
+            {portalLinks.map((link) => (
+              <Link key={link.href} href={link.href} className="transition hover:text-white">
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
           <div className="flex items-center gap-4">
             <Link href="/" className="text-sm font-semibold text-white/80 transition hover:text-white">
               Back to PixieDVC
@@ -44,7 +59,7 @@ export default function AffiliatePortalHeader({
               <UserMenu label={userLabel ?? "Signed in"} isAdmin={isAdmin} />
             ) : (
               <Link
-                href="/login"
+                href="/affiliate/login"
                 className="rounded-full border border-white/40 px-4 py-1 text-sm text-white/85 transition hover:text-white"
               >
                 Login

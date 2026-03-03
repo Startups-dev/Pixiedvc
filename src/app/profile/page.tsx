@@ -40,7 +40,7 @@ export default async function ProfilePage() {
       <header className="space-y-3">
         <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Account</p>
         <h1 className="text-3xl font-semibold text-slate-900">Your PixieDVC profile</h1>
-        <p className="max-w-2xl text-base text-slate-600">
+        <p className="max-w-2xl text-base text-slate-500">
           Manage how your name appears across PixieDVC and keep your contact details up to date. We keep the email address tied to your
           login (<span className="font-medium">{user.email}</span>) in sync with Supabase authentication.
         </p>
@@ -51,7 +51,7 @@ export default async function ProfilePage() {
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Account role</p>
             <p className="text-xl font-semibold text-slate-900">{roleLabel}</p>
-            <p className="mt-1 text-sm text-slate-600">{onboardingCopy}</p>
+            <p className="mt-1 text-sm text-slate-500">{onboardingCopy}</p>
           </div>
           <Link
             href={statusAction.href}
@@ -69,7 +69,7 @@ export default async function ProfilePage() {
             .
           </p>
         ) : null}
-        <dl className="mt-6 grid gap-4 text-sm text-slate-600 sm:grid-cols-2">
+        <dl className="mt-6 grid gap-4 text-sm text-slate-500 sm:grid-cols-2">
           <div>
             <dt className="text-xs uppercase tracking-[0.2em] text-slate-500">Role</dt>
             <dd className="text-base font-medium text-slate-900">{roleLabel}</dd>
@@ -87,7 +87,7 @@ export default async function ProfilePage() {
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold text-slate-800">Display name</h2>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-500">
           This name appears in the site header and communications we send to owners or guests.
         </p>
         <DisplayNameForm userId={user.id} initialValue={displayName} />
@@ -100,7 +100,7 @@ export default async function ProfilePage() {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-800">Account security</h2>
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-sm text-slate-500">
           Need to change your password or email? Head to the <Link href="/login" className="text-indigo-600 underline">login page</Link> to send yourself a new reset link. All
           security-sensitive changes happen through our protected Supabase flows.
         </p>

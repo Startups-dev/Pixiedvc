@@ -79,7 +79,7 @@ export default async function GuestDashboard() {
           </div>
         </div>
         {requests.length === 0 ? (
-          <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+          <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
             No requests yet. Use the Trip Builder to send your first concierge plan.
           </div>
         ) : (

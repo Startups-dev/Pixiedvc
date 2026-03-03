@@ -267,6 +267,229 @@ a {
   object-fit: cover;
 }
 
+/* Admin matching scoped dark palette */
+.admin-matching-theme {
+  color: #b4b4b4;
+}
+
+.admin-matching-theme h2 {
+  color: #64748b !important;
+}
+
+.admin-matching-theme .bg-white,
+.admin-matching-theme .bg-white\/70 {
+  background-color: #2f2f2f !important;
+}
+
+.admin-matching-theme .bg-slate-50 {
+  background-color: #2a2a2a !important;
+}
+
+.admin-matching-theme .bg-slate-100 {
+  background-color: #212121 !important;
+}
+
+.admin-matching-theme .border-slate-100,
+.admin-matching-theme .border-slate-200,
+.admin-matching-theme .border-slate-300 {
+  border-color: #3a3a3a !important;
+}
+
+.admin-matching-theme .text-slate-900,
+.admin-matching-theme .text-slate-800 {
+  color: #ececec !important;
+}
+
+.admin-matching-theme .text-slate-700,
+.admin-matching-theme .text-slate-500,
+.admin-matching-theme .text-slate-500 {
+  color: #b4b4b4 !important;
+}
+
+.admin-matching-theme .text-slate-400,
+.admin-matching-theme .text-slate-300 {
+  color: #8e8ea0 !important;
+}
+
+.admin-matching-theme .bg-slate-900 {
+  background-color: #10a37f !important;
+}
+
+.admin-matching-theme .border-indigo-200 {
+  border-color: #3a3a3a !important;
+}
+
+.admin-matching-theme .bg-indigo-600 {
+  background-color: #10a37f !important;
+}
+
+/* Admin owners scoped dark palette */
+.admin-owners-theme {
+  color: #b4b4b4;
+}
+
+.admin-owners-theme h2 {
+  color: #64748b !important;
+}
+
+.admin-owners-theme .bg-white {
+  background-color: #2f2f2f !important;
+}
+
+.admin-owners-theme .bg-slate-50 {
+  background-color: #2a2a2a !important;
+}
+
+.admin-owners-theme .bg-slate-100 {
+  background-color: #212121 !important;
+}
+
+.admin-owners-theme .border-slate-100,
+.admin-owners-theme .border-slate-200,
+.admin-owners-theme .border-slate-300 {
+  border-color: #3a3a3a !important;
+}
+
+.admin-owners-theme .text-slate-900,
+.admin-owners-theme .text-slate-800 {
+  color: #ececec !important;
+}
+
+.admin-owners-theme .text-slate-700,
+.admin-owners-theme .text-slate-500,
+.admin-owners-theme .text-slate-500 {
+  color: #b4b4b4 !important;
+}
+
+.admin-owners-theme .text-slate-400,
+.admin-owners-theme .text-slate-300 {
+  color: #8e8ea0 !important;
+}
+
+.admin-owners-theme .bg-slate-900,
+.admin-owners-theme .bg-emerald-600,
+.admin-owners-theme .bg-indigo-600 {
+  background-color: #10a37f !important;
+}
+
+.admin-owners-theme .hover\:bg-slate-50:hover {
+  background-color: #3a3a3a !important;
+}
+
+.admin-owners-theme .text-indigo-600 {
+  color: #10a37f !important;
+}
+
+/* Admin affiliate payouts scoped dark palette */
+.admin-affiliate-payouts-theme {
+  color: #b4b4b4;
+}
+
+.admin-affiliate-payouts-theme .bg-white,
+.admin-affiliate-payouts-theme .bg-slate-50 {
+  background-color: #2f2f2f !important;
+}
+
+.admin-affiliate-payouts-theme .bg-slate-100 {
+  background-color: #212121 !important;
+}
+
+.admin-affiliate-payouts-theme .border-slate-100,
+.admin-affiliate-payouts-theme .border-slate-200,
+.admin-affiliate-payouts-theme .border-slate-300,
+.admin-affiliate-payouts-theme .border-amber-200 {
+  border-color: #3a3a3a !important;
+}
+
+.admin-affiliate-payouts-theme .text-slate-900,
+.admin-affiliate-payouts-theme .text-slate-800 {
+  color: #ececec !important;
+}
+
+.admin-affiliate-payouts-theme .text-slate-700,
+.admin-affiliate-payouts-theme .text-slate-500,
+.admin-affiliate-payouts-theme .text-slate-500,
+.admin-affiliate-payouts-theme .text-muted {
+  color: #b4b4b4 !important;
+}
+
+.admin-affiliate-payouts-theme .text-slate-400 {
+  color: #8e8ea0 !important;
+}
+
+.admin-affiliate-payouts-theme .bg-slate-900 {
+  background-color: #10a37f !important;
+}
+
+.admin-affiliate-payouts-theme .text-emerald-700 {
+  color: #34d399 !important;
+}
+
+.admin-affiliate-payouts-theme .bg-amber-50 {
+  background-color: #3f3418 !important;
+}
+
+.admin-affiliate-payouts-theme .text-amber-700 {
+  color: #fbbf24 !important;
+}
+
+/* Admin compliance scoped dark palette */
+.admin-compliance-theme {
+  color: #b4b4b4;
+}
+
+.admin-compliance-theme h2,
+.admin-compliance-theme h3 {
+  color: #64748b !important;
+}
+
+.admin-compliance-theme .bg-white,
+.admin-compliance-theme .bg-slate-50 {
+  background-color: #2f2f2f !important;
+}
+
+.admin-compliance-theme .bg-slate-100 {
+  background-color: #212121 !important;
+}
+
+.admin-compliance-theme .border-slate-100,
+.admin-compliance-theme .border-slate-200,
+.admin-compliance-theme .border-slate-300 {
+  border-color: #3a3a3a !important;
+}
+
+.admin-compliance-theme .text-slate-900,
+.admin-compliance-theme .text-slate-800 {
+  color: #ececec !important;
+}
+
+.admin-compliance-theme .text-slate-700,
+.admin-compliance-theme .text-slate-500,
+.admin-compliance-theme .text-slate-500 {
+  color: #b4b4b4 !important;
+}
+
+.admin-compliance-theme .text-slate-400 {
+  color: #8e8ea0 !important;
+}
+
+.admin-compliance-theme .bg-slate-900,
+.admin-compliance-theme .bg-emerald-100 {
+  background-color: #10a37f !important;
+}
+
+.admin-compliance-theme .text-emerald-700 {
+  color: #ffffff !important;
+}
+
+.admin-compliance-theme .bg-amber-100 {
+  background-color: #3f3418 !important;
+}
+
+.admin-compliance-theme .text-amber-700 {
+  color: #fbbf24 !important;
+}
+
 .pixie-beam {
   position: absolute;
   width: 240px;

@@ -45,7 +45,7 @@ export default async function OwnerUrgentPage() {
         <header className="space-y-3">
           <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Urgent Placement</p>
           <h1 className="text-2xl font-semibold text-slate-900">Verify ownership to submit</h1>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-500">
             Urgent placement inventory is reserved for verified owners. Complete verification first, then return to
             submit urgent points.
           </p>
@@ -73,7 +73,7 @@ export default async function OwnerUrgentPage() {
       <header className="space-y-3">
         <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Urgent Placement</p>
         <h1 className="text-3xl font-semibold text-slate-900">Private placement request</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-500">
           Share urgent points or confirmed reservations for private placement. Listings are only visible to PixieDVC
           staff.
         </p>

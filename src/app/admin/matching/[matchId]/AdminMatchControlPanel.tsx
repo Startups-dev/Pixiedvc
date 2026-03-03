@@ -143,7 +143,7 @@ export default function AdminMatchControlPanel({
         <button
           onClick={handleDelete}
           disabled={!canDelete || busyAction !== null}
-          className="w-full rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 disabled:opacity-50"
+          className="w-full rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-500 disabled:opacity-50"
           type="button"
         >
           {busyAction === 'delete' ? 'Deleting…' : 'Delete match'}

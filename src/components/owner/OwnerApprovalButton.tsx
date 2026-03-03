@@ -49,7 +49,7 @@ export default function OwnerApprovalButton({ rentalId, disabled = false, missin
         {loading ? "Saving…" : "Approve booking package"}
       </button>
       {disabled && missing.length > 0 ? (
-        <div className="text-xs text-slate-600">
+        <div className="text-xs text-slate-500">
           <span className="font-semibold text-slate-700">Missing:</span>{" "}
           {missing.map((item) => item).join(", ")}
         </div>

@@ -43,11 +43,11 @@ export default function OwnerInformationDashboard() {
             <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl lg:text-4xl">
                 Rent your Disney Vacation Club points with confidence
               </h1>
-            <p className="text-base text-slate-600">
+            <p className="text-base text-slate-500">
               You don’t hand over control of your points — you partner with a concierge-led team that takes on the
               operational work of renting them responsibly.
             </p>
-            <p className="text-base text-slate-600">
+            <p className="text-base text-slate-500">
               PixieDVC connects verified guests with available Disney Vacation Club points, manages communication and
               documentation, and ensures each booking follows a clear, structured, and contractually sound process,
               with owner protection built in at every step.
@@ -58,21 +58,21 @@ export default function OwnerInformationDashboard() {
                 <div className="mt-6 space-y-8">
                   <div>
                     <p className="text-base font-semibold text-slate-900">Consistent guest demand, responsibly matched</p>
-                    <p className="mt-2 text-sm text-slate-600">
+                    <p className="mt-2 text-sm text-slate-500">
                       We work with active renters seeking specific resorts, dates, and room types, allowing your points
                       to be matched efficiently.
                     </p>
                   </div>
                   <div>
                     <p className="text-base font-semibold text-slate-900">Concierge-managed from inquiry to checkout</p>
-                    <p className="mt-2 text-sm text-slate-600">
+                    <p className="mt-2 text-sm text-slate-500">
                       We handle guest screening, communication, agreements, and coordination, so you don’t have to manage
                       emails, negotiations, or follow-ups.
                     </p>
                   </div>
                   <div>
                     <p className="text-base font-semibold text-slate-900">Owner approval required for every booking</p>
-                    <p className="mt-2 text-sm text-slate-600">
+                    <p className="mt-2 text-sm text-slate-500">
                       Once a match is found, we send you all the necessary details so you can easily complete the
                       booking. You remain in control of when, how, and if your points are used.
                     </p>
@@ -154,7 +154,7 @@ export default function OwnerInformationDashboard() {
               <span className="text-slate-300">→</span>
               <span>Payout released</span>
             </div>
-            <p className="mt-3 text-sm text-slate-600">No chasing. No guessing. Clear release timing.</p>
+            <p className="mt-3 text-sm text-slate-500">No chasing. No guessing. Clear release timing.</p>
           </div>
         </section>
 
@@ -191,7 +191,7 @@ export default function OwnerInformationDashboard() {
                 className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
               >
                 <h3 className="text-sm font-semibold text-slate-900">{tile.title}</h3>
-                <p className="mt-2 text-sm text-slate-600">{tile.text}</p>
+                <p className="mt-2 text-sm text-slate-500">{tile.text}</p>
                 <Link href="/contact?role=Owner" className="mt-4 inline-flex text-xs font-semibold text-slate-900">
                   Talk to concierge →
                 </Link>
@@ -227,7 +227,7 @@ function Tile({ title, body }: { title: string; body: string }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_12px_24px_rgba(15,23,42,0.08)]">
       <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-      <p className="mt-2 text-sm text-slate-600">{body}</p>
+      <p className="mt-2 text-sm text-slate-500">{body}</p>
     </div>
   );
 }

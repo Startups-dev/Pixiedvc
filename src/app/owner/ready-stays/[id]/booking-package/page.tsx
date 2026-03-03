@@ -149,7 +149,7 @@ function renderGuardError(title: string, detail: string) {
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-muted">Ready stays</p>
           <h1 className="text-2xl font-semibold text-ink">{title}</h1>
-          <p className="mt-2 text-sm text-slate-600">{detail}</p>
+          <p className="mt-2 text-sm text-slate-500">{detail}</p>
         </div>
         <Link href="/owner/ready-stays" className="text-sm font-semibold text-brand hover:underline">
           Back to Ready Stays
@@ -622,7 +622,7 @@ export default async function OwnerReadyStayBookingPackagePage({
           </p>
         ) : null}
         {showAlreadyTransferredNotice ? (
-          <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
             This reservation was already transferred.
           </p>
         ) : null}
@@ -636,7 +636,7 @@ export default async function OwnerReadyStayBookingPackagePage({
           <input type="hidden" name="bookingId" value={bookingRequest.id} />
           {transferComplete || bookingRequest.status !== "paid_waiting_owner_transfer" ? (
             showAlreadyTransferredNotice || showTransferredNotice ? null : (
-              <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
                 Transfer already completed.
               </p>
             )

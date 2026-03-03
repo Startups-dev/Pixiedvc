@@ -49,7 +49,7 @@ Create a digital home for Disney Vacation Club members, resale buyers, and prosp
   - Primary `#2E8FFF` (Pixie Blue) for CTAs, links, highlight glow.
   - Secondary `#FFC857` (Pixie Gold) for accent buttons, badges.
   - Accents `#C5A8FF` (Fairy Lavender) and `#A7F3D0` (Enchanted Mint) in gradient backgrounds.
-  - Surfaces `#F9FAFB` light, `#0B0E1A` deep navy for immersive sections.
+  - Surfaces `#475569` light, `#0B0E1A` deep navy for immersive sections.
   - Text `#1F2937` charcoal body, `#6B7280` muted supporting text.
 - **Typography:**
   - Display: `Playfair Display` for hero headlines (serif elegance).

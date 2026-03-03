@@ -102,14 +102,17 @@ export default async function ComplianceHubPage() {
   const auditReady = auditRows.length > 0;
 
   return (
-    <main className="mx-auto max-w-6xl space-y-8 px-6 py-12">
+    <main className="admin-compliance-theme min-h-screen bg-[#212121] text-[#ececec]">
+      <div className="mx-auto max-w-6xl space-y-8 px-6 py-12">
       <header className="space-y-3">
         <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Admin · Compliance</p>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-3xl font-semibold text-slate-900">Compliance Hub</h1>
+          <h1 className="text-3xl font-semibold" style={{ color: '#64748b' }}>
+            Compliance Hub
+          </h1>
           <a
             href="/admin"
-            className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-600"
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-500"
           >
             Back to Admin
           </a>
@@ -141,10 +144,10 @@ export default async function ComplianceHubPage() {
             >
               Audit log {auditReady ? 'active' : 'missing'}
             </span>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
               Access reviews pending
             </span>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
               Policies pending
             </span>
           </div>
@@ -160,7 +163,7 @@ export default async function ComplianceHubPage() {
             </div>
             <a
               href="/admin/compliance/baseline"
-              className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-600"
+              className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-500"
             >
               View
             </a>
@@ -182,7 +185,7 @@ export default async function ComplianceHubPage() {
               <span>Components</span>
               <span className="font-semibold text-slate-900">{componentCount}</span>
             </div>
-            <div className="mt-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+            <div className="mt-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
               Admin routes verified: <span className="font-semibold">
                 {guardScan.verified ? 'YES' : 'NO'}
               </span>
@@ -203,7 +206,7 @@ export default async function ComplianceHubPage() {
             </div>
             <a
               href="/admin/compliance/audit-log"
-              className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-600"
+              className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-500"
             >
               View
             </a>
@@ -213,7 +216,7 @@ export default async function ComplianceHubPage() {
               <span>Events (last 7 days)</span>
               <span className="font-semibold text-slate-900">{auditLast7Days}</span>
             </div>
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-xs text-slate-600">
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-xs text-slate-500">
               Latest: {latestAudit?.action ?? 'No audit events yet'}
               {latestAudit?.created_at ? ` · ${latestAudit.created_at}` : ''}
             </div>
@@ -230,7 +233,7 @@ export default async function ComplianceHubPage() {
             </div>
             <a
               href="/admin/compliance/access-reviews"
-              className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-600"
+              className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-500"
             >
               View
             </a>
@@ -246,12 +249,12 @@ export default async function ComplianceHubPage() {
             </div>
             <a
               href="/admin/compliance/changes"
-              className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-600"
+              className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-500"
             >
               View
             </a>
           </div>
-          <div className="mt-4 space-y-2 text-sm text-slate-600">
+          <div className="mt-4 space-y-2 text-sm text-slate-500">
             <p>
               Last production release:{' '}
               <span className="font-semibold text-slate-900">
@@ -273,7 +276,7 @@ export default async function ComplianceHubPage() {
             </div>
             <a
               href="/admin/compliance/incidents"
-              className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-600"
+              className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-500"
             >
               View
             </a>
@@ -289,7 +292,7 @@ export default async function ComplianceHubPage() {
             </div>
             <Link
               href="/admin/compliance/policies"
-              className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-600"
+              className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-500"
             >
               View
             </Link>
@@ -316,7 +319,7 @@ export default async function ComplianceHubPage() {
           </div>
           <a
             href="/admin/compliance/baseline"
-            className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-600"
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-500"
           >
             View
           </a>
@@ -339,6 +342,7 @@ export default async function ComplianceHubPage() {
           ) : null}
         </div>
       </section>
+      </div>
     </main>
   );
 }

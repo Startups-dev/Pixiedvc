@@ -50,7 +50,7 @@ export default function AdminMatchRentalPanel({
           {milestones.length === 0 ? (
             <p className="mt-2 text-sm text-slate-500">No milestones.</p>
           ) : (
-            <ul className="mt-2 space-y-1 text-sm text-slate-600">
+            <ul className="mt-2 space-y-1 text-sm text-slate-500">
               {milestones.map((milestone) => (
                 <li key={`${milestone.code ?? 'milestone'}-${milestone.occurred_at ?? 'pending'}`}>
                   {milestone.code ?? '—'} · {milestone.status ?? '—'}
@@ -66,7 +66,7 @@ export default function AdminMatchRentalPanel({
           {payouts.length === 0 ? (
             <p className="mt-2 text-sm text-slate-500">No payouts.</p>
           ) : (
-            <ul className="mt-2 space-y-1 text-sm text-slate-600">
+            <ul className="mt-2 space-y-1 text-sm text-slate-500">
               {payouts.map((payout) => (
                 <li key={`${payout.stage ?? 0}-${payout.status ?? 'pending'}`}>
                   Stage {payout.stage ?? '—'} · {payout.status ?? '—'} · {payout.amount_cents ?? 0}

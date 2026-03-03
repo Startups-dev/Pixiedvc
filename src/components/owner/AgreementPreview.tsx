@@ -37,7 +37,7 @@ export default function AgreementPreview({ contract }: { contract: any }) {
           dangerouslySetInnerHTML={{ __html: renderedHtml }}
         />
       ) : (
-        <p className="text-sm text-slate-600">Agreement preview unavailable.</p>
+        <p className="text-sm text-slate-500">Agreement preview unavailable.</p>
       )}
     </div>
   );

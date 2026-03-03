@@ -184,7 +184,7 @@ export function GuestInfo({ onNext, onBack, disableAddressAutocomplete = false }
       <Card className="border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
         <div className="space-y-2 border-b border-slate-200 pb-6">
           <h3 className="font-display text-3xl text-ink">Tell us who is traveling</h3>
-          <p className="text-sm text-slate-600">Add guest details for your reservation.</p>
+          <p className="text-sm text-slate-500">Add guest details for your reservation.</p>
         </div>
 
         <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/60 p-6">
@@ -326,9 +326,9 @@ export function GuestInfo({ onNext, onBack, disableAddressAutocomplete = false }
               {adultFieldArray.fields.map((field, index) => (
                 <Fragment key={field.id}>
                   <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <p className="text-xs font-semibold text-slate-600">Adult guest {index + 1}</p>
+                    <p className="text-xs font-semibold text-slate-500">Adult guest {index + 1}</p>
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                      <label className="text-xs font-semibold text-slate-600">
+                      <label className="text-xs font-semibold text-slate-500">
                         Title
                         <select
                           {...register(`guest.adultGuests.${index}.title` as const)}
@@ -341,19 +341,19 @@ export function GuestInfo({ onNext, onBack, disableAddressAutocomplete = false }
                           <option value="Master">Master</option>
                         </select>
                       </label>
-                      <label className="text-xs font-semibold text-slate-600">
+                      <label className="text-xs font-semibold text-slate-500">
                         First name
                         <TextInput {...register(`guest.adultGuests.${index}.firstName` as const)} />
                       </label>
-                      <label className="text-xs font-semibold text-slate-600">
+                      <label className="text-xs font-semibold text-slate-500">
                         Middle initial
                         <TextInput {...register(`guest.adultGuests.${index}.middleInitial` as const)} />
                       </label>
-                      <label className="text-xs font-semibold text-slate-600">
+                      <label className="text-xs font-semibold text-slate-500">
                         Last name
                         <TextInput {...register(`guest.adultGuests.${index}.lastName` as const)} />
                       </label>
-                      <label className="text-xs font-semibold text-slate-600">
+                      <label className="text-xs font-semibold text-slate-500">
                         Suffix
                         <TextInput {...register(`guest.adultGuests.${index}.suffix` as const)} />
                       </label>
@@ -370,9 +370,9 @@ export function GuestInfo({ onNext, onBack, disableAddressAutocomplete = false }
               {childFieldArray.fields.map((field, index) => (
                 <Fragment key={field.id}>
                   <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <p className="text-xs font-semibold text-slate-600">Child guest {index + 1}</p>
+                    <p className="text-xs font-semibold text-slate-500">Child guest {index + 1}</p>
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                      <label className="text-xs font-semibold text-slate-600">
+                      <label className="text-xs font-semibold text-slate-500">
                         Title
                         <select
                           {...register(`guest.childGuests.${index}.title` as const)}
@@ -385,23 +385,23 @@ export function GuestInfo({ onNext, onBack, disableAddressAutocomplete = false }
                           <option value="Mrs.">Mrs.</option>
                         </select>
                       </label>
-                      <label className="text-xs font-semibold text-slate-600">
+                      <label className="text-xs font-semibold text-slate-500">
                         First name
                         <TextInput {...register(`guest.childGuests.${index}.firstName` as const)} />
                       </label>
-                      <label className="text-xs font-semibold text-slate-600">
+                      <label className="text-xs font-semibold text-slate-500">
                         Middle initial
                         <TextInput {...register(`guest.childGuests.${index}.middleInitial` as const)} />
                       </label>
-                      <label className="text-xs font-semibold text-slate-600">
+                      <label className="text-xs font-semibold text-slate-500">
                         Last name
                         <TextInput {...register(`guest.childGuests.${index}.lastName` as const)} />
                       </label>
-                      <label className="text-xs font-semibold text-slate-600">
+                      <label className="text-xs font-semibold text-slate-500">
                         Suffix
                         <TextInput {...register(`guest.childGuests.${index}.suffix` as const)} />
                       </label>
-                      <label className="text-xs font-semibold text-slate-600">
+                      <label className="text-xs font-semibold text-slate-500">
                         Age
                         <TextInput
                           type="number"

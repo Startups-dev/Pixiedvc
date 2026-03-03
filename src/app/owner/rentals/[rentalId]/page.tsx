@@ -150,7 +150,7 @@ function statusPill(status: string) {
     case "cancelled":
       return `${base} bg-rose-100 text-rose-700`;
     default:
-      return `${base} bg-slate-100 text-slate-600`;
+      return `${base} bg-slate-100 text-slate-500`;
   }
 }
 
@@ -179,7 +179,7 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
                 <span className="font-semibold text-ink">{params.rentalId}</span>
               </p>
             </div>
-            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-600">
+            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
               Seed a demo rental tied to your account for local testing.
               <DevSeedRental className="mt-3" />
             </div>
@@ -305,7 +305,7 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
               ) : null}
             </div>
             <p className="text-lg font-medium text-slate-700">{familyLabel}</p>
-            <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
               <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700">
                 {checkInLabel}
               </span>
@@ -384,7 +384,7 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
               <span>Guest address</span>
               <span className="font-semibold text-ink">{formatAddress(guestAddress)}</span>
             </div>
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-xs text-slate-600">
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-xs text-slate-500">
               <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Payment schedule</p>
               <div className="mt-2 space-y-2">
                 <div className="flex items-center gap-4">
@@ -423,7 +423,7 @@ export default async function OwnerRentalDetailPage({ params }: { params: { rent
             </div>
           </div>
           {!approvalCompleted && !isOwnerReservation ? (
-            <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-xs text-slate-600">
+            <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-xs text-slate-500">
               <div className="mt-3">
                 <OwnerApprovalButton rentalId={rental.id} disabled={!approvalEnabled} missing={missingLabels} />
               </div>

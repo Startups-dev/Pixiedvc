@@ -21,7 +21,7 @@ function renderDevDebug(report: Record<string, unknown>) {
     <main className="mx-auto max-w-5xl px-6 py-12">
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h1 className="text-lg font-semibold text-slate-900">Ready Stays Agreement Debug</h1>
-        <p className="mt-1 text-sm text-slate-600">Development-only guard report.</p>
+        <p className="mt-1 text-sm text-slate-500">Development-only guard report.</p>
         <pre className="mt-4 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800">
           {JSON.stringify(report, null, 2)}
         </pre>

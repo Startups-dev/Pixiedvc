@@ -11,9 +11,10 @@ type Props = {
 
 export default async function OwnerVerificationDetailPage({ params }: Props) {
   const { user } = await requireAdminUser(`/admin/owners/verifications/${params.ownerId}`);
+  void user;
   const adminClient = getSupabaseAdminClient();
   if (!adminClient) {
-    return <p className="text-sm text-rose-600">Service role key not configured.</p>;
+    return <p className="text-sm text-[#ff6b6b]">Service role key not configured.</p>;
   }
 
   const { data: verification } = await adminClient
@@ -47,9 +48,9 @@ export default async function OwnerVerificationDetailPage({ params }: Props) {
 
   if (!verification) {
     return (
-      <div className="space-y-4">
-        <p className="text-sm text-slate-600">Verification not found.</p>
-        <Link href="/admin/owners/verifications" className="text-sm font-semibold text-indigo-600">
+      <div className="space-y-4 text-[#b4b4b4]">
+        <p className="text-sm text-[#b4b4b4]">Verification not found.</p>
+        <Link href="/admin/owners/verifications" className="text-sm font-semibold text-[#10a37f] hover:text-[#0d8c6d]">
           Back to verifications
         </Link>
       </div>
@@ -75,11 +76,11 @@ export default async function OwnerVerificationDetailPage({ params }: Props) {
       ? 'rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700'
       : verification.status === 'rejected'
         ? 'rounded-full border border-rose-200 bg-rose-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-rose-700'
-        : 'rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600';
+        : 'rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500';
 
   return (
-    <div className="space-y-6">
-      <Link href="/admin/owners/verifications" className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+    <div className="admin-owners-theme min-h-screen space-y-6 bg-[#212121] px-6 py-12 text-[#ececec]">
+      <Link href="/admin/owners/verifications" className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8e8ea0] hover:text-[#ececec]">
         ← Back to verifications
       </Link>
 
@@ -87,7 +88,7 @@ export default async function OwnerVerificationDetailPage({ params }: Props) {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Owner</p>
-            <h1 className="text-2xl font-semibold text-slate-900">
+            <h1 className="text-2xl font-semibold" style={{ color: '#64748b' }}>
               {profile?.full_name ?? profile?.display_name ?? 'Owner'}
             </h1>
             <p className="text-sm text-slate-500">{displayEmail}</p>
@@ -120,7 +121,7 @@ export default async function OwnerVerificationDetailPage({ params }: Props) {
 
         <div className="mt-5 rounded-2xl border border-slate-200 p-4">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Proof files</p>
-          <div className="mt-2 space-y-2 text-sm text-slate-600">
+          <div className="mt-2 space-y-2 text-sm text-slate-500">
             {(verification.proof_files as Array<{ path: string; name: string }> | null)?.length ? (
               (verification.proof_files as Array<{ path: string; name: string }>).map((file) => (
                 <div key={file.path} className="rounded-xl border border-slate-100 px-3 py-2">

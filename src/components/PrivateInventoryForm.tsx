@@ -189,7 +189,7 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
                 className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm ${
                   urgencyWindow === option.value
                     ? "border-slate-400 bg-slate-50 text-slate-900"
-                    : "border-slate-200 text-slate-600"
+                    : "border-slate-200 text-slate-500"
                 }`}
               >
                 <span>{option.label}</span>
@@ -205,7 +205,7 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">Points expiry date</label>
+              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Points expiry date</label>
               <input
                 type="date"
                 value={pointsExpiryDate}
@@ -214,7 +214,7 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">Use year</label>
+              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Use year</label>
               <input
                 type="text"
                 value={useYear}
@@ -224,7 +224,7 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">Points available</label>
+              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Points available</label>
               <input
                 type="number"
                 min={0}
@@ -242,7 +242,7 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
           <p className="text-xs uppercase tracking-[0.25em] text-slate-500">What can you offer?</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">Home resort</label>
+              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Home resort</label>
               <input
                 type="text"
                 value={homeResort}
@@ -252,7 +252,7 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">Resorts allowed</label>
+              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Resorts allowed</label>
               <input
                 type="text"
                 value={resortsAllowed}
@@ -264,7 +264,7 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">Travel flexibility</label>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Travel flexibility</label>
             <textarea
               rows={3}
               value={travelFlexibility}
@@ -279,7 +279,7 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Already have a reservation booked?</p>
-              <p className="text-sm text-slate-600">Share the confirmation so we can place it quickly.</p>
+              <p className="text-sm text-slate-500">Share the confirmation so we can place it quickly.</p>
             </div>
             <label className="flex items-center gap-2 text-sm text-slate-700">
               <input
@@ -293,7 +293,7 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
           {alreadyBooked && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                   Confirmation number
                 </label>
                 <input
@@ -307,7 +307,7 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">Resort</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Resort</label>
                   <input
                     type="text"
                     value={reservationDetails.resort}
@@ -318,7 +318,7 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">Room type</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Room type</label>
                   <input
                     type="text"
                     value={reservationDetails.room_type}
@@ -329,7 +329,7 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">View</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">View</label>
                   <input
                     type="text"
                     value={reservationDetails.view}
@@ -340,7 +340,7 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">Sleeps</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Sleeps</label>
                   <input
                     type="text"
                     value={reservationDetails.sleeps}
@@ -351,7 +351,7 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">Check-in</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Check-in</label>
                   <input
                     type="date"
                     value={reservationDetails.check_in}
@@ -362,7 +362,7 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">Check-out</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Check-out</label>
                   <input
                     type="date"
                     value={reservationDetails.check_out}
@@ -389,7 +389,7 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
           </label>
           {!fastestPossible && (
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                 Minimum net to owner (USD)
               </label>
               <input
@@ -431,10 +431,10 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
         <div>
           <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Your submissions</p>
           <h2 className="mt-2 text-lg font-semibold text-slate-900">Private placement requests</h2>
-          <p className="text-sm text-slate-600">We will reach out if we need follow-up details.</p>
+          <p className="text-sm text-slate-500">We will reach out if we need follow-up details.</p>
         </div>
         {submissions.length === 0 ? (
-          <p className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600">
+          <p className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-500">
             No urgent placements submitted yet.
           </p>
         ) : (
@@ -445,14 +445,14 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
                   <p className="font-semibold text-slate-900">
                     {submission.points_available} pts · {submission.urgency_window}
                   </p>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-600">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-500">
                     {statusLabel[submission.status] ?? submission.status}
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-slate-500">
                   Submitted {new Date(submission.created_at).toLocaleDateString()}
                 </p>
-                <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
+                <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
                   {submission.home_resort && <span>Home: {submission.home_resort}</span>}
                   {submission.points_expiry_date && <span>Expiry: {submission.points_expiry_date}</span>}
                   {submission.already_booked && <span>Reservation already booked</span>}

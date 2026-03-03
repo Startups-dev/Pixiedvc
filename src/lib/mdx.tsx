@@ -80,16 +80,16 @@ export const mdxComponents = {
     );
   },
   p: ({ children }: { children: ReactNode }) => (
-    <p className="text-[15px] leading-relaxed text-slate-600">{children}</p>
+    <p className="text-[15px] leading-relaxed text-slate-500">{children}</p>
   ),
   ul: ({ children }: { children: ReactNode }) => (
-    <ul className="list-disc space-y-2 pl-6 text-[15px] leading-relaxed text-slate-600">{children}</ul>
+    <ul className="list-disc space-y-2 pl-6 text-[15px] leading-relaxed text-slate-500">{children}</ul>
   ),
   ol: ({ children }: { children: ReactNode }) => (
-    <ol className="list-decimal space-y-2 pl-6 text-[15px] leading-relaxed text-slate-600">{children}</ol>
+    <ol className="list-decimal space-y-2 pl-6 text-[15px] leading-relaxed text-slate-500">{children}</ol>
   ),
   li: ({ children }: { children: ReactNode }) => (
-    <li className="text-[15px] leading-relaxed text-slate-600">{children}</li>
+    <li className="text-[15px] leading-relaxed text-slate-500">{children}</li>
   ),
   Card,
   SectionHeader,

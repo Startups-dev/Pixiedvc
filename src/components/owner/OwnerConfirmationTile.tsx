@@ -61,14 +61,14 @@ export default function OwnerConfirmationTile({
     <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5">
       <p className="text-xs uppercase tracking-[0.3em] text-emerald-700">Next step</p>
       <h3 className="mt-2 text-lg font-semibold text-ink">Enter Disney confirmation number</h3>
-      <p className="mt-2 text-sm text-slate-600">
+      <p className="mt-2 text-sm text-slate-500">
         Submitting your confirmation number starts agreement drafting and unlocks next steps.
       </p>
       {saved ? (
         <p className="mt-4 text-xs font-semibold text-emerald-700">Confirmation number received.</p>
       ) : (
         <form onSubmit={handleSubmit} className="mt-4 space-y-3">
-          <label className="flex flex-col gap-2 text-xs font-semibold text-slate-600">
+          <label className="flex flex-col gap-2 text-xs font-semibold text-slate-500">
             DVC confirmation number
             <input
               value={confirmationNumber}

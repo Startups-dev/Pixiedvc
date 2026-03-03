@@ -128,7 +128,7 @@ export default function GuestDetailsClient({
           For communication purposes only. This does not change your contract.
         </p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="space-y-2 text-sm text-slate-600">
+          <label className="space-y-2 text-sm text-slate-500">
             <span className="text-xs uppercase tracking-[0.2em] text-slate-400">Guest email</span>
             <input
               type="email"
@@ -137,7 +137,7 @@ export default function GuestDetailsClient({
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900"
             />
           </label>
-          <label className="space-y-2 text-sm text-slate-600">
+          <label className="space-y-2 text-sm text-slate-500">
             <span className="text-xs uppercase tracking-[0.2em] text-slate-400">Guest phone</span>
             <input
               type="tel"
@@ -164,7 +164,7 @@ export default function GuestDetailsClient({
           {party.map((row, index) => (
             <div key={`${row.fullName}-${index}`} className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50 p-4">
               <div className="grid gap-3 md:grid-cols-[1.6fr_0.6fr_0.4fr_auto]">
-              <label className="space-y-2 text-sm text-slate-600">
+              <label className="space-y-2 text-sm text-slate-500">
                 <span className="text-xs uppercase tracking-[0.2em] text-slate-400">Full name</span>
                 <input
                   value={row.fullName}
@@ -173,7 +173,7 @@ export default function GuestDetailsClient({
                   placeholder="Full legal name"
                 />
               </label>
-              <label className="space-y-2 text-sm text-slate-600">
+              <label className="space-y-2 text-sm text-slate-500">
                 <span className="text-xs uppercase tracking-[0.2em] text-slate-400">Type</span>
                 <select
                   value={row.type}
@@ -186,7 +186,7 @@ export default function GuestDetailsClient({
                   <option value="child">{typeLabel.child}</option>
                 </select>
               </label>
-              <label className="space-y-2 text-sm text-slate-600">
+              <label className="space-y-2 text-sm text-slate-500">
                 <span className="text-xs uppercase tracking-[0.2em] text-slate-400">Age</span>
                 <input
                   type="number"
@@ -206,7 +206,7 @@ export default function GuestDetailsClient({
                 </button>
               </div>
               </div>
-              <label className="space-y-2 text-sm text-slate-600">
+              <label className="space-y-2 text-sm text-slate-500">
                 <span className="text-xs uppercase tracking-[0.2em] text-slate-400">Notes (optional)</span>
                 <input
                   value={row.notes ?? ""}
@@ -223,7 +223,7 @@ export default function GuestDetailsClient({
           <button
             type="button"
             onClick={addRow}
-            className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600 hover:text-slate-800"
+            className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 hover:text-slate-800"
           >
             Add traveler
           </button>

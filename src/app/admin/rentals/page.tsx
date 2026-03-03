@@ -45,8 +45,8 @@ export default async function AdminRentalsPage() {
   if (!adminClient) {
     return (
       <div className="mx-auto max-w-5xl px-6 py-12">
-        <Card>
-          <p className="text-sm text-muted">Missing service role key. Configure SUPABASE_SERVICE_ROLE_KEY to view rentals.</p>
+        <Card surface="dark" className="border-[#3a3a3a] bg-[#2f2f2f]">
+          <p className="text-sm text-[#b4b4b4]">Missing service role key. Configure SUPABASE_SERVICE_ROLE_KEY to view rentals.</p>
         </Card>
       </div>
     );
@@ -95,21 +95,22 @@ export default async function AdminRentalsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 px-6 py-12">
+    <div className="admin-rentals-theme min-h-screen bg-[#212121]">
+      <div className="mx-auto max-w-6xl space-y-8 px-6 py-12 text-[#ececec]">
       <header className="space-y-2">
-        <Link href="/admin" className="text-xs uppercase tracking-[0.3em] text-muted">
+        <a href="/admin" className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0] hover:text-[#ececec]">
           ← Back to admin
-        </Link>
-        <h1 className="text-2xl font-semibold text-ink">Rentals</h1>
-        <p className="text-sm text-muted">Platform margin visibility for each rental.</p>
+        </a>
+        <h1 className="text-2xl font-semibold" style={{ color: '#64748b' }}>Rentals</h1>
+        <p className="text-sm text-[#b4b4b4]">Platform margin visibility for each rental.</p>
       </header>
 
       {rentalRows.length === 0 ? (
-        <Card className="p-6 text-sm text-muted">No rentals found.</Card>
+        <Card surface="dark" className="border-[#3a3a3a] bg-[#2f2f2f] p-6 text-sm text-[#b4b4b4]">No rentals found.</Card>
       ) : (
-        <Card className="overflow-x-auto p-4">
-          <table className="min-w-full text-left text-sm text-slate-600">
-            <thead className="border-b border-slate-200 text-xs uppercase tracking-[0.2em] text-slate-400">
+        <Card surface="dark" className="overflow-x-auto border-[#3a3a3a] bg-[#2f2f2f] p-4">
+          <table className="min-w-full text-left text-sm text-[#b4b4b4]">
+            <thead className="border-b border-[#3a3a3a] text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">
               <tr>
                 <th className="px-3 py-2">Resort</th>
                 <th className="px-3 py-2">Dates</th>
@@ -133,8 +134,8 @@ export default async function AdminRentalsPage() {
                     : null;
 
                 return (
-                  <tr key={rental.id} className="border-b border-slate-100">
-                    <td className="px-3 py-3 font-semibold text-ink">{rental.resort_code ?? "—"}</td>
+                  <tr key={rental.id} className="border-b border-[#3a3a3a]">
+                    <td className="px-3 py-3 font-semibold text-[#ececec]">{rental.resort_code ?? "—"}</td>
                     <td className="px-3 py-3">
                       {formatDate(rental.check_in)} → {formatDate(rental.check_out)}
                     </td>
@@ -144,7 +145,7 @@ export default async function AdminRentalsPage() {
                     <td className="px-3 py-3">{margin !== null ? formatCurrency(margin) : "—"}</td>
                     <td className="px-3 py-3">{rental.status}</td>
                     <td className="px-3 py-3">
-                      <Link className="text-xs font-semibold text-brand hover:underline" href={`/admin/rentals/${rental.id}`}>
+                      <Link className="text-xs font-semibold text-[#10a37f] hover:text-[#0d8c6d]" href={`/admin/rentals/${rental.id}`}>
                         View
                       </Link>
                     </td>
@@ -155,6 +156,7 @@ export default async function AdminRentalsPage() {
           </table>
         </Card>
       )}
+      </div>
     </div>
   );
 }

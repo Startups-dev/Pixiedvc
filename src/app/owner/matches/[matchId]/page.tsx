@@ -126,7 +126,7 @@ export default async function OwnerMatchDetailPage({
           </span>
         </div>
         <p className="text-lg font-medium text-slate-700">{familyLabel}</p>
-        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
           <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700">
             {checkInLabel}
           </span>
@@ -142,7 +142,7 @@ export default async function OwnerMatchDetailPage({
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-muted">Booking package</p>
             <h2 className="text-xl font-semibold text-ink">Guest request details</h2>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-500">
               This request is reserved for you for 60 minutes since matching.
             </p>
           </div>
@@ -184,7 +184,7 @@ export default async function OwnerMatchDetailPage({
             <p className="mt-2 font-semibold text-ink">{booking?.lead_guest_name ?? "Guest TBD"}</p>
             <p>{booking?.lead_guest_email ?? "Email TBD"}</p>
             <p>{booking?.lead_guest_phone ?? "Phone TBD"}</p>
-            <p className="mt-2 text-slate-600">{formatAddress(booking)}</p>
+            <p className="mt-2 text-slate-500">{formatAddress(booking)}</p>
           </div>
 
           <div className="space-y-3 text-sm text-slate-700">
@@ -193,7 +193,7 @@ export default async function OwnerMatchDetailPage({
               {guests.length === 0 ? (
                 <p className="text-sm text-slate-500">No additional guests listed.</p>
               ) : (
-                <table className="min-w-full text-left text-sm text-slate-600">
+                <table className="min-w-full text-left text-sm text-slate-500">
                   <thead className="border-b border-slate-100 text-xs uppercase tracking-[0.2em] text-slate-400">
                     <tr>
                       <th className="px-2 py-2">Guest</th>

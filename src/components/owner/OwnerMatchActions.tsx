@@ -166,7 +166,7 @@ export default function OwnerMatchActions({
         <div className="space-y-3">
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Review booking request</p>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-500">
               This request is on hold while you decide. Accept to secure the renter.
             </p>
           </div>
@@ -195,7 +195,7 @@ export default function OwnerMatchActions({
         <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Updating</p>
           <h3 className="text-lg font-semibold text-ink">Accepting...</h3>
-          <p className="text-sm text-slate-600">Please wait while we lock in the request.</p>
+          <p className="text-sm text-slate-500">Please wait while we lock in the request.</p>
           <div className="flex flex-wrap gap-3">
             <Button disabled>Accepting...</Button>
             <Button variant="ghost" disabled>Decline</Button>
@@ -251,7 +251,7 @@ export default function OwnerMatchActions({
             <h4 className="text-sm font-semibold text-ink">Next step: Book with Disney Vacation Club.</h4>
           </div>
 
-          <details className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+          <details className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
             <summary className="cursor-pointer font-semibold text-slate-700">How to book with DVC (phone + website)</summary>
             <div className="mt-3 space-y-2">
               <p>Call (800) 800-9800 (US/Canada)</p>
@@ -283,12 +283,12 @@ export default function OwnerMatchActions({
           ].join(" ")}
         >
           <h3 className="text-xl font-semibold text-ink">Booking in progress</h3>
-          <p className="mt-2 text-sm text-slate-600">You’ve secured the {familyName} stay.</p>
-          <p className="mt-3 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-slate-500">You’ve secured the {familyName} stay.</p>
+          <p className="mt-3 text-sm text-slate-500">
             We’ve received the Disney confirmation number and are preparing the next steps.
           </p>
           <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Next steps:</p>
-          <div className="mt-2 space-y-1 text-sm text-slate-600">
+          <div className="mt-2 space-y-1 text-sm text-slate-500">
             <p>• The signed rental agreement</p>
             <p>• Your first payout (70% of reservation)</p>
           </div>

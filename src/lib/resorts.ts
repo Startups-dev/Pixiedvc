@@ -23,7 +23,7 @@ export type Resort = {
   essentials: {
     transportation: string;
     amenities: string[];
-    dining: string[];
+    dining: unknown;
     notices?: string[];
   };
   map?: {
@@ -520,7 +520,17 @@ async function mapResortRow(row: ResortRow | null): Promise<Resort | null> {
   const layoutBullets = toStringArray(layout.bullets);
 
   const amenities = toStringArray(row.essentials?.amenities);
-  const dining = toStringArray(row.essentials?.dining);
+  const rawDining = row.essentials?.dining;
+  const dining =
+    typeof rawDining === "string"
+      ? (() => {
+          try {
+            return JSON.parse(rawDining);
+          } catch {
+            return toStringArray(rawDining);
+          }
+        })()
+      : (rawDining ?? []);
   const noticesArray = toStringArray(row.essentials?.notices);
 
   const heroImage =
@@ -608,7 +618,58 @@ export async function getResortBySlug(slug: string): Promise<Resort | null> {
 
   const rows = Array.isArray(data) ? data : data ? [data] : [];
   const exact = rows.find((row) => row.slug === slug);
-  return await mapResortRow((exact ?? rows[0] ?? null) as ResortRow | null);
+  const picked = (exact ?? rows[0] ?? null) as ResortRow | null;
+  if (!picked) {
+    return null;
+  }
+
+  // HARD FALLBACK: resort_full may not carry essentials correctly yet.
+  // If essentials.dining is missing, fetch essentials from public.resorts directly.
+  const hasMeaningfulDining = (value: unknown) => {
+    if (!value) return false;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === "object") return Object.keys(value as Record<string, unknown>).length > 0;
+    return true;
+  };
+  const missingDining =
+    !hasMeaningfulDining((picked as any)?.essentials?.dining) &&
+    !hasMeaningfulDining((picked as any)?.essentials_sections?.dining);
+
+  if (missingDining) {
+    const { data: baseResort, error: baseErr } = await supabase
+      .from("resorts")
+      .select("essentials, essentials_sections")
+      .in("slug", variants)
+      .maybeSingle();
+
+    if (!baseErr && baseResort) {
+      const pickedAny = picked as any;
+      const baseDining = (baseResort as any)?.essentials?.dining;
+      const pickedDining = pickedAny?.essentials?.dining;
+      const baseSectionsDining = (baseResort as any)?.essentials_sections?.dining;
+      const pickedSectionsDining = pickedAny?.essentials_sections?.dining;
+
+      if (!hasMeaningfulDining(pickedDining) && hasMeaningfulDining(baseDining)) {
+        pickedAny.essentials = {
+          ...(pickedAny.essentials ?? {}),
+          ...(baseResort as any).essentials,
+        };
+      } else if (!pickedAny.essentials && (baseResort as any).essentials) {
+        pickedAny.essentials = (baseResort as any).essentials;
+      }
+
+      if (!hasMeaningfulDining(pickedSectionsDining) && hasMeaningfulDining(baseSectionsDining)) {
+        pickedAny.essentials_sections = {
+          ...(pickedAny.essentials_sections ?? {}),
+          ...(baseResort as any).essentials_sections,
+        };
+      } else if (!pickedAny.essentials_sections && (baseResort as any).essentials_sections) {
+        pickedAny.essentials_sections = (baseResort as any).essentials_sections;
+      }
+    }
+  }
+
+  return await mapResortRow(picked);
 }
 
 export async function getAllResortSlugs(): Promise<string[]> {

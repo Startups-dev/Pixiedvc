@@ -42,7 +42,7 @@ export default function FaqPageClient() {
         <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
           Frequently Asked Questions
         </h1>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
+        <p className="mt-4 max-w-2xl text-base leading-7 text-slate-500">
           A quick guide to booking, pricing, and resort logistics. If you need a hand, our concierge team is happy to
           help.
         </p>
@@ -84,7 +84,7 @@ export default function FaqPageClient() {
             <div>
               <h2 className="text-2xl font-semibold text-slate-900">{category.title}</h2>
               {category.blurb && (
-                <p className="mt-2 text-sm text-slate-600">{category.blurb}</p>
+                <p className="mt-2 text-sm text-slate-500">{category.blurb}</p>
               )}
             </div>
             <FaqAccordion categoryId={category.id} items={category.items} />

@@ -210,7 +210,7 @@ export default function ReadyStaysMarketplaceClient({
                   defaultChecked={searchParams.holiday === tag.value}
                   className="peer sr-only"
                 />
-                <span className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition peer-checked:border-[#0F2148] peer-checked:bg-[#0F2148]/10 peer-checked:text-[#0F2148]">
+                <span className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 transition peer-checked:border-[#0F2148] peer-checked:bg-[#0F2148]/10 peer-checked:text-[#0F2148]">
                   {tag.label}
                 </span>
               </label>
@@ -223,7 +223,7 @@ export default function ReadyStaysMarketplaceClient({
                 defaultChecked={!searchParams.holiday}
                 className="peer sr-only"
               />
-              <span className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition peer-checked:border-[#0F2148] peer-checked:bg-[#0F2148]/10 peer-checked:text-[#0F2148]">
+              <span className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 transition peer-checked:border-[#0F2148] peer-checked:bg-[#0F2148]/10 peer-checked:text-[#0F2148]">
                 Any
               </span>
             </label>
@@ -313,7 +313,7 @@ export default function ReadyStaysMarketplaceClient({
             <button
               type="button"
               onClick={() => setFiltersOpen(true)}
-              className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 lg:hidden"
+              className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 transition hover:border-slate-300 lg:hidden"
             >
               Filters
             </button>
@@ -380,7 +380,7 @@ export default function ReadyStaysMarketplaceClient({
                           {urgencyBadge === "Last-Minute Stay" ? "🔥 Last-Minute" : urgencyBadge}
                         </span>
                       ) : null}
-                      <span className="inline-flex items-center rounded-full bg-white/85 px-3 py-1 text-[11px] font-medium text-slate-600">
+                      <span className="inline-flex items-center rounded-full bg-white/85 px-3 py-1 text-[11px] font-medium text-slate-500">
                         {secondaryBadgeText}
                       </span>
                     </div>
@@ -410,7 +410,7 @@ export default function ReadyStaysMarketplaceClient({
                         </p>
                       </div>
                     </div>
-                    <div className="space-y-1 text-xs text-slate-600">
+                    <div className="space-y-1 text-xs text-slate-500">
                       <p>✔ Confirmed Disney Reservation</p>
                       <p>✔ Secure Transfer</p>
                     </div>

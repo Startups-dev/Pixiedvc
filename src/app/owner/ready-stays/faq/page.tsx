@@ -75,7 +75,7 @@ export default async function ReadyStaysFaqPage() {
         {FAQ_ITEMS.map((item) => (
           <details key={item.q} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
             <summary className="cursor-pointer text-sm font-semibold text-ink">{item.q}</summary>
-            <p className="mt-2 text-sm text-slate-600">{item.a}</p>
+            <p className="mt-2 text-sm text-slate-500">{item.a}</p>
           </details>
         ))}
       </Card>

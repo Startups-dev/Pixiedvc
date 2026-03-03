@@ -47,7 +47,7 @@ export function AgreementAndPayment({ onBack, onSubmit, estimatedDeposit }: Agre
         <div className="space-y-2 border-b border-slate-200 pb-6">
           <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Agreement</p>
           <h3 className="font-display text-3xl text-ink">Review and place your refundable deposit</h3>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-500">
             Deposits are fully refundable if PixieDVC cannot match you with a qualifying owner inside the
             service window.
           </p>
@@ -56,11 +56,11 @@ export function AgreementAndPayment({ onBack, onSubmit, estimatedDeposit }: Agre
         <div className="mt-6 space-y-6">
           <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-6 shadow-sm">
             <h4 className="font-display text-2xl text-ink">Reservation Summary</h4>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm text-slate-500">
               You are authorizing a ${estimatedDeposit.toFixed(2)} USD deposit. This is held securely and
               automatically released if no match is found.
             </p>
-            <div className="mt-4 space-y-2 text-sm text-slate-600">
+            <div className="mt-4 space-y-2 text-sm text-slate-500">
               <label className="flex items-center gap-3">
                 <input type="checkbox" {...register("agreement.acceptTerms")} className="h-4 w-4" />
                 I have reviewed the PixieDVC guest terms and understand the matching timeline.
@@ -103,7 +103,7 @@ export function AgreementAndPayment({ onBack, onSubmit, estimatedDeposit }: Agre
                 </button>
               ))}
             </div>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-500">
               {gatewayTabs.find((tab) => tab.id === selectedGateway)?.description}
             </p>
           </div>

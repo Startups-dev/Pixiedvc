@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { affiliateInput, affiliatePrimaryButton, affiliateTextMuted } from "@/lib/affiliate-theme";
 
 export default function AffiliatePayoutEmailForm({ initialEmail }: { initialEmail: string | null }) {
   const [email, setEmail] = useState(initialEmail ?? "");
@@ -29,19 +30,19 @@ export default function AffiliatePayoutEmailForm({ initialEmail }: { initialEmai
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <label className="flex flex-col gap-1 text-sm text-muted">
+      <label className={`flex flex-col gap-1 text-sm ${affiliateTextMuted}`}>
         PayPal/Wise email
         <input
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="you@example.com"
-          className="rounded-2xl border border-slate-200 px-3 py-2 text-sm text-ink"
+          className={affiliateInput}
         />
       </label>
       <button
         type="submit"
-        className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white"
+        className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] ${affiliatePrimaryButton}`}
         disabled={saving}
       >
         {saving ? "Saving…" : "Save"}

@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 
-import { Button, Card } from "@pixiedvc/design-system";
+import { Card } from "@pixiedvc/design-system";
 import { appendRefToUrl } from "@/lib/referral";
+import { affiliateCard, affiliateCard2, affiliateInput, affiliateLink, affiliateTextMuted } from "@/lib/affiliate-theme";
 
 type CopyBlock = {
   title: string;
@@ -100,12 +100,14 @@ async function copyText(value: string, onDone: () => void, onError: (message: st
   }
 }
 
-export default function AffiliateGuidesClient() {
-  const searchParams = useSearchParams();
-  const defaultAffiliate = searchParams.get("affiliate") ?? "";
-  const [affiliateSlug, setAffiliateSlug] = useState(defaultAffiliate);
+export default function AffiliateGuidesClient({ initialAffiliateSlug = "" }: { initialAffiliateSlug?: string }) {
+  const [affiliateSlug, setAffiliateSlug] = useState(initialAffiliateSlug);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const [origin, setOrigin] = useState("");
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   const refValue = affiliateSlug.trim() || null;
 
@@ -141,24 +143,26 @@ export default function AffiliateGuidesClient() {
   };
 
   return (
-    <main className="mx-auto max-w-6xl space-y-12 px-6 py-16 text-ink">
+    <main className="mx-auto max-w-6xl space-y-12 px-6 py-16">
       <header className="space-y-3">
-        <Link href="/affiliate/dashboard" className="text-xs uppercase tracking-[0.3em] text-muted">
+        <Link href="/affiliate/dashboard" className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>
           ← Back to dashboard
         </Link>
-        <h1 className="font-display text-4xl text-ink">Affiliate Guides</h1>
-        <p className="text-sm text-muted">
+        <h1 className="font-display text-4xl text-slate-500" style={{ color: "#64748b" }}>
+          Affiliate Guides
+        </h1>
+        <p className={`text-sm ${affiliateTextMuted}`}>
           Clear messaging, ready-to-share assets, and tracking links for PixieDVC partners.
         </p>
       </header>
 
-      <Card className="space-y-4">
-        <p className="text-xs uppercase tracking-[0.3em] text-muted">Your affiliate link</p>
+      <Card surface="dark" className={`space-y-4 ${affiliateCard}`}>
+        <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Your affiliate link</p>
         <div className="grid gap-4 md:grid-cols-[1.2fr_2fr]">
-          <label className="space-y-2 text-sm font-semibold text-ink/80">
+          <label className="space-y-2 text-sm font-semibold text-slate-500">
             Affiliate slug
             <input
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-ink shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+              className={affiliateInput}
               placeholder="your-slug"
               value={affiliateSlug}
               onChange={(event) => setAffiliateSlug(event.target.value)}
@@ -170,13 +174,13 @@ export default function AffiliateGuidesClient() {
               { label: "Calculator", value: links.calculator },
               { label: "Plan flow", value: links.plan },
             ].map((item) => (
-              <div key={item.label} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs text-muted">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-muted">{item.label}</p>
-                <p className="mt-2 break-all text-xs font-semibold text-ink">{item.value}</p>
+              <div key={item.label} className={`rounded-2xl px-4 py-3 text-xs ${affiliateCard2}`}>
+                <p className={`text-[11px] uppercase tracking-[0.2em] ${affiliateTextMuted}`}>{item.label}</p>
+                <p className="mt-2 break-all text-xs font-semibold text-slate-500">{item.value}</p>
                 <button
                   type="button"
                   onClick={() => handleCopy(item.value)}
-                  className="mt-2 text-xs font-semibold text-brand hover:underline"
+                  className={`mt-2 text-xs font-semibold ${affiliateLink}`}
                 >
                   Copy link
                 </button>
@@ -184,54 +188,56 @@ export default function AffiliateGuidesClient() {
             ))}
           </div>
         </div>
-        <p className="text-xs text-muted">
+        <p className={`text-xs ${affiliateTextMuted}`}>
           Referral links use <strong>?ref=</strong> and track for 90 days on first touch.
         </p>
         {copyStatus ? <p className="text-xs text-emerald-700">{copyStatus}</p> : null}
       </Card>
 
       <section className="grid gap-6 md:grid-cols-3">
-        <Card className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.3em] text-muted">What PixieDVC is</p>
-          <p className="text-sm text-muted">
+        <Card surface="dark" className={`space-y-3 ${affiliateCard}`}>
+          <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>What PixieDVC is</p>
+          <p className={`text-sm ${affiliateTextMuted}`}>
             PixieDVC is a concierge-style DVC rental platform that matches guests with verified owners and confirms
             availability before booking.
           </p>
         </Card>
-        <Card className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.3em] text-muted">What affiliates should say</p>
-          <p className="text-sm text-muted">
+        <Card surface="dark" className={`space-y-3 ${affiliateCard}`}>
+          <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>What affiliates should say</p>
+          <p className={`text-sm ${affiliateTextMuted}`}>
             We provide pricing estimates first, then confirm availability once an owner match is secured.
           </p>
         </Card>
-        <Card className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.3em] text-muted">How referral links work</p>
-          <p className="text-sm text-muted">
+        <Card surface="dark" className={`space-y-3 ${affiliateCard}`}>
+          <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>How referral links work</p>
+          <p className={`text-sm ${affiliateTextMuted}`}>
             Referrals are first-touch, last 90 days, and never overwrite an existing ref once set.
           </p>
         </Card>
       </section>
 
       <section className="space-y-6">
-        <h2 className="text-lg font-semibold text-ink">What to say</h2>
+        <h2 className="text-lg font-semibold text-slate-500" style={{ color: "#64748b" }}>
+          What to say
+        </h2>
         <div className="grid gap-4 md:grid-cols-3">
           {COPY_BLOCKS.map((block) => (
-            <Card key={block.title} className="space-y-3">
-              <p className="text-xs uppercase tracking-[0.3em] text-muted">{block.title}</p>
-              <p className="text-sm text-ink/80">{block.body}</p>
+            <Card surface="dark" key={block.title} className={`space-y-3 ${affiliateCard}`}>
+              <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>{block.title}</p>
+              <p className={`text-sm ${affiliateTextMuted}`}>{block.body}</p>
               <button
                 type="button"
                 onClick={() => handleCopy(block.body)}
-                className="text-xs font-semibold text-brand hover:underline"
+                className={`text-xs font-semibold ${affiliateLink}`}
               >
                 Copy
               </button>
             </Card>
           ))}
         </div>
-        <Card className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.3em] text-muted">Talking points</p>
-          <ul className="space-y-2 text-sm text-muted">
+        <Card surface="dark" className={`space-y-3 ${affiliateCard}`}>
+          <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Talking points</p>
+          <ul className={`space-y-2 text-sm ${affiliateTextMuted}`}>
             {TALKING_POINTS.map((point) => (
               <li key={point}>• {point}</li>
             ))}
@@ -240,18 +246,20 @@ export default function AffiliateGuidesClient() {
       </section>
 
       <section className="space-y-6">
-        <h2 className="text-lg font-semibold text-ink">Where to send guests</h2>
+        <h2 className="text-lg font-semibold text-slate-500" style={{ color: "#64748b" }}>
+          Where to send guests
+        </h2>
         <div className="grid gap-4 md:grid-cols-3">
           {decisionLinks.map((link) => (
-            <Card key={link.label} className="space-y-3">
-              <p className="text-sm font-semibold text-ink">{link.label}</p>
-              <p className="text-sm text-muted">{link.description}</p>
-              <div className="flex items-center justify-between gap-2 text-xs text-muted">
+            <Card surface="dark" key={link.label} className={`space-y-3 ${affiliateCard}`}>
+              <p className="text-sm font-semibold text-slate-500">{link.label}</p>
+              <p className={`text-sm ${affiliateTextMuted}`}>{link.description}</p>
+              <div className={`flex items-center justify-between gap-2 text-xs ${affiliateTextMuted}`}>
                 <span className="truncate">{link.href}</span>
                 <button
                   type="button"
                   onClick={() => handleCopy(link.href)}
-                  className="text-xs font-semibold text-brand hover:underline"
+                  className={`text-xs font-semibold ${affiliateLink}`}
                 >
                   Copy link
                 </button>
@@ -262,20 +270,22 @@ export default function AffiliateGuidesClient() {
       </section>
 
       <section className="space-y-6">
-        <h2 className="text-lg font-semibold text-ink">Copy & Assets</h2>
-        <Card className="space-y-4">
+        <h2 className="text-lg font-semibold text-slate-500" style={{ color: "#64748b" }}>
+          Copy & Assets
+        </h2>
+        <Card surface="dark" className={`space-y-4 ${affiliateCard}`}>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.3em] text-muted">Button text ideas</p>
-              <ul className="space-y-1 text-sm text-muted">
+              <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Button text ideas</p>
+              <ul className={`space-y-1 text-sm ${affiliateTextMuted}`}>
                 {CTA_SUGGESTIONS.map((item) => (
                   <li key={item}>• {item}</li>
                 ))}
               </ul>
             </div>
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.3em] text-muted">Website snippet</p>
-              <pre className="whitespace-pre-wrap rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-ink">
+              <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Website snippet</p>
+              <pre className={`whitespace-pre-wrap rounded-2xl p-4 text-xs ${affiliateCard2}`}>
 {`<a href="${links.calculator}" target="_blank" rel="noopener">
   Get a PixieDVC estimate
 </a>`}
@@ -285,7 +295,7 @@ export default function AffiliateGuidesClient() {
                 onClick={() =>
                   handleCopy(`<a href="${links.calculator}" target="_blank" rel="noopener">Get a PixieDVC estimate</a>`)
                 }
-                className="text-xs font-semibold text-brand hover:underline"
+                className={`text-xs font-semibold ${affiliateLink}`}
               >
                 Copy snippet
               </button>
@@ -294,8 +304,8 @@ export default function AffiliateGuidesClient() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.3em] text-muted">Email snippet</p>
-              <pre className="whitespace-pre-wrap rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-ink">
+              <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Email snippet</p>
+              <pre className={`whitespace-pre-wrap rounded-2xl p-4 text-xs ${affiliateCard2}`}>
 {`Thinking about a Disney Vacation Club stay? PixieDVC provides concierge support and clear pricing.
 Start here: ${links.plan}`}
               </pre>
@@ -306,14 +316,14 @@ Start here: ${links.plan}`}
                     `Thinking about a Disney Vacation Club stay? PixieDVC provides concierge support and clear pricing.\nStart here: ${links.plan}`
                   )
                 }
-                className="text-xs font-semibold text-brand hover:underline"
+                className={`text-xs font-semibold ${affiliateLink}`}
               >
                 Copy email
               </button>
             </div>
             <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.3em] text-muted">Instagram caption</p>
-              <pre className="whitespace-pre-wrap rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-ink">
+              <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Instagram caption</p>
+              <pre className={`whitespace-pre-wrap rounded-2xl p-4 text-xs ${affiliateCard2}`}>
 {`PixieDVC makes DVC rentals feel effortless. Concierge support + premium resorts.
 Estimate your stay: ${links.calculator}`}
               </pre>
@@ -324,7 +334,7 @@ Estimate your stay: ${links.calculator}`}
                     `PixieDVC makes DVC rentals feel effortless. Concierge support + premium resorts.\nEstimate your stay: ${links.calculator}`
                   )
                 }
-                className="text-xs font-semibold text-brand hover:underline"
+                className={`text-xs font-semibold ${affiliateLink}`}
               >
                 Copy caption
               </button>
@@ -332,7 +342,7 @@ Estimate your stay: ${links.calculator}`}
           </div>
 
           <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.3em] text-muted">Downloadable assets</p>
+            <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Downloadable assets</p>
             <div className="flex flex-wrap gap-3 text-sm">
               {[
                 "/affiliate-kit/pixiedvc-banner-1.svg",
@@ -342,7 +352,7 @@ Estimate your stay: ${links.calculator}`}
                 <Link
                   key={asset}
                   href={asset}
-                  className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-ink/80 hover:border-slate-300"
+                  className={`rounded-full px-4 py-2 text-xs font-semibold ${affiliateCard2} text-slate-500`}
                 >
                   {asset.split("/").pop()}
                 </Link>
@@ -353,9 +363,11 @@ Estimate your stay: ${links.calculator}`}
       </section>
 
       <section className="grid gap-6 md:grid-cols-2">
-        <Card className="space-y-3">
-          <h2 className="text-lg font-semibold text-ink">How you get paid</h2>
-          <ul className="space-y-2 text-sm text-muted">
+        <Card surface="dark" className={`space-y-3 ${affiliateCard}`}>
+          <h2 className="text-lg font-semibold text-slate-500" style={{ color: "#64748b" }}>
+            How you get paid
+          </h2>
+          <ul className={`space-y-2 text-sm ${affiliateTextMuted}`}>
             <li>• Payouts are processed manually each month.</li>
             <li>• We send payments via PayPal or Wise.</li>
             <li>• Set your payout email in the affiliate dashboard.</li>
@@ -363,9 +375,11 @@ Estimate your stay: ${links.calculator}`}
             <li>• Exact rates are defined in your affiliate agreement.</li>
           </ul>
         </Card>
-        <Card className="space-y-3">
-          <h2 className="text-lg font-semibold text-ink">What not to promise</h2>
-          <ul className="space-y-2 text-sm text-muted">
+        <Card surface="dark" className={`space-y-3 ${affiliateCard}`}>
+          <h2 className="text-lg font-semibold text-slate-500" style={{ color: "#64748b" }}>
+            What not to promise
+          </h2>
+          <ul className={`space-y-2 text-sm ${affiliateTextMuted}`}>
             <li>• Do not promise availability.</li>
             <li>• Do not promise final pricing before confirmation.</li>
             <li>• Do not promise specific owners.</li>
@@ -375,12 +389,14 @@ Estimate your stay: ${links.calculator}`}
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-ink">Affiliate FAQ</h2>
+        <h2 className="text-lg font-semibold text-slate-500" style={{ color: "#64748b" }}>
+          Affiliate FAQ
+        </h2>
         <div className="grid gap-4 md:grid-cols-2">
           {FAQS.map((item) => (
-            <Card key={item.q} className="space-y-2">
-              <p className="text-sm font-semibold text-ink">{item.q}</p>
-              <p className="text-sm text-muted">{item.a}</p>
+            <Card surface="dark" key={item.q} className={`space-y-2 ${affiliateCard}`}>
+              <p className="text-sm font-semibold text-slate-500">{item.q}</p>
+              <p className={`text-sm ${affiliateTextMuted}`}>{item.a}</p>
             </Card>
           ))}
         </div>

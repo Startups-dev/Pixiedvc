@@ -1,35 +1,8 @@
-const REF_COOKIE = "pixiedvc_ref";
-const REF_SET_AT_COOKIE = "pixiedvc_ref_set_at";
-const REF_LANDING_COOKIE = "pixiedvc_ref_landing";
-const REF_MAX_AGE_DAYS = 90;
+import { getAffiliateRef, setAffiliateRef } from "@/lib/affiliate-cookies";
+
 const REF_REGEX = /^[a-zA-Z0-9_-]{3,32}$/;
 
 type SearchParamsLike = URLSearchParams | { get: (key: string) => string | null };
-
-function safeWindow() {
-  return typeof window !== "undefined" ? window : null;
-}
-
-function getCookieValue(name: string) {
-  const win = safeWindow();
-  if (!win) return null;
-  const raw = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith(`${name}=`));
-  if (!raw) return null;
-  const value = raw.split("=").slice(1).join("=");
-  return decodeURIComponent(value);
-}
-
-function setCookie(name: string, value: string) {
-  const win = safeWindow();
-  if (!win) return;
-  const maxAge = REF_MAX_AGE_DAYS * 24 * 60 * 60;
-  const secure = win.location.protocol === "https:" || process.env.NODE_ENV === "production";
-  document.cookie = `${name}=${encodeURIComponent(value)}; max-age=${maxAge}; path=/; samesite=lax${
-    secure ? "; secure" : ""
-  }`;
-}
 
 export function getRefFromUrl(searchParams?: SearchParamsLike | null) {
   if (!searchParams) return null;
@@ -38,18 +11,19 @@ export function getRefFromUrl(searchParams?: SearchParamsLike | null) {
 }
 
 export function getReferral() {
-  return getCookieValue(REF_COOKIE);
+  return getAffiliateRef();
 }
 
 export function getReferralMeta() {
   return {
-    referral: getCookieValue(REF_COOKIE),
-    setAt: getCookieValue(REF_SET_AT_COOKIE),
-    landing: getCookieValue(REF_LANDING_COOKIE),
+    referral: getAffiliateRef(),
+    setAt: null,
+    landing: null,
   };
 }
 
 export function setReferral(ref: string, landingPath?: string) {
+  void landingPath;
   const existing = getReferral();
   if (existing) {
     return existing;
@@ -57,12 +31,7 @@ export function setReferral(ref: string, landingPath?: string) {
   if (!REF_REGEX.test(ref)) {
     return null;
   }
-  setCookie(REF_COOKIE, ref);
-  setCookie(REF_SET_AT_COOKIE, new Date().toISOString());
-  if (landingPath) {
-    setCookie(REF_LANDING_COOKIE, landingPath);
-  }
-  return ref;
+  return setAffiliateRef(ref);
 }
 
 export function appendRefToUrl(url: string, ref: string | null) {

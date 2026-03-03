@@ -276,7 +276,7 @@ function StepTwo({
       <div>
         <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Step 2</p>
         <h2 className="text-2xl font-semibold text-slate-900">Traveler details</h2>
-        <p className="text-sm text-slate-600">We use this to populate contracts and confirmations.</p>
+        <p className="text-sm text-slate-500">We use this to populate contracts and confirmations.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -569,7 +569,7 @@ function StepThree({
       <div>
         <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Step 3</p>
         <h2 className="text-2xl font-semibold text-slate-900">Guest roster</h2>
-        <p className="text-sm text-slate-600">List everyone staying in the villa. Names must match government IDs.</p>
+        <p className="text-sm text-slate-500">List everyone staying in the villa. Names must match government IDs.</p>
       </div>
 
       <div className="space-y-4">
@@ -584,13 +584,13 @@ function StepThree({
               ) : null}
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <div className="text-xs font-semibold text-slate-600">
+              <div className="text-xs font-semibold text-slate-500">
                 Guest type
                 <p className="mt-1 rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
                   {guest.ageCategory === "youth" ? "Child (under 18)" : "Adult (18+)"}
                 </p>
               </div>
-              <label className="text-xs font-semibold text-slate-600">
+              <label className="text-xs font-semibold text-slate-500">
                 Title
                 <select
                   value={guest.title}
@@ -604,7 +604,7 @@ function StepThree({
                   ))}
                 </select>
               </label>
-              <label className="text-xs font-semibold text-slate-600">
+              <label className="text-xs font-semibold text-slate-500">
                 First name
                 <input
                   value={guest.firstName}
@@ -612,7 +612,7 @@ function StepThree({
                   className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
                 />
               </label>
-              <label className="text-xs font-semibold text-slate-600">
+              <label className="text-xs font-semibold text-slate-500">
                 Last name
                 <input
                   value={guest.lastName}
@@ -620,7 +620,7 @@ function StepThree({
                   className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
                 />
               </label>
-              <label className="text-xs font-semibold text-slate-600">
+              <label className="text-xs font-semibold text-slate-500">
                 Email (optional)
                 <input
                   type="email"
@@ -629,7 +629,7 @@ function StepThree({
                   className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
                 />
               </label>
-              <label className="text-xs font-semibold text-slate-600">
+              <label className="text-xs font-semibold text-slate-500">
                 Phone (optional)
                 <input
                   value={guest.phone}
@@ -638,7 +638,7 @@ function StepThree({
                 />
               </label>
               {guest.ageCategory === "youth" ? (
-                <label className="text-xs font-semibold text-slate-600">
+                <label className="text-xs font-semibold text-slate-500">
                   Child age
                   <input
                     type="number"

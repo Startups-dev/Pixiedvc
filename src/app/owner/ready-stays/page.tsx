@@ -254,17 +254,17 @@ export default async function ReadyStaysPage({
                   {activeListings.map((stay) => (
                     <tr key={stay.id}>
                       <td className="px-4 py-3 text-ink">{stay.resorts?.name ?? "Listing"}</td>
-                      <td className="px-4 py-3 text-slate-600">
+                      <td className="px-4 py-3 text-slate-500">
                         {formatDate(stay.check_in)} - {formatDate(stay.check_out)}
                       </td>
-                      <td className="px-4 py-3 text-slate-600">{stay.points ?? 0}</td>
-                      <td className="px-4 py-3 text-slate-600">
+                      <td className="px-4 py-3 text-slate-500">{stay.points ?? 0}</td>
+                      <td className="px-4 py-3 text-slate-500">
                         {formatCurrencyFromCents(stay.guest_price_per_point_cents)}
                       </td>
-                      <td className="px-4 py-3 text-slate-600">
+                      <td className="px-4 py-3 text-slate-500">
                         {formatCurrencyFromCents((stay.guest_price_per_point_cents ?? 0) * (stay.points ?? 0))}
                       </td>
-                      <td className="px-4 py-3 text-slate-600">Active</td>
+                      <td className="px-4 py-3 text-slate-500">Active</td>
                       <td className="px-4 py-3">
                         <Link href={`/owner/ready-stays/${stay.id}`} className="text-xs font-semibold text-brand hover:underline">
                           View/Edit
@@ -283,7 +283,7 @@ export default async function ReadyStaysPage({
         {pendingTransferRows.length > 0 ? (
           <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
             <p className="text-sm font-semibold text-ink">Transfer required</p>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-slate-500">
               A guest has paid. Complete the Disney transfer to release the confirmation number.
             </p>
           </div>
@@ -325,19 +325,19 @@ export default async function ReadyStaysPage({
                       {soldListings.map((stay) => (
                         <tr key={stay.id}>
                           <td className="px-4 py-3 text-ink">{stay.resorts?.name ?? "Listing"}</td>
-                          <td className="px-4 py-3 text-slate-600">
+                          <td className="px-4 py-3 text-slate-500">
                             {formatDate(stay.check_in)} - {formatDate(stay.check_out)}
                           </td>
-                          <td className="px-4 py-3 text-slate-600">{stay.points ?? 0}</td>
-                          <td className="px-4 py-3 text-slate-600">
+                          <td className="px-4 py-3 text-slate-500">{stay.points ?? 0}</td>
+                          <td className="px-4 py-3 text-slate-500">
                             {formatCurrencyFromCents((stay.guest_price_per_point_cents ?? 0) * (stay.points ?? 0))}
                           </td>
-                          <td className="px-4 py-3 text-slate-600">
+                          <td className="px-4 py-3 text-slate-500">
                             <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
                               Transferred
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-slate-600">{formatDate(stay.updated_at ?? null)}</td>
+                          <td className="px-4 py-3 text-slate-500">{formatDate(stay.updated_at ?? null)}</td>
                         </tr>
                       ))}
                     </tbody>

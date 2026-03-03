@@ -208,9 +208,11 @@ export default function AdminAffiliatePayoutsClient({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="admin-affiliate-payouts-theme space-y-8">
       <form onSubmit={handleGenerate} className="space-y-4 text-sm text-slate-700">
-        <h2 className="text-lg font-semibold text-slate-900">Create payout run</h2>
+        <h2 className="text-lg font-semibold" style={{ color: "#64748b" }}>
+          Create payout run
+        </h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1">
             Period start
@@ -233,7 +235,7 @@ export default function AdminAffiliatePayoutsClient({
             />
           </label>
         </div>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-600">
           Uses booking_requests.created_at with status confirmed when available. Referral codes are matched to affiliates by referral_code or slug.
         </p>
         <button
@@ -247,7 +249,9 @@ export default function AdminAffiliatePayoutsClient({
       </form>
 
       <div className="space-y-6">
-        <h2 className="text-lg font-semibold text-slate-900">Payout runs</h2>
+        <h2 className="text-lg font-semibold" style={{ color: "#64748b" }}>
+          Payout runs
+        </h2>
         {payoutRuns.length === 0 ? (
           <p className="text-sm text-muted">No payout runs yet.</p>
         ) : (
@@ -264,7 +268,7 @@ export default function AdminAffiliatePayoutsClient({
                     <p className="text-base font-semibold text-slate-900">
                       {new Date(run.period_start).toLocaleDateString()} – {new Date(run.period_end).toLocaleDateString()}
                     </p>
-                    {run.notes ? <p className="text-xs text-slate-500">{run.notes}</p> : null}
+                    {run.notes ? <p className="text-xs text-slate-600">{run.notes}</p> : null}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button
@@ -291,7 +295,7 @@ export default function AdminAffiliatePayoutsClient({
                 ) : null}
 
                 {runItems.length === 0 ? (
-                  <p className="text-sm text-slate-500">No qualifying bookings in this period.</p>
+                  <p className="text-sm text-slate-600">No qualifying bookings in this period.</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-left text-xs text-slate-600">

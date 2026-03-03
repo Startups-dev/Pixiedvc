@@ -197,7 +197,7 @@ export default function PrivateInventoryTable({ initial }: { initial: PrivateInv
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2 text-sm text-slate-600">
+            <div className="space-y-2 text-sm text-slate-500">
               <p><span className="font-semibold text-slate-900">Owner:</span> {selected.owner_id}</p>
               <p><span className="font-semibold text-slate-900">Home resort:</span> {selected.home_resort ?? "N/A"}</p>
               <p><span className="font-semibold text-slate-900">Resorts allowed:</span> {selected.resorts_allowed?.join(", ") ?? "N/A"}</p>
@@ -205,7 +205,7 @@ export default function PrivateInventoryTable({ initial }: { initial: PrivateInv
               <p><span className="font-semibold text-slate-900">Use year:</span> {selected.use_year ?? "N/A"}</p>
               <p><span className="font-semibold text-slate-900">Expiry:</span> {selected.points_expiry_date ?? "N/A"}</p>
             </div>
-            <div className="space-y-2 text-sm text-slate-600">
+            <div className="space-y-2 text-sm text-slate-500">
               <p><span className="font-semibold text-slate-900">Already booked:</span> {selected.already_booked ? "Yes" : "No"}</p>
               <p><span className="font-semibold text-slate-900">Confirmation:</span> {selected.existing_confirmation_number ?? "N/A"}</p>
               <p><span className="font-semibold text-slate-900">Reservation details:</span></p>

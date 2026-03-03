@@ -374,7 +374,7 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Pricing Tool</p>
           {pricing ? (
-            <p className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+            <p className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
               Strictest season: {seasonLabel(pricing.seasonType)} · Max owner payout{" "}
               {formatDollars(pricing.maxOwnerPayout)}/pt
             </p>
@@ -401,7 +401,7 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
           />
         </label>
         {pricing && checkIn && checkOut ? (
-          <p className="mt-2 text-xs text-slate-600">
+          <p className="mt-2 text-xs text-slate-500">
             Max payout for these dates:{" "}
             <span className="font-semibold">{formatDollars(pricing.maxOwnerPayout)}/pt</span>. You can set any
             lower amount — higher isn’t allowed.

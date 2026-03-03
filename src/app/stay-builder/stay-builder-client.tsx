@@ -147,7 +147,7 @@ export default function StayBuilderClient({
       <header className="space-y-3">
         <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Pixie Stay Builder</p>
         <h1 className="text-3xl font-semibold text-slate-900">Plan your Disney stay</h1>
-        <p className="text-slate-600">
+        <p className="text-slate-500">
           Step through dates, resorts, guest details, and policies so our concierge team can match you with the perfect DVC owner.
         </p>
       </header>
@@ -391,7 +391,7 @@ function StepOne({
       <div>
         <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Step 1</p>
         <h2 className="text-2xl font-semibold text-slate-900">Choose your dates & resort</h2>
-        <p className="text-sm text-slate-600">Pick dates, resort, and villa type. Pricing preview updates as you go.</p>
+        <p className="text-sm text-slate-500">Pick dates, resort, and villa type. Pricing preview updates as you go.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -515,7 +515,7 @@ function StepOne({
             type="button"
             onClick={() => setRequiresAccessibility(true)}
             className={`rounded-full border px-4 py-2 text-sm font-semibold ${
-              requiresAccessibility ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-slate-200 text-slate-600'
+              requiresAccessibility ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-slate-200 text-slate-500'
             }`}
           >
             Yes
@@ -524,7 +524,7 @@ function StepOne({
             type="button"
             onClick={() => setRequiresAccessibility(false)}
             className={`rounded-full border px-4 py-2 text-sm font-semibold ${
-              !requiresAccessibility ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-slate-200 text-slate-600'
+              !requiresAccessibility ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-slate-200 text-slate-500'
             }`}
           >
             No
@@ -532,7 +532,7 @@ function StepOne({
         </div>
       </div>
 
-      <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+      <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
         <p className="text-sm font-semibold text-slate-900">Stay estimate</p>
         {calcError ? (
           <p className="text-sm text-rose-600">{calcError}</p>
@@ -552,7 +552,7 @@ function StepOne({
         )}
       </div>
 
-      <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+      <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
         Signed in as <span className="font-semibold text-slate-900">{userEmail || 'guest'}</span>. We’ll auto-fill traveler details on the next step.
       </div>
 
@@ -683,7 +683,7 @@ function StepTwo({
       <div>
         <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Step 2</p>
         <h2 className="text-2xl font-semibold text-slate-900">Traveler details</h2>
-        <p className="text-sm text-slate-600">We use this to populate contracts and confirmations.</p>
+        <p className="text-sm text-slate-500">We use this to populate contracts and confirmations.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -913,7 +913,7 @@ function StepThree({
       <div>
         <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Step 3</p>
         <h2 className="text-2xl font-semibold text-slate-900">Guest roster</h2>
-        <p className="text-sm text-slate-600">List everyone staying in the villa. Names must match government IDs.</p>
+        <p className="text-sm text-slate-500">List everyone staying in the villa. Names must match government IDs.</p>
       </div>
 
       <div className="space-y-4">
@@ -928,13 +928,13 @@ function StepThree({
               ) : null}
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <div className="text-xs font-semibold text-slate-600">
+              <div className="text-xs font-semibold text-slate-500">
                 Guest type
                 <p className="mt-1 rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
                   {guest.ageCategory === 'youth' ? 'Child (under 18)' : 'Adult (18+)'}
                 </p>
               </div>
-              <label className="text-xs font-semibold text-slate-600">
+              <label className="text-xs font-semibold text-slate-500">
                 Title
                 <select
                   value={guest.title}
@@ -948,7 +948,7 @@ function StepThree({
                   ))}
                 </select>
               </label>
-              <label className="text-xs font-semibold text-slate-600">
+              <label className="text-xs font-semibold text-slate-500">
                 First name
                 <input
                   value={guest.firstName}
@@ -956,7 +956,7 @@ function StepThree({
                   className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
                 />
               </label>
-              <label className="text-xs font-semibold text-slate-600">
+              <label className="text-xs font-semibold text-slate-500">
                 Last name
                 <input
                   value={guest.lastName}
@@ -964,7 +964,7 @@ function StepThree({
                   className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
                 />
               </label>
-              <label className="text-xs font-semibold text-slate-600">
+              <label className="text-xs font-semibold text-slate-500">
                 Email (optional)
                 <input
                   type="email"
@@ -973,7 +973,7 @@ function StepThree({
                   className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
                 />
               </label>
-              <label className="text-xs font-semibold text-slate-600">
+              <label className="text-xs font-semibold text-slate-500">
                 Phone (optional)
                 <input
                   value={guest.phone}
@@ -982,7 +982,7 @@ function StepThree({
                 />
               </label>
               {guest.ageCategory === 'youth' ? (
-                <label className="text-xs font-semibold text-slate-600">
+                <label className="text-xs font-semibold text-slate-500">
                   Child age
                   <input
                     type="number"
@@ -1068,10 +1068,10 @@ function StepFour({
       <div>
         <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Step 4</p>
         <h2 className="text-2xl font-semibold text-slate-900">Policies & deposit</h2>
-        <p className="text-sm text-slate-600">Review the cancellation terms before sending your request to our concierge team.</p>
+        <p className="text-sm text-slate-500">Review the cancellation terms before sending your request to our concierge team.</p>
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+      <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
         <p className="font-semibold text-slate-900">Quick summary</p>
         <ul className="list-disc space-y-2 pl-5">
           <li>Deposit invoiced after we confirm availability. Fully refundable if we can’t match your stay.</li>
@@ -1122,9 +1122,9 @@ function SummaryPanel({ draft, guests, resorts, estimate }: { draft: BookingDraf
     <aside className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div>
         <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Stay summary</p>
-        <p className="text-sm text-slate-600">We’ll keep this updated as you complete each step.</p>
+        <p className="text-sm text-slate-500">We’ll keep this updated as you complete each step.</p>
       </div>
-      <dl className="space-y-3 text-sm text-slate-600">
+      <dl className="space-y-3 text-sm text-slate-500">
         <SummaryRow label="Check-in" value={draft.check_in ?? 'TBD'} />
         <SummaryRow label="Check-out" value={draft.check_out ?? 'TBD'} />
         <SummaryRow label="Nights" value={draft.nights ? `${draft.nights}` : 'TBD'} />

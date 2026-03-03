@@ -95,7 +95,7 @@ export default async function ReadyStayPackagePage({
       <div className="mb-6">
         <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Ready Stays</p>
         <h1 className="mt-2 text-3xl font-semibold text-slate-900">Booking package details</h1>
-        <p className="mt-1 text-sm text-slate-600">Review this reserved stay before continuing to agreement.</p>
+        <p className="mt-1 text-sm text-slate-500">Review this reserved stay before continuing to agreement.</p>
       </div>
       <div className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <form action={`/ready-stays/${params.id}/book/package/details`} method="get" className="space-y-6">

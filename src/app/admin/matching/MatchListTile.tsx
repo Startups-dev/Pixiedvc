@@ -72,8 +72,8 @@ export default function MatchListTile({
       onClick={onSelect}
       className={`relative grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4 rounded-2xl border px-4 py-4 text-left transition ${
         isSelected
-          ? 'border-l-4 border-l-blue-600 bg-blue-50'
-          : 'border-transparent bg-white hover:border-slate-200'
+          ? 'border border-[#3a3a3a] bg-[#3a3a3a]'
+          : 'border-transparent bg-[#2f2f2f] hover:border-[#3a3a3a]'
       }`}
     >
       <div

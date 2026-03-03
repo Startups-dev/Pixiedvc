@@ -54,7 +54,7 @@ export default async function PrivateInventoryAdminPage() {
     return (
       <main className="mx-auto max-w-4xl px-6 py-12">
         <h1 className="text-2xl font-semibold text-slate-900">403</h1>
-        <p className="mt-2 text-sm text-slate-600">You do not have access to private inventory.</p>
+        <p className="mt-2 text-sm text-slate-500">You do not have access to private inventory.</p>
       </main>
     );
   }
@@ -72,7 +72,7 @@ export default async function PrivateInventoryAdminPage() {
   if (error) {
     return (
       <main className="mx-auto max-w-4xl px-6 py-12">
-        <p className="text-sm text-slate-600">Unable to load private inventory.</p>
+        <p className="text-sm text-slate-500">Unable to load private inventory.</p>
       </main>
     );
   }
@@ -82,7 +82,7 @@ export default async function PrivateInventoryAdminPage() {
       <header className="space-y-3">
         <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Admin</p>
         <h1 className="text-3xl font-semibold text-slate-900">Private inventory</h1>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-500">
           Review urgent placement submissions, assign reviewers, and track outcomes.
         </p>
       </header>

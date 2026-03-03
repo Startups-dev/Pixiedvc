@@ -24,7 +24,7 @@ export default async function AdminMatchingDetailPage({
   if (!detail.match) {
     return (
       <div className="space-y-4">
-        <p className="text-sm text-slate-600">Match not found.</p>
+        <p className="text-sm text-slate-500">Match not found.</p>
         <Link href="/admin/matching" className="text-sm font-semibold text-indigo-600">
           Back to matching
         </Link>

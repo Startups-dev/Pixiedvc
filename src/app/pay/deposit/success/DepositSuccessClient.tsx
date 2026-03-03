@@ -225,13 +225,13 @@ export default function DepositSuccessClient() {
         </div>
 
         {showChecking ? (
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-slate-500">
             We are confirming your payment. This usually takes a few seconds.
           </p>
         ) : null}
 
         {showDelayed ? (
-          <div className="mt-3 space-y-2 text-sm text-slate-600">
+          <div className="mt-3 space-y-2 text-sm text-slate-500">
             <p>Taking a bit longer than usual to sync your deposit.</p>
             <p>
               This can take up to a minute. You can safely continue—your request
@@ -247,7 +247,7 @@ export default function DepositSuccessClient() {
         ) : null}
 
         {viewState === "notFound" ? (
-          <div className="mt-3 space-y-2 text-sm text-slate-600">
+          <div className="mt-3 space-y-2 text-sm text-slate-500">
             <p>We’re still syncing your deposit.</p>
             <p>
               This can take up to a minute. You can safely continue, and we’ll
@@ -257,14 +257,14 @@ export default function DepositSuccessClient() {
         ) : null}
 
         {viewState === "unauthorized" ? (
-          <div className="mt-3 space-y-2 text-sm text-slate-600">
+          <div className="mt-3 space-y-2 text-sm text-slate-500">
             <p>Please sign in to confirm your deposit.</p>
             <p>Once signed in, we’ll finish syncing your payment.</p>
           </div>
         ) : null}
 
         {viewState === "error" && error ? (
-          <div className="mt-3 space-y-2 text-sm text-slate-600">
+          <div className="mt-3 space-y-2 text-sm text-slate-500">
             <p>We couldn’t confirm it yet.</p>
             <p>{error}</p>
           </div>
@@ -278,7 +278,7 @@ export default function DepositSuccessClient() {
             <button
               type="button"
               onClick={handleCopyDebug}
-              className="mt-2 inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50"
+              className="mt-2 inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-500 hover:bg-slate-50"
             >
               {copied ? "Copied" : "Copy debug"}
             </button>

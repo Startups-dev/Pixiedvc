@@ -161,12 +161,12 @@ export default function SupportAgentDashboard() {
             <h1 className="text-xl font-semibold text-slate-900">
               Concierge Dashboard
             </h1>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-slate-500">
               Manage handoffs and respond to guests.
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-xs font-semibold text-slate-600">
+            <label className="text-xs font-semibold text-slate-500">
               Seats
             </label>
             <select

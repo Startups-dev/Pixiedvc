@@ -102,7 +102,7 @@ export default function TestimonialsSection({
             className="rounded-3xl border border-slate-200/70 bg-slate-50 p-6 md:p-7"
           >
             <p className="text-base leading-7 text-slate-900">“{testimonial.quote}”</p>
-            <p className="mt-4 text-sm text-slate-600">
+            <p className="mt-4 text-sm text-slate-500">
               {testimonial.author} · {testimonial.location}
             </p>
           </div>

@@ -53,12 +53,14 @@ export default function PricingPromotionToggleClient({ name }: { name: string })
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-[#3a3a3a] bg-[#2f2f2f] p-6 shadow-[0_14px_50px_rgba(0,0,0,0.35)]">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Pricing promotion</p>
-          <h2 className="mt-2 text-xl font-semibold text-slate-900">{name}</h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0]">Pricing promotion</p>
+          <h2 className="mt-2 text-xl font-semibold" style={{ color: '#64748b' }}>
+            {name}
+          </h2>
+          <p className="mt-1 text-sm text-[#b4b4b4]">
             Toggle the active promotion window without redeploying.
           </p>
         </div>
@@ -68,8 +70,8 @@ export default function PricingPromotionToggleClient({ name }: { name: string })
           disabled={isPending || !promotion}
           className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
             isActive
-              ? "border-emerald-500 bg-emerald-500 text-white"
-              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+              ? "border-[#10a37f] bg-[#10a37f] text-white"
+              : "border-[#3a3a3a] bg-[#212121] text-[#b4b4b4] hover:bg-[#171717]"
           } ${isPending ? "opacity-70" : ""}`}
         >
           <span>{isActive ? "Active" : "Inactive"}</span>

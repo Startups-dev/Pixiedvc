@@ -11,7 +11,7 @@ type Props = {
 };
 
 export default function ResortEssentials({ essentials, id }: Props) {
-  const { transportation, amenities, dining, notices } = essentials;
+  const { transportation, amenities, notices } = essentials;
   const gettingAroundItems = transportation
     .split(/\n|•|;|\.(?=\s+[A-Z])/)
     .map((item) => item.trim())
@@ -33,13 +33,6 @@ export default function ResortEssentials({ essentials, id }: Props) {
         <AccordionItem title="Amenities">
           <ul className="space-y-1 pl-5 text-[#0F2148]/80">
             {amenities.map((item) => (
-              <li key={item} className="list-disc">{item}</li>
-            ))}
-          </ul>
-        </AccordionItem>
-        <AccordionItem title="Dining">
-          <ul className="space-y-1 pl-5 text-[#0F2148]/80">
-            {dining.map((item) => (
               <li key={item} className="list-disc">{item}</li>
             ))}
           </ul>

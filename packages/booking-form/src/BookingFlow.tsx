@@ -294,7 +294,7 @@ export function BookingFlow({
               </h2>
             </div>
             {hideDepositBadge ? null : (
-              <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs uppercase tracking-[0.2em] text-slate-600 shadow-sm">
+              <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs uppercase tracking-[0.2em] text-slate-500 shadow-sm">
                 <span className="inline-flex h-2 w-2 rounded-full bg-brand" aria-hidden />
                 Deposit ${depositAmount}
               </div>

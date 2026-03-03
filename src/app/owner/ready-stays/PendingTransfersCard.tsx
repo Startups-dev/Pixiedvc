@@ -97,12 +97,12 @@ export default function PendingTransfersCard({
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="font-semibold text-slate-900">{banner.title}</p>
-              <p className="text-sm text-slate-600">{banner.message}</p>
+              <p className="text-sm text-slate-500">{banner.message}</p>
             </div>
             <button
               type="button"
               onClick={() => setBanner(null)}
-              className="text-xs font-semibold text-slate-600 hover:underline"
+              className="text-xs font-semibold text-slate-500 hover:underline"
             >
               Dismiss
             </button>
@@ -134,11 +134,11 @@ export default function PendingTransfersCard({
                 return (
                   <tr key={row.id}>
                     <td className="px-4 py-3 text-ink">{row.resortName || "Listing"}</td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-slate-500">
                       {formatDate(row.checkIn)} - {formatDate(row.checkOut)}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{row.points ?? 0}</td>
-                    <td className="px-4 py-3 text-slate-600">{row.guestName ?? "—"}</td>
+                    <td className="px-4 py-3 text-slate-500">{row.points ?? 0}</td>
+                    <td className="px-4 py-3 text-slate-500">{row.guestName ?? "—"}</td>
                     <td className="px-4 py-3">
                       {isCompleted ? (
                         <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">

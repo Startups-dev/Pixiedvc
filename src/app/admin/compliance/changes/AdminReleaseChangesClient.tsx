@@ -219,17 +219,17 @@ export default function AdminReleaseChangesClient({
               {sortedRows.length ? (
                 sortedRows.map((row) => (
                   <tr key={row.id} className="border-b border-slate-100">
-                    <td className="px-4 py-3 text-xs text-slate-600">
+                    <td className="px-4 py-3 text-xs text-slate-500">
                       {formatDateTime(row.deployed_at)}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-700">{row.environment}</td>
-                    <td className="px-4 py-3 text-xs text-slate-600">
+                    <td className="px-4 py-3 text-xs text-slate-500">
                       {row.release_version ?? '—'}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-700">{row.description}</td>
-                    <td className="px-4 py-3 text-xs text-slate-600">{row.deployed_by}</td>
-                    <td className="px-4 py-3 text-xs text-slate-600">{row.approved_by}</td>
-                    <td className="px-4 py-3 text-xs text-slate-600">
+                    <td className="px-4 py-3 text-xs text-slate-500">{row.deployed_by}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500">{row.approved_by}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500">
                       {row.rollback_available ? 'Yes' : 'No'}
                     </td>
                   </tr>

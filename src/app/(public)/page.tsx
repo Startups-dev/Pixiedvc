@@ -38,21 +38,6 @@ const resortShowcase = [
   },
 ];
 
-const testimonials = [
-  {
-    quote:
-      "We wanted something that felt easy but still special. PixieDVC handled the details, and we could just enjoy the trip. Everything felt smooth from start to finish.",
-    name: "Elena & Marco",
-    role: "Founders | Park Hoppers",
-  },
-  {
-    quote:
-      "I’ve booked DVC stays before, but this was the first time it actually felt calm. Clear steps, no pressure, and exactly what we were looking for.",
-    name: "Tasha A.",
-    role: "DVC Member Since 2015",
-  },
-];
-
 export default function Home() {
   return (
     <>
@@ -77,7 +62,7 @@ export default function Home() {
 
             <h3 className="text-xl font-semibold text-slate-900">Request Your Stay</h3>
 
-            <p className="mt-3 text-slate-600">
+            <p className="mt-3 text-slate-500">
               Share your dates, preferred resort, and party details. We verify availability with real DVC owners and
               guide you step by step.
             </p>
@@ -109,7 +94,7 @@ export default function Home() {
 
             <h3 className="text-xl font-semibold text-slate-900">Browse Ready Stays</h3>
 
-            <p className="mt-3 text-slate-600">
+            <p className="mt-3 text-slate-500">
               Confirmed DVC reservations available now. Secure premium villas without waiting for matching.
             </p>
 
@@ -230,11 +215,11 @@ export default function Home() {
                           {story.resortLabel}
                         </p>
                         <p className="text-xl font-semibold text-[#0F2148]">{story.title}</p>
-                        <p className="text-sm leading-relaxed text-slate-600">“{story.quote}”</p>
+                        <p className="text-sm leading-relaxed text-slate-500">“{story.quote}”</p>
                         {index === 0 ? (
                           <p className="text-xs text-slate-500">Verified PixieDVC guest</p>
                         ) : null}
-                        <p className="text-xs font-semibold text-slate-600">{story.proofLine}</p>
+                        <p className="text-xs font-semibold text-slate-500">{story.proofLine}</p>
                       </div>
                     </div>
                   );
@@ -327,44 +312,6 @@ export default function Home() {
                 category="DVC Basics"
                 limit={3}
               />
-            </div>
-          </section>
-
-          <section className="relative bg-[#F8FAFC] py-24">
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[#0B1B3A]/10"
-            />
-            <div className="mx-auto max-w-6xl px-6">
-              <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
-                <div className="space-y-6">
-                  <p className="text-xs uppercase tracking-[0.25em] text-muted">Member Voices</p>
-                  <h2 className="font-display text-3xl text-ink sm:text-4xl">
-                    Trusted by superfans crafting unforgettable stays.
-                  </h2>
-                  <p className="text-base text-muted">
-                    From seasoned DVC planners to first-time visitors, members rave about how PixieDVC removes friction while preserving every ounce of wonder.
-                  </p>
-                </div>
-                <div className="grid gap-6 sm:grid-cols-2">
-                  {testimonials.map((testimonial) => (
-                    <figure
-                      key={testimonial.name}
-                      className="rounded-3xl border border-ink/5 bg-white/80 p-6 shadow-[0_20px_50px_rgba(15,23,42,0.1)]"
-                    >
-                      <blockquote className="text-sm text-muted">
-                        &ldquo;{testimonial.quote}&rdquo;
-                      </blockquote>
-                      <figcaption className="mt-4">
-                        <p className="font-display text-base text-ink">{testimonial.name}</p>
-                        <p className="text-xs uppercase tracking-[0.18em] text-muted">
-                          {testimonial.role}
-                        </p>
-                      </figcaption>
-                    </figure>
-                  ))}
-                </div>
-              </div>
             </div>
           </section>
 

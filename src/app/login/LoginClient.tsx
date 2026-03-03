@@ -371,13 +371,13 @@ export default function LoginClient() {
 
           {mode !== 'update' ? (
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-              <button type="button" onClick={handleReset} className="hover:text-slate-600">
+              <button type="button" onClick={handleReset} className="hover:text-slate-500">
                 Forgot password
               </button>
               <button
                 type="button"
                 onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-                className="hover:text-slate-600"
+                className="hover:text-slate-500"
               >
                 {mode === 'login' ? 'Create account' : 'Back to login'}
               </button>
