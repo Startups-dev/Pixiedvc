@@ -262,35 +262,7 @@ export default function OwnerAgreementPage() {
           return;
         }
       } catch {
-        // fallback below
-      }
-
-      const { data: ownerByUserId } = await supabase
-        .from("owners")
-        .select("id, user_id, agreement_accepted_at")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      let owner = ownerByUserId;
-      if (!owner) {
-        owner = (
-          await supabase
-            .from("owners")
-            .select("id, user_id, agreement_accepted_at")
-            .eq("id", user.id)
-            .maybeSingle()
-        ).data;
-      }
-
-      if (!owner) {
-        await supabase.from("owners").upsert({ id: user.id, user_id: user.id }, { onConflict: "id" });
-      } else if (!owner.user_id && owner.id === user.id) {
-        await supabase.from("owners").update({ user_id: user.id }).eq("id", user.id).is("user_id", null);
-      }
-
-      if (owner?.agreement_accepted_at) {
-        router.replace("/owner/dashboard");
-        return;
+        setError("Unable to load agreement status.");
       }
 
       setLoading(false);
@@ -341,47 +313,10 @@ export default function OwnerAgreementPage() {
     }
 
     if (!response.ok) {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        router.replace("/login?redirect=/owner/onboarding/agreement");
-        return;
-      }
-
-      const name = signedName.trim();
-      const { data: ownerByUserId } = await supabase
-        .from("owners")
-        .select("id, user_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      const owner =
-        ownerByUserId ??
-        (
-          await supabase
-            .from("owners")
-            .select("id, user_id")
-            .eq("id", user.id)
-            .maybeSingle()
-        ).data;
-
-      const ownerId = owner?.id ?? user.id;
-      await supabase.from("owners").upsert({ id: ownerId, user_id: user.id }, { onConflict: "id" });
-      const { error: fallbackError } = await supabase
-        .from("owners")
-        .update({
-          agreement_version: "v1",
-          agreement_accepted_at: new Date().toISOString(),
-          agreement_signed_name: name,
-        })
-        .eq("id", ownerId);
-
-      if (fallbackError) {
-        const payload = await response.json().catch(() => ({ error: "Unable to accept agreement." }));
-        setError(typeof payload.error === "string" ? payload.error : "Unable to accept agreement.");
-        setSubmitting(false);
-        return;
-      }
+      const payload = await response.json().catch(() => ({ error: "Unable to accept agreement." }));
+      setError(typeof payload.error === "string" ? payload.error : "Unable to accept agreement.");
+      setSubmitting(false);
+      return;
     }
 
     router.replace("/owner/dashboard");
@@ -391,7 +326,7 @@ export default function OwnerAgreementPage() {
     return (
       <div className="mx-auto max-w-3xl space-y-6 px-6 py-12">
         <h1 className="text-3xl font-semibold text-slate-900">Owner Platform Agreement</h1>
-        <p className="text-sm text-slate-600">Loading agreement...</p>
+        <p className="text-sm text-slate-500">Loading agreement...</p>
       </div>
     );
   }

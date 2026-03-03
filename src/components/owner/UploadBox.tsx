@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 
-import { createClient } from "@/lib/supabase";
-
 export default function UploadBox({
   rentalId,
   documentType,
@@ -19,7 +17,6 @@ export default function UploadBox({
   confirmationNumber?: string | null;
   disabledMessage?: string;
 }) {
-  const supabase = createClient();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -29,16 +26,54 @@ export default function UploadBox({
     setLoading(true);
     setMessage(null);
 
-    const filename = `${crypto.randomUUID?.() ?? Date.now()}-${file.name}`;
-    const path = `rentals/${rentalId}/${documentType}/${filename}`;
+    const startResponse = await fetch("/api/rental-docs/start-upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        rental_id: rentalId,
+        doc_type: documentType,
+        mime_type: file.type,
+        size_bytes: file.size,
+      }),
+    });
 
-    const { error: uploadError } = await supabase
-      .storage
-      .from("rental-docs")
-      .upload(path, file, { upsert: false, contentType: file.type });
-
-    if (uploadError) {
+    if (!startResponse.ok) {
       setMessage("Upload failed. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    const startPayload = (await startResponse.json()) as { signed_url: string; object_path: string };
+    const uploadResponse = await fetch(startPayload.signed_url, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type || "application/octet-stream",
+        "x-upsert": "false",
+      },
+      body: file,
+    });
+
+    if (!uploadResponse.ok) {
+      setMessage("Upload failed. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    const finalizeResponse = await fetch("/api/rental-docs/finalize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rental_id: rentalId,
+        object_path: startPayload.object_path,
+        original_name: file.name,
+        doc_type: documentType,
+        size_bytes: file.size,
+      }),
+    });
+
+    if (!finalizeResponse.ok) {
+      setMessage("We saved the file, but could not record it. Please contact concierge.");
       setLoading(false);
       return;
     }
@@ -47,15 +82,12 @@ export default function UploadBox({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        storage_path: path,
-        original_name: file.name,
-        type: documentType,
         confirmation_number: confirmationNumber ?? null,
       }),
     });
 
     if (!response.ok) {
-      setMessage("We saved the file, but could not record it. Please contact concierge.");
+      setMessage("Document uploaded, but confirmation could not be processed.");
       setLoading(false);
       return;
     }

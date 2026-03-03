@@ -37,23 +37,29 @@ export default function NewRequest() {
       return;
     }
 
-    const { error } = await supabase.from('renter_requests').insert({
-      renter_id: user.id,
-      resort_id: resortId || null,
-      room_type: roomType,
-      check_in: checkIn,
-      check_out: checkOut,
-      adults,
-      children,
-      max_price_per_point: maxPpp === '' ? null : maxPpp,
-      status: 'submitted',
+    const response = await fetch('/api/renter/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        resort_id: resortId || null,
+        room_type: roomType,
+        check_in: checkIn,
+        check_out: checkOut,
+        adults,
+        children,
+        max_price_per_point: maxPpp === '' ? null : maxPpp,
+      }),
     });
 
     setLoading(false);
-    if (!error) {
+    if (response.ok) {
       alert('Request submitted!');
       window.location.href = '/';
+      return;
     }
+    const payload = await response.json().catch(() => ({ error: 'Unable to submit request.' }));
+    alert(typeof payload.error === 'string' ? payload.error : 'Unable to submit request.');
   }
 
   return (

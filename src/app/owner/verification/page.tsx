@@ -74,51 +74,91 @@ export default function OwnerVerificationPage() {
 
     const uploaded: ProofFile[] = [];
     for (const file of files) {
-      const timestamp = Date.now();
-      const sanitized = file.name.replace(/\s+/g, '-');
-      const path = `${userId}/${timestamp}-${sanitized}`;
-      const { error } = await supabase.storage
-        .from('owner-verification')
-        .upload(path, file, { upsert: false });
-      if (error) {
+      const startResponse = await fetch('/api/owner/verification/start-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          doc_type: 'verification_proof',
+          mime_type: file.type,
+          size_bytes: file.size,
+        }),
+      });
+
+      if (!startResponse.ok) {
         setSubmitting(false);
         setMessage('Unable to upload verification files.');
         return;
       }
-      uploaded.push({ path, name: file.name, size: file.size });
+
+      const startPayload = (await startResponse.json()) as {
+        object_path: string;
+        signed_url: string;
+      };
+
+      const uploadResponse = await fetch(startPayload.signed_url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type || 'application/octet-stream',
+          'x-upsert': 'false',
+        },
+        body: file,
+      });
+
+      if (!uploadResponse.ok) {
+        setSubmitting(false);
+        setMessage('Unable to upload verification files.');
+        return;
+      }
+
+      const finalizeResponse = await fetch('/api/owner/verification/finalize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          object_path: startPayload.object_path,
+          doc_type: 'verification_proof',
+          original_name: file.name,
+          size_bytes: file.size,
+        }),
+      });
+
+      if (!finalizeResponse.ok) {
+        setSubmitting(false);
+        setMessage('Unable to submit verification.');
+        return;
+      }
+
+      uploaded.push({ path: startPayload.object_path, name: file.name, size: file.size });
+
+      const finalizePayload = (await finalizeResponse.json()) as { verification?: VerificationRow };
+      if (finalizePayload.verification) {
+        setStatus(finalizePayload.verification);
+      }
     }
 
-    const payload = {
-      owner_id: userId,
-      status: 'submitted',
-      submitted_at: new Date().toISOString(),
-      proof_files: uploaded,
-      updated_at: new Date().toISOString(),
-    };
-
-    const { error } = await supabase
-      .from('owner_verifications')
-      .upsert(payload, { onConflict: 'owner_id' });
-
-    if (error) {
-      setSubmitting(false);
-      setMessage('Unable to submit verification.');
-      return;
-    }
-
-    setStatus((prev) => ({
-      ...(prev ?? {
+    setStatus((prev) => {
+      const mergedProofs = [
+        ...(prev?.proof_files ?? []),
+        ...uploaded.filter((nextFile) => !(prev?.proof_files ?? []).some((existing) => existing.path === nextFile.path)),
+      ];
+      if (prev) {
+        return {
+          ...prev,
+          status: 'submitted',
+          submitted_at: prev.submitted_at ?? new Date().toISOString(),
+          proof_files: mergedProofs,
+        };
+      }
+      return {
         status: 'submitted',
-        submitted_at: payload.submitted_at,
+        submitted_at: new Date().toISOString(),
         approved_at: null,
         rejected_at: null,
         review_notes: null,
-        proof_files: [],
-      }),
-      status: 'submitted',
-      submitted_at: payload.submitted_at,
-      proof_files: uploaded,
-    }));
+        proof_files: mergedProofs,
+      };
+    });
     setFiles([]);
     setSubmitting(false);
     setMessage('Verification submitted.');
@@ -129,14 +169,14 @@ export default function OwnerVerificationPage() {
       <div>
         <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Owner verification</p>
         <h1 className="text-3xl font-semibold text-slate-900">Submit verification</h1>
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-sm text-slate-500">
           Upload any supporting proof (membership screenshot, contract page, or recent statement).
         </p>
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
             {statusLabel}
           </span>
           {status?.review_notes ? (
@@ -172,7 +212,7 @@ export default function OwnerVerificationPage() {
           >
             {submitting ? 'Submitting…' : 'Submit verification'}
           </button>
-          {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+          {message ? <p className="text-sm text-slate-500">{message}</p> : null}
         </div>
       </div>
     </div>

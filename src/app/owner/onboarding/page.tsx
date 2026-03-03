@@ -117,22 +117,23 @@ export default function OwnerOnboarding() {
     }
 
     try {
-      const { error: ownerUpsertError } = await supabase
-        .from('owners')
-        .upsert({ id: user.id, user_id: user.id }, { onConflict: 'id' });
-      if (ownerUpsertError) {
-        setFormError('Unable to save owner profile. Please try again.');
-        setLoading(false);
-        return;
-      }
+      const onboardingResponse = await fetch('/api/owner/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          ownerLegalName: trimmedOwnerName,
+          coOwnerLegalName: coOwnerLegalName.trim() || undefined,
+        }),
+      });
 
-      const { error: ownerRepairError } = await supabase
-        .from('owners')
-        .update({ user_id: user.id })
-        .eq('id', user.id)
-        .is('user_id', null);
-      if (ownerRepairError) {
-        setFormError('Unable to finalize owner profile. Please try again.');
+      if (!onboardingResponse.ok) {
+        const payload = await onboardingResponse.json().catch(() => ({ error: null }));
+        setFormError(
+          typeof payload.error === 'string' && payload.error.length > 0
+            ? payload.error
+            : 'Unable to save owner profile. Please try again.',
+        );
         setLoading(false);
         return;
       }

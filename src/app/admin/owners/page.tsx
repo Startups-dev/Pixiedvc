@@ -58,15 +58,15 @@ export default async function OwnersAdminPage({ searchParams }: { searchParams: 
   if (error) {
     console.error('Failed to load owners', JSON.stringify(error, null, 2));
     return (
-      <div className="mx-auto max-w-3xl px-6 py-10 space-y-4">
-        <h1 className="text-2xl font-semibold text-rose-600">Unable to load owner queue</h1>
-        <p className="text-slate-600">
+      <div className="mx-auto max-w-3xl space-y-4 px-6 py-10 text-[#b4b4b4]">
+        <h1 className="text-2xl font-semibold text-[#ff6b6b]">Unable to load owner queue</h1>
+        <p className="text-[#8e8ea0]">
           Check your Supabase connection and RLS policies. You can also add
-          <code className="mx-1 rounded bg-slate-100 px-2 py-1 text-xs">SUPABASE_SERVICE_ROLE_KEY</code>
+          <code className="mx-1 rounded bg-[#2a2a2a] px-2 py-1 text-xs">SUPABASE_SERVICE_ROLE_KEY</code>
           to `.env.local` for local admin access.
         </p>
         <p className="text-sm">
-          <a href="/admin" className="text-indigo-600 hover:underline">
+          <a href="/admin" className="text-[#10a37f] hover:text-[#0d8c6d]">
             ← Return to admin home
           </a>
         </p>
@@ -201,8 +201,10 @@ const documentMap = new Map<string, QueueOwnerDocument[]>();
   }));
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10">
-      <OwnerQueue owners={queueRecords} statusFilter={statusFilter} />
+    <div className="min-h-screen bg-[#212121]">
+      <div className="mx-auto max-w-6xl px-6 py-10">
+        <OwnerQueue owners={queueRecords} statusFilter={statusFilter} />
+      </div>
     </div>
   );
 }
@@ -228,12 +230,6 @@ async function buildDocumentPreviewMap(
         }
       });
     }
-  }
-
-  if (!map.size && process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    paths.forEach((path) => {
-      map.set(path, `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`);
-    });
   }
 
   return map;

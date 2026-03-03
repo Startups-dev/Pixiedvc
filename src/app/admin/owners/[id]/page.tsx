@@ -41,6 +41,7 @@ export default async function AdminOwnerDetailPage({ params }: { params: { id: s
     fetchOwnerDocuments(supabase, ownerId),
     fetchContractsForOwner(supabase, ownerId),
   ]);
+  const documentPreviewUrls = await buildDocumentPreviewMap(supabase, documents);
 
   const contractEvents = await fetchContractEvents(
     supabase,
@@ -106,8 +107,8 @@ export default async function AdminOwnerDetailPage({ params }: { params: { id: s
         <div className="rounded-xl border border-slate-200 bg-white/80 p-4 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-900">Documents on file</h2>
           <ul className="mt-3 space-y-3 text-xs">
-            <DocumentRow label="DVC Member Card" doc={membershipCard} />
-            <DocumentRow label="Government ID" doc={govId} />
+            <DocumentRow label="DVC Member Card" doc={membershipCard} previewUrl={membershipCard ? documentPreviewUrls.get(membershipCard.storage_path) ?? null : null} />
+            <DocumentRow label="Government ID" doc={govId} previewUrl={govId ? documentPreviewUrls.get(govId.storage_path) ?? null : null} />
           </ul>
         </div>
       </section>
@@ -167,18 +168,23 @@ export default async function AdminOwnerDetailPage({ params }: { params: { id: s
 type DocumentProps = {
   label: string;
   doc: OwnerDocumentRow | null;
+  previewUrl: string | null;
 };
 
-function DocumentRow({ label, doc }: DocumentProps) {
+function DocumentRow({ label, doc, previewUrl }: DocumentProps) {
   return (
     <li className="rounded-lg border border-slate-100 px-4 py-3 text-xs">
       <p className="font-semibold text-slate-900">{label}</p>
       {doc ? (
         <div className="mt-1 flex items-center justify-between">
           <span className="text-emerald-600">Uploaded {new Date(doc.created_at).toLocaleDateString()}</span>
-          <Link href={buildStorageUrl(doc.storage_path)} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">
-            View
-          </Link>
+          {previewUrl ? (
+            <Link href={previewUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">
+              View
+            </Link>
+          ) : (
+            <span className="text-slate-500">Preview unavailable</span>
+          )}
         </div>
       ) : (
         <p className="mt-1 text-rose-600">Not uploaded yet</p>
@@ -187,10 +193,23 @@ function DocumentRow({ label, doc }: DocumentProps) {
   );
 }
 
-function buildStorageUrl(path: string) {
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!base) return '#';
-  return `${base}/storage/v1/object/public/owner-docs/${path}`;
+async function buildDocumentPreviewMap(
+  supabaseAdmin: NonNullable<ReturnType<typeof getSupabaseAdminClient>>,
+  documents: OwnerDocumentRow[],
+) {
+  const map = new Map<string, string>();
+  const paths = documents.map((doc) => doc.storage_path).filter(Boolean);
+  if (!paths.length) return map;
+
+  const { data, error } = await supabaseAdmin.storage.from("owner-docs").createSignedUrls(paths, 60 * 10);
+  if (error || !data) return map;
+
+  data.forEach((entry, index) => {
+    if (entry.signedUrl) {
+      map.set(paths[index], entry.signedUrl);
+    }
+  });
+  return map;
 }
 
 type ContractsSectionProps = {
@@ -230,7 +249,7 @@ function ContractsSection({ ownerId, contracts, contractEventsMap, ownerEmail, s
                 {contract.status}
               </span>
             </div>
-            <div className="mt-3 grid gap-3 text-xs text-slate-600 md:grid-cols-3">
+            <div className="mt-3 grid gap-3 text-xs text-slate-500 md:grid-cols-3">
               <div>
                 <p className="text-slate-500">Sent at</p>
                 <p className="text-slate-900">{contract.sent_at ? new Date(contract.sent_at).toLocaleString() : 'Not sent yet'}</p>
@@ -298,7 +317,7 @@ function ContractsSection({ ownerId, contracts, contractEventsMap, ownerEmail, s
             <div className="mt-3 rounded-xl border border-slate-100 bg-white/60 p-3">
               <p className="text-sm font-semibold text-slate-900">Event history</p>
               {events.length ? (
-                <ul className="mt-2 space-y-1 text-xs text-slate-600">
+                <ul className="mt-2 space-y-1 text-xs text-slate-500">
                   {events.map((event) => (
                     <li key={event.id} className="flex items-center justify-between">
                       <span className="capitalize">{event.event_type}</span>
@@ -336,7 +355,7 @@ function MissingServiceRole({ ownerId }: { ownerId: string }) {
     <div className="mx-auto max-w-xl space-y-4 px-6 py-16 text-center">
       <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Admin · Owner</p>
       <h1 className="text-2xl font-semibold text-slate-900">Service role key required</h1>
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-slate-500">
         To load the owner workspace (<code className="rounded bg-slate-100 px-2 py-1 text-xs">{ownerId}</code>), add{' '}
         <code className="rounded bg-slate-100 px-2 py-1 text-xs">SUPABASE_SERVICE_ROLE_KEY</code> to your environment so the admin
         dashboard can read owner documents, memberships, and contracts.
