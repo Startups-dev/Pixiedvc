@@ -33,7 +33,9 @@ COPY public ./public
 COPY content ./content
 COPY next.config.ts ./next.config.ts
 COPY tsconfig.json ./tsconfig.json
-COPY next-env.d.ts ./next-env.d.ts
+# next-env.d.ts is optional (some repos do not commit it)
+RUN --mount=type=bind,source=.,target=/src,readonly \
+  sh -c '[ -f "/src/next-env.d.ts" ] && cp "/src/next-env.d.ts" /app/next-env.d.ts || true'
 COPY postcss.config.mjs ./postcss.config.mjs
 COPY middleware.ts ./middleware.ts
 RUN --mount=type=bind,source=.,target=/src,readonly \
