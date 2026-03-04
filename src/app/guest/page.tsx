@@ -134,8 +134,8 @@ export default async function GuestDashboard() {
           >
             Open Trip Builder
           </Link>
-          <Link href="/requests/new" className="text-sm font-semibold text-white/70 hover:text-white/90">
-            Or submit a manual request
+          <Link href="/calculator" className="text-sm font-semibold text-white/70 hover:text-white/90">
+            Or start from calculator
           </Link>
         </div>
       </section>

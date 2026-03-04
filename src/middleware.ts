@@ -20,6 +20,7 @@ const PUBLIC_PATHS = [
 export async function middleware(req: NextRequest) {
   const url = new URL(req.url);
   const redirectPath = `${url.pathname}${url.search}`;
+  const isOwnerRoute = /^\/owner(\/|$)/.test(url.pathname);
   if (PUBLIC_PATHS.some((re) => re.test(url.pathname))) {
     return NextResponse.next();
   }
@@ -48,6 +49,12 @@ export async function middleware(req: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
+    if (isOwnerRoute) {
+      url.pathname = '/login';
+      url.searchParams.set('next', redirectPath);
+      url.searchParams.set('intent', 'owner');
+      return NextResponse.redirect(url);
+    }
     if (url.pathname.startsWith('/admin')) {
       url.pathname = '/login';
       url.searchParams.set('admin', '1');
@@ -101,7 +108,7 @@ export async function middleware(req: NextRequest) {
   }
 
   const normalizedRole = role === 'owner' || role === 'guest' ? role : null;
-  if (url.pathname.startsWith('/owner') && normalizedRole !== 'owner') {
+  if (isOwnerRoute && normalizedRole !== 'owner') {
     url.pathname = getHomeForRole(normalizedRole);
     return NextResponse.redirect(url);
   }

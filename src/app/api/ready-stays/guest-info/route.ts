@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: "AUTH_REQUIRED" }, { status: 401 });
   }
 
   const adminClient = getSupabaseAdminClient();
@@ -25,6 +25,7 @@ export async function POST(request: Request) {
     | {
         readyStayId?: string;
         bookingId?: string;
+        bookingPackageId?: string;
         guest?: unknown;
       }
     | null;
@@ -89,54 +90,34 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Ready Stay is no longer active." }, { status: 404 });
   }
 
-  let bookingId = stay.booking_request_id ?? null;
+  const requestedBookingId = (body?.bookingPackageId ?? body?.bookingId ?? "").trim();
+  const stayBookingId = (stay.booking_request_id ?? "").trim();
+  let bookingId = "";
 
-  if (bookingId) {
+  if (requestedBookingId) {
+    const { data: requestedBooking } = await adminClient
+      .from("booking_requests")
+      .select("id, renter_id")
+      .eq("id", requestedBookingId)
+      .maybeSingle();
+
+    if (!requestedBooking?.id || (requestedBooking.renter_id && requestedBooking.renter_id !== user.id)) {
+      return NextResponse.json({ error: "BOOKING_PACKAGE_NOT_FOUND" }, { status: 404 });
+    }
+    bookingId = requestedBooking.id;
+  } else if (stayBookingId) {
     const { data: linkedBooking } = await adminClient
       .from("booking_requests")
       .select("id, renter_id")
-      .eq("id", bookingId)
+      .eq("id", stayBookingId)
       .maybeSingle();
 
     if (!linkedBooking?.id || (linkedBooking.renter_id && linkedBooking.renter_id !== user.id)) {
-      return NextResponse.json({ error: "Booking package not found." }, { status: 404 });
+      return NextResponse.json({ error: "BOOKING_PACKAGE_NOT_FOUND" }, { status: 404 });
     }
+    bookingId = linkedBooking.id;
   } else {
-    const candidateBookingId = body?.bookingId ?? null;
-    if (candidateBookingId) {
-      const { data: candidateBooking } = await adminClient
-        .from("booking_requests")
-        .select("id, renter_id")
-        .eq("id", candidateBookingId)
-        .maybeSingle();
-      if (candidateBooking?.id && (!candidateBooking.renter_id || candidateBooking.renter_id === user.id)) {
-        bookingId = candidateBooking.id;
-      }
-    }
-  }
-
-  if (!bookingId) {
-    const guestTotalCents = Number(stay.guest_price_per_point_cents ?? 0) * Number(stay.points ?? 0);
-    const { data: createdBooking, error: createBookingError } = await adminClient
-      .from("booking_requests")
-      .insert({
-        renter_id: user.id,
-        primary_resort_id: stay.resort_id,
-        check_in: stay.check_in,
-        check_out: stay.check_out,
-        total_points: stay.points,
-        primary_room: stay.room_type,
-        guest_total_cents: guestTotalCents,
-        guest_rate_per_point_cents: stay.guest_price_per_point_cents,
-        status: "submitted",
-      })
-      .select("id")
-      .single();
-
-    if (createBookingError || !createdBooking?.id) {
-      return NextResponse.json({ error: createBookingError?.message ?? "Booking could not be created." }, { status: 400 });
-    }
-    bookingId = createdBooking.id;
+    return NextResponse.json({ error: "BOOKING_PACKAGE_ID_REQUIRED" }, { status: 400 });
   }
 
   const middleInitial = guest.leadMiddleInitial?.trim() ?? "";

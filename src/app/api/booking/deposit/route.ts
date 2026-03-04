@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 type DepositRequest = {
   bookingId?: string;
@@ -102,6 +103,15 @@ async function createStripeCheckoutSession(request: Request, payload: DepositReq
 
 export async function POST(request: Request) {
   try {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "AUTH_REQUIRED" }, { status: 401 });
+    }
+
     const payload = (await request.json()) as DepositRequest;
     const gateway = payload.gateway ?? "stripe";
 

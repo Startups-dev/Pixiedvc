@@ -128,7 +128,7 @@ export async function POST(request: Request) {
     } = await authClient.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "AUTH_REQUIRED" }, { status: 401 });
     }
 
     const adminClient = getSupabaseAdminClient();

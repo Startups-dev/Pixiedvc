@@ -4,7 +4,29 @@ import { Resorts } from "../engine/charts";
 import { quoteStay } from "../engine/calc";
 import type { RoomCode, ViewCode } from "../engine/types";
 import { ResultsTable } from "./ResultsTable";
-import { BuildingOffice2Icon, CalendarDaysIcon, HomeIcon, SparklesIcon, BanknotesIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+
+const DVC_CALC_DRAFT_KEY = "pixiedvc:dvcCalcDraft:v1";
+const QUOTE_KEY_PREFIX = "pixiedvc:quote:";
+
+type DvcCalcDraft = {
+  mode: "single" | "compare";
+  checkIn: string;
+  nights: number;
+  resort: string;
+  room: RoomCode;
+  view: ViewCode;
+  diningInterested: boolean;
+  diningPlan: "quick" | "standard";
+  diningAdults: number;
+  diningChildren: number;
+  result?: {
+    totalPoints: number;
+    totalUSD: number;
+    pppUSD: number;
+    pricingTier: string;
+  };
+  updatedAt: number;
+};
 
 export function DvcCalculator() {
   function parseYMDToLocalDate(ymd: string) {
@@ -25,6 +47,16 @@ export function DvcCalculator() {
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, "0");
     const d = String(now.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  function addDays(ymd: string, days: number) {
+    const date = parseYMDToLocalDate(ymd);
+    if (Number.isNaN(date.getTime())) return "";
+    date.setDate(date.getDate() + days);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
     return `${y}-${m}-${d}`;
   }
 
@@ -141,6 +173,65 @@ export function DvcCalculator() {
   const [diningPlan, setDiningPlan] = useState<"quick" | "standard">("quick");
   const [diningAdults, setDiningAdults] = useState(2);
   const [diningChildren, setDiningChildren] = useState(0);
+
+  const persistDraft = () => {
+    if (typeof window === "undefined") return;
+    const draft: DvcCalcDraft = {
+      mode,
+      checkIn,
+      nights,
+      resort,
+      room,
+      view,
+      diningInterested,
+      diningPlan,
+      diningAdults,
+      diningChildren,
+      result: res
+        ? {
+            totalPoints: Number(res.totalPoints ?? 0),
+            totalUSD: Number(res.totalUSD ?? 0),
+            pppUSD: Number(res.pppUSD ?? 0),
+            pricingTier: String(res.pricingTier ?? ""),
+          }
+        : undefined,
+      updatedAt: Date.now(),
+    };
+    window.localStorage.setItem(DVC_CALC_DRAFT_KEY, JSON.stringify(draft));
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(DVC_CALC_DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as DvcCalcDraft;
+      if (!draft) return;
+      if (draft.mode) setMode(draft.mode);
+      if (draft.checkIn) setCheckIn(draft.checkIn);
+      if (typeof draft.nights === "number" && Number.isFinite(draft.nights)) {
+        setNights(draft.nights);
+      }
+      if (draft.resort) setResort(draft.resort);
+      if (draft.room) setPrefillRoom(draft.room);
+      if (draft.view) setPrefillView(draft.view);
+      setDiningInterested(Boolean(draft.diningInterested));
+      if (draft.diningPlan === "quick" || draft.diningPlan === "standard") {
+        setDiningPlan(draft.diningPlan);
+      }
+      if (typeof draft.diningAdults === "number" && Number.isFinite(draft.diningAdults)) {
+        setDiningAdults(Math.max(0, draft.diningAdults));
+      }
+      if (typeof draft.diningChildren === "number" && Number.isFinite(draft.diningChildren)) {
+        setDiningChildren(Math.max(0, draft.diningChildren));
+      }
+      if (draft.result) {
+        setRes(draft.result);
+      }
+    } catch {
+      // Ignore malformed drafts.
+    }
+  }, []);
 
   function runSingle() {
     setLoading(true); setErr(null); setRes(null);
@@ -401,7 +492,7 @@ export function DvcCalculator() {
                 <h3 className="text-lg font-bold text-indigo-900 mb-4">Your Stay Summary</h3>
                 <div className="space-y-4 text-sm">
                   <div className="flex items-start gap-3">
-                    <BuildingOffice2Icon className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-0.5" />
+                    <span className="mt-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">•</span>
                     <div>
                       <div className="font-semibold text-gray-700">Resort</div>
                       <div className="text-gray-900">{meta.name}</div>
@@ -409,7 +500,7 @@ export function DvcCalculator() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <CalendarDaysIcon className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-0.5" />
+                    <span className="mt-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">•</span>
                     <div>
                       <div className="font-semibold text-gray-700">Dates</div>
                       <div className="text-gray-900">{formatYMDForDisplay(checkIn)} — {nights} night{nights !== 1 ? 's' : ''}</div>
@@ -417,14 +508,13 @@ export function DvcCalculator() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <HomeIcon className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-0.5" />
+                    <span className="mt-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">•</span>
                     <div className="flex-1">
                       <div className="font-semibold text-gray-700">Accommodation</div>
                       <div className="text-gray-900 flex items-center gap-2">
                         <span>{label(room)}, {meta.viewNames[view]}</span>
                         {meta.occupancy?.[room] && (
                           <span className="inline-flex items-center gap-1 text-sm bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
-                            <UserGroupIcon className="w-4 h-4" />
                             <span className="font-semibold">{meta.occupancy[room]}</span>
                           </span>
                         )}
@@ -433,7 +523,7 @@ export function DvcCalculator() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <SparklesIcon className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-0.5" />
+                    <span className="mt-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">•</span>
                     <div>
                       <div className="font-semibold text-gray-700">Season</div>
                       <div className="text-gray-900">{res.pricingTier}</div>
@@ -441,7 +531,7 @@ export function DvcCalculator() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <BanknotesIcon className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-0.5" />
+                    <span className="mt-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">•</span>
                     <div className="flex-1">
                       <div className="font-semibold text-gray-700">Cost</div>
                       <div className="text-gray-900">
@@ -480,17 +570,31 @@ export function DvcCalculator() {
 
                 <button
                   onClick={() => {
-                    // Navigate to booking form with prefilled data
-                    const params = new URLSearchParams({
-                      resort: resort,
-                      checkIn: checkIn,
-                      nights: nights.toString(),
-                      room: room,
-                      view: view,
-                      points: res.totalPoints.toString(),
-                      price: res.totalUSD.toString()
-                    });
-                    window.location.href = `/book?${params.toString()}`;
+                    const token = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                      ? crypto.randomUUID()
+                      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+                    const checkOutDate = addDays(checkIn, nights);
+                    const quoteBundle = {
+                      v: 1,
+                      savedAt: new Date().toISOString(),
+                      quote: {
+                        resortCode: resort,
+                        resortName: meta.name,
+                        checkIn,
+                        checkOut: checkOutDate,
+                        nights,
+                        room,
+                        view,
+                        villaType: label(room) || "Villa",
+                        points: Number(res.totalPoints ?? 0),
+                        totalUSD: Number(res.totalUSD ?? 0),
+                        pricingTier: String(res.pricingTier ?? ""),
+                      },
+                    };
+
+                    window.localStorage.setItem(`${QUOTE_KEY_PREFIX}${token}`, JSON.stringify(quoteBundle));
+                    persistDraft();
+                    window.location.href = `/book?quote=${encodeURIComponent(token)}`;
                   }}
                   className="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md"
                 >

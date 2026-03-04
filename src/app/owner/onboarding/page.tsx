@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase';
 import { getCanonicalResorts } from '@/lib/resorts/getResorts';
@@ -27,6 +28,7 @@ function defaultVacationPoints(): VacationPointsRow[] {
 }
 
 export default function OwnerOnboarding() {
+  const router = useRouter();
   const supabase = createClient();
   const [resorts, setResorts] = useState<{ id: string; name: string }[]>([]);
   const [memberships, setMemberships] = useState<
@@ -51,7 +53,10 @@ export default function OwnerOnboarding() {
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       const user = data.user;
-      if (!user) return;
+      if (!user) {
+        router.replace('/login?next=%2Fowner%2Fonboarding&intent=owner');
+        return;
+      }
       const { data: existingMemberships } = await supabase
         .from('owner_memberships')
         .select('id, owner_legal_full_name, co_owner_legal_full_name, resort_id, use_year, points_owned')
@@ -96,8 +101,7 @@ export default function OwnerOnboarding() {
         );
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [router, supabase.auth]);
 
   async function onSubmit() {
     setLoading(true);
@@ -113,6 +117,7 @@ export default function OwnerOnboarding() {
     } = await supabase.auth.getUser();
     if (!user) {
       setLoading(false);
+      router.replace('/login?next=%2Fowner%2Fonboarding&intent=owner');
       return;
     }
 

@@ -387,16 +387,16 @@ export default async function ReadyStayAgreementPage({
   const youthsCount = typeof booking.youths === 'number' ? booking.youths : 0;
   const existingAdults = (snapshot.occupancy?.adults ?? []).filter((name) => name.trim().length > 0);
   const existingYouths = (snapshot.occupancy?.youths ?? []).filter((name) => name.trim().length > 0);
+  const reservationNumber =
+    rentalConfirmation?.disney_confirmation_number?.trim() ||
+    rentalConfirmation?.dvc_confirmation_number?.trim() ||
+    (snapshot.summary?.reservationNumber ?? null);
 
   const normalizedSnapshot: ContractSnapshot = {
     templateVersion: snapshot.templateVersion ?? 'pixie_dvc_v1_1',
     generatedAt: snapshot.generatedAt ?? new Date().toISOString(),
     summary: {
-      reservationNumber:
-        rentalConfirmation?.disney_confirmation_number?.trim() ||
-        rentalConfirmation?.dvc_confirmation_number?.trim() ||
-        snapshot.summary?.reservationNumber ??
-        null,
+      reservationNumber,
       resortName,
       accommodationType: roomType,
       checkIn: readyStay.check_in ?? summary?.checkIn ?? '',

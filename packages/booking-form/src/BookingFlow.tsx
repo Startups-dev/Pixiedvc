@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FormProvider, useForm } from "react-hook-form";
 import { ZodError } from "zod";
@@ -12,6 +12,7 @@ import { GuestInfo } from "./steps/GuestInfo";
 import { TripDetails } from "./steps/TripDetails";
 import { getMaxOccupancyForSelection } from "@/lib/occupancy";
 import { useReferral } from "@/hooks/useReferral";
+import { supabaseBrowser } from "@/lib/supabase-browser";
 import type { Prefill, OnComplete } from "./types";
 import {
   AgreementInput,
@@ -21,6 +22,9 @@ import {
 } from "./schemas";
 
 const depositAmount = 99;
+const GUEST_BOOKING_DRAFT_KEY = "pixiedvc:guestBookingDraft:v2";
+const READY_STAYS_FLOW_LABEL = "Ready Stays booking";
+const GUEST_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
 
 type StepKey = "trip" | "guest" | "agreement";
 
@@ -29,6 +33,21 @@ type FormValues = {
   guest: GuestInfoInput;
   agreement: AgreementInput;
   referralCode?: string;
+};
+
+type GuestBookingDraft = {
+  v: 2;
+  savedAt: number;
+  stepIndex?: number;
+  stepId?: StepKey;
+  pathname?: string;
+  quoteToken?: string;
+  data: {
+    trip?: TripDetailsInput;
+    guest?: GuestInfoInput;
+    agreement?: AgreementInput;
+    referralCode?: string;
+  };
 };
 
 const motionVariants = {
@@ -49,6 +68,10 @@ type BookingFlowProps = {
   disableAddressAutocomplete?: boolean;
   onGuestInfoNext?: () => void;
   onGuestInfoSubmit?: (guest: GuestInfoInput) => Promise<void>;
+  initialGuest?: Partial<GuestInfoInput>;
+  signInHref?: string;
+  onSignInClick?: (guest: GuestInfoInput) => void;
+  quoteToken?: string;
 };
 
 export function BookingFlow({
@@ -63,13 +86,19 @@ export function BookingFlow({
   disableAddressAutocomplete = false,
   onGuestInfoNext,
   onGuestInfoSubmit,
+  initialGuest,
+  signInHref,
+  onSignInClick,
+  quoteToken,
 }: BookingFlowProps) {
   const stepOrder = startAtGuestInfo
     ? (["guest", "agreement"] as StepKey[])
     : (["trip", "guest", "agreement"] as StepKey[]);
   const [stepIndex, setStepIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const didRestoreDraftRef = useRef(false);
   const { ref } = useReferral();
+  const isReadyStaysFlow = flowLabel === READY_STAYS_FLOW_LABEL;
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -106,6 +135,7 @@ export function BookingFlow({
         additionalGuests: [],
         referralSource: "",
         comments: "",
+        ...initialGuest,
       },
       agreement: {
         acceptTerms: false,
@@ -124,6 +154,107 @@ export function BookingFlow({
       form.setValue("referralCode", ref, { shouldDirty: false });
     }
   }, [form, ref]);
+
+  useEffect(() => {
+    if (didRestoreDraftRef.current) return;
+    didRestoreDraftRef.current = true;
+
+    if (typeof window === "undefined" || isReadyStaysFlow) return;
+
+    try {
+      const raw = window.localStorage.getItem(GUEST_BOOKING_DRAFT_KEY);
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw) as Partial<GuestBookingDraft> & {
+        trip?: TripDetailsInput;
+        guest?: GuestInfoInput;
+        agreement?: AgreementInput;
+        referralCode?: string;
+      };
+      const draftSavedAt =
+        typeof parsed.savedAt === "number"
+          ? parsed.savedAt
+          : typeof parsed.savedAt === "string"
+            ? Date.parse(parsed.savedAt)
+            : NaN;
+      if (!Number.isFinite(draftSavedAt) || Date.now() - draftSavedAt > GUEST_DRAFT_TTL_MS) {
+        window.localStorage.removeItem(GUEST_BOOKING_DRAFT_KEY);
+        return;
+      }
+
+      if (typeof parsed.pathname === "string") {
+        const draftUrl = new URL(parsed.pathname, window.location.origin);
+        const currentUrl = new URL(window.location.pathname + window.location.search, window.location.origin);
+        if (draftUrl.pathname !== currentUrl.pathname) {
+          return;
+        }
+      }
+
+      const currentQuoteToken = new URLSearchParams(window.location.search).get("quote") ?? undefined;
+      if (parsed.quoteToken && currentQuoteToken && parsed.quoteToken !== currentQuoteToken) {
+        return;
+      }
+
+      const draftData = parsed?.v === 2 ? parsed.data ?? {} : parsed;
+
+      const current = form.getValues();
+      form.reset(
+        {
+          ...current,
+          ...(draftData?.trip ? { trip: draftData.trip } : {}),
+          ...(draftData?.guest ? { guest: draftData.guest } : {}),
+          ...(draftData?.agreement ? { agreement: draftData.agreement } : {}),
+          ...(draftData?.referralCode ? { referralCode: draftData.referralCode } : {}),
+        },
+        {
+          keepDefaultValues: true,
+          keepDirty: false,
+          keepTouched: false,
+        },
+      );
+
+      const draftStepFromIndex =
+        typeof parsed?.stepIndex === "number" && Number.isFinite(parsed.stepIndex)
+          ? Math.max(0, Math.min(parsed.stepIndex, stepOrder.length - 1))
+          : null;
+      const draftStepFromId =
+        typeof parsed?.stepId === "string" ? stepOrder.indexOf(parsed.stepId as StepKey) : -1;
+
+      if (draftStepFromIndex !== null) {
+        setStepIndex(draftStepFromIndex);
+      } else if (draftStepFromId >= 0) {
+        setStepIndex(draftStepFromId);
+      }
+    } catch {
+      // Ignore malformed drafts.
+    }
+  }, [form, isReadyStaysFlow, stepOrder]);
+
+  const clearGuestDraft = () => {
+    if (typeof window === "undefined" || isReadyStaysFlow) return;
+    window.localStorage.removeItem(GUEST_BOOKING_DRAFT_KEY);
+  };
+
+  const persistGuestDraft = (step: { stepIndex?: number; stepId?: StepKey } = {}) => {
+    if (typeof window === "undefined" || isReadyStaysFlow) return;
+    const values = form.getValues();
+    const currentQuoteToken = new URLSearchParams(window.location.search).get("quote") ?? quoteToken;
+    const draft: GuestBookingDraft = {
+      v: 2,
+      savedAt: Date.now(),
+      stepIndex: step.stepIndex,
+      stepId: step.stepId,
+      pathname: `${window.location.pathname}${window.location.search}`,
+      quoteToken: currentQuoteToken ?? undefined,
+      data: {
+        trip: values.trip,
+        guest: values.guest,
+        agreement: values.agreement,
+        referralCode: values.referralCode,
+      },
+    };
+    window.localStorage.setItem(GUEST_BOOKING_DRAFT_KEY, JSON.stringify(draft));
+  };
 
   const currentStep = stepOrder[stepIndex] ?? stepOrder[0];
   const displayedStep = stepIndex + 1 + stepDisplayOffset;
@@ -148,6 +279,29 @@ export function BookingFlow({
         return;
       }
       const parsed = bookingFlowSchema.parse(values);
+
+      if (!isReadyStaysFlow) {
+        const supabase = supabaseBrowser();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session) {
+          persistGuestDraft({ stepIndex, stepId: currentStep });
+          setError("Please sign in to pay the deposit.");
+          const nextPath = `${window.location.pathname}${window.location.search}`;
+          const loginParams = new URLSearchParams({
+            next: nextPath,
+            intent: "guest-booking",
+          });
+          const email = form.getValues("guest.email")?.trim();
+          if (email) {
+            loginParams.set("email", email);
+          }
+          window.location.href = `/login?${loginParams.toString()}`;
+          return;
+        }
+      }
+
       if (process.env.NODE_ENV !== "production") {
         console.info("[book] agreement signedName present", {
           present: Boolean(parsed?.agreement?.signedName?.trim()),
@@ -249,13 +403,29 @@ export function BookingFlow({
 
         const depositJson = (await depositResponse.json()) as { url?: string; error?: string };
         if (!depositResponse.ok || !depositJson.url) {
+          if (depositResponse.status === 401 && depositJson.error === "AUTH_REQUIRED" && !isReadyStaysFlow) {
+            persistGuestDraft({ stepIndex, stepId: currentStep });
+            const nextPath = `${window.location.pathname}${window.location.search}`;
+            const loginParams = new URLSearchParams({
+              next: nextPath,
+              intent: "guest-booking",
+            });
+            const email = form.getValues("guest.email")?.trim();
+            if (email) {
+              loginParams.set("email", email);
+            }
+            window.location.href = `/login?${loginParams.toString()}`;
+            return;
+          }
           throw new Error(depositJson.error ?? "Unable to start Stripe checkout.");
         }
 
+        clearGuestDraft();
         window.location.href = depositJson.url;
         return;
       }
 
+      clearGuestDraft();
       onComplete(json.bookingId);
     } catch (err) {
       if (err instanceof ZodError) {
@@ -341,6 +511,8 @@ export function BookingFlow({
                   nextStep();
                 }}
                 disableAddressAutocomplete={disableAddressAutocomplete}
+                signInHref={signInHref}
+                onSignInClick={onSignInClick}
               />
             ) : (
               <AgreementAndPayment onBack={prevStep} onSubmit={handleComplete} estimatedDeposit={depositAmount} />
@@ -348,8 +520,13 @@ export function BookingFlow({
           </motion.div>
         </AnimatePresence>
 
-        <div className="flex items-center justify-center gap-2 text-xs uppercase tracking-[0.24em] text-muted">
-          Secure • Refundable • Concierge Guided
+        <div className="space-y-1">
+          <div className="flex items-center justify-center gap-2 text-xs uppercase tracking-[0.24em] text-muted">
+            Secure • Refundable • Concierge Guided
+          </div>
+          {!isReadyStaysFlow ? (
+            <p className="text-center text-xs text-slate-500">Sign in required to pay and receive confirmation.</p>
+          ) : null}
         </div>
       </div>
     </FormProvider>

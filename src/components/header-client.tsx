@@ -264,6 +264,22 @@ export default function HeaderClient({
   const handleChat = useCallback(() => {
     openIntercom();
   }, []);
+  const ownerJoinHref = "/owner/onboarding";
+  const ownerPortalHref = isAuthenticated
+    ? "/owner/dashboard"
+    : "/login?next=/owner/dashboard&intent=owner";
+  const ownerDropdown: DropdownConfig = {
+    columns: 1,
+    sections: [
+      {
+        title: "Owner Access",
+        items: [
+          { label: "Join as an Owner", href: ownerJoinHref, icon: Users },
+          { label: "Owner Portal", href: ownerPortalHref, icon: ShieldCheck },
+        ],
+      },
+    ],
+  };
 
   if (pathname?.startsWith("/affiliate")) {
     return (
@@ -295,7 +311,7 @@ export default function HeaderClient({
 
           <nav ref={navRef} className="hidden items-center gap-7 text-[15px] text-white/85 md:flex">
             {NAV_LINKS.map((item) => {
-              const dropdown = DROPDOWNS[item.label];
+              const dropdown = item.label === "Owners" ? ownerDropdown : DROPDOWNS[item.label];
               if (!dropdown) {
                 return (
                   <Link key={item.href} href={item.href} className="transition hover:text-white">
@@ -307,7 +323,7 @@ export default function HeaderClient({
               const alignRight =
                 item.label === "Contact" || item.label === "Partners" || item.label === "Get to Know";
               const isContactMenu = item.label === "Contact";
-              const effectiveColumns = Math.min(dropdown.columns, dropdown.sections.length);
+              const effectiveColumns = Math.min(dropdown.columns ?? dropdown.sections.length, dropdown.sections.length);
               return (
                 <div
                   key={item.href}
@@ -353,7 +369,7 @@ export default function HeaderClient({
                       ].join(" ")}
                     >
                       {(() => {
-                        const renderSection = (section: NavItem) => (
+                        const renderSection = (section: DropdownSection) => (
                           <div key={section.title} className="space-y-3">
                             <p className="text-[11px] uppercase tracking-[0.22em] text-white/60">
                               {section.title}
@@ -666,13 +682,15 @@ export default function HeaderClient({
                     </button>
                   </div>
                 ) : (
-                  <Link
-                    href="/login"
-                    onClick={closeMobile}
-                    className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-white/40 px-4 py-2 text-sm font-semibold text-white/85 transition hover:text-white"
-                  >
-                    Login
-                  </Link>
+                  <div className="mt-3 grid gap-2">
+                    <Link
+                      href="/login"
+                      onClick={closeMobile}
+                      className="inline-flex w-full items-center justify-center rounded-full border border-white/40 px-4 py-2 text-sm font-semibold text-white/85 transition hover:text-white"
+                    >
+                      Login
+                    </Link>
+                  </div>
                 )}
               </div>
             </div>

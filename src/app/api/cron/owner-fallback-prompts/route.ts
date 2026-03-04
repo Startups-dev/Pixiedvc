@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 function isVercelCron(req: NextRequest) {
   return req.headers.get("x-vercel-cron") === "1";
@@ -13,6 +13,10 @@ function unauthorized() {
 }
 
 async function runWithLock() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return { ok: false, error: "Server misconfigured" as const };
+  }
+
   const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false },
   });
@@ -111,7 +115,7 @@ export async function GET(req: NextRequest) {
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return NextResponse.json(
-      { ok: false, error: "Missing Supabase env vars" },
+      { ok: false, error: "Server misconfigured" },
       { status: 500 },
     );
   }

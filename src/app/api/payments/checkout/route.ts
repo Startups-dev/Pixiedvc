@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server';
 
 import { createServiceClient } from '@/lib/supabase-service-client';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 
 export async function POST(request: Request) {
   try {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ ok: false, error: 'AUTH_REQUIRED' }, { status: 401 });
+    }
+
     const body = (await request.json()) as { token?: string } | null;
     const token = typeof body?.token === 'string' ? body.token.trim() : '';
 
@@ -16,8 +26,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: 'Stripe configuration is missing.' }, { status: 500 });
     }
 
-    const supabase = createServiceClient();
-    const { data: contract } = await supabase
+    const adminClient = createServiceClient();
+    const { data: contract } = await adminClient
       .from('contracts')
       .select('id, booking_request_id, snapshot, guest_accept_token')
       .eq('guest_accept_token', token)

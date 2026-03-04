@@ -19,6 +19,8 @@ type GuestInfoProps = {
   onNext: () => void | Promise<void>;
   onBack: () => void;
   disableAddressAutocomplete?: boolean;
+  signInHref?: string;
+  onSignInClick?: (guest: GuestInfoInput) => void;
 };
 
 type FormValues = {
@@ -80,7 +82,13 @@ async function resolvePostalFromGeocoder(address: string) {
   }
 }
 
-export function GuestInfo({ onNext, onBack, disableAddressAutocomplete = false }: GuestInfoProps) {
+export function GuestInfo({
+  onNext,
+  onBack,
+  disableAddressAutocomplete = false,
+  signInHref,
+  onSignInClick,
+}: GuestInfoProps) {
   const {
     register,
     control,
@@ -496,9 +504,22 @@ export function GuestInfo({ onNext, onBack, disableAddressAutocomplete = false }
           <Button onClick={onBack} variant="ghost">
             Back
           </Button>
-          <Button onClick={handleNext} disabled={submittingNext}>
-            {submittingNext ? "Saving..." : "Review Agreement"}
-          </Button>
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            {signInHref ? (
+              <a
+                href={signInHref}
+                onClick={() => {
+                  onSignInClick?.(getValues("guest"));
+                }}
+                className="text-sm font-medium text-slate-600 underline hover:text-slate-800"
+              >
+                Already have an account? Sign in
+              </a>
+            ) : null}
+            <Button onClick={handleNext} disabled={submittingNext}>
+              {submittingNext ? "Saving..." : "Review Agreement"}
+            </Button>
+          </div>
         </div>
       </Card>
     </div>

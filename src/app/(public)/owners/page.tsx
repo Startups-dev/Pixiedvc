@@ -42,12 +42,18 @@ export default function OwnersPage() {
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button asChild>
-                  <Link href="/signup?role=owner">Join as an Owner</Link>
+                  <Link href="/owner/onboarding">Join as an Owner</Link>
                 </Button>
                 <Button asChild variant="ghost">
                   <Link href="/info/owners/information">Explore Owner Resources</Link>
                 </Button>
               </div>
+              <p className="text-sm text-muted">
+                Already an owner?{" "}
+                <Link href="/login?next=/owner/dashboard&intent=owner" className="font-semibold underline underline-offset-4">
+                  Sign in
+                </Link>
+              </p>
               <p className="text-sm text-muted">
                 No obligation. No exclusivity. You review and approve every match before anything is finalized.
               </p>

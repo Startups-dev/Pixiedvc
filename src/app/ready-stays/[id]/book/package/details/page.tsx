@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 
-import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getCanonicalResorts } from "@/lib/resorts/getResorts";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import BookingFlowMountedClient from "./BookingFlowMountedClient";
 
 type PageProps = {
@@ -46,16 +46,18 @@ export default async function ReadyStayPackageDetailsPage({ params, searchParams
   }
 
   const bookingIdCandidate = lockId || stay.booking_request_id || stay.lock_session_id || "";
-  const { data: bookingRequest } = await adminClient
-    .from("booking_requests")
-    .select(
-      "id, renter_id, check_in, check_out, total_points, primary_room, guest_total_cents",
-    )
-    .eq("id", bookingIdCandidate)
-    .eq("renter_id", user.id)
-    .maybeSingle();
+  const { data: bookingRequest } = bookingIdCandidate
+    ? await adminClient
+        .from("booking_requests")
+        .select(
+          "id, renter_id, check_in, check_out, total_points, primary_room, guest_total_cents",
+        )
+        .eq("id", bookingIdCandidate)
+        .eq("renter_id", user.id)
+        .maybeSingle()
+    : { data: null as null };
 
-  if (!bookingRequest) {
+  if (!bookingRequest?.id) {
     redirect(`/ready-stays/${params.id}/book`);
   }
 
@@ -64,12 +66,12 @@ export default async function ReadyStayPackageDetailsPage({ params, searchParams
   const prefill = {
     resortId: calculatorCode ?? stay.resort_id,
     resortName,
-    villaType: formatVillaType(bookingRequest.primary_room ?? stay.room_type),
-    checkIn: bookingRequest.check_in ?? stay.check_in ?? "",
-    checkOut: bookingRequest.check_out ?? stay.check_out ?? "",
-    points: Number(bookingRequest.total_points ?? stay.points ?? 0),
+    villaType: formatVillaType(bookingRequest?.primary_room ?? stay.room_type),
+    checkIn: bookingRequest?.check_in ?? stay.check_in ?? "",
+    checkOut: bookingRequest?.check_out ?? stay.check_out ?? "",
+    points: Number(bookingRequest?.total_points ?? stay.points ?? 0),
     estCash: Number(
-      bookingRequest.guest_total_cents != null
+      bookingRequest?.guest_total_cents != null
         ? Number(bookingRequest.guest_total_cents) / 100
         : ((stay.guest_price_per_point_cents ?? 0) * (stay.points ?? 0)) / 100,
     ),

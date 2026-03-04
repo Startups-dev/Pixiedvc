@@ -34,12 +34,14 @@ COPY content ./content
 COPY next.config.ts ./next.config.ts
 COPY tsconfig.json ./tsconfig.json
 # next-env.d.ts is optional (some repos do not commit it)
-RUN --mount=type=bind,source=.,target=/src,readonly \
-  sh -c '[ -f "/src/next-env.d.ts" ] && cp "/src/next-env.d.ts" /app/next-env.d.ts || true'
 COPY postcss.config.mjs ./postcss.config.mjs
 COPY middleware.ts ./middleware.ts
-RUN --mount=type=bind,source=.,target=/src,readonly \
-  sh -c 'for f in tailwind.config.js tailwind.config.ts components.json .env.example; do [ -f "/src/$f" ] && cp "/src/$f" /app/ || true; done'
+
+# --- build-time env needed for Next.js prerender ---
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 RUN pnpm build
 

@@ -6,6 +6,7 @@
     "dev": "cross-env-shell \"next dev -p ${PORT:-3000}\"",
     "build": "next build --turbopack",
     "start": "next start",
+    "deploy:staging": "bash ./scripts/gcp/deploy-staging.sh \"$PROJECT_ID\" \"$REGION\"",
     "lint": "eslint",
     "test": "VITEST=1 vitest",
     "check:resort-images": "node scripts/check-resort-images.mjs",

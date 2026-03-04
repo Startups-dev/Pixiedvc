@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -29,6 +29,10 @@ export default function DepositSuccessClient() {
     () => searchParams.get("booking_request_id") ?? "",
     [searchParams],
   );
+  const paymentId = useMemo(
+    () => searchParams.get("paymentId") ?? searchParams.get("payment_id") ?? "",
+    [searchParams],
+  );
   const sessionId = useMemo(
     () => searchParams.get("session_id") ?? "",
     [searchParams],
@@ -40,9 +44,23 @@ export default function DepositSuccessClient() {
   const [error, setError] = useState<string | null>(null);
   const [viewState, setViewState] = useState<ViewState>("checking");
   const [pollKey, setPollKey] = useState(0);
-  const [pollStatusCode, setPollStatusCode] = useState<number | null>(null);
-  const [showWebhookHint, setShowWebhookHint] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const pollingStoppedRef = useRef(false);
+  const redirectingRef = useRef(false);
+
+  const isSuccessState = (next: BookingStatus | null) => {
+    if (!next) return false;
+    if (typeof next.deposit_paid === "number" && next.deposit_paid > 0) return true;
+    const state = (next.status ?? "").toLowerCase();
+    return (
+      state === "submitted" ||
+      state === "paid" ||
+      state === "confirmed" ||
+      state === "deposit_received"
+    );
+  };
+  const nextUrl = paymentId
+    ? `/receipt/${encodeURIComponent(paymentId)}`
+    : "/requests";
 
   useEffect(() => {
     if (!bookingId && sessionId) {
@@ -82,12 +100,13 @@ export default function DepositSuccessClient() {
 
     let cancelled = false;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    pollingStoppedRef.current = false;
 
     const schedule = (attempt: number) => {
-      if (cancelled) return;
+      if (cancelled || pollingStoppedRef.current) return;
       const delay = attempt <= 5 ? 1000 : attempt <= 10 ? 2000 : 3000;
       timeoutId = setTimeout(async () => {
-        if (cancelled) return;
+        if (cancelled || pollingStoppedRef.current) return;
         setPolls((prev) => prev + 1);
         try {
           if (process.env.NODE_ENV !== "production") {
@@ -101,7 +120,6 @@ export default function DepositSuccessClient() {
           const json = (await response.json()) as BookingStatus & {
             error?: string;
           };
-          setPollStatusCode(response.status);
           if (process.env.NODE_ENV !== "production") {
             console.info("[deposit-success] poll result", {
               status: response.status,
@@ -124,14 +142,13 @@ export default function DepositSuccessClient() {
             return;
           }
           setStatus(json);
-          if (
-            (typeof json.deposit_paid === "number" && json.deposit_paid > 0) ||
-            json.status === "submitted"
-          ) {
+          if (isSuccessState(json)) {
+            pollingStoppedRef.current = true;
             setViewState("confirmed");
-            setTimeout(() => {
-              router.replace(`/guest?booking=${encodeURIComponent(bookingId)}`);
-            }, 800);
+            if (!redirectingRef.current) {
+              redirectingRef.current = true;
+              router.replace(nextUrl || "/");
+            }
             return;
           }
         } catch (err) {
@@ -140,7 +157,7 @@ export default function DepositSuccessClient() {
           return;
         }
         const nextAttempt = attempt + 1;
-        if (nextAttempt <= MAX_POLLS) {
+        if (nextAttempt <= MAX_POLLS && !pollingStoppedRef.current) {
           schedule(nextAttempt);
         }
       }, delay);
@@ -150,14 +167,16 @@ export default function DepositSuccessClient() {
 
     return () => {
       cancelled = true;
+      pollingStoppedRef.current = true;
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
     };
-  }, [bookingId, router, pollKey]);
+  }, [bookingId, nextUrl, pollKey, router]);
 
   const timedOut = polls >= MAX_POLLS;
   const delayed = polls >= DELAYED_THRESHOLD && !timedOut;
+  const exhausted = polls >= MAX_POLLS;
   const showDelayed = viewState === "checking" && delayed;
   const showChecking = viewState === "checking" && !delayed && !timedOut;
   const showTimeout = viewState === "checking" && timedOut;
@@ -173,11 +192,41 @@ export default function DepositSuccessClient() {
     }
   }, [delayed, timedOut, viewState]);
 
-  useEffect(() => {
-    if (polls >= 3 && process.env.NODE_ENV !== "production") {
-      setShowWebhookHint(true);
+  const runSingleStatusCheck = async () => {
+    if (!bookingId) return;
+    setError(null);
+    try {
+      const response = await fetch(`/api/booking/status?id=${encodeURIComponent(bookingId)}`);
+      const json = (await response.json()) as BookingStatus & { error?: string };
+      if (!response.ok) {
+        if (response.status === 401) {
+          setViewState("unauthorized");
+          return;
+        }
+        if (response.status === 404) {
+          setViewState("notFound");
+          return;
+        }
+        setViewState("error");
+        setError(json.error ?? "Unable to verify deposit.");
+        return;
+      }
+      setStatus(json);
+      if (isSuccessState(json)) {
+        pollingStoppedRef.current = true;
+        setViewState("confirmed");
+        if (!redirectingRef.current) {
+          redirectingRef.current = true;
+          router.replace(nextUrl || "/");
+        }
+        return;
+      }
+      setViewState("delayed");
+    } catch (err) {
+      setViewState("error");
+      setError(err instanceof Error ? err.message : "Unable to verify deposit.");
     }
-  }, [polls]);
+  };
 
   const handleRetry = () => {
     setError(null);
@@ -185,17 +234,6 @@ export default function DepositSuccessClient() {
     setPolls(0);
     setViewState("checking");
     setPollKey((prev) => prev + 1);
-  };
-
-  const handleCopyDebug = async () => {
-    const text = `booking_request_id=${bookingId || "—"} status=${pollStatusCode ?? "—"} attempts=${polls}`;
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      setCopied(false);
-    }
   };
 
   return (
@@ -232,11 +270,7 @@ export default function DepositSuccessClient() {
 
         {showDelayed ? (
           <div className="mt-3 space-y-2 text-sm text-slate-500">
-            <p>Taking a bit longer than usual to sync your deposit.</p>
-            <p>
-              This can take up to a minute. You can safely continue—your request
-              will update automatically.
-            </p>
+            <p>We’re confirming your payment. This can take a minute.</p>
           </div>
         ) : null}
 
@@ -270,47 +304,23 @@ export default function DepositSuccessClient() {
           </div>
         ) : null}
 
-        {process.env.NODE_ENV !== "production" ? (
-          <div className="mt-4 text-xs text-slate-500">
-            <div>
-              Debug: id={bookingId || "—"} · status={pollStatusCode ?? "—"} · attempts={polls}
-            </div>
-            <button
-              type="button"
-              onClick={handleCopyDebug}
-              className="mt-2 inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-500 hover:bg-slate-50"
-            >
-              {copied ? "Copied" : "Copy debug"}
-            </button>
-          </div>
-        ) : null}
-
-        {showWebhookHint ? (
-          <p className="mt-4 text-xs text-slate-500">
-            Dev note: Webhooks can’t reach localhost by default. Use{" "}
-            <span className="font-mono">
-              stripe listen --forward-to localhost:3005/api/stripe/webhook
-            </span>
-          </p>
-        ) : null}
-
         {(showTimeout ||
           viewState === "delayed" ||
           viewState === "error" ||
           viewState === "notFound") ? (
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href="/guest"
+              href="/requests"
               className="inline-flex items-center rounded-full bg-[#0B1B3A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0B1B3A]/90"
             >
               Go to requests
             </Link>
             <button
               type="button"
-              onClick={handleRetry}
+              onClick={exhausted ? runSingleStatusCheck : handleRetry}
               className="inline-flex items-center rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
-              Try again
+              {exhausted ? "Check again" : "Try again"}
             </button>
           </div>
         ) : null}

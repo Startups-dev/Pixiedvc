@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Check } from "lucide-react";
@@ -66,7 +65,6 @@ export default async function ReadyStayDetailPage({
 }: {
   params: { id: string };
 }) {
-  const cookieStore = await cookies();
   const supabase = await createSupabaseServerClient();
   const { data: stay } = await supabase
     .from("ready_stays")
@@ -88,9 +86,7 @@ export default async function ReadyStayDetailPage({
   const image = resolveResortImage({ resortSlug, resortCode, imageIndex });
   const badge = holidayLabel(stay.season_type);
   const totalPriceCents = stay.guest_price_per_point_cents * stay.points;
-  const { data: auth } = await supabase.auth.getUser();
-  const isLoggedIn = Boolean(auth?.user);
-  const ctaHref = isLoggedIn ? `/ready-stays/${stay.id}/book` : `/login?redirect=/ready-stays/${stay.id}/book`;
+  const ctaHref = `/ready-stays/${stay.id}/book`;
 
   return (
     <main className="mx-auto max-w-6xl space-y-10 px-6 py-12">
@@ -184,7 +180,7 @@ export default async function ReadyStayDetailPage({
 
             <Button asChild className="mt-6 w-full !text-white hover:!text-white visited:!text-white">
               <Link href={ctaHref} prefetch={false} className="!text-white hover:!text-white visited:!text-white">
-                {isLoggedIn ? "Book this stay" : "Log in to book"}
+                Book this stay
               </Link>
             </Button>
             <div className="mt-4 space-y-2 text-xs text-slate-500">

@@ -31,6 +31,57 @@ const oauthProviders = [
 
 type Mode = 'login' | 'signup' | 'update';
 
+const GUEST_BOOKING_DRAFT_KEY = 'pixiedvc:guestBookingDraft:v2';
+const READY_STAYS_DRAFT_KEY = 'pixiedvc:readyStaysDraft:v1';
+const CALCULATOR_DRAFT_KEY = 'pixiedvc:dvcCalcDraft:v1';
+
+function safeParseJson(raw: string | null) {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function readDraftEmailByIntent(intent: string | null) {
+  if (typeof window === 'undefined') return '';
+
+  const readEmailFromDraft = (draft: Record<string, unknown> | null) => {
+    if (!draft) return '';
+    const data = (draft.data as Record<string, unknown> | undefined) ?? draft;
+    const guest = (data.guest as Record<string, unknown> | undefined) ?? (draft.guest as Record<string, unknown> | undefined);
+    const direct = draft.email;
+    const fromGuest = guest?.email;
+    const fromData = (data.email as unknown);
+    const candidate =
+      typeof direct === 'string'
+        ? direct
+        : typeof fromGuest === 'string'
+          ? fromGuest
+          : typeof fromData === 'string'
+            ? fromData
+            : '';
+    return candidate.trim();
+  };
+
+  if (intent === 'guest-booking') {
+    const guestBookingEmail = readEmailFromDraft(
+      safeParseJson(window.localStorage.getItem(GUEST_BOOKING_DRAFT_KEY)),
+    );
+    return guestBookingEmail || readEmailFromDraft(safeParseJson(window.localStorage.getItem(CALCULATOR_DRAFT_KEY)));
+  }
+
+  if (intent === 'ready-stays') {
+    const readyStaysEmail = readEmailFromDraft(
+      safeParseJson(window.localStorage.getItem(READY_STAYS_DRAFT_KEY)),
+    );
+    return readyStaysEmail || readEmailFromDraft(safeParseJson(window.localStorage.getItem(CALCULATOR_DRAFT_KEY)));
+  }
+
+  return readEmailFromDraft(safeParseJson(window.localStorage.getItem(CALCULATOR_DRAFT_KEY)));
+}
+
 export default function LoginClient() {
   const supabase = useMemo(() => supabaseBrowser(), []);
   const router = useRouter();
@@ -56,6 +107,15 @@ export default function LoginClient() {
   const adminNotice = searchParams.get('admin') === '1';
 
   useEffect(() => {
+    const emailFromQuery = (searchParams.get('email') ?? '').trim();
+    const intent = searchParams.get('intent');
+    const emailFromDraft =
+      intent === 'guest-booking' || intent === 'ready-stays' ? readDraftEmailByIntent(intent) : '';
+    const prefillEmail = emailFromQuery || emailFromDraft;
+    if (prefillEmail) {
+      setEmail(prefillEmail);
+    }
+
     const paramMode = searchParams.get('mode');
 
     if (paramMode === 'signup') {
@@ -177,7 +237,7 @@ export default function LoginClient() {
       if (mode === 'login') {
         setLoginErrorState(null);
       }
-      const redirectPath = searchParams.get('redirect');
+      const redirectPath = searchParams.get('next') ?? searchParams.get('redirect');
       if (redirectPath) {
         await router.replace(redirectPath);
         router.refresh();
