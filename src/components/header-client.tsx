@@ -222,7 +222,7 @@ export default function HeaderClient({
   }, []);
 
   useEffect(() => {
-    const media = window.matchMedia("(min-width: 768px)");
+    const media = window.matchMedia("(min-width: 1024px)");
     const handleChange = () => {
       setIsDesktop(media.matches);
       if (media.matches) {
@@ -345,7 +345,7 @@ export default function HeaderClient({
             </div>
           </div>
 
-          <nav ref={navRef} className="hidden min-w-0 flex-1 items-center justify-center px-3 text-[15px] text-white/85 md:flex">
+          <nav ref={navRef} className="hidden min-w-0 flex-1 items-center justify-center px-3 text-[15px] text-white/85 lg:flex">
             <div className="flex min-w-0 items-center gap-5 lg:gap-7">
               {NAV_LINKS.map((item) => {
                 const dropdown = item.label === "Owners" ? ownerDropdown : DROPDOWNS[item.label];
@@ -530,7 +530,7 @@ export default function HeaderClient({
           {!isDesktop ? (
             <button
               type="button"
-              className="ml-auto inline-flex shrink-0 items-center justify-center rounded-full border border-white/30 p-2 text-white/80 transition hover:border-white/60 hover:text-white md:hidden"
+              className="ml-auto inline-flex shrink-0 items-center justify-center rounded-full border border-white/30 p-2 text-white/80 transition hover:border-white/60 hover:text-white lg:hidden"
               aria-label="Toggle navigation menu"
               aria-expanded={mobileOpen}
               onClick={() => setMobileOpen((prev) => !prev)}
@@ -561,7 +561,7 @@ export default function HeaderClient({
         </div>
 
         {mobileOpen && !isDesktop ? (
-          <div className="border-t border-white/10 bg-[#0f2148] md:hidden">
+          <div className="border-t border-white/10 bg-[#0f2148] lg:hidden">
             <div className="mx-auto max-w-[1200px] space-y-4 px-4 py-4">
               <div className="grid gap-2 text-sm text-white/85">
                 {NAV_LINKS.map((item) => {
