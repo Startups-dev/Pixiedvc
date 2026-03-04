@@ -13,6 +13,11 @@ type UserMenuProps = {
   hasAffiliateAccess?: boolean;
 };
 
+const USER_MENU_CARET_CLASS_BY_OPEN: Record<"open" | "closed", string> = {
+  open: "h-3 w-3 rotate-180 transition-transform",
+  closed: "h-3 w-3 rotate-0 transition-transform",
+};
+
 export default function UserMenu({ label, isAdmin = false, userRole, hasAffiliateAccess = false }: UserMenuProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -67,7 +72,7 @@ export default function UserMenu({ label, isAdmin = false, userRole, hasAffiliat
       >
         <span className="truncate max-w-[160px]">{label}</span>
         <svg
-          className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : 'rotate-0'}`}
+          className={open ? USER_MENU_CARET_CLASS_BY_OPEN.open : USER_MENU_CARET_CLASS_BY_OPEN.closed}
           viewBox="0 0 12 7"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"

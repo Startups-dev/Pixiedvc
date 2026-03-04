@@ -47,3 +47,14 @@ next-env.d.ts
 
 # local admin scripts
 scripts/reset-password.mjs
+# Local staging secrets backups (never commit)
+env-staging.secrets.local.yaml
+env-staging.backup.local.yaml
+
+# NEVER COMMIT STAGING SECRETS
+env-staging.yaml
+.secrets/
+env-staging.*.local.yaml
+
+# local bundles / archives
+pixiedvc.bundle

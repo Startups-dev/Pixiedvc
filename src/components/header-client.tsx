@@ -61,6 +61,40 @@ type DropdownConfig = {
   sections: DropdownSection[];
 };
 
+const CARET_CLASS_BY_OPEN: Record<"open" | "closed", string> = {
+  open: "h-3 w-3 rotate-180 transition-transform",
+  closed: "h-3 w-3 rotate-0 transition-transform",
+};
+
+const MOBILE_CARET_CLASS_BY_OPEN: Record<"open" | "closed", string> = {
+  open: "h-4 w-4 rotate-180 transition-transform",
+  closed: "h-4 w-4 rotate-0 transition-transform",
+};
+
+const DROPDOWN_GRID_CLASS_BY_COLUMNS: Record<1 | 2 | 3, string> = {
+  1: "grid w-full gap-6 grid-cols-1",
+  2: "grid w-full gap-6 sm:grid-cols-2",
+  3: "grid w-full gap-6 sm:grid-cols-3",
+};
+
+const DROPDOWN_PANEL_CLASS_BY_LAYOUT: Record<
+  "left-1" | "left-2" | "left-3" | "right-1" | "right-2" | "right-3",
+  string
+> = {
+  "left-1":
+    "absolute top-full z-50 mt-2 left-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[320px]",
+  "left-2":
+    "absolute top-full z-50 mt-2 left-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[720px]",
+  "left-3":
+    "absolute top-full z-50 mt-2 left-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[900px]",
+  "right-1":
+    "absolute top-full z-50 mt-2 right-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[320px]",
+  "right-2":
+    "absolute top-full z-50 mt-2 right-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[720px]",
+  "right-3":
+    "absolute top-full z-50 mt-2 right-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[900px]",
+};
+
 const DROPDOWNS: Record<string, DropdownConfig> = {
   Guests: {
     columns: 2,
@@ -292,99 +326,144 @@ export default function HeaderClient({
   }
 
   return (
-    <header className="relative z-[60]">
+    <header className="relative z-[60] w-full overflow-x-hidden">
       <div className="w-full border-b border-white/10 bg-[#0f2148]">
-        <div className="mx-auto flex h-[80px] max-w-[1200px] items-center justify-between px-4 md:px-6">
-          <div className="logo-overlay">
-            <Link href="/" onClick={closeMobile}>
-              <Image
-                src="/images/pixiedvc-logo.png"
-                alt="PixieDVC"
-                width={1188}
-                height={300}
-                priority
-                className="h-[96px] w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)] sm:h-[132px] md:h-[156px] lg:h-[164px]"
-              />
-            </Link>
-            <span className="logo-sparkle" aria-hidden="true" />
+        <div className="mx-auto flex h-[80px] w-full max-w-[1200px] items-center px-4 md:px-6">
+          <div className="shrink-0">
+            <div className="logo-overlay">
+              <Link href="/" onClick={closeMobile}>
+                <Image
+                  src="/images/pixiedvc-logo.png"
+                  alt="PixieDVC"
+                  width={1188}
+                  height={300}
+                  priority
+                  className="h-[96px] w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)] sm:h-[132px] md:h-[156px] lg:h-[164px]"
+                />
+              </Link>
+              <span className="logo-sparkle" aria-hidden="true" />
+            </div>
           </div>
 
-          <nav ref={navRef} className="hidden items-center gap-7 text-[15px] text-white/85 md:flex">
-            {NAV_LINKS.map((item) => {
-              const dropdown = item.label === "Owners" ? ownerDropdown : DROPDOWNS[item.label];
-              if (!dropdown) {
+          <nav ref={navRef} className="hidden min-w-0 flex-1 items-center justify-center px-3 text-[15px] text-white/85 md:flex">
+            <div className="flex min-w-0 items-center gap-5 lg:gap-7">
+              {NAV_LINKS.map((item) => {
+                const dropdown = item.label === "Owners" ? ownerDropdown : DROPDOWNS[item.label];
+                if (!dropdown) {
+                  return (
+                    <Link key={item.href} href={item.href} className="transition hover:text-white">
+                      {item.label}
+                    </Link>
+                  );
+                }
+                const isOpen = openDropdown === item.label;
+                const alignRight =
+                  item.label === "Contact" || item.label === "Partners" || item.label === "Get to Know";
+                const isContactMenu = item.label === "Contact";
+                const effectiveColumns = Math.min(dropdown.columns ?? dropdown.sections.length, dropdown.sections.length);
+                const normalizedColumns: 1 | 2 | 3 =
+                  effectiveColumns <= 1 ? 1 : effectiveColumns === 2 ? 2 : 3;
+                const panelClassKey: "left-1" | "left-2" | "left-3" | "right-1" | "right-2" | "right-3" =
+                  alignRight
+                    ? normalizedColumns === 1
+                      ? "right-1"
+                      : normalizedColumns === 2
+                        ? "right-2"
+                        : "right-3"
+                    : normalizedColumns === 1
+                      ? "left-1"
+                      : normalizedColumns === 2
+                        ? "left-2"
+                        : "left-3";
                 return (
-                  <Link key={item.href} href={item.href} className="transition hover:text-white">
-                    {item.label}
-                  </Link>
-                );
-              }
-              const isOpen = openDropdown === item.label;
-              const alignRight =
-                item.label === "Contact" || item.label === "Partners" || item.label === "Get to Know";
-              const isContactMenu = item.label === "Contact";
-              const effectiveColumns = Math.min(dropdown.columns ?? dropdown.sections.length, dropdown.sections.length);
-              return (
-                <div
-                  key={item.href}
-                  className="relative"
-                  onMouseEnter={() => openDropdownWithDelay(item.label)}
-                  onMouseLeave={closeDropdownWithDelay}
-                >
-                  <Link
-                    href={item.href}
-                    className="inline-flex items-center gap-2 transition hover:text-white"
-                    onFocus={() => setOpenDropdown(item.label)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Escape") {
-                        setOpenDropdown(null);
-                      }
-                    }}
+                  <div
+                    key={item.href}
+                    className="relative"
+                    onMouseEnter={() => openDropdownWithDelay(item.label)}
+                    onMouseLeave={closeDropdownWithDelay}
                   >
-                    {item.label}
-                    <svg
-                      className={`h-3 w-3 transition-transform ${isOpen ? "rotate-180" : "rotate-0"}`}
-                      viewBox="0 0 12 7"
-                      fill="none"
-                      aria-hidden="true"
+                    <Link
+                      href={item.href}
+                      className="inline-flex items-center gap-2 transition hover:text-white"
+                      onFocus={() => setOpenDropdown(item.label)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Escape") {
+                          setOpenDropdown(null);
+                        }
+                      }}
                     >
-                      <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    </svg>
-                  </Link>
-                  {isOpen ? (
-                    <div
-                      className={[
-                        "absolute top-full z-50 mt-2",
-                        alignRight ? "right-0" : "left-0",
-                        "rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90",
-                        "shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)]",
-                        "backdrop-blur-[18px] saturate-[120%]",
-                        "max-w-[calc(100vw-2rem)]",
-                        "max-h-[calc(100vh-140px)] overflow-auto",
-                        effectiveColumns === 1
-                          ? "w-[320px]"
-                          : effectiveColumns === 2
-                            ? "w-[720px]"
-                            : "w-[900px]",
-                      ].join(" ")}
-                    >
-                      {(() => {
-                        const renderSection = (section: DropdownSection) => (
-                          <div key={section.title} className="space-y-3">
-                            <p className="text-[11px] uppercase tracking-[0.22em] text-white/60">
-                              {section.title}
-                            </p>
-                            <div className="space-y-2">
-                              {section.items.map((child, index) => {
-                                const Icon = child.icon;
-                                const itemKey = `${section.title}-${child.label}-${child.href ?? child.action ?? "static"}-${index}`;
-                                if (child.action === "chat") {
+                      {item.label}
+                      <svg
+                        className={isOpen ? CARET_CLASS_BY_OPEN.open : CARET_CLASS_BY_OPEN.closed}
+                        viewBox="0 0 12 7"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
+                    </Link>
+                    {isOpen ? (
+                      <div className={DROPDOWN_PANEL_CLASS_BY_LAYOUT[panelClassKey]}>
+                        {(() => {
+                          const renderSection = (section: DropdownSection) => (
+                            <div key={section.title} className="space-y-3">
+                              <p className="text-[11px] uppercase tracking-[0.22em] text-white/60">
+                                {section.title}
+                              </p>
+                              <div className="space-y-2">
+                                {section.items.map((child, index) => {
+                                  const Icon = child.icon;
+                                  const itemKey = `${section.title}-${child.label}-${child.href ?? child.action ?? "static"}-${index}`;
+                                  if (child.action === "chat") {
+                                    return (
+                                      <button
+                                        key={itemKey}
+                                        type="button"
+                                        onClick={handleChat}
+                                        className="flex w-full items-start gap-3 rounded-[10px] px-3 py-2 text-left font-medium text-white/90 transition hover:bg-white/10"
+                                      >
+                                        {Icon ? <Icon className="mt-0.5 h-4 w-4 text-white/60" /> : null}
+                                        <span>
+                                          {child.label}
+                                          {child.note ? (
+                                            <span className="mt-1 block text-xs font-normal text-white/55">
+                                              {child.note}
+                                            </span>
+                                          ) : null}
+                                        </span>
+                                      </button>
+                                    );
+                                  }
+                                  if (child.enabled === false) {
+                                    return (
+                                      <div
+                                        key={itemKey}
+                                        className="flex items-center gap-3 rounded-[10px] px-3 py-2 text-white/40"
+                                      >
+                                        {Icon ? <Icon className="h-4 w-4 text-white/40" /> : null}
+                                        <span className="flex-1 text-sm font-semibold">
+                                          {child.label}
+                                        </span>
+                                      </div>
+                                    );
+                                  }
+                                  if (!child.href) {
+                                    return (
+                                      <div
+                                        key={itemKey}
+                                        className="flex items-center gap-3 rounded-[10px] px-3 py-2 text-white/70"
+                                      >
+                                        {Icon ? <Icon className="h-4 w-4 text-white/55" /> : null}
+                                        <span className="text-sm font-semibold">{child.label}</span>
+                                      </div>
+                                    );
+                                  }
                                   return (
-                                    <button
+                                    <Link
                                       key={itemKey}
-                                      type="button"
-                                      onClick={handleChat}
-                                      className="flex w-full items-start gap-3 rounded-[10px] px-3 py-2 text-left font-medium text-white/90 transition hover:bg-white/10"
+                                      href={child.href}
+                                      className="flex items-start gap-3 rounded-[10px] px-3 py-2 text-sm font-medium text-white/90 transition hover:bg-white/10"
+                                      onClick={() => setOpenDropdown(null)}
                                     >
                                       {Icon ? <Icon className="mt-0.5 h-4 w-4 text-white/60" /> : null}
                                       <span>
@@ -395,114 +474,63 @@ export default function HeaderClient({
                                           </span>
                                         ) : null}
                                       </span>
-                                    </button>
+                                    </Link>
                                   );
-                                }
-                                if (child.enabled === false) {
-                                  return (
-                                    <div
-                                      key={itemKey}
-                                      className="flex items-center gap-3 rounded-[10px] px-3 py-2 text-white/40"
-                                    >
-                                      {Icon ? <Icon className="h-4 w-4 text-white/40" /> : null}
-                                      <span className="flex-1 text-sm font-semibold">
-                                        {child.label}
-                                      </span>
-                                    </div>
-                                  );
-                                }
-                                if (!child.href) {
-                                  return (
-                                    <div
-                                      key={itemKey}
-                                      className="flex items-center gap-3 rounded-[10px] px-3 py-2 text-white/70"
-                                    >
-                                      {Icon ? <Icon className="h-4 w-4 text-white/55" /> : null}
-                                      <span className="text-sm font-semibold">{child.label}</span>
-                                    </div>
-                                  );
-                                }
-                                return (
-                                  <Link
-                                    key={itemKey}
-                                    href={child.href}
-                                    className="flex items-start gap-3 rounded-[10px] px-3 py-2 text-sm font-medium text-white/90 transition hover:bg-white/10"
-                                    onClick={() => setOpenDropdown(null)}
-                                  >
-                                    {Icon ? <Icon className="mt-0.5 h-4 w-4 text-white/60" /> : null}
-                                    <span>
-                                      {child.label}
-                                      {child.note ? (
-                                        <span className="mt-1 block text-xs font-normal text-white/55">
-                                          {child.note}
-                                        </span>
-                                      ) : null}
-                                    </span>
-                                  </Link>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-
-                        if (isContactMenu) {
-                          const policies = dropdown.sections.find((section) => section.title === "Policies");
-                          const generalHelp = dropdown.sections.find((section) => section.title === "General Help");
-                          const concierge = dropdown.sections.find((section) => section.title === "Talk to a Concierge");
-                          return (
-                            <div className="grid w-full gap-6 sm:grid-cols-2">
-                              <div className="space-y-6">
-                                {policies ? renderSection(policies) : null}
-                                {generalHelp ? renderSection(generalHelp) : null}
-                              </div>
-                              <div className="space-y-6">
-                                {concierge ? renderSection(concierge) : null}
+                                })}
                               </div>
                             </div>
                           );
-                        }
 
-                        return (
-                          <div
-                            className={[
-                              "grid w-full gap-6",
-                          effectiveColumns === 1
-                            ? "grid-cols-1"
-                            : effectiveColumns === 2
-                              ? "sm:grid-cols-2"
-                              : "sm:grid-cols-3",
-                            ].join(" ")}
-                          >
-                            {dropdown.sections.map((section) => renderSection(section))}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
-            {isAuthenticated ? (
-              <UserMenu
-                label={userLabel ?? "Signed in"}
-                isAdmin={isAdmin}
-                userRole={userRole}
-                hasAffiliateAccess={hasAffiliateAccess}
-              />
-            ) : (
-              <Link
-                href="/login"
-                className="rounded-full border border-white/40 px-4 py-1 text-sm text-white/85 transition hover:text-white"
-              >
-                Login
-              </Link>
-            )}
+                          if (isContactMenu) {
+                            const policies = dropdown.sections.find((section) => section.title === "Policies");
+                            const generalHelp = dropdown.sections.find((section) => section.title === "General Help");
+                            const concierge = dropdown.sections.find((section) => section.title === "Talk to a Concierge");
+                            return (
+                              <div className="grid w-full gap-6 sm:grid-cols-2">
+                                <div className="space-y-6">
+                                  {policies ? renderSection(policies) : null}
+                                  {generalHelp ? renderSection(generalHelp) : null}
+                                </div>
+                                <div className="space-y-6">
+                                  {concierge ? renderSection(concierge) : null}
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className={DROPDOWN_GRID_CLASS_BY_COLUMNS[normalizedColumns]}>
+                              {dropdown.sections.map((section) => renderSection(section))}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+              {isAuthenticated ? (
+                <UserMenu
+                  label={userLabel ?? "Signed in"}
+                  isAdmin={isAdmin}
+                  userRole={userRole}
+                  hasAffiliateAccess={hasAffiliateAccess}
+                />
+              ) : (
+                <Link
+                  href="/login"
+                  className="rounded-full border border-white/40 px-4 py-1 text-sm text-white/85 transition hover:text-white"
+                >
+                  Login
+                </Link>
+              )}
+            </div>
           </nav>
 
           {!isDesktop ? (
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-full border border-white/30 p-2 text-white/80 transition hover:border-white/60 hover:text-white md:hidden"
+              className="ml-auto inline-flex shrink-0 items-center justify-center rounded-full border border-white/30 p-2 text-white/80 transition hover:border-white/60 hover:text-white md:hidden"
               aria-label="Toggle navigation menu"
               aria-expanded={mobileOpen}
               onClick={() => setMobileOpen((prev) => !prev)}
@@ -568,9 +596,11 @@ export default function HeaderClient({
                           aria-label={`Toggle ${item.label} menu`}
                         >
                           <svg
-                            className={`h-4 w-4 transition-transform ${
-                              mobileSection === item.label ? "rotate-180" : "rotate-0"
-                            }`}
+                            className={
+                              mobileSection === item.label
+                                ? MOBILE_CARET_CLASS_BY_OPEN.open
+                                : MOBILE_CARET_CLASS_BY_OPEN.closed
+                            }
                             viewBox="0 0 12 7"
                             fill="none"
                             aria-hidden="true"
