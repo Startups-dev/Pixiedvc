@@ -61,6 +61,21 @@ function logSupportChatError(payload: SupportChatDebugLog) {
   console.error("[support/chat/debug]", payload);
 }
 
+function logSupportChatBranch(
+  label:
+    | "fallback:no-openai-key"
+    | "fallback:conversation-persistence-failed"
+    | "fallback:embedding-failed"
+    | "fallback:no-kb-match"
+    | "fallback:chat-completion-failed"
+    | "fallback:empty-model-response"
+    | "success:ai-response"
+    | "success:kb-fallback",
+  payload: Omit<SupportChatDebugLog, "stage">,
+) {
+  console.log("[support/chat/branch]", { stage: label, ...payload });
+}
+
 function fallbackResponse() {
   return {
     answer:
@@ -211,6 +226,24 @@ async function semanticRetrieve(
       pageUrl: logBase.pageUrl,
       errorMessage: error instanceof Error ? error.message : "unknown_embedding_error",
     });
+    logSupportChatBranch("fallback:embedding-failed", {
+      ok: false,
+      usedFallback: true,
+      hasOpenAIKey: logBase.hasOpenAIKey,
+      kbMatchCount: 0,
+      pageUrl: logBase.pageUrl,
+      errorMessage: error instanceof Error ? error.message : "unknown_embedding_error",
+    });
+    if (!logBase.hasOpenAIKey) {
+      logSupportChatBranch("fallback:no-openai-key", {
+        ok: false,
+        usedFallback: true,
+        hasOpenAIKey: false,
+        kbMatchCount: 0,
+        pageUrl: logBase.pageUrl,
+        errorMessage: "openai_key_missing",
+      });
+    }
     throw error;
   }
 
@@ -354,6 +387,14 @@ export async function POST(request: Request) {
           pageUrl: pageUrlForLog,
           errorMessage: conversationError?.message ?? "conversation_create_failed",
         });
+        logSupportChatBranch("fallback:conversation-persistence-failed", {
+          ok: false,
+          usedFallback: true,
+          hasOpenAIKey,
+          kbMatchCount: 0,
+          pageUrl: pageUrlForLog,
+          errorMessage: conversationError?.message ?? "conversation_create_failed",
+        });
         return NextResponse.json(fallbackResponse());
       }
       activeConversationId = conversation.id;
@@ -443,6 +484,14 @@ export async function POST(request: Request) {
         usedFallback = true;
         const fallback = fallbackResponse();
         answer = fallback.answer;
+        logSupportChatBranch("fallback:no-kb-match", {
+          ok: false,
+          usedFallback: true,
+          hasOpenAIKey,
+          kbMatchCount: finalKbMatchCount,
+          pageUrl: pageUrlForLog,
+          errorMessage: "no_kb_match",
+        });
         logSupportChatDebug({
           stage: "chat-completion",
           ok: false,
@@ -503,6 +552,24 @@ export async function POST(request: Request) {
             })),
           ],
         });
+        if (!answer.trim()) {
+          logSupportChatBranch("fallback:empty-model-response", {
+            ok: false,
+            usedFallback: true,
+            hasOpenAIKey,
+            kbMatchCount: finalKbMatchCount,
+            pageUrl: pageUrlForLog,
+            errorMessage: "empty_model_response",
+          });
+        } else {
+          logSupportChatBranch("success:ai-response", {
+            ok: true,
+            usedFallback,
+            hasOpenAIKey,
+            kbMatchCount: finalKbMatchCount,
+            pageUrl: pageUrlForLog,
+          });
+        }
 
         logSupportChatDebug({
           stage: "chat-completion-result",
@@ -515,6 +582,27 @@ export async function POST(request: Request) {
       }
     } catch (error) {
       usedFallback = true;
+      logSupportChatBranch("fallback:chat-completion-failed", {
+        ok: false,
+        usedFallback: true,
+        hasOpenAIKey,
+        kbMatchCount: finalKbMatchCount,
+        pageUrl: pageUrlForLog,
+        errorMessage: error instanceof Error ? error.message : "chat_completion_failed",
+      });
+      if (
+        error instanceof Error &&
+        error.message.toLowerCase().includes("missing content")
+      ) {
+        logSupportChatBranch("fallback:empty-model-response", {
+          ok: false,
+          usedFallback: true,
+          hasOpenAIKey,
+          kbMatchCount: finalKbMatchCount,
+          pageUrl: pageUrlForLog,
+          errorMessage: error.message,
+        });
+      }
       logSupportChatError({
         stage: "chat-completion-result",
         ok: false,
@@ -525,6 +613,13 @@ export async function POST(request: Request) {
         errorMessage: error instanceof Error ? error.message : "chat_completion_failed",
       });
       if (retrieval.docs.length > 0) {
+        logSupportChatBranch("success:kb-fallback", {
+          ok: true,
+          usedFallback: true,
+          hasOpenAIKey,
+          kbMatchCount: finalKbMatchCount,
+          pageUrl: pageUrlForLog,
+        });
         answer =
           retrieval.docs[0]?.content
             .split(/(?<=[.!?])\s+/)
@@ -590,6 +685,16 @@ export async function POST(request: Request) {
       handoffSuggested,
     });
   } catch (error) {
+    if (!hasOpenAIKey) {
+      logSupportChatBranch("fallback:no-openai-key", {
+        ok: false,
+        usedFallback: true,
+        hasOpenAIKey: false,
+        kbMatchCount: finalKbMatchCount,
+        pageUrl: pageUrlForLog,
+        errorMessage: "openai_key_missing",
+      });
+    }
     logSupportChatError({
       stage: "route-exception",
       ok: false,
