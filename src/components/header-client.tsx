@@ -82,17 +82,17 @@ const DROPDOWN_PANEL_CLASS_BY_LAYOUT: Record<
   string
 > = {
   "left-1":
-    "absolute top-full z-50 mt-2 left-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[320px]",
+    "absolute top-full z-[120] mt-2 left-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[320px]",
   "left-2":
-    "absolute top-full z-50 mt-2 left-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[720px]",
+    "absolute top-full z-[120] mt-2 left-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[720px]",
   "left-3":
-    "absolute top-full z-50 mt-2 left-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[900px]",
+    "absolute top-full z-[120] mt-2 left-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[900px]",
   "right-1":
-    "absolute top-full z-50 mt-2 right-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[320px]",
+    "absolute top-full z-[120] mt-2 right-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[320px]",
   "right-2":
-    "absolute top-full z-50 mt-2 right-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[720px]",
+    "absolute top-full z-[120] mt-2 right-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[720px]",
   "right-3":
-    "absolute top-full z-50 mt-2 right-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[900px]",
+    "absolute top-full z-[120] mt-2 right-0 rounded-[18px] border border-white/10 bg-[#0F2148]/[0.72] p-5 text-sm text-white/90 shadow-[0_20px_50px_rgba(15,33,72,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px] saturate-[120%] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-140px)] overflow-auto w-[900px]",
 };
 
 const DROPDOWNS: Record<string, DropdownConfig> = {
@@ -326,14 +326,14 @@ export default function HeaderClient({
   }
 
   return (
-    <header className="relative z-[60] w-full overflow-x-hidden">
+    <header className="relative z-[100] w-full overflow-visible">
       <div className="w-full border-b border-white/10 bg-[#0f2148]">
         <div className="mx-auto flex h-[80px] w-full max-w-[1200px] items-center px-4 md:px-6">
           <div className="shrink-0">
             <div className="logo-overlay">
               <Link href="/" onClick={closeMobile}>
                 <Image
-                  src="/images/pixiedvc-logo.png"
+                  src="/images/Pixiedvc-logo.png"
                   alt="PixieDVC"
                   width={1188}
                   height={300}

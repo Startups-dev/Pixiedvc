@@ -30,7 +30,7 @@ export default function AffiliatePortalHeader({
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center">
               <Image
-                src="/images/pixiedvc-logo.png"
+                src="/images/Pixiedvc-logo.png"
                 alt="PixieDVC"
                 width={160}
                 height={32}
