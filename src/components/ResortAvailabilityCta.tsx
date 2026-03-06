@@ -14,7 +14,7 @@ type Props = {
 
 export default function ResortAvailabilityCta({ slug, name }: Props) {
   const { ref } = useReferral();
-  const href = appendRefToUrl(`/plan?resort=${encodeURIComponent(slug)}`, ref);
+  const href = appendRefToUrl(`/calculator?resort=${encodeURIComponent(slug)}`, ref);
 
   return (
     <section className="mx-auto max-w-6xl px-6 pb-12">

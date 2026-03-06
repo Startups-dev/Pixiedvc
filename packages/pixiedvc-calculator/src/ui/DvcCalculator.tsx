@@ -1,5 +1,13 @@
 // src/ui/DvcCalculator.tsx
 import React, { useEffect, useMemo, useState } from "react";
+import {
+  BanknotesIcon,
+  BuildingOffice2Icon,
+  CalendarDaysIcon,
+  HomeIcon,
+  SparklesIcon,
+  UserGroupIcon,
+} from "@heroicons/react/24/outline";
 import { Resorts } from "../engine/charts";
 import { quoteStay } from "../engine/calc";
 import type { RoomCode, ViewCode } from "../engine/types";
@@ -7,6 +15,61 @@ import { ResultsTable } from "./ResultsTable";
 
 const DVC_CALC_DRAFT_KEY = "pixiedvc:dvcCalcDraft:v1";
 const QUOTE_KEY_PREFIX = "pixiedvc:quote:";
+const RESORT_SLUG_TO_CODE: Record<string, string> = {
+  "animal-kingdom-villas": "AKV",
+  "animal-kingdom-jambo": "AKV",
+  "animal-kingdom-kidani": "AKV",
+  aulani: "AUL",
+  "bay-lake-tower": "BLT",
+  "beach-club-villas": "BCV",
+  "boardwalk-villas": "BWV",
+  "boulder-ridge-villas": "BRV",
+  "copper-creek-villas": "CCV",
+  "copper-creek-villas-and-cabins": "CCV",
+  "disneyland-hotel-villas": "VDH",
+  "villas-at-disneyland-hotel": "VDH",
+  "grand-californian-villas": "VGC",
+  "grand-floridian-villas": "VGF",
+  "hilton-head-island": "HHI",
+  "old-key-west": "OKW",
+  "polynesian-villas": "PVB",
+  "polynesian-villas-and-bungalows": "PVB",
+  "riviera-resort": "RVA",
+  "saratoga-springs": "SSR",
+  "vero-beach": "VB",
+  "vero-beach-resort": "VB",
+  "disneys-riviera-resort": "RVA",
+  "the-villas-at-disneys-grand-californian-hotel-spa": "VGC",
+  "the-villas-at-disneyland-hotel": "VDH",
+  "disneys-polynesian-villas-and-bungalows": "PVB",
+  "the-villas-at-disneys-grand-floridian-resort-spa": "VGF",
+  "disneys-hilton-head-island-resort": "HHI",
+  "disneys-vero-beach-resort": "VB",
+};
+
+function slugify(value: string) {
+  return value
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function resolveResortCodeFromParam(param: string | null | undefined) {
+  const normalized = param?.toLowerCase().trim();
+  if (!normalized) return null;
+
+  const codeMatch = Resorts.find((res) => res.code.toLowerCase() === normalized);
+  if (codeMatch) return codeMatch.code;
+
+  const slugCode = RESORT_SLUG_TO_CODE[normalized];
+  if (slugCode && Resorts.some((res) => res.code === slugCode)) {
+    return slugCode;
+  }
+
+  const nameMatch = Resorts.find((res) => slugify(res.name) === normalized);
+  return nameMatch?.code ?? null;
+}
 
 type DvcCalcDraft = {
   mode: "single" | "compare";
@@ -60,19 +123,6 @@ export function DvcCalculator() {
     return `${y}-${m}-${d}`;
   }
 
-  const RESORT_SLUG_TO_CODE: Record<string, string> = {
-    "animal-kingdom-villas": "AKV",
-    "aulani": "AUL",
-    "bay-lake-tower": "BLT",
-    "beach-club-villas": "BCV",
-    "boardwalk-villas": "BWV",
-    "grand-floridian-villas": "VGF",
-    "old-key-west": "OKW",
-    "polynesian-villas": "PVB",
-    "riviera-resort": "RVA",
-    "saratoga-springs": "SSR",
-  };
-
   const [mode, setMode] = useState<"single" | "compare">("single");
 
   // shared inputs
@@ -90,7 +140,7 @@ export function DvcCalculator() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const resortParam = params.get("resort")?.toLowerCase().trim();
+    const resortParam = params.get("resort");
     const checkInParam = params.get("checkIn")?.trim();
     const nightsParam = params.get("nights")?.trim();
     const roomParam = params.get("room")?.trim() as RoomCode | null;
@@ -112,29 +162,9 @@ export function DvcCalculator() {
       setPrefillView(viewParam);
     }
 
-    if (resortParam) {
-      const codeMatch = Resorts.find((res) => res.code.toLowerCase() === resortParam);
-      if (codeMatch) {
-        setResort(codeMatch.code);
-        return;
-      }
-
-      const slugMatch = RESORT_SLUG_TO_CODE[resortParam];
-      if (slugMatch) {
-        setResort(slugMatch);
-        return;
-      }
-
-      const slugified = (value: string) =>
-        value
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/(^-|-$)/g, "");
-
-      const nameMatch = Resorts.find((res) => slugified(res.name) === resortParam);
-      if (nameMatch) {
-        setResort(nameMatch.code);
-      }
+    const selectedCode = resolveResortCodeFromParam(resortParam);
+    if (selectedCode) {
+      setResort(selectedCode);
     }
   }, []);
 
@@ -205,6 +235,7 @@ export function DvcCalculator() {
     try {
       const raw = window.localStorage.getItem(DVC_CALC_DRAFT_KEY);
       if (!raw) return;
+      const hasResortParam = new URLSearchParams(window.location.search).has("resort");
       const draft = JSON.parse(raw) as DvcCalcDraft;
       if (!draft) return;
       if (draft.mode) setMode(draft.mode);
@@ -212,7 +243,7 @@ export function DvcCalculator() {
       if (typeof draft.nights === "number" && Number.isFinite(draft.nights)) {
         setNights(draft.nights);
       }
-      if (draft.resort) setResort(draft.resort);
+      if (!hasResortParam && draft.resort) setResort(draft.resort);
       if (draft.room) setPrefillRoom(draft.room);
       if (draft.view) setPrefillView(draft.view);
       setDiningInterested(Boolean(draft.diningInterested));
@@ -492,7 +523,7 @@ export function DvcCalculator() {
                 <h3 className="text-lg font-bold text-indigo-900 mb-4">Your Stay Summary</h3>
                 <div className="space-y-4 text-sm">
                   <div className="flex items-start gap-3">
-                    <span className="mt-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">•</span>
+                    <BuildingOffice2Icon className="mt-0.5 h-6 w-6 flex-shrink-0 text-indigo-600" />
                     <div>
                       <div className="font-semibold text-gray-700">Resort</div>
                       <div className="text-gray-900">{meta.name}</div>
@@ -500,7 +531,7 @@ export function DvcCalculator() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <span className="mt-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">•</span>
+                    <CalendarDaysIcon className="mt-0.5 h-6 w-6 flex-shrink-0 text-indigo-600" />
                     <div>
                       <div className="font-semibold text-gray-700">Dates</div>
                       <div className="text-gray-900">{formatYMDForDisplay(checkIn)} — {nights} night{nights !== 1 ? 's' : ''}</div>
@@ -508,13 +539,14 @@ export function DvcCalculator() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <span className="mt-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">•</span>
+                    <HomeIcon className="mt-0.5 h-6 w-6 flex-shrink-0 text-indigo-600" />
                     <div className="flex-1">
                       <div className="font-semibold text-gray-700">Accommodation</div>
                       <div className="text-gray-900 flex items-center gap-2">
                         <span>{label(room)}, {meta.viewNames[view]}</span>
                         {meta.occupancy?.[room] && (
                           <span className="inline-flex items-center gap-1 text-sm bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                            <UserGroupIcon className="h-4 w-4" />
                             <span className="font-semibold">{meta.occupancy[room]}</span>
                           </span>
                         )}
@@ -523,7 +555,7 @@ export function DvcCalculator() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <span className="mt-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">•</span>
+                    <SparklesIcon className="mt-0.5 h-6 w-6 flex-shrink-0 text-indigo-600" />
                     <div>
                       <div className="font-semibold text-gray-700">Season</div>
                       <div className="text-gray-900">{res.pricingTier}</div>
@@ -531,7 +563,7 @@ export function DvcCalculator() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <span className="mt-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">•</span>
+                    <BanknotesIcon className="mt-0.5 h-6 w-6 flex-shrink-0 text-indigo-600" />
                     <div className="flex-1">
                       <div className="font-semibold text-gray-700">Cost</div>
                       <div className="text-gray-900">

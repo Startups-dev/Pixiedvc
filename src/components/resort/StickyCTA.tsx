@@ -14,7 +14,7 @@ type Props = {
 export default function StickyCTA({ resortName, resortSlug }: Props) {
   const [visible, setVisible] = useState(false);
   const { ref } = useReferral();
-  const baseHref = resortSlug ? `/plan?resort=${encodeURIComponent(resortSlug)}` : "/plan";
+  const baseHref = resortSlug ? `/calculator?resort=${encodeURIComponent(resortSlug)}` : "/calculator";
   const href = appendRefToUrl(baseHref, ref);
 
   useEffect(() => {
