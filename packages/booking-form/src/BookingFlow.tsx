@@ -106,6 +106,7 @@ export function BookingFlow({
         resortId: prefill.resortId,
         resortName: prefill.resortName,
         villaType: prefill.villaType,
+        building_preference: "none",
         checkIn: prefill.checkIn,
         checkOut: prefill.checkOut,
         points: prefill.points,

@@ -65,7 +65,9 @@ function getGroupForSlug(slug: string): ResortGroupKey {
 }
 
 export default async function ResortsIndexPage() {
-  const resorts = await getResortSummaries();
+  const resorts = (await getResortSummaries()).filter(
+    (resort) => resort.name.trim() !== "Animal Kingdom Villas",
+  );
   const groupedResorts: Record<ResortGroupKey, typeof resorts> = {
     florida: [],
     california: [],

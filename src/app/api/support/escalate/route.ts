@@ -6,6 +6,7 @@ export async function POST(request: Request) {
   const body = await request.json();
   const conversationId = body?.conversationId as string | undefined;
   const guestEmail = body?.guestEmail ? String(body.guestEmail) : null;
+  const pageUrl = body?.pageUrl ? String(body.pageUrl) : null;
   const lastUserMessage = body?.lastUserMessage
     ? String(body.lastUserMessage)
     : null;
@@ -20,6 +21,7 @@ export async function POST(request: Request) {
       .insert({
         guest_email: guestEmail,
         status: "handoff",
+        page_url: pageUrl,
       })
       .select("id")
       .single();
@@ -39,7 +41,7 @@ export async function POST(request: Request) {
   } else {
     await supabase
       .from("support_conversations")
-      .update({ status: "handoff", guest_email: guestEmail })
+      .update({ status: "handoff", guest_email: guestEmail, page_url: pageUrl })
       .eq("id", conversation);
   }
 

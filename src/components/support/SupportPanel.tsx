@@ -169,14 +169,30 @@ export default function SupportPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: nextMessages,
+          conversationId,
           category: category || undefined,
           pageUrl: typeof window !== "undefined" ? window.location.href : "",
         }),
       });
       const data = await response.json();
+      if (data?.conversationId) {
+        setConversationId(data.conversationId);
+      }
       setMessages((prev) => [
-        ...prev,
+        ...prev.map((message, index) => {
+          if (
+            data?.userMessageId &&
+            !message.id &&
+            message.role === "user" &&
+            message.content === trimmed &&
+            index === prev.length - 1
+          ) {
+            return { ...message, id: data.userMessageId as string };
+          }
+          return message;
+        }),
         {
+          id: data?.assistantMessageId ?? undefined,
           role: "assistant",
           content: data.answer ?? "Sorry, something went wrong.",
           sources: data.sources ?? [],
@@ -224,6 +240,7 @@ export default function SupportPanel({
           conversationId,
           guestEmail: handoffForm.email || null,
           lastUserMessage,
+          pageUrl: typeof window !== "undefined" ? window.location.href : "",
         }),
       });
       const data = await response.json();
@@ -259,6 +276,7 @@ export default function SupportPanel({
           conversationId,
           guestEmail: handoffForm.email || null,
           lastUserMessage,
+          pageUrl: typeof window !== "undefined" ? window.location.href : "",
         }),
       });
       const data = await response.json();

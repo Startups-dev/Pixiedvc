@@ -1,5 +1,7 @@
 import SupportAgentDashboard from "@/components/support/SupportAgentDashboard";
 
+export const dynamic = "force-dynamic";
+
 export default function SupportAgentPage() {
   return (
     <div className="bg-slate-50">

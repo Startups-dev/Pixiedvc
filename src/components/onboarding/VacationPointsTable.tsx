@@ -22,22 +22,22 @@ export default function VacationPointsTable({ value, onChange }: Props) {
   return (
     <div className="mt-4 rounded-2xl border border-slate-200 p-4">
       <p className="text-sm font-semibold text-slate-700">Vacation Points</p>
-      <div className="mt-3 grid gap-2 text-xs font-semibold text-slate-500 sm:grid-cols-3">
+      <div className="mt-3 grid grid-cols-3 gap-1.5 text-[11px] font-semibold text-slate-500 sm:gap-2 sm:text-xs">
         <span>Use Year</span>
         <span>Available</span>
         <span>In Holding</span>
       </div>
       <div className="mt-2 space-y-2">
         {value.map((row, idx) => (
-          <div key={row.useYear} className="grid gap-2 sm:grid-cols-3">
-            <div className="flex items-center rounded-2xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">
+          <div key={row.useYear} className="grid grid-cols-3 gap-1.5 sm:gap-2">
+            <div className="flex items-center rounded-2xl border border-slate-200 px-2 py-1.5 text-xs font-semibold text-slate-700 sm:px-3 sm:py-2 sm:text-sm">
               {row.useYear}
             </div>
             <input
               type="number"
               min={0}
               step={1}
-              className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+              className="w-full rounded-2xl border border-slate-200 px-2 py-1.5 text-xs sm:px-3 sm:py-2 sm:text-sm"
               value={row.available}
               onChange={(event) => {
                 const nextValue = Math.max(0, Number(event.target.value) || 0);
@@ -48,7 +48,7 @@ export default function VacationPointsTable({ value, onChange }: Props) {
               type="number"
               min={0}
               step={1}
-              className="rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+              className="w-full rounded-2xl border border-slate-200 px-2 py-1.5 text-xs sm:px-3 sm:py-2 sm:text-sm"
               value={row.holding}
               onChange={(event) => {
                 const nextValue = Math.max(0, Number(event.target.value) || 0);

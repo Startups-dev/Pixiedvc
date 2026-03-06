@@ -20,6 +20,7 @@
     "db:check": "supabase db query \"select table_name from information_schema.tables where table_schema='public' order by table_name;\""
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.0",
     "@heroicons/react": "^2.2.0",
     "@mdx-js/mdx": "^3.0.1",
     "@mdx-js/react": "^3.0.1",

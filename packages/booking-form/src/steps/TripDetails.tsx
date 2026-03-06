@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { useFormContext, useController, useWatch } from "react-hook-form";
 
 import { Button, Card, FieldLabel, TextInput, HelperText } from "@pixiedvc/design-system";
@@ -20,15 +21,24 @@ export function TripDetails({ onNext, resorts }: TripDetailsProps) {
   const {
     register,
     control,
+    setValue,
     formState: { errors },
   } = useFormContext<FormValues>();
   const villaType = useWatch({ control, name: "trip.villaType" });
   const resortId = useWatch({ control, name: "trip.resortId" });
   const resortName = useWatch({ control, name: "trip.resortName" });
+  const buildingPreference = useWatch({ control, name: "trip.building_preference" });
   const secondaryResortId = useWatch({ control, name: "trip.secondaryResortId" });
   const tertiaryResortId = useWatch({ control, name: "trip.tertiaryResortId" });
   const maxOccupancy = getMaxOccupancyForSelection({ roomLabel: villaType, resortCode: resortId });
-  const selectedResort = resorts.find((resort) => resort.id === resortId) ?? null;
+  const resortIdToken = (resortId ?? "").trim().toLowerCase();
+  const selectedResort = resorts.find(
+    (resort) => resort.id === resortId || (resort.slug ?? "").toLowerCase() === resortIdToken,
+  ) ?? null;
+  const isAnimalKingdomVillas =
+    selectedResort?.slug === "animal-kingdom-villas" ||
+    resortIdToken === "animal-kingdom-villas" ||
+    resortIdToken === "akv";
   const resortNameFallback = resortName?.toLowerCase() ?? "";
   const isIsolatedDestination = Boolean(
     (selectedResort?.slug && ["aulani", "vero-beach", "hilton-head-island"].includes(selectedResort.slug)) ||
@@ -50,6 +60,11 @@ export function TripDetails({ onNext, resorts }: TripDetailsProps) {
         maximumFractionDigits: 2,
       }).format(estCashField.value)
     : "";
+
+  useEffect(() => {
+    if (isAnimalKingdomVillas || buildingPreference === "none") return;
+    setValue("trip.building_preference", "none", { shouldDirty: true });
+  }, [buildingPreference, isAnimalKingdomVillas, setValue]);
 
   return (
     <div className="space-y-8">
@@ -113,6 +128,26 @@ export function TripDetails({ onNext, resorts }: TripDetailsProps) {
                   estCashField.onChange(Number.isFinite(numeric) ? numeric : 0);
                 }}
               />
+
+              {isAnimalKingdomVillas ? (
+                <div className="sm:col-span-2">
+                  <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
+                    <p className="text-sm font-medium text-slate-700">Villa Location Preference</p>
+                    <label className="flex items-center gap-2 text-sm text-slate-700">
+                      <input type="radio" value="none" {...register("trip.building_preference")} />
+                      No preference
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-slate-700">
+                      <input type="radio" value="jambo" {...register("trip.building_preference")} />
+                      Jambo House
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-slate-700">
+                      <input type="radio" value="kidani" {...register("trip.building_preference")} />
+                      Kidani Village
+                    </label>
+                  </div>
+                </div>
+              ) : null}
 
               <div className="sm:col-span-2">
                 <div className="space-y-3">

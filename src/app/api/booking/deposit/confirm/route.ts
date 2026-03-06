@@ -6,7 +6,12 @@ export async function GET(request: Request) {
   const secretKey = process.env.STRIPE_SECRET_KEY ?? "";
   const url = new URL(request.url);
   const sessionId = url.searchParams.get("session_id") ?? "";
+  const responseFormat = url.searchParams.get("format") ?? "";
+  const wantsJson = responseFormat === "json";
   if (!secretKey || !sessionId) {
+    if (wantsJson) {
+      return NextResponse.json({ confirmed: false, error: "Missing secret or session id." }, { status: 400 });
+    }
     return NextResponse.redirect(new URL("/book?deposit=failed", url.origin));
   }
 
@@ -21,6 +26,7 @@ export async function GET(request: Request) {
     currency?: string;
     metadata?: { booking_request_id?: string; booking_id?: string };
     client_reference_id?: string | null;
+    payment_intent?: string | null;
   };
 
   const bookingId =
@@ -57,15 +63,36 @@ export async function GET(request: Request) {
       // Enrollment is explicit (user-driven) and no longer automatic here.
     }
 
-    if (process.env.NODE_ENV !== "production") {
-      console.info("[booking/deposit/confirm] paid", {
-        payment_id: sessionId,
+    console.info("[booking/deposit/confirm] paid", {
+      checkout_session_id: sessionId,
+      payment_intent_id: session.payment_intent ?? null,
+      booking_request_id: bookingId,
+      amount_paid: amountPaid,
+      payment_status: session.payment_status ?? null,
+    });
+
+    if (wantsJson) {
+      return NextResponse.json({
+        confirmed: true,
+        checkout_session_id: sessionId,
+        payment_intent_id: session.payment_intent ?? null,
         booking_request_id: bookingId,
         amount_paid: amountPaid,
+        currency,
       });
     }
 
     return NextResponse.redirect(new URL(`/guest?booking=${encodeURIComponent(bookingId)}`, url.origin));
+  }
+
+  if (wantsJson) {
+    return NextResponse.json({
+      confirmed: false,
+      checkout_session_id: sessionId,
+      payment_intent_id: session.payment_intent ?? null,
+      booking_request_id: bookingId,
+      payment_status: session.payment_status ?? null,
+    });
   }
 
   return NextResponse.redirect(new URL("/book?deposit=failed", url.origin));

@@ -5,6 +5,10 @@ import { createServiceClient } from "@/lib/supabase-service-client";
 export async function POST(request: Request) {
   const body = await request.json();
   const transcript = body?.transcript ?? [];
+  const pageUrl = body?.pageUrl ? String(body.pageUrl) : null;
+  const name = body?.name ? String(body.name) : null;
+  const topic = body?.topic ? String(body.topic) : null;
+  const message = body?.message ? String(body.message) : null;
 
   if (!Array.isArray(transcript) || transcript.length === 0) {
     return NextResponse.json(
@@ -19,6 +23,10 @@ export async function POST(request: Request) {
     .insert({
       guest_email: body?.email ?? null,
       status: "handoff",
+      page_url: pageUrl,
+      guest_name: name,
+      topic,
+      intake_message: message,
     })
     .select("id")
     .single();

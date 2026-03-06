@@ -46,6 +46,7 @@ export default function DepositSuccessClient() {
   const [pollKey, setPollKey] = useState(0);
   const pollingStoppedRef = useRef(false);
   const redirectingRef = useRef(false);
+  const reconcileAttemptedRef = useRef(false);
 
   const isSuccessState = (next: BookingStatus | null) => {
     if (!next) return false;
@@ -151,6 +152,32 @@ export default function DepositSuccessClient() {
             }
             return;
           }
+
+          if (
+            sessionId &&
+            !reconcileAttemptedRef.current &&
+            attempt >= DELAYED_THRESHOLD
+          ) {
+            reconcileAttemptedRef.current = true;
+            try {
+              const reconcile = await fetch(
+                `/api/booking/deposit/confirm?session_id=${encodeURIComponent(sessionId)}&format=json`,
+              );
+              if (reconcile.ok && process.env.NODE_ENV !== "production") {
+                const reconcileJson = (await reconcile.json()) as {
+                  confirmed?: boolean;
+                  booking_request_id?: string | null;
+                };
+                console.info("[deposit-success] reconcile", {
+                  checkout_session_id: sessionId,
+                  confirmed: Boolean(reconcileJson.confirmed),
+                  booking_request_id: reconcileJson.booking_request_id ?? null,
+                });
+              }
+            } catch {
+              // Allow regular polling to continue; this is only a recovery path.
+            }
+          }
         } catch (err) {
           setViewState("error");
           setError(err instanceof Error ? err.message : "Unable to verify deposit.");
@@ -233,6 +260,7 @@ export default function DepositSuccessClient() {
     setStatus(null);
     setPolls(0);
     setViewState("checking");
+    reconcileAttemptedRef.current = false;
     setPollKey((prev) => prev + 1);
   };
 

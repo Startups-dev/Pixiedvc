@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { createEmbedding, createChatCompletion } from "@/lib/ai/openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createServiceClient } from "@/lib/supabase-service-client";
 import {
   buildExcerpt,
   buildSupportContext,
-  scoreSupportMatches,
-  type SupportMatch,
 } from "@/lib/support/retrieval";
 import { buildSupportSystemPrompt } from "@/lib/support/prompt";
 
@@ -200,100 +198,29 @@ async function keywordRetrieve(
 }
 
 async function semanticRetrieve(
-  supabase: ReturnType<typeof createServiceClient>,
-  query: string,
-  selectedCategory: string,
+  _supabase: ReturnType<typeof createServiceClient>,
+  _query: string,
+  _selectedCategory: string,
   logBase: Pick<SupportChatDebugLog, "hasOpenAIKey" | "pageUrl">,
 ) {
-  let embedding: number[];
-  try {
-    embedding = await createEmbedding(query);
-    logSupportChatDebug({
-      stage: "embedding",
-      ok: true,
-      usedFallback: false,
-      hasOpenAIKey: logBase.hasOpenAIKey,
-      kbMatchCount: 0,
-      pageUrl: logBase.pageUrl,
-    });
-  } catch (error) {
-    logSupportChatError({
-      stage: "embedding",
-      ok: false,
-      usedFallback: true,
-      hasOpenAIKey: logBase.hasOpenAIKey,
-      kbMatchCount: 0,
-      pageUrl: logBase.pageUrl,
-      errorMessage: error instanceof Error ? error.message : "unknown_embedding_error",
-    });
-    logSupportChatBranch("fallback:embedding-failed", {
-      ok: false,
-      usedFallback: true,
-      hasOpenAIKey: logBase.hasOpenAIKey,
-      kbMatchCount: 0,
-      pageUrl: logBase.pageUrl,
-      errorMessage: error instanceof Error ? error.message : "unknown_embedding_error",
-    });
-    if (!logBase.hasOpenAIKey) {
-      logSupportChatBranch("fallback:no-openai-key", {
-        ok: false,
-        usedFallback: true,
-        hasOpenAIKey: false,
-        kbMatchCount: 0,
-        pageUrl: logBase.pageUrl,
-        errorMessage: "openai_key_missing",
-      });
-    }
-    throw error;
-  }
-
-  const { data, error } = await supabase.rpc("match_support_kb_documents", {
-    query_embedding: embedding,
-    match_count: 6,
-    min_similarity: 0.72,
-  });
-
-  if (error || !Array.isArray(data) || data.length === 0) {
-    logSupportChatDebug({
-      stage: "semantic-retrieval",
-      ok: !error,
-      usedFallback: true,
-      hasOpenAIKey: logBase.hasOpenAIKey,
-      kbMatchCount: Array.isArray(data) ? data.length : 0,
-      pageUrl: logBase.pageUrl,
-      errorMessage: error?.message,
-    });
-    return { docs: [] as SupportDoc[], confidence: "low" as const, handoffSuggested: true };
-  }
-
-  let docs = (data as SupportDoc[]).filter((doc) => Boolean(doc?.content));
-  if (selectedCategory) {
-    docs = docs.filter((doc) => doc.category === selectedCategory);
-  }
-
-  const matches: SupportMatch[] = docs.map((doc) => ({
-    slug: doc.slug,
-    title: doc.title,
-    category: doc.category,
-    content: doc.content,
-    similarity: doc.similarity ?? 0,
-  }));
-  const scored = scoreSupportMatches(matches, 0.72);
-
-  logSupportChatDebug({
-    stage: "semantic-retrieval",
-    ok: true,
-    usedFallback: scored.matches.length === 0,
+  logSupportChatError({
+    stage: "embedding",
+    ok: false,
+    usedFallback: true,
     hasOpenAIKey: logBase.hasOpenAIKey,
-    kbMatchCount: scored.matches.length,
+    kbMatchCount: 0,
     pageUrl: logBase.pageUrl,
+    errorMessage: "semantic_retrieval_disabled_without_openai_embeddings",
   });
-
-  return {
-    docs: scored.matches as SupportDoc[],
-    confidence: scored.confidence,
-    handoffSuggested: scored.handoffSuggested,
-  };
+  logSupportChatBranch("fallback:embedding-failed", {
+    ok: false,
+    usedFallback: true,
+    hasOpenAIKey: logBase.hasOpenAIKey,
+    kbMatchCount: 0,
+    pageUrl: logBase.pageUrl,
+    errorMessage: "semantic_retrieval_disabled_without_openai_embeddings",
+  });
+  return { docs: [] as SupportDoc[], confidence: "low" as const, handoffSuggested: true };
 }
 
 function buildSources(docs: SupportDoc[]): SupportSource[] {
@@ -306,7 +233,7 @@ function buildSources(docs: SupportDoc[]): SupportSource[] {
 }
 
 export async function POST(request: Request) {
-  const hasOpenAIKey = Boolean(process.env.OPENAI_API_KEY);
+  const hasOpenAIKey = Boolean(process.env.GEMINI_API_KEY);
   let pageUrlForLog: string | null = null;
   let finalKbMatchCount = 0;
   let usedFallback = false;
@@ -586,28 +513,27 @@ export async function POST(request: Request) {
         kbMatchCount: finalKbMatchCount,
         pageUrl: pageUrlForLog,
       });
-      answer = await createChatCompletion({
-        model: "gpt-4o-mini",
-        temperature: 0.2,
-        messages: [
-          {
-            role: "system",
-            content: buildSupportSystemPrompt(),
-          },
-          {
-            role: "system",
-            content: `Current page context:\n${contextBlock}`,
-          },
-          {
-            role: "system",
-            content: `Knowledge sources:\n${kbContext}`,
-          },
-          ...messages.slice(-8).map((message) => ({
-            role: message.role,
-            content: message.content,
-          })),
-        ],
+      const geminiApiKey = process.env.GEMINI_API_KEY;
+      if (!geminiApiKey) {
+        throw new Error("GEMINI_API_KEY is not configured");
+      }
+
+      const genAI = new GoogleGenerativeAI(geminiApiKey);
+      const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
       });
+
+      const prompt = [
+        buildSupportSystemPrompt(),
+        `Current page context:\n${contextBlock}`,
+        `Knowledge sources:\n${kbContext}`,
+        "Conversation:",
+        ...messages.slice(-8).map((message) => `${message.role.toUpperCase()}: ${message.content}`),
+      ].join("\n\n");
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      answer = response.text();
 
       if (!answer.trim()) {
         usedFallback = true;

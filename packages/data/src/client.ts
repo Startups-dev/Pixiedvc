@@ -8,14 +8,16 @@ const supabaseAnonKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
   process.env.SUPABASE_ANON_KEY ??
   "";
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Supabase environment variables are missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your environment.",
+const hasSupabaseEnv = Boolean(supabaseUrl && supabaseAnonKey);
+if (!hasSupabaseEnv) {
+  console.warn(
+    "[@pixiedvc/data] Supabase env vars are missing; using fallback client for build-time evaluation.",
   );
 }
+const resolvedSupabaseUrl = supabaseUrl || "http://127.0.0.1:54321";
+const resolvedSupabaseAnonKey = supabaseAnonKey || "build-time-fallback-anon-key";
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(resolvedSupabaseUrl, resolvedSupabaseAnonKey, {
   auth: {
     persistSession: true,
   },

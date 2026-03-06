@@ -6,6 +6,7 @@ type TripPayload = {
   resortId?: string;
   resortName?: string;
   villaType?: string;
+  building_preference?: "none" | "jambo" | "kidani";
   checkIn?: string;
   checkOut?: string;
   points?: number;
@@ -137,16 +138,25 @@ export async function POST(request: Request) {
     const resortIdRaw = asString(trip.resortId);
     let resortId: string | null = null;
 
+    let resolvedResortSlug: string | null = null;
+
     if (resortIdRaw) {
       if (isUuid(resortIdRaw)) {
         resortId = resortIdRaw;
+        const { data: resort } = await supabase
+          .from("resorts")
+          .select("slug")
+          .eq("id", resortIdRaw)
+          .maybeSingle();
+        resolvedResortSlug = resort?.slug ?? null;
       } else {
         const { data: resort } = await supabase
           .from("resorts")
-          .select("id")
+          .select("id, slug")
           .or(`calculator_code.eq.${resortIdRaw},slug.eq.${resortIdRaw}`)
           .maybeSingle();
         resortId = resort?.id ?? null;
+        resolvedResortSlug = resort?.slug ?? null;
       }
     }
 
@@ -154,6 +164,16 @@ export async function POST(request: Request) {
     const checkOut = toDateString(trip.checkOut);
     const nights = calculateNights(checkIn, checkOut);
     const primaryRoom = asString(trip.villaType) || null;
+    const isAnimalKingdomVillas =
+      resolvedResortSlug === "animal-kingdom-villas" ||
+      resortIdRaw.toLowerCase() === "animal-kingdom-villas" ||
+      resortIdRaw.toLowerCase() === "akv";
+    const requestedBuildingPreference = asString(trip.building_preference).toLowerCase();
+    const buildingPreference: "none" | "jambo" | "kidani" =
+      requestedBuildingPreference === "jambo" || requestedBuildingPreference === "kidani"
+        ? requestedBuildingPreference
+        : "none";
+    const persistedBuildingPreference = isAnimalKingdomVillas ? buildingPreference : "none";
 
     const leadGuestName =
       asString(guest.leadGuest) ||
@@ -198,6 +218,7 @@ export async function POST(request: Request) {
       check_out: checkOut,
       total_points: totalPoints,
       primary_room: primaryRoom,
+      building_preference: persistedBuildingPreference,
     };
     const signatureComplete =
       Boolean(resortId && checkIn && checkOut && primaryRoom) &&
@@ -219,6 +240,7 @@ export async function POST(request: Request) {
       existingQuery = existingQuery.eq("primary_resort_id", resortId);
       existingQuery = existingQuery.eq("total_points", totalPoints);
       existingQuery = existingQuery.eq("primary_room", primaryRoom);
+      existingQuery = existingQuery.eq("building_preference", persistedBuildingPreference);
 
       const { data: existingRows, error: existingError } = await existingQuery;
       const existing = existingRows?.[0] ?? null;
@@ -246,6 +268,7 @@ export async function POST(request: Request) {
       nights,
       primary_resort_id: resortId,
       primary_room: primaryRoom,
+      building_preference: persistedBuildingPreference,
       primary_view: null,
       requires_accessibility: Boolean(trip.accessibility),
       secondary_resort_id: asString(trip.secondaryResortId) || null,
@@ -304,6 +327,7 @@ export async function POST(request: Request) {
         retryQuery = retryQuery.eq("primary_resort_id", resortId);
         retryQuery = retryQuery.eq("total_points", totalPoints);
         retryQuery = retryQuery.eq("primary_room", primaryRoom);
+        retryQuery = retryQuery.eq("building_preference", persistedBuildingPreference);
 
         const { data: retryRows } = await retryQuery;
         const retryExisting = retryRows?.[0] ?? null;

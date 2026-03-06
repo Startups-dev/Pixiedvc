@@ -6,6 +6,7 @@ export const tripDetailsSchema = z.object({
   resortId: z.string().min(1),
   resortName: z.string().min(1),
   villaType: z.string().min(1),
+  building_preference: z.enum(["none", "jambo", "kidani"]).default("none"),
   checkIn: z.string().min(1),
   checkOut: z.string().min(1),
   points: z.number().nonnegative(),
