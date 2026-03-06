@@ -361,157 +361,211 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = createServiceClient();
+    if (!hasOpenAIKey) {
+      logSupportChatBranch("fallback:no-openai-key", {
+        ok: false,
+        usedFallback: true,
+        hasOpenAIKey: false,
+        kbMatchCount: 0,
+        pageUrl: pageUrlForLog,
+        errorMessage: "openai_key_missing",
+      });
+      return NextResponse.json(fallbackResponse());
+    }
+
     const query = lastMessage.content.trim();
     const context = derivePageContext(pageUrl);
+    let supabase: ReturnType<typeof createServiceClient> | null = null;
 
-    let activeConversationId = conversationId;
-    if (!activeConversationId) {
-      const { data: conversation, error: conversationError } = await supabase
-        .from("support_conversations")
-        .insert({
-          status: "ai",
-          page_url: context.pageUrl,
-          context,
-        })
-        .select("id")
-        .single();
-      if (conversationError || !conversation) {
-        usedFallback = true;
-        logSupportChatError({
-          stage: "conversation-persistence",
-          ok: false,
-          usedFallback,
-          hasOpenAIKey,
-          kbMatchCount: 0,
-          pageUrl: pageUrlForLog,
-          errorMessage: conversationError?.message ?? "conversation_create_failed",
-        });
-        logSupportChatBranch("fallback:conversation-persistence-failed", {
-          ok: false,
-          usedFallback: true,
-          hasOpenAIKey,
-          kbMatchCount: 0,
-          pageUrl: pageUrlForLog,
-          errorMessage: conversationError?.message ?? "conversation_create_failed",
-        });
-        return NextResponse.json(fallbackResponse());
-      }
-      activeConversationId = conversation.id;
-      logSupportChatDebug({
-        stage: "conversation-persistence",
-        ok: true,
+    try {
+      supabase = createServiceClient();
+    } catch (error) {
+      logSupportChatError({
+        stage: "supabase-client",
+        ok: false,
         usedFallback: false,
         hasOpenAIKey,
         kbMatchCount: 0,
         pageUrl: pageUrlForLog,
-      });
-    } else {
-      const { error: conversationUpdateError } = await supabase
-        .from("support_conversations")
-        .update({ page_url: context.pageUrl, context, status: "ai" })
-        .eq("id", activeConversationId);
-      logSupportChatDebug({
-        stage: "conversation-persistence",
-        ok: !conversationUpdateError,
-        usedFallback: false,
-        hasOpenAIKey,
-        kbMatchCount: 0,
-        pageUrl: pageUrlForLog,
-        errorMessage: conversationUpdateError?.message,
+        errorMessage: error instanceof Error ? error.message : "supabase_client_failed",
       });
     }
 
-    const { data: userMessageRow } = await supabase
-      .from("support_messages")
-      .insert({
-        conversation_id: activeConversationId,
-        sender: "guest",
-        content: query,
-        metadata: { pageUrl: context.pageUrl, context },
-      })
-      .select("id")
-      .single();
+    let activeConversationId = conversationId;
+    let userMessageId: string | null = null;
+    if (supabase) {
+      try {
+        if (!activeConversationId) {
+          const { data: conversation, error: conversationError } = await supabase
+            .from("support_conversations")
+            .insert({
+              status: "ai",
+              page_url: context.pageUrl,
+              context,
+            })
+            .select("id")
+            .single();
+          if (conversationError || !conversation) {
+            logSupportChatError({
+              stage: "conversation-persistence",
+              ok: false,
+              usedFallback: false,
+              hasOpenAIKey,
+              kbMatchCount: 0,
+              pageUrl: pageUrlForLog,
+              errorMessage: conversationError?.message ?? "conversation_create_failed",
+            });
+            logSupportChatBranch("fallback:conversation-persistence-failed", {
+              ok: false,
+              usedFallback: false,
+              hasOpenAIKey,
+              kbMatchCount: 0,
+              pageUrl: pageUrlForLog,
+              errorMessage: conversationError?.message ?? "conversation_create_failed",
+            });
+          } else {
+            activeConversationId = conversation.id;
+          }
+        } else {
+          const { error: conversationUpdateError } = await supabase
+            .from("support_conversations")
+            .update({ page_url: context.pageUrl, context, status: "ai" })
+            .eq("id", activeConversationId);
+          logSupportChatDebug({
+            stage: "conversation-persistence",
+            ok: !conversationUpdateError,
+            usedFallback: false,
+            hasOpenAIKey,
+            kbMatchCount: 0,
+            pageUrl: pageUrlForLog,
+            errorMessage: conversationUpdateError?.message,
+          });
+        }
+      } catch (error) {
+        logSupportChatError({
+          stage: "conversation-persistence",
+          ok: false,
+          usedFallback: false,
+          hasOpenAIKey,
+          kbMatchCount: 0,
+          pageUrl: pageUrlForLog,
+          errorMessage: error instanceof Error ? error.message : "conversation_persistence_failed",
+        });
+        logSupportChatBranch("fallback:conversation-persistence-failed", {
+          ok: false,
+          usedFallback: false,
+          hasOpenAIKey,
+          kbMatchCount: 0,
+          pageUrl: pageUrlForLog,
+          errorMessage: error instanceof Error ? error.message : "conversation_persistence_failed",
+        });
+      }
+
+      if (activeConversationId) {
+        try {
+          const { data: userMessageRow } = await supabase
+            .from("support_messages")
+            .insert({
+              conversation_id: activeConversationId,
+              sender: "guest",
+              content: query,
+              metadata: { pageUrl: context.pageUrl, context },
+            })
+            .select("id")
+            .single();
+          userMessageId = userMessageRow?.id ?? null;
+        } catch (error) {
+          logSupportChatError({
+            stage: "message-persistence-user",
+            ok: false,
+            usedFallback: false,
+            hasOpenAIKey,
+            kbMatchCount: 0,
+            pageUrl: pageUrlForLog,
+            errorMessage: error instanceof Error ? error.message : "user_message_insert_failed",
+          });
+        }
+      }
+    }
 
     logSupportChatDebug({
       stage: "message-persistence-user",
-      ok: Boolean(userMessageRow?.id),
+      ok: Boolean(userMessageId),
       usedFallback: false,
       hasOpenAIKey,
       kbMatchCount: 0,
       pageUrl: pageUrlForLog,
-      errorMessage: userMessageRow?.id ? undefined : "user_message_insert_not_returned",
+      errorMessage: userMessageId ? undefined : "user_message_not_persisted",
     });
 
     let retrieval = { docs: [] as SupportDoc[], confidence: "low" as const, handoffSuggested: true };
-    try {
-      retrieval = await semanticRetrieve(supabase, query, selectedCategory, {
-        hasOpenAIKey,
-        pageUrl: pageUrlForLog,
-      });
-    } catch (error) {
-      usedFallback = true;
-      logSupportChatError({
-        stage: "semantic-retrieval",
-        ok: false,
-        usedFallback,
-        hasOpenAIKey,
-        kbMatchCount: 0,
-        pageUrl: pageUrlForLog,
-        errorMessage: error instanceof Error ? error.message : "semantic_retrieval_failed",
-      });
-      retrieval = { docs: [] as SupportDoc[], confidence: "low" as const, handoffSuggested: true };
-    }
-    if (retrieval.docs.length === 0) {
-      usedFallback = true;
-      retrieval = await keywordRetrieve(supabase, query, selectedCategory);
-      logSupportChatDebug({
-        stage: "keyword-retrieval",
-        ok: true,
-        usedFallback,
-        hasOpenAIKey,
-        kbMatchCount: retrieval.docs.length,
-        pageUrl: pageUrlForLog,
-      });
+    if (supabase) {
+      try {
+        retrieval = await semanticRetrieve(supabase, query, selectedCategory, {
+          hasOpenAIKey,
+          pageUrl: pageUrlForLog,
+        });
+      } catch (error) {
+        logSupportChatError({
+          stage: "semantic-retrieval",
+          ok: false,
+          usedFallback: false,
+          hasOpenAIKey,
+          kbMatchCount: 0,
+          pageUrl: pageUrlForLog,
+          errorMessage: error instanceof Error ? error.message : "semantic_retrieval_failed",
+        });
+        retrieval = { docs: [] as SupportDoc[], confidence: "low" as const, handoffSuggested: true };
+      }
+      if (retrieval.docs.length === 0) {
+        try {
+          retrieval = await keywordRetrieve(supabase, query, selectedCategory);
+        } catch (error) {
+          logSupportChatError({
+            stage: "keyword-retrieval",
+            ok: false,
+            usedFallback: false,
+            hasOpenAIKey,
+            kbMatchCount: 0,
+            pageUrl: pageUrlForLog,
+            errorMessage: error instanceof Error ? error.message : "keyword_retrieval_failed",
+          });
+          retrieval = { docs: [] as SupportDoc[], confidence: "low" as const, handoffSuggested: true };
+        }
+        logSupportChatDebug({
+          stage: "keyword-retrieval",
+          ok: true,
+          usedFallback: false,
+          hasOpenAIKey,
+          kbMatchCount: retrieval.docs.length,
+          pageUrl: pageUrlForLog,
+        });
+      }
     }
     finalKbMatchCount = retrieval.docs.length;
+    if (finalKbMatchCount === 0) {
+      logSupportChatBranch("fallback:no-kb-match", {
+        ok: false,
+        usedFallback: false,
+        hasOpenAIKey,
+        kbMatchCount: finalKbMatchCount,
+        pageUrl: pageUrlForLog,
+        errorMessage: "no_kb_match",
+      });
+    }
 
     const sources = buildSources(retrieval.docs);
 
-    let answer = "";
-    try {
-      if (retrieval.docs.length === 0) {
-        usedFallback = true;
-        const fallback = fallbackResponse();
-        answer = fallback.answer;
-        logSupportChatBranch("fallback:no-kb-match", {
-          ok: false,
-          usedFallback: true,
-          hasOpenAIKey,
-          kbMatchCount: finalKbMatchCount,
-          pageUrl: pageUrlForLog,
-          errorMessage: "no_kb_match",
-        });
-        logSupportChatDebug({
-          stage: "chat-completion",
-          ok: false,
-          usedFallback,
-          hasOpenAIKey,
-          kbMatchCount: finalKbMatchCount,
-          pageUrl: pageUrlForLog,
-          errorMessage: "no_kb_docs_for_completion",
-        });
-      } else {
-        const contextBlock = [
-          `Route type: ${context.routeType}`,
-          context.path ? `Path: ${context.path}` : "",
-          context.resortSlug ? `Resort slug: ${context.resortSlug}` : "",
-          selectedCategory ? `Selected category: ${selectedCategory}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n");
-
-        const kbContext = buildSupportContext(
+    const contextBlock = [
+      `Route type: ${context.routeType}`,
+      context.path ? `Path: ${context.path}` : "",
+      context.resortSlug ? `Resort slug: ${context.resortSlug}` : "",
+      selectedCategory ? `Selected category: ${selectedCategory}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+    const kbContext = retrieval.docs.length
+      ? buildSupportContext(
           retrieval.docs.map((doc) => ({
             slug: doc.slug,
             title: doc.title,
@@ -519,67 +573,70 @@ export async function POST(request: Request) {
             content: doc.content,
             similarity: doc.similarity ?? 0,
           })),
-        );
+        )
+      : "[no kb sources available]";
 
-        logSupportChatDebug({
-          stage: "chat-completion",
-          ok: true,
-          usedFallback: false,
+    let answer = "";
+    try {
+      logSupportChatDebug({
+        stage: "chat-completion",
+        ok: true,
+        usedFallback: false,
+        hasOpenAIKey,
+        kbMatchCount: finalKbMatchCount,
+        pageUrl: pageUrlForLog,
+      });
+      answer = await createChatCompletion({
+        model: "gpt-4o-mini",
+        temperature: 0.2,
+        messages: [
+          {
+            role: "system",
+            content: buildSupportSystemPrompt(),
+          },
+          {
+            role: "system",
+            content: `Current page context:\n${contextBlock}`,
+          },
+          {
+            role: "system",
+            content: `Knowledge sources:\n${kbContext}`,
+          },
+          ...messages.slice(-8).map((message) => ({
+            role: message.role,
+            content: message.content,
+          })),
+        ],
+      });
+
+      if (!answer.trim()) {
+        usedFallback = true;
+        logSupportChatBranch("fallback:empty-model-response", {
+          ok: false,
+          usedFallback: true,
           hasOpenAIKey,
           kbMatchCount: finalKbMatchCount,
           pageUrl: pageUrlForLog,
+          errorMessage: "empty_model_response",
         });
-
-        answer = await createChatCompletion({
-          model: "gpt-4o-mini",
-          temperature: 0.2,
-          messages: [
-            {
-              role: "system",
-              content: buildSupportSystemPrompt(),
-            },
-            {
-              role: "system",
-              content: `Current page context:\n${contextBlock}`,
-            },
-            {
-              role: "system",
-              content: `Knowledge sources:\n${kbContext}`,
-            },
-            ...messages.slice(-8).map((message) => ({
-              role: message.role,
-              content: message.content,
-            })),
-          ],
-        });
-        if (!answer.trim()) {
-          logSupportChatBranch("fallback:empty-model-response", {
-            ok: false,
-            usedFallback: true,
-            hasOpenAIKey,
-            kbMatchCount: finalKbMatchCount,
-            pageUrl: pageUrlForLog,
-            errorMessage: "empty_model_response",
-          });
-        } else {
-          logSupportChatBranch("success:ai-response", {
-            ok: true,
-            usedFallback,
-            hasOpenAIKey,
-            kbMatchCount: finalKbMatchCount,
-            pageUrl: pageUrlForLog,
-          });
-        }
-
-        logSupportChatDebug({
-          stage: "chat-completion-result",
-          ok: true,
-          usedFallback,
-          hasOpenAIKey,
-          kbMatchCount: finalKbMatchCount,
-          pageUrl: pageUrlForLog,
-        });
+        throw new Error("empty_model_response");
       }
+
+      logSupportChatBranch("success:ai-response", {
+        ok: true,
+        usedFallback: false,
+        hasOpenAIKey,
+        kbMatchCount: finalKbMatchCount,
+        pageUrl: pageUrlForLog,
+      });
+      logSupportChatDebug({
+        stage: "chat-completion-result",
+        ok: true,
+        usedFallback: false,
+        hasOpenAIKey,
+        kbMatchCount: finalKbMatchCount,
+        pageUrl: pageUrlForLog,
+      });
     } catch (error) {
       usedFallback = true;
       logSupportChatBranch("fallback:chat-completion-failed", {
@@ -592,11 +649,11 @@ export async function POST(request: Request) {
       });
       if (
         error instanceof Error &&
-        error.message.toLowerCase().includes("missing content")
+        error.message.toLowerCase().includes("empty_model_response")
       ) {
         logSupportChatBranch("fallback:empty-model-response", {
           ok: false,
-          usedFallback: true,
+          usedFallback,
           hasOpenAIKey,
           kbMatchCount: finalKbMatchCount,
           pageUrl: pageUrlForLog,
@@ -635,34 +692,50 @@ export async function POST(request: Request) {
     const handoffSuggested =
       retrieval.docs.length === 0 ? true : retrieval.handoffSuggested || retrieval.confidence === "medium";
 
-    const { data: assistantMessageRow } = await supabase
-      .from("support_messages")
-      .insert({
-        conversation_id: activeConversationId,
-        sender: "ai",
-        content: answer,
-        metadata: {
-          confidence: retrieval.confidence,
-          handoffSuggested,
-          sources: sources.map((source) => ({
-            slug: source.slug,
-            title: source.title,
-            category: source.category,
-          })),
-          context,
-        },
-      })
-      .select("id")
-      .single();
+    let assistantMessageId: string | null = null;
+    if (supabase && activeConversationId) {
+      try {
+        const { data: assistantMessageRow } = await supabase
+          .from("support_messages")
+          .insert({
+            conversation_id: activeConversationId,
+            sender: "ai",
+            content: answer,
+            metadata: {
+              confidence: retrieval.confidence,
+              handoffSuggested,
+              sources: sources.map((source) => ({
+                slug: source.slug,
+                title: source.title,
+                category: source.category,
+              })),
+              context,
+            },
+          })
+          .select("id")
+          .single();
+        assistantMessageId = assistantMessageRow?.id ?? null;
+      } catch (error) {
+        logSupportChatError({
+          stage: "message-persistence-assistant",
+          ok: false,
+          usedFallback,
+          hasOpenAIKey,
+          kbMatchCount: finalKbMatchCount,
+          pageUrl: pageUrlForLog,
+          errorMessage: error instanceof Error ? error.message : "assistant_message_insert_failed",
+        });
+      }
+    }
 
     logSupportChatDebug({
       stage: "message-persistence-assistant",
-      ok: Boolean(assistantMessageRow?.id),
+      ok: Boolean(assistantMessageId),
       usedFallback,
       hasOpenAIKey,
       kbMatchCount: finalKbMatchCount,
       pageUrl: pageUrlForLog,
-      errorMessage: assistantMessageRow?.id ? undefined : "assistant_message_insert_not_returned",
+      errorMessage: assistantMessageId ? undefined : "assistant_message_not_persisted",
     });
 
     logSupportChatDebug({
@@ -677,24 +750,14 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       conversationId: activeConversationId,
-      userMessageId: userMessageRow?.id ?? null,
-      assistantMessageId: assistantMessageRow?.id ?? null,
+      userMessageId,
+      assistantMessageId,
       answer,
       sources,
       confidence: retrieval.confidence,
       handoffSuggested,
     });
   } catch (error) {
-    if (!hasOpenAIKey) {
-      logSupportChatBranch("fallback:no-openai-key", {
-        ok: false,
-        usedFallback: true,
-        hasOpenAIKey: false,
-        kbMatchCount: finalKbMatchCount,
-        pageUrl: pageUrlForLog,
-        errorMessage: "openai_key_missing",
-      });
-    }
     logSupportChatError({
       stage: "route-exception",
       ok: false,
