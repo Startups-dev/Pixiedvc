@@ -232,13 +232,56 @@ export default function SupportPanel({
     };
   }, [conversationId]);
 
+  function buildClientFallbackAnswer(query: string) {
+    const normalized = query.toLowerCase();
+    if (
+      normalized.includes("dvc") ||
+      normalized.includes("disney vacation club") ||
+      normalized.includes("point rental") ||
+      normalized.includes("points")
+    ) {
+      return "Disney Vacation Club point rental allows guests to stay at DVC resorts using a member’s points instead of booking Disney’s standard cash rate directly.";
+    }
+    if (
+      normalized.includes("compare resort") ||
+      normalized.includes("compare resorts") ||
+      normalized.includes("ocean") ||
+      normalized.includes("beach") ||
+      normalized.includes("relaxing") ||
+      normalized.includes("quiet") ||
+      normalized.includes("family-friendly") ||
+      normalized.includes("family friendly") ||
+      normalized.includes("couples") ||
+      normalized.includes("romantic") ||
+      normalized.includes("epcot") ||
+      normalized.includes("magic kingdom")
+    ) {
+      return "A helpful shortlist: Aulani, Hilton Head, and Vero Beach for ocean-style relaxation; Beach Club and BoardWalk for EPCOT convenience; and Bay Lake Tower or Polynesian for easier Magic Kingdom access.";
+    }
+    if (
+      normalized.includes("booking") ||
+      normalized.includes("request") ||
+      normalized.includes("reservation") ||
+      normalized.includes("deposit")
+    ) {
+      return "Booking usually starts with trip details and then moves through request review, agreement, and confirmation steps.";
+    }
+    if (normalized.includes("ready stay") || normalized.includes("ready stays")) {
+      return "Ready Stays are pre-confirmed reservation options that can often be booked faster than a custom request.";
+    }
+    return "I can help explain that. Share a bit more about what you want to understand, and I’ll walk you through it.";
+  }
+
   async function sendMessage() {
     const trimmed = input.trim();
     if (!trimmed || loading) return;
     const pendingId = `pending-assistant-${Date.now()}`;
-    const nextMessages: SupportMessage[] = [
+    const requestMessages: SupportMessage[] = [
       ...messages,
       { role: "user", content: trimmed },
+    ];
+    const nextMessages: SupportMessage[] = [
+      ...requestMessages,
       {
         id: pendingId,
         role: "assistant",
@@ -255,7 +298,7 @@ export default function SupportPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: nextMessages,
+          messages: requestMessages,
           conversationId,
           category: category || undefined,
           pageUrl: typeof window !== "undefined" ? window.location.href : "",
@@ -369,8 +412,7 @@ export default function SupportPanel({
         ...prev.filter((message) => message.id !== pendingId),
         {
           role: "assistant",
-          content:
-            "I can help explain that. Disney Vacation Club point rental allows guests to stay at DVC resorts using a member’s points instead of booking Disney’s standard cash rate directly.",
+          content: buildClientFallbackAnswer(trimmed),
           handoffSuggested: false,
           senderLabel: "Pixie Concierge",
         },

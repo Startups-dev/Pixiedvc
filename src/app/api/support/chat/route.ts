@@ -75,10 +75,107 @@ function logSupportChatBranch(
   console.log("[support/chat/branch]", { stage: label, ...payload });
 }
 
-function fallbackResponse() {
+function detectSupportIntent(query: string) {
+  const normalized = query.toLowerCase();
+  if (
+    normalized.includes("dvc") ||
+    normalized.includes("disney vacation club") ||
+    normalized.includes("point rental") ||
+    normalized.includes("points")
+  ) {
+    return "dvc_basics";
+  }
+  if (
+    normalized.includes("booking") ||
+    normalized.includes("request") ||
+    normalized.includes("reservation") ||
+    normalized.includes("deposit") ||
+    normalized.includes("agreement")
+  ) {
+    return "booking_flow";
+  }
+  if (normalized.includes("ready stay") || normalized.includes("ready stays")) {
+    return "ready_stays";
+  }
+  if (
+    normalized.includes("owner") ||
+    normalized.includes("verification") ||
+    normalized.includes("onboarding")
+  ) {
+    return "owner_onboarding";
+  }
+  if (
+    normalized.includes("compare resort") ||
+    normalized.includes("compare resorts") ||
+    normalized.includes("ocean") ||
+    normalized.includes("beach") ||
+    normalized.includes("relaxing") ||
+    normalized.includes("quiet") ||
+    normalized.includes("family-friendly") ||
+    normalized.includes("family friendly") ||
+    normalized.includes("couples") ||
+    normalized.includes("romantic") ||
+    normalized.includes("epcot") ||
+    normalized.includes("magic kingdom")
+  ) {
+    return "resort_guidance";
+  }
+  if (
+    normalized.includes("resort") ||
+    normalized.includes("jambo") ||
+    normalized.includes("kidani") ||
+    normalized.includes("riviera") ||
+    normalized.includes("boardwalk") ||
+    normalized.includes("beach club")
+  ) {
+    return "resort_guidance";
+  }
+  return "general";
+}
+
+function resolveIntentQuery(messages: SupportChatMessage[], query: string) {
+  const normalized = query.trim().toLowerCase();
+  const ambiguousFollowupSignals = [
+    "i just told you",
+    "as i said",
+    "like i said",
+    "same thing",
+    "that one",
+    "the one i said",
+  ];
+  const isAmbiguousFollowup = ambiguousFollowupSignals.some((signal) =>
+    normalized.includes(signal),
+  );
+  if (!isAmbiguousFollowup) {
+    return query;
+  }
+
+  const previousUserMessage = [...messages]
+    .slice(0, -1)
+    .reverse()
+    .find((message) => message.role === "user" && message.content.trim().length > 0);
+  return previousUserMessage?.content?.trim() || query;
+}
+
+function fallbackResponse(query = "") {
+  const intent = detectSupportIntent(query);
+  const answerByIntent: Record<string, string> = {
+    dvc_basics:
+      "Disney Vacation Club point rental allows guests to stay at DVC resorts using a member’s points instead of booking Disney’s standard cash rate directly. On PixieDVC, you can estimate trip options and then submit a stay request.",
+    booking_flow:
+      "Booking usually starts with the calculator or a resort page, then moves to request details, agreement, and payment/confirmation milestones. If you want, I can walk you through each step in order.",
+    ready_stays:
+      "Ready Stays are pre-confirmed reservation options that can often be booked faster than a custom request. You can review the stay details and continue through the booking package flow.",
+    owner_onboarding:
+      "Owner onboarding covers profile details, required verification, and membership setup so owners can participate in listing or matching flows. I can break down each step if you want.",
+    resort_guidance:
+      "A useful shortlist: Aulani, Hilton Head, and Vero Beach for ocean-focused relaxation; Beach Club and BoardWalk for stronger EPCOT access; and Bay Lake Tower or Polynesian for easier Magic Kingdom access. If you share your priority, I can narrow to your best 2 options.",
+    general:
+      "I can help explain that. Share a bit more about what you want to compare or understand, and I’ll walk you through it clearly.",
+  };
+
   return {
-    answer:
-      "I can help explain that. Disney Vacation Club point rental allows guests to stay at DVC resorts using a member’s points instead of booking Disney’s standard cash rate directly.",
+    answer: answerByIntent[intent] ?? answerByIntent.general,
     sources: [],
     confidence: "low",
     handoffSuggested: false,
@@ -326,6 +423,17 @@ export async function POST(request: Request) {
       );
     }
 
+    const query = lastMessage.content.trim();
+    const intentQuery = resolveIntentQuery(messages, query);
+    const context = derivePageContext(pageUrl);
+    const detectedIntent = detectSupportIntent(intentQuery);
+    console.log("[support/chat/intent]", {
+      detectedIntent,
+      intentQuery,
+      selectedCategory: selectedCategory || null,
+      routeType: context.routeType,
+    });
+
     if (!hasOpenAIKey) {
       logSupportChatBranch("fallback:no-openai-key", {
         ok: false,
@@ -335,11 +443,9 @@ export async function POST(request: Request) {
         pageUrl: pageUrlForLog,
         errorMessage: "openai_key_missing",
       });
-      return NextResponse.json(fallbackResponse());
+      return NextResponse.json(fallbackResponse(intentQuery));
     }
 
-    const query = lastMessage.content.trim();
-    const context = derivePageContext(pageUrl);
     let supabase: ReturnType<typeof createServiceClient> | null = null;
 
     try {
@@ -580,6 +686,8 @@ export async function POST(request: Request) {
           let answer = "";
           let assistantMessageId: string | null = null;
           let streamUsedFallback = false;
+          let answerSource: "ai" | "kb" | "generic-fallback" = "ai";
+          let fallbackReplacedAi = false;
           emit({
             type: "start",
             conversationId: activeConversationId,
@@ -607,9 +715,15 @@ export async function POST(request: Request) {
               answer += text;
               emit({ type: "chunk", text });
             }
+            console.log("[support/chat/ai-answer]", {
+              rawAnswerLength: answer.trim().length,
+              detectedIntent,
+              selectedCategory: selectedCategory || null,
+            });
 
             if (!answer.trim()) {
               streamUsedFallback = true;
+              fallbackReplacedAi = true;
               logSupportChatBranch("fallback:empty-model-response", {
                 ok: false,
                 usedFallback: true,
@@ -655,7 +769,9 @@ export async function POST(request: Request) {
               pageUrl: pageUrlForLog,
               errorMessage: error instanceof Error ? error.message : "chat_completion_failed",
             });
-            if (retrieval.docs.length > 0) {
+            if (retrieval.docs.length > 0 && detectedIntent !== "resort_guidance") {
+              answerSource = "kb";
+              fallbackReplacedAi = true;
               logSupportChatBranch("success:kb-fallback", {
                 ok: true,
                 usedFallback: true,
@@ -671,7 +787,9 @@ export async function POST(request: Request) {
                   .join(" ") ||
                 "Based on our help docs, here’s what we can share. If you need help with a specific booking or account issue, I can also connect you with concierge support.";
             } else {
-              answer = fallbackResponse().answer;
+              answerSource = "generic-fallback";
+              fallbackReplacedAi = true;
+              answer = fallbackResponse(intentQuery).answer;
             }
             emit({ type: "chunk", text: answer });
           }
@@ -729,6 +847,13 @@ export async function POST(request: Request) {
             kbMatchCount: finalKbMatchCount,
             pageUrl: pageUrlForLog,
             errorMessage: streamUsedFallback ? "fallback_generated_response" : undefined,
+          });
+          console.log("[support/chat/final-answer]", {
+            source: answerSource,
+            rawAnswerLength: answer.trim().length,
+            fallbackReplacedAi,
+            detectedIntent,
+            selectedCategory: selectedCategory || null,
           });
 
           emit({
