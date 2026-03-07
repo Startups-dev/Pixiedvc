@@ -25,6 +25,17 @@ type SupportPanelProps = {
   className?: string;
 };
 
+type SupportChatStreamEvent = {
+  type?: "start" | "chunk" | "done";
+  text?: string;
+  answer?: string;
+  conversationId?: string;
+  userMessageId?: string;
+  assistantMessageId?: string;
+  sources?: SupportSource[];
+  handoffSuggested?: boolean;
+};
+
 const initialMessage: SupportMessage = {
   role: "assistant",
   content: "Hi 👋 I’m your Pixie Concierge. How can I help with your plans today?",
@@ -46,6 +57,7 @@ export default function SupportPanel({
   const [showFollowUpChoice, setShowFollowUpChoice] = useState(false);
   const [showContactForm, setShowContactForm] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [pathname, setPathname] = useState("");
   const [handoffStatus, setHandoffStatus] = useState<
     "idle" | "sending" | "sent"
   >("idle");
@@ -101,6 +113,36 @@ export default function SupportPanel({
     };
   }, [variant]);
 
+  const suggestionChips = useMemo(() => {
+    if (pathname.startsWith("/resorts/")) {
+      return [
+        "Compare rooms",
+        "How far is this from Magic Kingdom?",
+        "What villas are available here?",
+      ];
+    }
+    if (pathname.startsWith("/calculator")) {
+      return [
+        "How are points calculated?",
+        "What happens after I submit?",
+        "How does booking work?",
+      ];
+    }
+    if (pathname.startsWith("/owner")) {
+      return [
+        "How do I rent my points?",
+        "How does owner verification work?",
+        "Owner onboarding steps",
+      ];
+    }
+    return [
+      "What is DVC point rental?",
+      "What are Ready Stays?",
+      "How does booking work?",
+      "Compare resorts",
+    ];
+  }, [pathname]);
+
   useEffect(() => {
     const container = listRef.current;
     if (!container) return;
@@ -115,6 +157,11 @@ export default function SupportPanel({
     const container = listRef.current;
     if (!container) return;
     scrollToBottom("auto");
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setPathname(window.location.pathname);
   }, []);
 
   function handleListScroll() {
@@ -188,9 +235,16 @@ export default function SupportPanel({
   async function sendMessage() {
     const trimmed = input.trim();
     if (!trimmed || loading) return;
+    const pendingId = `pending-assistant-${Date.now()}`;
     const nextMessages: SupportMessage[] = [
       ...messages,
       { role: "user", content: trimmed },
+      {
+        id: pendingId,
+        role: "assistant",
+        content: "",
+        senderLabel: "Pixie Concierge",
+      },
     ];
     setMessages(nextMessages);
     setInput("");
@@ -207,35 +261,112 @@ export default function SupportPanel({
           pageUrl: typeof window !== "undefined" ? window.location.href : "",
         }),
       });
-      const data = await response.json();
-      if (data?.conversationId) {
-        setConversationId(data.conversationId);
+      if (!response.ok) {
+        throw new Error(`support_chat_failed_${response.status}`);
       }
-      setMessages((prev) => [
-        ...prev.map((message, index) => {
-          if (
-            data?.userMessageId &&
-            !message.id &&
-            message.role === "user" &&
-            message.content === trimmed &&
-            index === prev.length - 1
-          ) {
-            return { ...message, id: data.userMessageId as string };
-          }
-          return message;
-        }),
-        {
-          id: data?.assistantMessageId ?? undefined,
-          role: "assistant",
-          content: data.answer ?? "Sorry, something went wrong.",
-          sources: data.sources ?? [],
-          handoffSuggested: Boolean(data.handoffSuggested),
-          senderLabel: "Pixie Concierge",
-        },
-      ]);
+
+      const contentType = response.headers.get("content-type") || "";
+      const isNdjson = contentType.includes("application/x-ndjson");
+      if (!isNdjson || !response.body) {
+        const data = await response.json();
+        if (data?.conversationId) {
+          setConversationId(data.conversationId);
+        }
+        setMessages((prev) =>
+          prev
+            .map((message, index) => {
+              if (
+                data?.userMessageId &&
+                !message.id &&
+                message.role === "user" &&
+                message.content === trimmed &&
+                index === prev.length - 2
+              ) {
+                return { ...message, id: data.userMessageId as string };
+              }
+              return message;
+            })
+            .map((message) =>
+              message.id === pendingId
+                ? {
+                    ...message,
+                    id: data?.assistantMessageId ?? pendingId,
+                    content: data.answer ?? "Sorry, something went wrong.",
+                    sources: data.sources ?? [],
+                    handoffSuggested: Boolean(data.handoffSuggested),
+                  }
+                : message,
+            ),
+        );
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let streamedText = "";
+
+      const applyEvent = (event: SupportChatStreamEvent) => {
+        if (event.conversationId) {
+          setConversationId(event.conversationId);
+        }
+
+        setMessages((prev) =>
+          prev
+            .map((message, index) => {
+              if (
+                event.userMessageId &&
+                !message.id &&
+                message.role === "user" &&
+                message.content === trimmed &&
+                index === prev.length - 2
+              ) {
+                return { ...message, id: event.userMessageId };
+              }
+              return message;
+            })
+            .map((message) => {
+              if (message.id !== pendingId) return message;
+              if (event.type === "chunk") {
+                streamedText += event.text ?? "";
+                return { ...message, content: streamedText };
+              }
+              if (event.type === "done") {
+                return {
+                  ...message,
+                  id: event.assistantMessageId ?? pendingId,
+                  content:
+                    event.answer ?? (streamedText || "Sorry, something went wrong."),
+                  sources: event.sources ?? [],
+                  handoffSuggested: Boolean(event.handoffSuggested),
+                };
+              }
+              return message;
+            }),
+        );
+      };
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          const nextLine = line.trim();
+          if (!nextLine) continue;
+          const event = JSON.parse(nextLine) as SupportChatStreamEvent;
+          applyEvent(event);
+        }
+      }
+
+      if (buffer.trim()) {
+        const event = JSON.parse(buffer.trim()) as SupportChatStreamEvent;
+        applyEvent(event);
+      }
     } catch (error) {
       setMessages((prev) => [
-        ...prev,
+        ...prev.filter((message) => message.id !== pendingId),
         {
           role: "assistant",
           content:
@@ -529,7 +660,9 @@ export default function SupportPanel({
           </div>
         )}
         {loading && (
-          <div className={`text-xs ${theme.muted}`}>Thinking...</div>
+          <div className={`text-xs ${theme.muted}`}>
+            Pixie Concierge is typing...
+          </div>
         )}
       </div>
       {showScrollButton && (
@@ -559,6 +692,18 @@ export default function SupportPanel({
                 placeholder="Ask anything DVC..."
                 className={`no-scrollbar mt-auto h-9 w-full resize-none overflow-hidden rounded-xl border px-3 py-0 text-sm leading-[2.25rem] ${theme.input}`}
               />
+              <div className="flex flex-wrap gap-2">
+                {suggestionChips.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => setInput(chip)}
+                    className={`rounded-full border px-3 py-1 text-[11px] font-medium transition ${theme.chip}`}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
               <div className="flex items-center justify-between pt-1">
                 <button
                   type="button"

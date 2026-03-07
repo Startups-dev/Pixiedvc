@@ -6,6 +6,7 @@ import {
   buildSupportContext,
 } from "@/lib/support/retrieval";
 import { buildSupportSystemPrompt } from "@/lib/support/prompt";
+import { SUPPORT_EXAMPLES } from "@/lib/support/examples";
 
 type ChatRole = "user" | "assistant";
 
@@ -232,11 +233,17 @@ function buildSources(docs: SupportDoc[]): SupportSource[] {
   }));
 }
 
+function buildExampleConversationBlock() {
+  return SUPPORT_EXAMPLES.map(
+    (item) =>
+      `Example conversation:\nUser: ${item.user}\nAssistant: ${item.assistant}`,
+  ).join("\n\n");
+}
+
 export async function POST(request: Request) {
   const hasOpenAIKey = Boolean(process.env.GEMINI_API_KEY);
   let pageUrlForLog: string | null = null;
   let finalKbMatchCount = 0;
-  let usedFallback = false;
 
   try {
     if (!checkRateLimit(request)) {
@@ -508,188 +515,210 @@ export async function POST(request: Request) {
         )
       : "No support knowledge snippets were matched.";
 
-    let answer = "";
-    try {
-      logSupportChatDebug({
-        stage: "chat-completion",
-        ok: true,
-        usedFallback: false,
-        hasOpenAIKey,
-        kbMatchCount: finalKbMatchCount,
-        pageUrl: pageUrlForLog,
-      });
-      const geminiApiKey = process.env.GEMINI_API_KEY;
-      if (!geminiApiKey) {
-        throw new Error("GEMINI_API_KEY is not configured");
-      }
-
-      const genAI = new GoogleGenerativeAI(geminiApiKey);
-      const model = genAI.getGenerativeModel({
-        model: "gemini-2.5-flash",
-      });
-
-      const contextualPrompt = [
-        buildSupportSystemPrompt(),
-        `Current page context:\n${contextBlock}`,
-        `Knowledge snippets:\n${kbContext}`,
-      ].join("\n\n");
-      const prompt = [
-        contextualPrompt,
-        "Conversation:",
-        ...messages.slice(-8).map((message) => `${message.role.toUpperCase()}: ${message.content}`),
-      ].join("\n\n");
-
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      answer = response.text();
-
-      if (!answer.trim()) {
-        usedFallback = true;
-        logSupportChatBranch("fallback:empty-model-response", {
-          ok: false,
-          usedFallback: true,
-          hasOpenAIKey,
-          kbMatchCount: finalKbMatchCount,
-          pageUrl: pageUrlForLog,
-          errorMessage: "empty_model_response",
-        });
-        throw new Error("empty_model_response");
-      }
-
-      logSupportChatBranch("success:ai-response", {
-        ok: true,
-        usedFallback: false,
-        hasOpenAIKey,
-        kbMatchCount: finalKbMatchCount,
-        pageUrl: pageUrlForLog,
-      });
-      logSupportChatDebug({
-        stage: "chat-completion-result",
-        ok: true,
-        usedFallback: false,
-        hasOpenAIKey,
-        kbMatchCount: finalKbMatchCount,
-        pageUrl: pageUrlForLog,
-      });
-    } catch (error) {
-      usedFallback = true;
-      logSupportChatBranch("fallback:chat-completion-failed", {
-        ok: false,
-        usedFallback: true,
-        hasOpenAIKey,
-        kbMatchCount: finalKbMatchCount,
-        pageUrl: pageUrlForLog,
-        errorMessage: error instanceof Error ? error.message : "chat_completion_failed",
-      });
-      if (
-        error instanceof Error &&
-        error.message.toLowerCase().includes("empty_model_response")
-      ) {
-        logSupportChatBranch("fallback:empty-model-response", {
-          ok: false,
-          usedFallback,
-          hasOpenAIKey,
-          kbMatchCount: finalKbMatchCount,
-          pageUrl: pageUrlForLog,
-          errorMessage: error.message,
-        });
-      }
-      logSupportChatError({
-        stage: "chat-completion-result",
-        ok: false,
-        usedFallback,
-        hasOpenAIKey,
-        kbMatchCount: finalKbMatchCount,
-        pageUrl: pageUrlForLog,
-        errorMessage: error instanceof Error ? error.message : "chat_completion_failed",
-      });
-      if (retrieval.docs.length > 0) {
-        logSupportChatBranch("success:kb-fallback", {
-          ok: true,
-          usedFallback: true,
-          hasOpenAIKey,
-          kbMatchCount: finalKbMatchCount,
-          pageUrl: pageUrlForLog,
-        });
-        answer =
-          retrieval.docs[0]?.content
-            .split(/(?<=[.!?])\s+/)
-            .filter(Boolean)
-            .slice(0, 2)
-            .join(" ") ||
-          "Based on our help docs, here’s what we can share. If you need anything specific, I can connect you with concierge.";
-      } else {
-        answer = fallbackResponse().answer;
-      }
-    }
-
     const handoffSuggested =
       retrieval.docs.length === 0 ? true : retrieval.handoffSuggested || retrieval.confidence === "medium";
+    const contextualPrompt = [
+      buildSupportSystemPrompt(),
+      `Current page context:\n${contextBlock}`,
+      `Knowledge snippets:\n${kbContext}`,
+      `Example conversations:\n${buildExampleConversationBlock()}`,
+      [
+        "Live conversation:",
+        ...messages
+          .slice(-8)
+          .map((message) => `${message.role === "user" ? "User" : "Assistant"}: ${message.content}`),
+      ].join("\n"),
+    ].join("\n\n");
 
-    let assistantMessageId: string | null = null;
-    if (supabase && activeConversationId) {
-      try {
-        const { data: assistantMessageRow } = await supabase
-          .from("support_messages")
-          .insert({
-            conversation_id: activeConversationId,
-            sender: "ai",
-            content: answer,
-            metadata: {
-              confidence: retrieval.confidence,
-              handoffSuggested,
-              sources: sources.map((source) => ({
-                slug: source.slug,
-                title: source.title,
-                category: source.category,
-              })),
-              context,
-            },
-          })
-          .select("id")
-          .single();
-        assistantMessageId = assistantMessageRow?.id ?? null;
-      } catch (error) {
-        logSupportChatError({
-          stage: "message-persistence-assistant",
-          ok: false,
-          usedFallback,
-          hasOpenAIKey,
-          kbMatchCount: finalKbMatchCount,
-          pageUrl: pageUrlForLog,
-          errorMessage: error instanceof Error ? error.message : "assistant_message_insert_failed",
-        });
-      }
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    if (!geminiApiKey) {
+      throw new Error("GEMINI_API_KEY is not configured");
     }
 
-    logSupportChatDebug({
-      stage: "message-persistence-assistant",
-      ok: Boolean(assistantMessageId),
-      usedFallback,
-      hasOpenAIKey,
-      kbMatchCount: finalKbMatchCount,
-      pageUrl: pageUrlForLog,
-      errorMessage: assistantMessageId ? undefined : "assistant_message_not_persisted",
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        const emit = (payload: Record<string, unknown>) => {
+          controller.enqueue(encoder.encode(`${JSON.stringify(payload)}\n`));
+        };
+
+        void (async () => {
+          let answer = "";
+          let assistantMessageId: string | null = null;
+          let streamUsedFallback = false;
+          emit({
+            type: "start",
+            conversationId: activeConversationId,
+            userMessageId,
+          });
+
+          try {
+            logSupportChatDebug({
+              stage: "chat-completion",
+              ok: true,
+              usedFallback: false,
+              hasOpenAIKey,
+              kbMatchCount: finalKbMatchCount,
+              pageUrl: pageUrlForLog,
+            });
+
+            const genAI = new GoogleGenerativeAI(geminiApiKey);
+            const model = genAI.getGenerativeModel({
+              model: "gemini-2.5-flash",
+            });
+            const result = await model.generateContentStream(contextualPrompt);
+            for await (const chunk of result.stream) {
+              const text = chunk.text();
+              if (!text) continue;
+              answer += text;
+              emit({ type: "chunk", text });
+            }
+
+            if (!answer.trim()) {
+              streamUsedFallback = true;
+              logSupportChatBranch("fallback:empty-model-response", {
+                ok: false,
+                usedFallback: true,
+                hasOpenAIKey,
+                kbMatchCount: finalKbMatchCount,
+                pageUrl: pageUrlForLog,
+                errorMessage: "empty_model_response",
+              });
+              throw new Error("empty_model_response");
+            }
+
+            logSupportChatBranch("success:ai-response", {
+              ok: true,
+              usedFallback: false,
+              hasOpenAIKey,
+              kbMatchCount: finalKbMatchCount,
+              pageUrl: pageUrlForLog,
+            });
+            logSupportChatDebug({
+              stage: "chat-completion-result",
+              ok: true,
+              usedFallback: false,
+              hasOpenAIKey,
+              kbMatchCount: finalKbMatchCount,
+              pageUrl: pageUrlForLog,
+            });
+          } catch (error) {
+            streamUsedFallback = true;
+            logSupportChatBranch("fallback:chat-completion-failed", {
+              ok: false,
+              usedFallback: true,
+              hasOpenAIKey,
+              kbMatchCount: finalKbMatchCount,
+              pageUrl: pageUrlForLog,
+              errorMessage: error instanceof Error ? error.message : "chat_completion_failed",
+            });
+            logSupportChatError({
+              stage: "chat-completion-result",
+              ok: false,
+              usedFallback: true,
+              hasOpenAIKey,
+              kbMatchCount: finalKbMatchCount,
+              pageUrl: pageUrlForLog,
+              errorMessage: error instanceof Error ? error.message : "chat_completion_failed",
+            });
+            if (retrieval.docs.length > 0) {
+              logSupportChatBranch("success:kb-fallback", {
+                ok: true,
+                usedFallback: true,
+                hasOpenAIKey,
+                kbMatchCount: finalKbMatchCount,
+                pageUrl: pageUrlForLog,
+              });
+              answer =
+                retrieval.docs[0]?.content
+                  .split(/(?<=[.!?])\s+/)
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .join(" ") ||
+                "Based on our help docs, here’s what we can share. If you need anything specific, I can connect you with concierge.";
+            } else {
+              answer = fallbackResponse().answer;
+            }
+            emit({ type: "chunk", text: answer });
+          }
+
+          if (supabase && activeConversationId) {
+            try {
+              const { data: assistantMessageRow } = await supabase
+                .from("support_messages")
+                .insert({
+                  conversation_id: activeConversationId,
+                  sender: "ai",
+                  content: answer,
+                  metadata: {
+                    confidence: retrieval.confidence,
+                    handoffSuggested,
+                    sources: sources.map((source) => ({
+                      slug: source.slug,
+                      title: source.title,
+                      category: source.category,
+                    })),
+                    context,
+                  },
+                })
+                .select("id")
+                .single();
+              assistantMessageId = assistantMessageRow?.id ?? null;
+            } catch (error) {
+              logSupportChatError({
+                stage: "message-persistence-assistant",
+                ok: false,
+                usedFallback: streamUsedFallback,
+                hasOpenAIKey,
+                kbMatchCount: finalKbMatchCount,
+                pageUrl: pageUrlForLog,
+                errorMessage: error instanceof Error ? error.message : "assistant_message_insert_failed",
+              });
+            }
+          }
+
+          logSupportChatDebug({
+            stage: "message-persistence-assistant",
+            ok: Boolean(assistantMessageId),
+            usedFallback: streamUsedFallback,
+            hasOpenAIKey,
+            kbMatchCount: finalKbMatchCount,
+            pageUrl: pageUrlForLog,
+            errorMessage: assistantMessageId ? undefined : "assistant_message_not_persisted",
+          });
+
+          logSupportChatDebug({
+            stage: "final-response",
+            ok: true,
+            usedFallback: streamUsedFallback,
+            hasOpenAIKey,
+            kbMatchCount: finalKbMatchCount,
+            pageUrl: pageUrlForLog,
+            errorMessage: streamUsedFallback ? "fallback_generated_response" : undefined,
+          });
+
+          emit({
+            type: "done",
+            conversationId: activeConversationId,
+            userMessageId,
+            assistantMessageId,
+            answer,
+            sources,
+            confidence: retrieval.confidence,
+            handoffSuggested,
+          });
+          controller.close();
+        })().catch((error) => {
+          controller.error(error);
+        });
+      },
     });
 
-    logSupportChatDebug({
-      stage: "final-response",
-      ok: true,
-      usedFallback,
-      hasOpenAIKey,
-      kbMatchCount: finalKbMatchCount,
-      pageUrl: pageUrlForLog,
-      errorMessage: usedFallback ? "fallback_generated_response" : undefined,
-    });
-
-    return NextResponse.json({
-      conversationId: activeConversationId,
-      userMessageId,
-      assistantMessageId,
-      answer,
-      sources,
-      confidence: retrieval.confidence,
-      handoffSuggested,
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "application/x-ndjson; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+      },
     });
   } catch (error) {
     logSupportChatError({
