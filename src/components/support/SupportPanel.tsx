@@ -370,8 +370,8 @@ export default function SupportPanel({
         {
           role: "assistant",
           content:
-            "That’s a great question. Let me connect you with a Pixie Concierge who can help with this ✨",
-          handoffSuggested: true,
+            "I can help explain that. Disney Vacation Club point rental allows guests to stay at DVC resorts using a member’s points instead of booking Disney’s standard cash rate directly.",
+          handoffSuggested: false,
           senderLabel: "Pixie Concierge",
         },
       ]);
@@ -621,7 +621,7 @@ export default function SupportPanel({
               )}
               {!isUser && message.handoffSuggested && (
                 <div className={`text-xs ${theme.muted}`}>
-                  You can request a concierge below.
+                  If you need help with a specific booking or account issue, you can request a concierge below.
                 </div>
               )}
             </div>

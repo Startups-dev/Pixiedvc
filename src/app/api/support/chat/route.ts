@@ -78,11 +78,42 @@ function logSupportChatBranch(
 function fallbackResponse() {
   return {
     answer:
-      "I’m not fully sure from our help docs yet. If you’d like, I can connect you with a concierge for a precise answer.",
+      "I can help explain that. Disney Vacation Club point rental allows guests to stay at DVC resorts using a member’s points instead of booking Disney’s standard cash rate directly.",
     sources: [],
     confidence: "low",
-    handoffSuggested: true,
+    handoffSuggested: false,
   };
+}
+
+function shouldSuggestConcierge(query: string, context: ReturnType<typeof derivePageContext>) {
+  const lowerQuery = query.toLowerCase();
+  const escalationSignals = [
+    "payment",
+    "deposit",
+    "login",
+    "log in",
+    "sign in",
+    "account",
+    "verification",
+    "verify",
+    "reservation status",
+    "booking status",
+    "request status",
+    "my reservation",
+    "my booking",
+    "human",
+    "agent",
+    "concierge",
+    "contact support",
+    "talk to",
+    "help with my",
+  ];
+
+  if (context.isPaymentPage || context.routeType === "owner_onboarding") {
+    return true;
+  }
+
+  return escalationSignals.some((signal) => lowerQuery.includes(signal));
 }
 
 function derivePageContext(pageUrl: string) {
@@ -515,8 +546,11 @@ export async function POST(request: Request) {
         )
       : "No support knowledge snippets were matched.";
 
-    const handoffSuggested =
-      retrieval.docs.length === 0 ? true : retrieval.handoffSuggested || retrieval.confidence === "medium";
+    const handoffSuggested = shouldSuggestConcierge(query, context)
+      ? retrieval.docs.length === 0
+        ? true
+        : retrieval.handoffSuggested || retrieval.confidence === "medium"
+      : false;
     const contextualPrompt = [
       buildSupportSystemPrompt(),
       `Current page context:\n${contextBlock}`,
@@ -635,7 +669,7 @@ export async function POST(request: Request) {
                   .filter(Boolean)
                   .slice(0, 2)
                   .join(" ") ||
-                "Based on our help docs, here’s what we can share. If you need anything specific, I can connect you with concierge.";
+                "Based on our help docs, here’s what we can share. If you need help with a specific booking or account issue, I can also connect you with concierge support.";
             } else {
               answer = fallbackResponse().answer;
             }
