@@ -563,7 +563,7 @@ export default function SupportPanel({
   const containerHeightClass =
     variant === "widget" ? "h-full min-h-0" : "h-full min-h-[520px]";
   const composerHeightClass =
-    variant === "widget" ? "h-[110px]" : "min-h-[220px]";
+    variant === "widget" ? "min-h-[168px]" : "min-h-[220px]";
 
   return (
     <div
@@ -683,15 +683,7 @@ export default function SupportPanel({
             data-active={!showContactForm}
             className="absolute inset-0 transition-[opacity,transform] duration-140 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] data-[active=true]:opacity-100 data-[active=true]:translate-y-0 data-[active=true]:pointer-events-auto data-[active=false]:opacity-0 data-[active=false]:translate-y-1 data-[active=false]:pointer-events-none"
           >
-            <div className="flex h-full flex-col justify-end gap-1.5">
-              <textarea
-                rows={1}
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask anything DVC..."
-                className={`no-scrollbar mt-auto h-9 w-full resize-none overflow-hidden rounded-xl border px-3 py-0 text-sm leading-[2.25rem] ${theme.input}`}
-              />
+            <div className="flex h-full flex-col justify-end gap-2 pb-1">
               <div className="flex flex-wrap gap-2">
                 {suggestionChips.map((chip) => (
                   <button
@@ -704,7 +696,25 @@ export default function SupportPanel({
                   </button>
                 ))}
               </div>
-              <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center gap-2">
+                <textarea
+                  rows={1}
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ask anything DVC..."
+                  className={`no-scrollbar h-10 min-w-0 flex-1 resize-none overflow-hidden rounded-xl border px-3 py-2 text-sm leading-5 ${theme.input}`}
+                />
+                <button
+                  type="button"
+                  onClick={sendMessage}
+                  disabled={loading}
+                  className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition ${theme.button}`}
+                >
+                  Send
+                </button>
+              </div>
+              <div className="flex items-center justify-start">
                 <button
                   type="button"
                   onClick={requestConcierge}
@@ -712,14 +722,6 @@ export default function SupportPanel({
                   disabled={handoffStatus === "sending"}
                 >
                   Talk to a Concierge
-                </button>
-                <button
-                  type="button"
-                  onClick={sendMessage}
-                  disabled={loading}
-                  className={`rounded-full px-4 py-2 text-xs font-semibold transition ${theme.button}`}
-                >
-                  Send
                 </button>
               </div>
             </div>
