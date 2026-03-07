@@ -45,6 +45,7 @@ export default function SupportPanel({
   const [noAgentAvailable, setNoAgentAvailable] = useState(false);
   const [showFollowUpChoice, setShowFollowUpChoice] = useState(false);
   const [showContactForm, setShowContactForm] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const [handoffStatus, setHandoffStatus] = useState<
     "idle" | "sending" | "sent"
   >("idle");
@@ -56,6 +57,20 @@ export default function SupportPanel({
     message: "",
   });
   const listRef = useRef<HTMLDivElement | null>(null);
+  const shouldStickToBottomRef = useRef(true);
+
+  const isNearBottom = (container: HTMLDivElement) =>
+    container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    if (!listRef.current) return;
+    listRef.current.scrollTo({
+      top: listRef.current.scrollHeight,
+      behavior,
+    });
+    shouldStickToBottomRef.current = true;
+    setShowScrollButton(false);
+  };
 
   const theme = useMemo(() => {
     if (variant === "dark" || variant === "widget") {
@@ -87,10 +102,28 @@ export default function SupportPanel({
   }, [variant]);
 
   useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
+    const container = listRef.current;
+    if (!container) return;
+    if (shouldStickToBottomRef.current || isNearBottom(container)) {
+      scrollToBottom("smooth");
+      return;
     }
+    setShowScrollButton(true);
   }, [messages, loading]);
+
+  useEffect(() => {
+    const container = listRef.current;
+    if (!container) return;
+    scrollToBottom("auto");
+  }, []);
+
+  function handleListScroll() {
+    const container = listRef.current;
+    if (!container) return;
+    const nearBottom = isNearBottom(container);
+    shouldStickToBottomRef.current = nearBottom;
+    setShowScrollButton(!nearBottom);
+  }
 
   useEffect(() => {
     if (!conversationId) return;
@@ -430,6 +463,7 @@ export default function SupportPanel({
 
       <div
         ref={listRef}
+        onScroll={handleListScroll}
         className="pixie-scrollbar flex-1 min-h-0 space-y-4 overflow-y-auto px-5 py-4"
       >
         {messages.map((message, index) => {
@@ -498,6 +532,17 @@ export default function SupportPanel({
           <div className={`text-xs ${theme.muted}`}>Thinking...</div>
         )}
       </div>
+      {showScrollButton && (
+        <div className="pointer-events-none absolute bottom-[122px] left-0 right-0 z-10 flex justify-center px-5">
+          <button
+            type="button"
+            onClick={() => scrollToBottom("smooth")}
+            className="pointer-events-auto rounded-full border border-slate-700 bg-slate-900/95 px-3 py-1 text-xs font-semibold text-slate-100 shadow-lg"
+          >
+            New message ↓
+          </button>
+        </div>
+      )}
 
       <div className={`border-t px-5 pb-2 pt-1 ${theme.header}`}>
         <div className={`relative ${composerHeightClass}`}>
