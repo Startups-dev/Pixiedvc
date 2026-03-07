@@ -485,8 +485,13 @@ export async function POST(request: Request) {
 
     const contextBlock = [
       `Route type: ${context.routeType}`,
-      context.path ? `Path: ${context.path}` : "",
-      context.resortSlug ? `Resort slug: ${context.resortSlug}` : "",
+      `Page URL: ${context.pageUrl ?? "unknown"}`,
+      `Path: ${context.path ?? "unknown"}`,
+      `Resort slug: ${context.resortSlug ?? "none"}`,
+      `Ready stay page: ${context.isReadyStays ? "yes" : "no"}`,
+      `Calculator page: ${context.isCalculator ? "yes" : "no"}`,
+      `Owner page: ${context.isOwnerPage ? "yes" : "no"}`,
+      `Payment page: ${context.isPaymentPage ? "yes" : "no"}`,
       selectedCategory ? `Selected category: ${selectedCategory}` : "",
     ]
       .filter(Boolean)
@@ -501,7 +506,7 @@ export async function POST(request: Request) {
             similarity: doc.similarity ?? 0,
           })),
         )
-      : "[no kb sources available]";
+      : "No support knowledge snippets were matched.";
 
     let answer = "";
     try {
@@ -523,10 +528,13 @@ export async function POST(request: Request) {
         model: "gemini-2.5-flash",
       });
 
-      const prompt = [
+      const contextualPrompt = [
         buildSupportSystemPrompt(),
         `Current page context:\n${contextBlock}`,
-        `Knowledge sources:\n${kbContext}`,
+        `Knowledge snippets:\n${kbContext}`,
+      ].join("\n\n");
+      const prompt = [
+        contextualPrompt,
         "Conversation:",
         ...messages.slice(-8).map((message) => `${message.role.toUpperCase()}: ${message.content}`),
       ].join("\n\n");
