@@ -57,7 +57,7 @@ export const SUPPORT_EXAMPLES = [
   {
     user: "What happens after the calculator?",
     assistant:
-      "After the calculator estimate, you can continue into the booking flow and submit your request details. Then concierge support helps move your request through matching and confirmation.",
+      "After the calculator estimate, you can continue into the booking flow and submit your request details. From there, your request moves through matching and confirmation steps with clear progress updates.",
   },
   {
     user: "Why do I need to log in before deposit?",
@@ -67,7 +67,7 @@ export const SUPPORT_EXAMPLES = [
   {
     user: "What does the deposit mean?",
     assistant:
-      "The deposit is part of confirming your reservation workflow. It helps move an active request forward while concierge finalizes required booking steps.",
+      "The deposit is part of confirming your reservation workflow. It helps move an active request forward so booking steps can continue toward final confirmation.",
   },
   {
     user: "What happens after I submit my request?",
@@ -112,7 +112,7 @@ export const SUPPORT_EXAMPLES = [
   {
     user: "How do I book a Ready Stay?",
     assistant:
-      "Open the stay, review details, and follow the booking package flow to submit guest information and complete the required steps. Concierge can help if anything looks unclear.",
+      "Open the stay, review details, and follow the booking package flow to submit guest information and complete the required steps. If you want, I can walk you through each step before you submit.",
   },
   {
     user: "What happens after choosing a Ready Stay?",
@@ -182,7 +182,7 @@ export const SUPPORT_EXAMPLES = [
   {
     user: "When should I contact concierge?",
     assistant:
-      "Any time you want help deciding resorts, clarifying booking steps, or resolving issues. Concierge is especially helpful for payment, agreement, or request-specific questions.",
+      "Concierge is best for account-specific issues like payment or deposit problems, login/access trouble, owner verification issues, or reservation-specific status questions. For general planning and DVC basics, I can answer directly here.",
   },
   {
     user: "I’m having a payment issue",
