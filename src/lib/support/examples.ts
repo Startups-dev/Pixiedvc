@@ -15,6 +15,11 @@ export const SUPPORT_EXAMPLES = [
       "Yes. PixieDVC is built around verified owner participation, documented booking steps, and concierge support throughout the process. If you want, I can walk you through each stage before you submit anything.",
   },
   {
+    user: "Is PixieDVC affiliated with Disney?",
+    assistant:
+      "PixieDVC is an independent platform and is not owned, sponsored, or endorsed by Disney. It helps guests request Disney Vacation Club stays by coordinating with DVC owners who have points available.",
+  },
+  {
     user: "Why use PixieDVC instead of booking Disney directly?",
     assistant:
       "Many guests choose PixieDVC for villa-style stays and strong value through point rentals. You also get concierge guidance from request to confirmation instead of navigating everything on your own.",
@@ -38,6 +43,11 @@ export const SUPPORT_EXAMPLES = [
     user: "Why do people rent DVC points?",
     assistant:
       "Guests often rent points to access deluxe villa accommodations with good value and more room features. It can be a practical option for families who want space and kitchen-style amenities.",
+  },
+  {
+    user: "How is point rental different from booking Disney directly?",
+    assistant:
+      "Direct Disney bookings typically use standard cash room rates. DVC point rental uses points from a DVC member to secure villa accommodations, which can give guests a different booking path and access to villa-style room options.",
   },
   {
     user: "What are DVC villas?",
@@ -70,9 +80,79 @@ export const SUPPORT_EXAMPLES = [
       "The deposit is part of confirming your reservation workflow. It helps move an active request forward so booking steps can continue toward final confirmation.",
   },
   {
+    user: "Do I pay all upfront?",
+    assistant:
+      "It depends on how far out the trip is. If booking is more than 90 days before check-in, payment is usually split: 70% at booking and 30% due no later than 90 days before arrival. If booking is within 90 days of check-in, full payment is typically required at booking.",
+  },
+  {
+    user: "When do I pay the remaining balance?",
+    assistant:
+      "For split-payment bookings, the remaining 30% is due no later than 90 days before check-in. Payment steps are completed as part of the agreement stage.",
+  },
+  {
+    user: "When do I actually make payment?",
+    assistant:
+      "Payment is collected when reservation details are reviewed and the booking agreement is accepted and signed. That step moves the reservation toward confirmation.",
+  },
+  {
+    user: "How much does it cost?",
+    assistant:
+      "Total cost depends on resort, dates, room type, trip length, and required points. The calculator is the best way to get a trip-specific estimate based on your exact stay details.",
+  },
+  {
+    user: "What affects the total cost?",
+    assistant:
+      "The biggest factors are resort, travel dates, room category, trip length, and point requirement. Because DVC bookings are points-based, different stay combinations can change total price.",
+  },
+  {
+    user: "Is PixieDVC cheaper than booking Disney directly?",
+    assistant:
+      "In many cases, point-rental stays can offer strong value compared with Disney standard cash rates for similar villa accommodations. The best comparison depends on your exact resort, room type, and dates.",
+  },
+  {
+    user: "Are Ready Stays priced differently?",
+    assistant:
+      "Ready Stays are pre-confirmed reservation options, so pricing reflects a stay that is already defined. They can feel more straightforward because the reservation structure is already set.",
+  },
+  {
+    user: "What happens if I cancel?",
+    assistant:
+      "Cancellation policies are structured because DVC reservations are tied to member points. Depending on timing, a booking may qualify for a refund or a deferred credit for future travel.",
+  },
+  {
     user: "What happens after I submit my request?",
     assistant:
       "Your request enters matching and review. You’ll then see status progression and receive guidance on next actions, such as agreement and payment steps when applicable.",
+  },
+  {
+    user: "How does booking work on PixieDVC?",
+    assistant:
+      "Booking usually starts on a resort page, the calculator, or a Ready Stay listing. After you choose your trip direction, you submit request details, PixieDVC checks availability with owners, and if matched, you review reservation details and complete agreement/payment steps for confirmation.",
+  },
+  {
+    user: "What happens next?",
+    assistant:
+      "If you just submitted a request, the next stage is availability matching for your dates, resort, and room type. If a match is found, you move to reservation review, then agreement and payment steps.",
+  },
+  {
+    user: "After I submit, what should I expect?",
+    assistant:
+      "After submission, PixieDVC checks availability against owner points. If availability is found, you review reservation details, confirm terms, and complete the required payment step to finalize.",
+  },
+  {
+    user: "After the calculator, what do I do?",
+    assistant:
+      "The calculator is an estimate tool, not a confirmed reservation. The next step is submitting a stay request with your dates, resort, room type, and guest details so matching can begin.",
+  },
+  {
+    user: "How long does confirmation take?",
+    assistant:
+      "Timing depends on your requested resort, room type, and dates. Some requests confirm quickly when points are available, while others may take longer if availability is tighter.",
+  },
+  {
+    user: "What if my request can’t be matched?",
+    assistant:
+      "If the exact request is unavailable, you can usually review alternatives such as nearby resorts, adjusted room types, or different dates to keep the trip moving forward.",
   },
   {
     user: "Can I track my request status?",
@@ -178,6 +258,101 @@ export const SUPPORT_EXAMPLES = [
     user: "Saratoga Springs vs Old Key West?",
     assistant:
       "Both are spacious and relaxed. Saratoga is often picked for Disney Springs convenience, while Old Key West is loved for classic laid-back villa atmosphere.",
+  },
+  {
+    user: "Compare resorts",
+    assistant:
+      "A quick shortlist by trip style: Beach Club and BoardWalk for EPCOT convenience, Polynesian and Bay Lake Tower for easier Magic Kingdom access, and Riviera for a polished Skyliner-centered stay. If you share your priorities, I can narrow this to your best 2 options.",
+  },
+  {
+    user: "I want something more relaxing near the ocean",
+    assistant:
+      "Great fit for a coastal-style trip. Top options are Aulani (Hawaii, resort-style ocean setting), Disney’s Hilton Head Island Resort (quiet Lowcountry feel), and Disney’s Vero Beach Resort (laid-back beachfront atmosphere). If you want, I can compare them by travel style and pace.",
+  },
+  {
+    user: "Which DVC resorts are near the ocean?",
+    assistant:
+      "The main ocean-adjacent DVC options are Aulani, Disney’s Hilton Head Island Resort, and Disney’s Vero Beach Resort. Aulani is best for a full Hawaii destination trip, Hilton Head is great for calm coastal downtime, and Vero Beach is often chosen for a simple beach-focused escape.",
+  },
+  {
+    user: "any docs near the ocean?",
+    assistant:
+      "Yes. Ocean-focused DVC options include Aulani, Hilton Head, and Vero Beach. If you’re deciding between them, I can give you a quick shortlist by vibe, travel time, and how relaxed or activity-focused you want the trip to be.",
+  },
+  {
+    user: "Compare Aulani, Hilton Head, and Vero Beach",
+    assistant:
+      "Aulani is the most destination-style experience with a full Hawaii resort environment. Hilton Head is quieter and ideal for a calm coastal pace. Vero Beach is a straightforward beachfront option that many guests choose for simplicity and relaxation. If you share your trip length and priorities, I can rank them for your plan.",
+  },
+  {
+    user: "I want a quiet resort",
+    assistant:
+      "For a quieter feel, strong options include Old Key West, Saratoga Springs, and Kidani Village. Old Key West and Saratoga often feel more spread out and relaxed, while Kidani is usually preferred for a calmer Animal Kingdom Villas atmosphere.",
+  },
+  {
+    user: "I want a romantic resort",
+    assistant:
+      "For couples, popular picks are Riviera, Grand Floridian Villas, and Polynesian Villas. Riviera is refined and intimate, Grand Floridian leans classic and elegant, and Polynesian offers a tropical atmosphere with strong dining and views.",
+  },
+  {
+    user: "I want a family-friendly resort",
+    assistant:
+      "Family-friendly favorites include Beach Club, Polynesian Villas, and Bay Lake Tower. Beach Club is great for EPCOT-area access, Polynesian has broad family appeal and transportation convenience, and Bay Lake Tower is often picked for Magic Kingdom proximity.",
+  },
+  {
+    user: "Compare Riviera and Polynesian",
+    assistant:
+      "Riviera feels more boutique and polished with strong Skyliner convenience, while Polynesian is more tropical and classic Disney with excellent Magic Kingdom-area access. Riviera often suits guests wanting a modern calm vibe; Polynesian suits guests wanting atmosphere and iconic location.",
+  },
+  {
+    user: "Compare BoardWalk and Beach Club",
+    assistant:
+      "Both are excellent for EPCOT access. BoardWalk is usually chosen for a lively promenade feel, while Beach Club is often preferred for a more relaxed atmosphere. If pool style, dining, or evening pace matters most, I can help choose between them quickly.",
+  },
+  {
+    user: "Best resorts for EPCOT access",
+    assistant:
+      "Top picks are BoardWalk, Beach Club, and Riviera. BoardWalk and Beach Club are often favored for walking convenience, while Riviera is strong for Skyliner access and a refined resort feel.",
+  },
+  {
+    user: "Best resorts for Magic Kingdom access",
+    assistant:
+      "Top choices are Bay Lake Tower, Grand Floridian Villas, and Polynesian Villas. Bay Lake Tower is typically the most direct for Magic Kingdom convenience, while Grand Floridian and Polynesian add signature atmosphere with strong transportation options.",
+  },
+  {
+    user: "I want to be near Magic Kingdom",
+    assistant:
+      "Perfect, let’s narrow to Magic Kingdom-friendly options: Bay Lake Tower, Polynesian Villas, and Grand Floridian Villas. Bay Lake Tower is often the most direct, while Polynesian and Grand Floridian add strong atmosphere with excellent transport.",
+  },
+  {
+    user: "I want something near EPCOT",
+    assistant:
+      "For EPCOT-focused stays, narrow to Beach Club, BoardWalk, and Riviera. Beach Club and BoardWalk are usually strongest for walking access, while Riviera is great for Skyliner routing.",
+  },
+  {
+    user: "I want something quieter",
+    assistant:
+      "If you want calmer atmosphere, narrow to Old Key West, Saratoga Springs, and Kidani Village. These are commonly chosen for a slower pace and less high-energy resort feel.",
+  },
+  {
+    user: "I want something romantic",
+    assistant:
+      "For a romantic vibe, Riviera, Grand Floridian Villas, and Polynesian Villas are strong choices. Riviera feels refined and modern, while Grand Floridian and Polynesian bring classic atmosphere and views.",
+  },
+  {
+    user: "I want something near the ocean",
+    assistant:
+      "For ocean-style stays, narrow to Aulani, Hilton Head, and Vero Beach. Aulani is destination-style Hawaii, Hilton Head is quieter and low-key, and Vero Beach is a simple beach-focused getaway.",
+  },
+  {
+    user: "Did you understand?",
+    assistant:
+      "Yes, I understood your preference. Based on what you shared, I’ll keep the shortlist focused on that category and avoid broad options.",
+  },
+  {
+    user: "I just told you",
+    assistant:
+      "You’re right. I’ll continue from your last preference and narrow the recommendations instead of resetting the list.",
   },
   {
     user: "When should I contact concierge?",

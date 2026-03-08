@@ -232,41 +232,86 @@ export default function SupportPanel({
     };
   }, [conversationId]);
 
-  function buildClientFallbackAnswer(query: string) {
+  function buildClientFallbackAnswer(
+    query: string,
+    previousUserMessage: string | null = null,
+  ) {
     const normalized = query.toLowerCase();
+    const frustrationSignals = [
+      "did you understand",
+      "i just told you",
+      "as i said",
+      "like i said",
+      "same thing",
+    ];
+    const isFrustration = frustrationSignals.some((signal) =>
+      normalized.includes(signal),
+    );
+    const resolvedQuery =
+      isFrustration && previousUserMessage
+        ? previousUserMessage.toLowerCase()
+        : normalized;
+
     if (
-      normalized.includes("dvc") ||
-      normalized.includes("disney vacation club") ||
-      normalized.includes("point rental") ||
-      normalized.includes("points")
+      resolvedQuery.includes("dvc") ||
+      resolvedQuery.includes("disney vacation club") ||
+      resolvedQuery.includes("point rental") ||
+      resolvedQuery.includes("points")
     ) {
       return "Disney Vacation Club point rental allows guests to stay at DVC resorts using a member’s points instead of booking Disney’s standard cash rate directly.";
     }
     if (
-      normalized.includes("compare resort") ||
-      normalized.includes("compare resorts") ||
-      normalized.includes("ocean") ||
-      normalized.includes("beach") ||
-      normalized.includes("relaxing") ||
-      normalized.includes("quiet") ||
-      normalized.includes("family-friendly") ||
-      normalized.includes("family friendly") ||
-      normalized.includes("couples") ||
-      normalized.includes("romantic") ||
-      normalized.includes("epcot") ||
-      normalized.includes("magic kingdom")
+      resolvedQuery.includes("magic kingdom")
     ) {
-      return "A helpful shortlist: Aulani, Hilton Head, and Vero Beach for ocean-style relaxation; Beach Club and BoardWalk for EPCOT convenience; and Bay Lake Tower or Polynesian for easier Magic Kingdom access.";
+      return "For Magic Kingdom convenience, start with Bay Lake Tower, Polynesian Villas, and Grand Floridian Villas.";
+    }
+    if (resolvedQuery.includes("epcot")) {
+      return "For EPCOT access, top options are Beach Club, BoardWalk, and Riviera.";
     }
     if (
-      normalized.includes("booking") ||
-      normalized.includes("request") ||
-      normalized.includes("reservation") ||
-      normalized.includes("deposit")
+      resolvedQuery.includes("ocean") ||
+      resolvedQuery.includes("beach")
+    ) {
+      return "For ocean-style stays, shortlist Aulani, Hilton Head, and Vero Beach.";
+    }
+    if (
+      resolvedQuery.includes("quiet") ||
+      resolvedQuery.includes("relaxing")
+    ) {
+      return "For a quieter pace, consider Old Key West, Saratoga Springs, and Kidani Village.";
+    }
+    if (
+      resolvedQuery.includes("couples") ||
+      resolvedQuery.includes("romantic")
+    ) {
+      return "For couples, strong picks are Riviera, Grand Floridian Villas, and Polynesian Villas.";
+    }
+    if (
+      resolvedQuery.includes("family-friendly") ||
+      resolvedQuery.includes("family friendly") ||
+      resolvedQuery.includes("family") ||
+      resolvedQuery.includes("kids")
+    ) {
+      return "For family-friendly stays, start with Beach Club, Polynesian Villas, and Bay Lake Tower.";
+    }
+    if (
+      resolvedQuery.includes("compare resort") ||
+      resolvedQuery.includes("compare resorts")
+    ) {
+      return "A quick shortlist by trip style: Beach Club and BoardWalk for EPCOT convenience, Polynesian and Bay Lake Tower for easier Magic Kingdom access, and Riviera for a polished Skyliner-centered stay.";
+    }
+    if (
+      resolvedQuery.includes("booking") ||
+      resolvedQuery.includes("request") ||
+      resolvedQuery.includes("reservation") ||
+      resolvedQuery.includes("deposit")
     ) {
       return "Booking usually starts with trip details and then moves through request review, agreement, and confirmation steps.";
     }
-    if (normalized.includes("ready stay") || normalized.includes("ready stays")) {
+    if (
+      resolvedQuery.includes("ready stay") ||
+      resolvedQuery.includes("ready stays")
+    ) {
       return "Ready Stays are pre-confirmed reservation options that can often be booked faster than a custom request.";
     }
     return "I can help explain that. Share a bit more about what you want to understand, and I’ll walk you through it.";
@@ -408,11 +453,16 @@ export default function SupportPanel({
         applyEvent(event);
       }
     } catch (error) {
+      const previousUserMessage =
+        [...requestMessages]
+          .slice(0, -1)
+          .reverse()
+          .find((message) => message.role === "user")?.content ?? null;
       setMessages((prev) => [
         ...prev.filter((message) => message.id !== pendingId),
         {
           role: "assistant",
-          content: buildClientFallbackAnswer(trimmed),
+          content: buildClientFallbackAnswer(trimmed, previousUserMessage),
           handoffSuggested: false,
           senderLabel: "Pixie Concierge",
         },

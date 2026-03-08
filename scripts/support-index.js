@@ -6,22 +6,37 @@ const matter = require("gray-matter");
 const { createClient } = require("@supabase/supabase-js");
 
 async function loadSupportDocs() {
-  const supportDir = path.join(process.cwd(), "content", "support");
-  const entries = await fs.readdir(supportDir);
-  const docs = await Promise.all(
-    entries
-      .filter((name) => name.endsWith(".mdx"))
-      .map(async (name) => {
-        const filePath = path.join(supportDir, name);
-        const source = await fs.readFile(filePath, "utf8");
-        const parsed = matter(source);
-        return {
-          meta: parsed.data,
-          content: parsed.content.trim(),
-        };
-      }),
-  );
-  return docs;
+  const root = process.cwd();
+  const supportDirs = [
+    path.join(root, "content", "support"),
+    path.join(root, "content", "support-kb"),
+  ];
+
+  const docs = [];
+  for (const supportDir of supportDirs) {
+    let entries = [];
+    try {
+      entries = await fs.readdir(supportDir);
+    } catch {
+      continue;
+    }
+    const dirDocs = await Promise.all(
+      entries
+        .filter((name) => name.endsWith(".md") || name.endsWith(".mdx"))
+        .map(async (name) => {
+          const filePath = path.join(supportDir, name);
+          const source = await fs.readFile(filePath, "utf8");
+          const parsed = matter(source);
+          return {
+            meta: parsed.data,
+            content: parsed.content.trim(),
+          };
+        }),
+    );
+    docs.push(...dirDocs);
+  }
+
+  return docs.filter((doc) => doc?.meta?.slug && doc?.meta?.title && doc?.meta?.category);
 }
 
 function hashDocument(payload) {

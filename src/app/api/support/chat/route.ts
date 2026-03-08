@@ -41,6 +41,19 @@ type SupportChatDebugLog = {
   errorMessage?: string;
 };
 
+type RecommendationPreference =
+  | "magic_kingdom"
+  | "epcot"
+  | "hollywood_studios"
+  | "animal_kingdom"
+  | "ocean"
+  | "quiet_relaxing"
+  | "couples_romantic"
+  | "family_friendly"
+  | "luxury_upscale"
+  | "transportation"
+  | null;
+
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 20;
 
@@ -109,12 +122,19 @@ function detectSupportIntent(query: string) {
     normalized.includes("compare resorts") ||
     normalized.includes("ocean") ||
     normalized.includes("beach") ||
+    normalized.includes("hollywood studios") ||
+    normalized.includes("animal kingdom") ||
     normalized.includes("relaxing") ||
     normalized.includes("quiet") ||
     normalized.includes("family-friendly") ||
     normalized.includes("family friendly") ||
     normalized.includes("couples") ||
     normalized.includes("romantic") ||
+    normalized.includes("luxury") ||
+    normalized.includes("upscale") ||
+    normalized.includes("transport") ||
+    normalized.includes("transportation") ||
+    normalized.includes("walkable") ||
     normalized.includes("epcot") ||
     normalized.includes("magic kingdom")
   ) {
@@ -157,7 +177,114 @@ function resolveIntentQuery(messages: SupportChatMessage[], query: string) {
   return previousUserMessage?.content?.trim() || query;
 }
 
-function fallbackResponse(query = "") {
+function isFrustrationFollowup(query: string) {
+  const normalized = query.trim().toLowerCase();
+  const signals = [
+    "did you understand",
+    "i just told you",
+    "as i said",
+    "like i said",
+    "same thing",
+    "you already said",
+  ];
+  return signals.some((signal) => normalized.includes(signal));
+}
+
+function detectRecommendationPreference(query: string): RecommendationPreference {
+  const normalized = query.toLowerCase();
+  if (normalized.includes("magic kingdom")) return "magic_kingdom";
+  if (normalized.includes("epcot")) return "epcot";
+  if (normalized.includes("hollywood studios")) return "hollywood_studios";
+  if (normalized.includes("animal kingdom")) return "animal_kingdom";
+  if (normalized.includes("ocean") || normalized.includes("beach")) return "ocean";
+  if (
+    normalized.includes("quiet") ||
+    normalized.includes("relaxing") ||
+    normalized.includes("relaxed")
+  ) {
+    return "quiet_relaxing";
+  }
+  if (normalized.includes("couples") || normalized.includes("romantic")) {
+    return "couples_romantic";
+  }
+  if (
+    normalized.includes("family") ||
+    normalized.includes("kids") ||
+    normalized.includes("kid-friendly")
+  ) {
+    return "family_friendly";
+  }
+  if (normalized.includes("luxury") || normalized.includes("upscale")) {
+    return "luxury_upscale";
+  }
+  if (
+    normalized.includes("transport") ||
+    normalized.includes("transportation") ||
+    normalized.includes("walkable") ||
+    normalized.includes("monorail") ||
+    normalized.includes("skyliner")
+  ) {
+    return "transportation";
+  }
+  return null;
+}
+
+function resolveRecommendationState(messages: SupportChatMessage[], query: string) {
+  const currentPreference = detectRecommendationPreference(query);
+  const previousUserMessages = [...messages]
+    .slice(0, -1)
+    .filter((message) => message.role === "user")
+    .map((message) => message.content);
+  const previousPreference =
+    [...previousUserMessages]
+      .reverse()
+      .map((content) => detectRecommendationPreference(content))
+      .find(Boolean) ?? null;
+  const frustrationFollowup = isFrustrationFollowup(query);
+  const activePreference =
+    currentPreference || (frustrationFollowup ? previousPreference : null);
+  const latestTurnChangedShortlist =
+    currentPreference !== null && currentPreference !== previousPreference;
+
+  return {
+    currentPreference,
+    previousPreference,
+    activePreference,
+    frustrationFollowup,
+    latestTurnChangedShortlist,
+  };
+}
+
+function buildResortFallback(preference: RecommendationPreference) {
+  const byPreference: Record<Exclude<RecommendationPreference, null>, string> = {
+    magic_kingdom:
+      "For Magic Kingdom convenience, start with Bay Lake Tower, Polynesian Villas, and Grand Floridian Villas. Bay Lake Tower is usually the most direct, while Polynesian and Grand Floridian add strong atmosphere with excellent transportation options.",
+    epcot:
+      "For EPCOT access, top options are Beach Club, BoardWalk, and Riviera. Beach Club and BoardWalk are often preferred for walking convenience, while Riviera is strong for Skyliner connectivity.",
+    hollywood_studios:
+      "For easier Hollywood Studios access, Riviera and BoardWalk are common favorites. Riviera offers strong Skyliner convenience, while BoardWalk gives a lively EPCOT-area base with good access to both parks.",
+    animal_kingdom:
+      "For Animal Kingdom focus, Animal Kingdom Villas at Kidani and Jambo are usually the best fits. Kidani often feels calmer and villa-focused, while Jambo is preferred for main-lodge energy and dining access.",
+    ocean:
+      "For ocean-style stays, shortlist Aulani, Hilton Head, and Vero Beach. Aulani is destination-style Hawaii, Hilton Head is calmer and low-key, and Vero Beach is a simple beach-focused escape.",
+    quiet_relaxing:
+      "For a quieter pace, consider Old Key West, Saratoga Springs, and Kidani Village. Old Key West and Saratoga feel more spread out and relaxed, while Kidani is often chosen for a calmer villa atmosphere.",
+    couples_romantic:
+      "For couples, strong picks are Riviera, Grand Floridian Villas, and Polynesian Villas. Riviera feels refined and modern, Grand Floridian is classic and elegant, and Polynesian offers tropical atmosphere and signature views.",
+    family_friendly:
+      "For family-friendly stays, start with Beach Club, Polynesian Villas, and Bay Lake Tower. Beach Club is great for EPCOT-area convenience, Polynesian has broad family appeal, and Bay Lake Tower is popular for Magic Kingdom proximity.",
+    luxury_upscale:
+      "For a more upscale feel, Riviera and Grand Floridian Villas are top choices, with Polynesian as a premium atmosphere option. Riviera is polished and boutique-style, while Grand Floridian leans classic luxury.",
+    transportation:
+      "For transportation convenience, Bay Lake Tower and Polynesian are strong for Magic Kingdom access, while Riviera and Beach Club are excellent for EPCOT-area routing. Best fit depends on which park access matters most to you.",
+  };
+  return (
+    byPreference[preference] ||
+    "A useful shortlist: Aulani, Hilton Head, and Vero Beach for ocean-focused relaxation; Beach Club and BoardWalk for stronger EPCOT access; and Bay Lake Tower or Polynesian for easier Magic Kingdom access. If you share your priority, I can narrow to your best 2 options."
+  );
+}
+
+function fallbackResponse(query = "", preference: RecommendationPreference = null, frustrationFollowup = false) {
   const intent = detectSupportIntent(query);
   const answerByIntent: Record<string, string> = {
     dvc_basics:
@@ -168,14 +295,19 @@ function fallbackResponse(query = "") {
       "Ready Stays are pre-confirmed reservation options that can often be booked faster than a custom request. You can review the stay details and continue through the booking package flow.",
     owner_onboarding:
       "Owner onboarding covers profile details, required verification, and membership setup so owners can participate in listing or matching flows. I can break down each step if you want.",
-    resort_guidance:
-      "A useful shortlist: Aulani, Hilton Head, and Vero Beach for ocean-focused relaxation; Beach Club and BoardWalk for stronger EPCOT access; and Bay Lake Tower or Polynesian for easier Magic Kingdom access. If you share your priority, I can narrow to your best 2 options.",
+    resort_guidance: buildResortFallback(preference),
     general:
       "I can help explain that. Share a bit more about what you want to compare or understand, and I’ll walk you through it clearly.",
   };
 
+  const baseAnswer = answerByIntent[intent] ?? answerByIntent.general;
+  const answer =
+    frustrationFollowup && intent === "resort_guidance"
+      ? `Yes, I understood. Based on your preference, ${baseAnswer.charAt(0).toLowerCase()}${baseAnswer.slice(1)}`
+      : baseAnswer;
+
   return {
-    answer: answerByIntent[intent] ?? answerByIntent.general,
+    answer,
     sources: [],
     confidence: "low",
     handoffSuggested: false,
@@ -427,11 +559,18 @@ export async function POST(request: Request) {
     const intentQuery = resolveIntentQuery(messages, query);
     const context = derivePageContext(pageUrl);
     const detectedIntent = detectSupportIntent(intentQuery);
+    const recommendationState = resolveRecommendationState(messages, query);
     console.log("[support/chat/intent]", {
       detectedIntent,
       intentQuery,
       selectedCategory: selectedCategory || null,
       routeType: context.routeType,
+    });
+    console.log("[support/chat/recommendation-refinement]", {
+      detectedRefinement: Boolean(recommendationState.currentPreference),
+      currentRecommendationPreference: recommendationState.activePreference,
+      latestTurnChangedShortlist: recommendationState.latestTurnChangedShortlist,
+      frustrationFollowup: recommendationState.frustrationFollowup,
     });
 
     if (!hasOpenAIKey) {
@@ -443,7 +582,13 @@ export async function POST(request: Request) {
         pageUrl: pageUrlForLog,
         errorMessage: "openai_key_missing",
       });
-      return NextResponse.json(fallbackResponse(intentQuery));
+      return NextResponse.json(
+        fallbackResponse(
+          intentQuery,
+          recommendationState.activePreference,
+          recommendationState.frustrationFollowup,
+        ),
+      );
     }
 
     let supabase: ReturnType<typeof createServiceClient> | null = null;
@@ -789,7 +934,11 @@ export async function POST(request: Request) {
             } else {
               answerSource = "generic-fallback";
               fallbackReplacedAi = true;
-              answer = fallbackResponse(intentQuery).answer;
+              answer = fallbackResponse(
+                intentQuery,
+                recommendationState.activePreference,
+                recommendationState.frustrationFollowup,
+              ).answer;
             }
             emit({ type: "chunk", text: answer });
           }
