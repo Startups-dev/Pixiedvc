@@ -16,6 +16,13 @@ export default function SupportWidget() {
   const [hydrated, setHydrated] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
+  const setOpenWithTrace = (next: boolean, reason: string, eventType?: string) => {
+    if (process.env.NODE_ENV !== "production") {
+      console.debug("[support/widget/open]", { next, reason, eventType });
+    }
+    setOpen(next);
+  };
+
   const isExcluded = useMemo(() => {
     if (!pathname) return false;
     return (
@@ -25,7 +32,7 @@ export default function SupportWidget() {
 
   useEffect(() => {
     if (isExcluded) {
-      setOpen(false);
+      setOpenWithTrace(false, "excluded-route");
     }
   }, [isExcluded]);
 
@@ -51,7 +58,7 @@ export default function SupportWidget() {
     if (typeof window === "undefined") return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setOpen(false);
+        setOpenWithTrace(false, "escape-key", event.type);
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -62,14 +69,17 @@ export default function SupportWidget() {
     return null;
   }
 
-  const handleBackdropClick = () => {
+  const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const activeElement = document.activeElement as HTMLElement | null;
     // Mobile keyboard open can emit a backdrop click while focusing the composer.
     // Ignore close when focus is currently inside the widget panel.
     if (activeElement && panelRef.current?.contains(activeElement)) {
       return;
     }
-    setOpen(false);
+    if (panelRef.current?.contains(event.target as Node)) {
+      return;
+    }
+    setOpenWithTrace(false, "mobile-backdrop-click", event.type);
   };
 
   return (
@@ -98,7 +108,12 @@ export default function SupportWidget() {
       {open && (
         <>
           <div className="fixed inset-0 z-[70] bg-slate-900/20 md:hidden" onClick={handleBackdropClick} />
-          <div ref={panelRef} className="mb-4 w-[400px] max-w-[calc(100vw-24px)]">
+          <div
+            ref={panelRef}
+            className="relative z-[71] mb-4 w-[400px] max-w-[calc(100vw-24px)]"
+            onClick={(event) => event.stopPropagation()}
+            onTouchStart={(event) => event.stopPropagation()}
+          >
             <div className="flex h-[560px] max-h-[70vh] flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl">
               <div className="flex-1 overflow-hidden">
                 <SupportPanel variant="widget" className="h-full rounded-none border-0 shadow-none" />
@@ -106,7 +121,7 @@ export default function SupportWidget() {
               <div className="flex items-center justify-end border-t border-slate-800 px-4 py-2">
                 <button
                   type="button"
-                  onClick={() => setOpen(false)}
+                  onClick={(event) => setOpenWithTrace(false, "close-button", event.type)}
                   className="rounded-full p-1 text-slate-300 hover:text-white"
                   aria-label="Close support"
                 >
@@ -120,7 +135,7 @@ export default function SupportWidget() {
 
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
+        onClick={(event) => setOpenWithTrace(!open, "launcher-toggle", event.type)}
         className={`flex h-14 w-14 items-center justify-center rounded-full bg-[#0F2148] text-white shadow-xl transition-opacity hover:shadow-2xl md:h-14 md:w-14 ${
           open ? "pointer-events-none opacity-0" : "opacity-100"
         }`}
