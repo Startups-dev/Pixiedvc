@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { MessageCircle, X } from "lucide-react";
 
@@ -14,6 +14,7 @@ export default function SupportWidget() {
   const [open, setOpen] = useState(false);
   const [teaserDismissed, setTeaserDismissed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   const isExcluded = useMemo(() => {
     if (!pathname) return false;
@@ -61,6 +62,16 @@ export default function SupportWidget() {
     return null;
   }
 
+  const handleBackdropClick = () => {
+    const activeElement = document.activeElement as HTMLElement | null;
+    // Mobile keyboard open can emit a backdrop click while focusing the composer.
+    // Ignore close when focus is currently inside the widget panel.
+    if (activeElement && panelRef.current?.contains(activeElement)) {
+      return;
+    }
+    setOpen(false);
+  };
+
   return (
     <div className="fixed bottom-6 right-6 z-[80]">
       {!teaserDismissed && (
@@ -86,8 +97,8 @@ export default function SupportWidget() {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-[70] bg-slate-900/20 md:hidden" onClick={() => setOpen(false)} />
-          <div className="mb-4 w-[400px] max-w-[calc(100vw-24px)]">
+          <div className="fixed inset-0 z-[70] bg-slate-900/20 md:hidden" onClick={handleBackdropClick} />
+          <div ref={panelRef} className="mb-4 w-[400px] max-w-[calc(100vw-24px)]">
             <div className="flex h-[560px] max-h-[70vh] flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl">
               <div className="flex-1 overflow-hidden">
                 <SupportPanel variant="widget" className="h-full rounded-none border-0 shadow-none" />
@@ -110,8 +121,11 @@ export default function SupportWidget() {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-[#0F2148] text-white shadow-xl hover:shadow-2xl md:h-14 md:w-14"
+        className={`flex h-14 w-14 items-center justify-center rounded-full bg-[#0F2148] text-white shadow-xl transition-opacity hover:shadow-2xl md:h-14 md:w-14 ${
+          open ? "pointer-events-none opacity-0" : "opacity-100"
+        }`}
         aria-label="Open support"
+        aria-hidden={open}
       >
         <MessageCircle className="h-6 w-6" />
       </button>
