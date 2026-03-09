@@ -54,6 +54,14 @@ type RecommendationPreference =
   | "transportation"
   | null;
 
+type PricingPreference =
+  | "payment_timing"
+  | "deposit_meaning"
+  | "cost_factors"
+  | "value_compare"
+  | "cancellation_policy"
+  | null;
+
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 20;
 
@@ -91,12 +99,66 @@ function logSupportChatBranch(
 function detectSupportIntent(query: string) {
   const normalized = query.toLowerCase();
   if (
+    normalized.includes("how much") ||
+    normalized.includes("cost") ||
+    normalized.includes("price") ||
+    normalized.includes("pricing") ||
+    normalized.includes("cheaper") ||
+    normalized.includes("value") ||
+    normalized.includes("pay") ||
+    normalized.includes("upfront") ||
+    normalized.includes("balance due") ||
+    normalized.includes("payment") ||
+    normalized.includes("deposit") ||
+    normalized.includes("billing") ||
+    normalized.includes("cancel") ||
+    normalized.includes("refund")
+  ) {
+    return "pricing_payments";
+  }
+  if (
     normalized.includes("dvc") ||
     normalized.includes("disney vacation club") ||
     normalized.includes("point rental") ||
     normalized.includes("points")
   ) {
     return "dvc_basics";
+  }
+  if (
+    normalized.includes("my disney experience") ||
+    normalized.includes("disney app") ||
+    normalized.includes("link my reservation") ||
+    normalized.includes("link reservation") ||
+    normalized.includes("early theme park entry") ||
+    normalized.includes("early entry") ||
+    normalized.includes("lightning lane") ||
+    normalized.includes("dining reservation")
+  ) {
+    return "disney_perks";
+  }
+  if (
+    normalized.includes("best time to visit") ||
+    normalized.includes("best time to go") ||
+    normalized.includes("crowd") ||
+    normalized.includes("busy season") ||
+    normalized.includes("spring break") ||
+    normalized.includes("summer") ||
+    normalized.includes("weather") ||
+    normalized.includes("holiday weekend")
+  ) {
+    return "trip_planning";
+  }
+  if (
+    normalized.includes("availability") ||
+    normalized.includes("owner match") ||
+    normalized.includes("owner matching") ||
+    normalized.includes("match my request") ||
+    normalized.includes("guaranteed") ||
+    normalized.includes("guarantee") ||
+    normalized.includes("fill quickly") ||
+    normalized.includes("booking window")
+  ) {
+    return "availability_matching";
   }
   if (
     normalized.includes("booking") ||
@@ -255,10 +317,70 @@ function resolveRecommendationState(messages: SupportChatMessage[], query: strin
   };
 }
 
+function detectPricingPreference(query: string): PricingPreference {
+  const normalized = query.toLowerCase();
+  if (
+    normalized.includes("do i pay all upfront") ||
+    normalized.includes("when do i pay") ||
+    normalized.includes("balance due") ||
+    normalized.includes("payment plan") ||
+    normalized.includes("pay upfront") ||
+    normalized.includes("full payment")
+  ) {
+    return "payment_timing";
+  }
+  if (normalized.includes("deposit")) {
+    return "deposit_meaning";
+  }
+  if (
+    normalized.includes("how much") ||
+    normalized.includes("cost") ||
+    normalized.includes("price") ||
+    normalized.includes("pricing") ||
+    normalized.includes("what affects")
+  ) {
+    return "cost_factors";
+  }
+  if (
+    normalized.includes("cheaper") ||
+    normalized.includes("better value") ||
+    normalized.includes("vs disney")
+  ) {
+    return "value_compare";
+  }
+  if (normalized.includes("cancel") || normalized.includes("refund")) {
+    return "cancellation_policy";
+  }
+  return null;
+}
+
+function resolvePricingState(messages: SupportChatMessage[], query: string) {
+  const currentPricingPreference = detectPricingPreference(query);
+  const previousUserMessages = [...messages]
+    .slice(0, -1)
+    .filter((message) => message.role === "user")
+    .map((message) => message.content);
+  const previousPricingPreference =
+    [...previousUserMessages]
+      .reverse()
+      .map((content) => detectPricingPreference(content))
+      .find(Boolean) ?? null;
+  const frustrationFollowup = isFrustrationFollowup(query);
+  const activePricingPreference =
+    currentPricingPreference || (frustrationFollowup ? previousPricingPreference : null);
+
+  return {
+    currentPricingPreference,
+    previousPricingPreference,
+    activePricingPreference,
+    frustrationFollowup,
+  };
+}
+
 function buildResortFallback(preference: RecommendationPreference) {
   const byPreference: Record<Exclude<RecommendationPreference, null>, string> = {
     magic_kingdom:
-      "For Magic Kingdom convenience, start with Bay Lake Tower, Polynesian Villas, and Grand Floridian Villas. Bay Lake Tower is usually the most direct, while Polynesian and Grand Floridian add strong atmosphere with excellent transportation options.",
+      "For Magic Kingdom convenience, start with Bay Lake Tower, Polynesian Villas, Grand Floridian Villas, and Copper Creek Villas. Bay Lake Tower is usually the most direct, Polynesian and Grand Floridian are strong for monorail-area access, and Copper Creek is a quieter lodge-style option nearby.",
     epcot:
       "For EPCOT access, top options are Beach Club, BoardWalk, and Riviera. Beach Club and BoardWalk are often preferred for walking convenience, while Riviera is strong for Skyliner connectivity.",
     hollywood_studios:
@@ -268,15 +390,15 @@ function buildResortFallback(preference: RecommendationPreference) {
     ocean:
       "For ocean-style stays, shortlist Aulani, Hilton Head, and Vero Beach. Aulani is destination-style Hawaii, Hilton Head is calmer and low-key, and Vero Beach is a simple beach-focused escape.",
     quiet_relaxing:
-      "For a quieter pace, consider Old Key West, Saratoga Springs, and Kidani Village. Old Key West and Saratoga feel more spread out and relaxed, while Kidani is often chosen for a calmer villa atmosphere.",
+      "For a quieter pace, consider Old Key West, Saratoga Springs, and Copper Creek Villas. Old Key West and Saratoga feel more spread out and relaxed, while Copper Creek offers a calm lodge atmosphere with strong amenities.",
     couples_romantic:
       "For couples, strong picks are Riviera, Grand Floridian Villas, and Polynesian Villas. Riviera feels refined and modern, Grand Floridian is classic and elegant, and Polynesian offers tropical atmosphere and signature views.",
     family_friendly:
-      "For family-friendly stays, start with Beach Club, Polynesian Villas, and Bay Lake Tower. Beach Club is great for EPCOT-area convenience, Polynesian has broad family appeal, and Bay Lake Tower is popular for Magic Kingdom proximity.",
+      "For family-friendly stays, start with Beach Club Villas, Polynesian Villas, and Animal Kingdom Villas at Kidani Village. Beach Club is popular for pools and EPCOT-area access, Polynesian has broad family appeal, and Kidani is great for villa space and savanna views.",
     luxury_upscale:
       "For a more upscale feel, Riviera and Grand Floridian Villas are top choices, with Polynesian as a premium atmosphere option. Riviera is polished and boutique-style, while Grand Floridian leans classic luxury.",
     transportation:
-      "For transportation convenience, Bay Lake Tower and Polynesian are strong for Magic Kingdom access, while Riviera and Beach Club are excellent for EPCOT-area routing. Best fit depends on which park access matters most to you.",
+      "For transportation convenience, Bay Lake Tower and Polynesian are strong for Magic Kingdom access, while Riviera is excellent for Skyliner access to EPCOT and Hollywood Studios. If transfer convenience matters most, Caribbean Beach is the nearby Skyliner hub.",
   };
   return (
     byPreference[preference] ||
@@ -284,18 +406,49 @@ function buildResortFallback(preference: RecommendationPreference) {
   );
 }
 
-function fallbackResponse(query = "", preference: RecommendationPreference = null, frustrationFollowup = false) {
+function buildPricingFallback(preference: PricingPreference) {
+  const byPreference: Record<Exclude<PricingPreference, null>, string> = {
+    payment_timing:
+      "Payment timing depends on how far out the trip is. If booking is more than 90 days before check-in, payment is typically split: 70% at booking and 30% due no later than 90 days before check-in. If booking is within 90 days of check-in, full payment is typically required at booking.",
+    deposit_meaning:
+      "PixieDVC uses a $99 availability deposit to begin owner matching for a stay request. The deposit is fully refundable until a matching owner is secured. Once a match is secured and the reservation opportunity is confirmed, the deposit becomes non-refundable. This deposit is separate from the reservation payment schedule.",
+    cost_factors:
+      "Total cost depends on resort, dates, room type, trip length, and required points. The calculator is the best place to get a trip-specific estimate using your stay details.",
+    value_compare:
+      "In many cases, DVC point-rental stays can offer strong value compared with Disney standard cash pricing for similar villa accommodations. The best comparison depends on your specific resort, room type, and dates.",
+    cancellation_policy:
+      "Cancellation policies are structured because DVC reservations are tied to member points. Outcomes depend on timing relative to check-in and reservation policy terms. Depending on timing, a booking may qualify for a refund or for Deferred Cancellation Credit toward future travel, so specific outcomes should be confirmed against the reservation agreement.",
+  };
+  return (
+    byPreference[preference] ||
+    "Pricing depends on resort, dates, room type, trip length, and required points. Payment is handled as part of the agreement stage, and the calculator is the best way to estimate a specific trip cost."
+  );
+}
+
+function fallbackResponse(
+  query = "",
+  recommendationPreference: RecommendationPreference = null,
+  pricingPreference: PricingPreference = null,
+  frustrationFollowup = false,
+) {
   const intent = detectSupportIntent(query);
   const answerByIntent: Record<string, string> = {
     dvc_basics:
       "Disney Vacation Club point rental allows guests to stay at DVC resorts using a member’s points instead of booking Disney’s standard cash rate directly. On PixieDVC, you can estimate trip options and then submit a stay request.",
     booking_flow:
       "Booking usually starts with the calculator or a resort page, then moves to request details, agreement, and payment/confirmation milestones. If you want, I can walk you through each step in order.",
+    trip_planning:
+      "For lighter crowds, many guests prefer periods like mid-January to early February, late April to early May, and early September. Peak periods such as Christmas/New Year, Spring Break, summer, and major holiday weekends are usually busiest. If you share your park priorities, I can suggest 2-4 resort options that fit your trip style and transportation needs.",
+    disney_perks:
+      "Once a reservation is confirmed and linked in My Disney Experience, guests can typically use Disney planning features like trip management, dining reservations, transportation access, and Early Theme Park Entry where available. Specific features depend on Disney policies and resort location.",
+    availability_matching:
+      "PixieDVC reservations use DVC member points, so availability must be checked before a stay is confirmed. After you submit a request, PixieDVC starts owner matching to find a member who can create that reservation for your dates, resort, and room type. If matched, the booking moves forward to agreement and payment; if not, alternatives can be suggested.",
     ready_stays:
-      "Ready Stays are pre-confirmed reservation options that can often be booked faster than a custom request. You can review the stay details and continue through the booking package flow.",
+      "Ready Stays are pre-assembled reservation opportunities with defined resort, room type, dates, and stay length, so they can often move faster than a custom request. They are not guaranteed until booking is completed, and they may disappear if another guest secures the stay first.",
+    pricing_payments: buildPricingFallback(pricingPreference),
     owner_onboarding:
       "Owner onboarding covers profile details, required verification, and membership setup so owners can participate in listing or matching flows. I can break down each step if you want.",
-    resort_guidance: buildResortFallback(preference),
+    resort_guidance: buildResortFallback(recommendationPreference),
     general:
       "I can help explain that. Share a bit more about what you want to compare or understand, and I’ll walk you through it clearly.",
   };
@@ -317,8 +470,13 @@ function fallbackResponse(query = "", preference: RecommendationPreference = nul
 function shouldSuggestConcierge(query: string, context: ReturnType<typeof derivePageContext>) {
   const lowerQuery = query.toLowerCase();
   const escalationSignals = [
-    "payment",
-    "deposit",
+    "payment failed",
+    "payment error",
+    "payment issue",
+    "billing error",
+    "billing dispute",
+    "deposit stuck",
+    "stuck deposit",
     "login",
     "log in",
     "sign in",
@@ -330,6 +488,8 @@ function shouldSuggestConcierge(query: string, context: ReturnType<typeof derive
     "request status",
     "my reservation",
     "my booking",
+    "refund for my reservation",
+    "contract issue",
     "human",
     "agent",
     "concierge",
@@ -500,6 +660,124 @@ function buildExampleConversationBlock() {
   ).join("\n\n");
 }
 
+function extractCompoundQuestions(query: string) {
+  const trimmed = query.trim();
+  if (!trimmed) return [] as string[];
+
+  const normalized = trimmed.replace(/\s+/g, " ");
+  const byQuestionMark = normalized
+    .split("?")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => `${part}?`);
+  if (byQuestionMark.length > 1) {
+    return byQuestionMark;
+  }
+
+  const lowered = normalized.toLowerCase();
+  const hasQuestionCue =
+    lowered.includes(" how ") ||
+    lowered.includes(" what ") ||
+    lowered.includes(" when ") ||
+    lowered.includes(" do i ") ||
+    lowered.includes(" is ") ||
+    lowered.includes(" can ");
+  if (!hasQuestionCue || !lowered.includes(" and ")) {
+    return [];
+  }
+
+  const chunks = normalized
+    .split(/\band\b/i)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 4);
+  if (chunks.length <= 1) {
+    return [];
+  }
+
+  return chunks.map((chunk) =>
+    /[?!.]$/.test(chunk) ? chunk : `${chunk}?`,
+  );
+}
+
+function classifyCompoundQuestionTopic(question: string) {
+  const pricingPreference = detectPricingPreference(question);
+  if (pricingPreference === "payment_timing") return "payment_timing_upfront";
+  if (pricingPreference) return `pricing_${pricingPreference}`;
+
+  const recommendationPreference = detectRecommendationPreference(question);
+  if (recommendationPreference) return `recommendation_${recommendationPreference}`;
+
+  return `intent_${detectSupportIntent(question)}`;
+}
+
+function mergeDuplicateCompoundQuestions(questions: string[]) {
+  if (questions.length <= 1) return questions;
+
+  const mergedByTopic = new Map<
+    string,
+    { firstIndex: number; questions: string[] }
+  >();
+
+  questions.forEach((question, index) => {
+    const topic = classifyCompoundQuestionTopic(question);
+    const existing = mergedByTopic.get(topic);
+    if (existing) {
+      existing.questions.push(question);
+      return;
+    }
+    mergedByTopic.set(topic, { firstIndex: index, questions: [question] });
+  });
+
+  return [...mergedByTopic.values()]
+    .sort((a, b) => a.firstIndex - b.firstIndex)
+    .map((entry) => {
+      if (entry.questions.length === 1) return entry.questions[0];
+      const normalized = entry.questions.map((question) =>
+        question.trim().replace(/[?!.]+$/, ""),
+      );
+      return `${normalized.join(" / ")}?`;
+    });
+}
+
+function buildCompoundQuestionPromptBlock(questions: string[]) {
+  if (questions.length <= 1) return "";
+  return [
+    "User asked multiple questions in one message. Answer each question in order and do not skip any:",
+    ...questions.map((question, index) => `${index + 1}. ${question}`),
+  ].join("\n");
+}
+
+function buildCompoundFallbackResponse(
+  questions: string[],
+  recommendationPreference: RecommendationPreference,
+  pricingPreference: PricingPreference,
+  frustrationFollowup: boolean,
+) {
+  if (questions.length <= 1) {
+    return fallbackResponse(
+      questions[0] ?? "",
+      recommendationPreference,
+      pricingPreference,
+      frustrationFollowup,
+    ).answer;
+  }
+
+  return questions
+    .map((question, index) => {
+      const questionRecommendationPreference =
+        detectRecommendationPreference(question) ?? recommendationPreference;
+      const questionPricingPreference = detectPricingPreference(question) ?? pricingPreference;
+      const shortAnswer = fallbackResponse(
+        question,
+        questionRecommendationPreference,
+        questionPricingPreference,
+        frustrationFollowup,
+      ).answer;
+      return `${index + 1}. ${shortAnswer}`;
+    })
+    .join("\n");
+}
+
 export async function POST(request: Request) {
   const hasOpenAIKey = Boolean(process.env.GEMINI_API_KEY);
   let pageUrlForLog: string | null = null;
@@ -557,9 +835,12 @@ export async function POST(request: Request) {
 
     const query = lastMessage.content.trim();
     const intentQuery = resolveIntentQuery(messages, query);
+    const rawCompoundQuestions = extractCompoundQuestions(intentQuery);
+    const compoundQuestions = mergeDuplicateCompoundQuestions(rawCompoundQuestions);
     const context = derivePageContext(pageUrl);
     const detectedIntent = detectSupportIntent(intentQuery);
     const recommendationState = resolveRecommendationState(messages, query);
+    const pricingState = resolvePricingState(messages, query);
     console.log("[support/chat/intent]", {
       detectedIntent,
       intentQuery,
@@ -572,6 +853,17 @@ export async function POST(request: Request) {
       latestTurnChangedShortlist: recommendationState.latestTurnChangedShortlist,
       frustrationFollowup: recommendationState.frustrationFollowup,
     });
+    console.log("[support/chat/pricing-refinement]", {
+      detectedRefinement: Boolean(pricingState.currentPricingPreference),
+      currentPricingPreference: pricingState.activePricingPreference,
+      frustrationFollowup: pricingState.frustrationFollowup,
+    });
+    console.log("[support/chat/compound-questions]", {
+      detected: rawCompoundQuestions.length > 1,
+      rawCount: rawCompoundQuestions.length,
+      dedupedCount: compoundQuestions.length,
+      questions: compoundQuestions,
+    });
 
     if (!hasOpenAIKey) {
       logSupportChatBranch("fallback:no-openai-key", {
@@ -583,11 +875,20 @@ export async function POST(request: Request) {
         errorMessage: "openai_key_missing",
       });
       return NextResponse.json(
-        fallbackResponse(
-          intentQuery,
-          recommendationState.activePreference,
-          recommendationState.frustrationFollowup,
-        ),
+        {
+          ...fallbackResponse(
+            intentQuery,
+            recommendationState.activePreference,
+            pricingState.activePricingPreference,
+            recommendationState.frustrationFollowup,
+          ),
+          answer: buildCompoundFallbackResponse(
+            compoundQuestions.length > 1 ? compoundQuestions : [intentQuery],
+            recommendationState.activePreference,
+            pricingState.activePricingPreference,
+            recommendationState.frustrationFollowup,
+          ),
+        },
       );
     }
 
@@ -807,6 +1108,7 @@ export async function POST(request: Request) {
       `Current page context:\n${contextBlock}`,
       `Knowledge snippets:\n${kbContext}`,
       `Example conversations:\n${buildExampleConversationBlock()}`,
+      buildCompoundQuestionPromptBlock(compoundQuestions),
       [
         "Live conversation:",
         ...messages
@@ -934,11 +1236,12 @@ export async function POST(request: Request) {
             } else {
               answerSource = "generic-fallback";
               fallbackReplacedAi = true;
-              answer = fallbackResponse(
-                intentQuery,
+              answer = buildCompoundFallbackResponse(
+                compoundQuestions.length > 1 ? compoundQuestions : [intentQuery],
                 recommendationState.activePreference,
+                pricingState.activePricingPreference,
                 recommendationState.frustrationFollowup,
-              ).answer;
+              );
             }
             emit({ type: "chunk", text: answer });
           }

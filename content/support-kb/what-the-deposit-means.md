@@ -10,12 +10,16 @@ related_questions:
   - When do I pay on PixieDVC?
 ---
 
-The deposit is part of moving a reservation forward after booking details are reviewed and the agreement is accepted.
+PixieDVC uses a $99 availability deposit to begin checking availability and matching a Disney Vacation Club owner for your request.
 
-For many reservations made more than 90 days before check-in, payment is typically split into two stages:
+This deposit is fully refundable until a matching owner is secured.
+
+Once a matching owner is secured and the reservation opportunity is confirmed, the deposit becomes non-refundable.
+
+The $99 deposit is separate from the reservation payment schedule.
+
+After reservation details are confirmed and the agreement step is completed, the booking payment schedule applies:
 - 70% at booking
 - 30% due no later than 90 days before check-in
 
 If a reservation is made within 90 days of check-in, full payment is typically required at booking.
-
-Payment is collected during the agreement/payment stage that moves the reservation toward confirmation.

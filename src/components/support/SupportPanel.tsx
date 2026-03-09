@@ -301,6 +301,27 @@ export default function SupportPanel({
       return "A quick shortlist by trip style: Beach Club and BoardWalk for EPCOT convenience, Polynesian and Bay Lake Tower for easier Magic Kingdom access, and Riviera for a polished Skyliner-centered stay.";
     }
     if (
+      resolvedQuery.includes("how much") ||
+      resolvedQuery.includes("cost") ||
+      resolvedQuery.includes("price") ||
+      resolvedQuery.includes("pricing") ||
+      resolvedQuery.includes("what affects") ||
+      resolvedQuery.includes("cheaper") ||
+      resolvedQuery.includes("value")
+    ) {
+      return "Total cost depends on resort, dates, room type, trip length, and required points. The calculator is the best way to get a trip-specific estimate.";
+    }
+    if (
+      resolvedQuery.includes("do i pay all upfront") ||
+      resolvedQuery.includes("when do i pay") ||
+      resolvedQuery.includes("balance due") ||
+      resolvedQuery.includes("payment plan") ||
+      resolvedQuery.includes("payment") ||
+      resolvedQuery.includes("deposit")
+    ) {
+      return "Payment timing depends on how far out the trip is. More than 90 days before check-in is typically split 70% at booking and 30% due no later than 90 days before check-in. Within 90 days, full payment is typically required at booking.";
+    }
+    if (
       resolvedQuery.includes("booking") ||
       resolvedQuery.includes("request") ||
       resolvedQuery.includes("reservation") ||

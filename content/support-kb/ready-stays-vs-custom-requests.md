@@ -8,9 +8,10 @@ related_questions:
   - Should I choose Ready Stays or a custom request?
   - What is the difference between Ready Stays and custom booking?
   - Which option is best for flexibility?
+  - Can I modify a Ready Stay?
 ---
 
-Ready Stays prioritize speed. You choose from prebuilt options that are already structured for booking.
+Ready Stays prioritize speed. You choose from pre-assembled stay opportunities where the resort, room type, dates, and length of stay are already defined.
 
 Custom requests prioritize flexibility. You provide your own dates, resorts, and preferences, then PixieDVC seeks a match.
 
@@ -19,3 +20,5 @@ Ready Stay pricing reflects the stay details that are already defined in that pr
 If your plans are fixed and a suitable Ready Stay exists, that path is usually faster.
 
 If your plans are specific or unique, custom requests offer more tailoring.
+
+If you need to change key details (such as dates or room type), a custom request is usually the better fit than a Ready Stay.
