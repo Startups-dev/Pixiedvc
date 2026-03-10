@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin";
+import { isUserAdmin } from "@/lib/admin";
 import HeaderClient from "@/components/header-client";
 
 export default async function Header() {
@@ -20,7 +20,11 @@ export default async function Header() {
       .maybeSingle();
     userLabel = profile?.display_name ?? user.email ?? "Signed in";
     userRole = profile?.role ?? null;
-    showAdminLink = isAdminEmail(user.email ?? null);
+    showAdminLink = isUserAdmin({
+      profileRole: profile?.role ?? null,
+      appRole: (user.app_metadata?.role as string | undefined) ?? null,
+      email: user.email ?? null,
+    });
     hasAffiliateAccess = profile?.role === "affiliate" || profile?.role === "admin";
 
     if (!hasAffiliateAccess) {

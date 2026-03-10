@@ -3,6 +3,18 @@ import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from './supabase-server';
 import { emailIsAllowedForAdmin, isAdminEmailStrict } from './admin-emails';
 
+export function isUserAdmin(input: {
+  profileRole?: string | null;
+  appRole?: string | null;
+  email?: string | null;
+}) {
+  return (
+    input.profileRole === 'admin' ||
+    input.appRole === 'admin' ||
+    emailIsAllowedForAdmin(input.email ?? null)
+  );
+}
+
 export async function requireAdminUser(redirectPath = '/admin/owners') {
   const supabase = await createSupabaseServerClient();
   const {
@@ -13,7 +25,20 @@ export async function requireAdminUser(redirectPath = '/admin/owners') {
     redirect(`/login?redirect=${encodeURIComponent(redirectPath)}&admin=1`);
   }
 
-  if (!emailIsAllowedForAdmin(user.email ?? null)) {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  const appRole = (user.app_metadata?.role as string | undefined) ?? null;
+  if (
+    !isUserAdmin({
+      profileRole: profile?.role ?? null,
+      appRole,
+      email: user.email ?? null,
+    })
+  ) {
     redirect('/');
   }
 
