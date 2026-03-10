@@ -253,6 +253,12 @@ export default function SupportPanel({
         : normalized;
 
     if (
+      resolvedQuery.includes("dining plan") ||
+      resolvedQuery.includes("disney dining plan")
+    ) {
+      return "Disney Dining Plans are not typically added directly by guests on DVC reservations. The owner can usually request/add the plan through Disney Vacation Club Member Services, PixieDVC can coordinate that request, it may require valid payment information, and PixieDVC does not charge a service fee for coordinating it.";
+    }
+    if (
       resolvedQuery.includes("dvc") ||
       resolvedQuery.includes("disney vacation club") ||
       resolvedQuery.includes("point rental") ||

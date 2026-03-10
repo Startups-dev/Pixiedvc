@@ -22,17 +22,27 @@ const resortCatalog = [
   {
     slug: "polynesian-villas",
     name: "Polynesian Villas",
-    tags: ["magic-kingdom", "relaxing", "dining"],
+    tags: ["magic-kingdom", "relaxing", "dining", "luxury"],
+  },
+  {
+    slug: "copper-creek-villas",
+    name: "Copper Creek Villas",
+    tags: ["magic-kingdom", "quiet", "relaxing", "scenic"],
+  },
+  {
+    slug: "boulder-ridge-villas",
+    name: "Boulder Ridge Villas",
+    tags: ["magic-kingdom", "quiet", "relaxing", "scenic"],
   },
   {
     slug: "boardwalk-villas",
     name: "BoardWalk Villas",
-    tags: ["epcot", "parks"],
+    tags: ["epcot", "parks", "dining"],
   },
   {
     slug: "beach-club-villas",
     name: "Beach Club Villas",
-    tags: ["epcot", "parks", "relaxing"],
+    tags: ["epcot", "parks", "relaxing", "luxury"],
   },
   {
     slug: "riviera-resort",
@@ -80,48 +90,110 @@ type PlannerInput = {
 };
 
 function recommendResorts(input: PlannerInput) {
-  const picks: string[] = [];
-  const add = (slug: string) => {
-    if (!picks.includes(slug)) picks.push(slug);
+  const priorityBoostByTag: Record<PriorityOption, Record<string, number>> = {
+    "Closest to parks": {
+      "magic-kingdom": 28,
+      epcot: 28,
+      skyliner: 16,
+      parks: 20,
+    },
+    "Best value": {
+      value: 34,
+      quiet: 18,
+      relaxing: 10,
+    },
+    Luxury: {
+      luxury: 34,
+      dining: 14,
+      "magic-kingdom": 8,
+      epcot: 8,
+    },
+    "Relaxing & scenic": {
+      relaxing: 30,
+      scenic: 20,
+      quiet: 24,
+      value: 10,
+    },
   };
 
-  if (input.priority === "Closest to parks") {
-    add("bay-lake-tower");
-    add("boardwalk-villas");
-    add("beach-club-villas");
-  } else if (input.priority === "Best value") {
-    add("saratoga-springs");
-    add("old-key-west");
-    add("animal-kingdom-villas");
-  } else if (input.priority === "Luxury") {
-    add("grand-floridian-villas");
-    add("riviera-resort");
-    add("polynesian-villas");
-  } else {
-    add("animal-kingdom-villas");
-    add("riviera-resort");
-    add("saratoga-springs");
-  }
+  const vibeBoostByTag: Record<string, Record<string, number>> = {
+    "magic-kingdom": {
+      "magic-kingdom": 100,
+      luxury: 20,
+      parks: 10,
+    },
+    epcot: {
+      epcot: 100,
+      parks: 18,
+      skyliner: 10,
+    },
+    skyliner: {
+      skyliner: 120,
+      epcot: 15,
+    },
+    quiet: {
+      quiet: 110,
+      relaxing: 25,
+      scenic: 10,
+    },
+    dining: {
+      dining: 75,
+      luxury: 12,
+    },
+  };
+  const vibeBoostBySlug: Record<string, Record<string, number>> = {
+    "magic-kingdom": {
+      "bay-lake-tower": 140,
+      "polynesian-villas": 130,
+      "grand-floridian-villas": 120,
+      "copper-creek-villas": 70,
+      "boulder-ridge-villas": 60,
+    },
+    epcot: {
+      "beach-club-villas": 130,
+      "boardwalk-villas": 125,
+      "riviera-resort": 115,
+    },
+    skyliner: {
+      "riviera-resort": 160,
+    },
+    quiet: {
+      "saratoga-springs": 130,
+      "old-key-west": 125,
+      "copper-creek-villas": 90,
+      "boulder-ridge-villas": 85,
+    },
+    dining: {
+      "grand-floridian-villas": 110,
+      "polynesian-villas": 95,
+      "riviera-resort": 90,
+      "boardwalk-villas": 80,
+    },
+  };
 
-  if (input.vibes.includes("epcot")) {
-    add("boardwalk-villas");
-    add("beach-club-villas");
-  }
-  if (input.vibes.includes("magic-kingdom")) {
-    add("bay-lake-tower");
-    add("grand-floridian-villas");
-  }
-  if (input.vibes.includes("skyliner")) {
-    add("riviera-resort");
-  }
-  if (input.vibes.includes("quiet")) {
-    add("old-key-west");
-  }
-  if (input.vibes.includes("dining")) {
-    add("grand-floridian-villas");
-  }
+  const scored = resortCatalog.map((resort) => {
+    let score = 0;
+    const priorityBoosts = priorityBoostByTag[input.priority];
+    for (const [tag, points] of Object.entries(priorityBoosts)) {
+      if (resort.tags.includes(tag)) score += points;
+    }
+    for (const vibe of input.vibes) {
+      const vibeBoosts = vibeBoostByTag[vibe];
+      if (!vibeBoosts) continue;
+      for (const [tag, points] of Object.entries(vibeBoosts)) {
+        if (resort.tags.includes(tag)) score += points;
+      }
+      score += vibeBoostBySlug[vibe]?.[resort.slug] ?? 0;
+    }
+    return { slug: resort.slug, score };
+  });
 
-  return picks.slice(0, 3);
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.slug.localeCompare(b.slug);
+  });
+
+  return scored.slice(0, 3).map((item) => item.slug);
 }
 
 function reasonFor(slug: string, input: PlannerInput) {
@@ -140,6 +212,8 @@ function reasonFor(slug: string, input: PlannerInput) {
   if (slug === "animal-kingdom-villas") return "Savanna views and a relaxing atmosphere away from crowds.";
   if (slug === "beach-club-villas") return "Steps to Epcot and pool time with a relaxed atmosphere.";
   if (slug === "polynesian-villas") return "Great dining and Magic Kingdom convenience with island ambiance.";
+  if (slug === "copper-creek-villas") return "Calm lodge-style setting with easy Magic Kingdom area access.";
+  if (slug === "boulder-ridge-villas") return "Quiet, rustic atmosphere with strong Magic Kingdom area convenience.";
   return "A strong fit based on your priorities and availability windows.";
 }
 

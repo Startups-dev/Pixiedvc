@@ -266,6 +266,31 @@ export const SUPPORT_EXAMPLES = [
       "Yes. Once your reservation is linked in My Disney Experience, you can usually manage dining reservations through Disney’s system.",
   },
   {
+    user: "Can I add a Disney Dining Plan?",
+    assistant:
+      "Disney Dining Plans are not typically added directly by the guest on a DVC reservation. Instead, the DVC owner can usually request the plan on the guest’s behalf through Disney Vacation Club Member Services. PixieDVC can help coordinate that request, and PixieDVC does not charge a service fee for coordinating it.",
+  },
+  {
+    user: "Can I add it myself in My Disney Experience?",
+    assistant:
+      "Typically, no for a DVC reservation. Dining Plan requests are usually handled through the DVC owner via Disney Vacation Club Member Services rather than being added directly by the guest in My Disney Experience.",
+  },
+  {
+    user: "Does PixieDVC charge a fee to add the Dining Plan?",
+    assistant:
+      "PixieDVC does not charge a service fee for coordinating a Dining Plan request. If a plan is added, the plan purchase itself is still a Disney charge and may require valid payment information.",
+  },
+  {
+    user: "Do I need to give the owner my card to add a Dining Plan?",
+    assistant:
+      "In many cases, adding a Dining Plan may require valid payment information so the owner can complete the purchase through Disney Vacation Club Member Services.",
+  },
+  {
+    user: "How does the owner add the Dining Plan?",
+    assistant:
+      "The owner can typically request/add the Dining Plan through Disney Vacation Club Member Services on behalf of the guest, and PixieDVC can coordinate that process.",
+  },
+  {
     user: "Can I use Lightning Lane with a PixieDVC stay?",
     assistant:
       "Once your reservation is confirmed and linked in My Disney Experience, you can use Disney planning features like Lightning Lane based on Disney’s current policies.",

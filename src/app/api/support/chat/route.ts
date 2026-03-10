@@ -125,6 +125,12 @@ function detectSupportIntent(query: string) {
     return "dvc_basics";
   }
   if (
+    normalized.includes("dining plan") ||
+    normalized.includes("disney dining plan")
+  ) {
+    return "dining_plan";
+  }
+  if (
     normalized.includes("my disney experience") ||
     normalized.includes("disney app") ||
     normalized.includes("link my reservation") ||
@@ -437,6 +443,8 @@ function fallbackResponse(
       "Disney Vacation Club point rental allows guests to stay at DVC resorts using a member’s points instead of booking Disney’s standard cash rate directly. On PixieDVC, you can estimate trip options and then submit a stay request.",
     booking_flow:
       "Booking usually starts with the calculator or a resort page, then moves to request details, agreement, and payment/confirmation milestones. If you want, I can walk you through each step in order.",
+    dining_plan:
+      "For DVC reservations, Disney Dining Plans are not typically added directly by the guest in My Disney Experience. The DVC owner can usually request/add the plan on the guest’s behalf through Disney Vacation Club Member Services. PixieDVC can coordinate that request, it may require valid payment information for the purchase, and PixieDVC does not charge a service fee for coordinating it.",
     trip_planning:
       "For lighter crowds, many guests prefer periods like mid-January to early February, late April to early May, and early September. Peak periods such as Christmas/New Year, Spring Break, summer, and major holiday weekends are usually busiest. If you share your park priorities, I can suggest 2-4 resort options that fit your trip style and transportation needs.",
     disney_perks:

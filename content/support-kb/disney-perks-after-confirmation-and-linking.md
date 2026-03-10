@@ -9,6 +9,7 @@ related_questions:
   - Do I get Early Theme Park Entry?
   - Can I use Disney transportation?
   - Can I make dining reservations?
+  - Can I add a Disney Dining Plan myself?
   - Can I use Lightning Lane?
 ---
 
@@ -23,6 +24,8 @@ After linking, guests can typically:
 - use Disney transportation available for their resort location
 - access Early Theme Park Entry where available
 - use Lightning Lane planning features based on Disney's current policies
+
+For Disney Dining Plans on DVC reservations, guests do not typically add the plan directly themselves in My Disney Experience. This is usually coordinated with the DVC owner through Disney Vacation Club Member Services.
 
 Feature availability can vary by resort, park day, and Disney policy updates.
 
