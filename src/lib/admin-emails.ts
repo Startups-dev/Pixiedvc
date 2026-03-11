@@ -19,7 +19,8 @@ export function emailIsAllowedForAdmin(email?: string | null) {
     return false;
   }
   if (adminListIsEmpty()) {
-    return process.env.NODE_ENV !== 'production';
+    // Admin visibility/access must be explicit via role or configured admin emails.
+    return false;
   }
   return ADMIN_EMAILS.includes(email.toLowerCase());
 }
