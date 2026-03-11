@@ -25,6 +25,13 @@ export default async function Header() {
       appRole: (user.app_metadata?.role as string | undefined) ?? null,
       email: user.email ?? null,
     });
+    console.info("[header-admin-debug]", {
+      email: user.email ?? null,
+      profileRole: profile?.role ?? null,
+      appRole: (user.app_metadata?.role as string | undefined) ?? null,
+      userMetadataRole: (user.user_metadata?.role as string | undefined) ?? null,
+      isAdmin: showAdminLink,
+    });
     hasAffiliateAccess = profile?.role === "affiliate" || profile?.role === "admin";
 
     if (!hasAffiliateAccess) {
