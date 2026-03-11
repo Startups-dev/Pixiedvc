@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
-import { emailIsAllowedForAdmin } from '@/lib/admin-emails';
+import { isUserAdmin } from '@/lib/admin';
 
 export async function POST(request: Request) {
   const { requestId, availabilityStatus, note } = await request.json();
@@ -17,7 +17,25 @@ export async function POST(request: Request) {
     data: { user },
   } = await sessionClient.auth.getUser();
 
-  if (!user || !emailIsAllowedForAdmin(user.email)) {
+  let profileRole: string | null = null;
+  if (user?.id) {
+    const { data: profile } = await sessionClient
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+    profileRole = profile?.role ?? null;
+  }
+
+  const appRole = (user?.app_metadata?.role as string | undefined) ?? null;
+  if (
+    !user ||
+    !isUserAdmin({
+      profileRole,
+      appRole,
+      email: user.email ?? null,
+    })
+  ) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
