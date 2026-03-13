@@ -163,6 +163,12 @@ const SECTIONS: QuickLinkSection[] = [
         description: 'Manage private inventory listings.',
         href: '/admin/private-inventory',
       },
+      {
+        id: 'platform-tools',
+        title: 'Platform Tools',
+        description: 'Run guarded operational reset tools for test data.',
+        href: '/admin/platform-tools',
+      },
     ],
   },
 ];

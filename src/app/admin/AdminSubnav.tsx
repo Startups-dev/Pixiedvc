@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 type AdminSubnavProps = {
-  current: 'matching' | 'ledger' | 'affiliates' | 'affiliate-applications';
+  current: 'matching' | 'ledger' | 'affiliates' | 'affiliate-applications' | 'platform-tools';
 };
 
 const items = [
@@ -10,6 +10,7 @@ const items = [
   { key: 'affiliates', label: 'Affiliates', href: '/admin/affiliates' },
   { key: 'affiliate-applications', label: 'Affiliate Applications', href: '/admin/affiliates/applications' },
   { key: 'ledger', label: 'Finance Ledger', href: '/admin/reports/ledger' },
+  { key: 'platform-tools', label: 'Platform Tools', href: '/admin/platform-tools' },
 ] as const;
 
 export default function AdminSubnav({ current }: AdminSubnavProps) {
