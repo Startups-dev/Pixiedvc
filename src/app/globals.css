@@ -153,6 +153,54 @@ a {
   text-decoration: none;
 }
 
+.pixie-internal-buttons [data-slot="pixie-button"][data-variant="primary"] {
+  background-image: linear-gradient(to right, #2b3a70, #384b94, #9aa7ff) !important;
+  color: #ffffff !important;
+  box-shadow: 0 16px 48px rgba(43, 58, 112, 0.38) !important;
+  filter: brightness(1) !important;
+  transform: translateY(0) !important;
+}
+
+.pixie-internal-buttons [data-slot="pixie-button"][data-variant="primary"]:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 22px 60px rgba(43, 58, 112, 0.45) !important;
+}
+
+.pixie-internal-buttons [data-slot="pixie-button"][data-variant="primary"]:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 12px 30px rgba(43, 58, 112, 0.35) !important;
+}
+
+.pixie-internal-buttons [data-slot="pixie-button"][data-variant="ghost"] {
+  border-color: color-mix(in srgb, var(--text-strong) 10%, transparent) !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  color: var(--color-ink) !important;
+  box-shadow: none !important;
+  transform: translateY(0) !important;
+}
+
+.pixie-internal-buttons [data-slot="pixie-button"][data-variant="ghost"]:hover {
+  border-color: var(--color-brand) !important;
+  color: var(--color-brand) !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  box-shadow: none !important;
+  transform: translateY(0) !important;
+}
+
+.pixie-internal-buttons [data-slot="pixie-button"][data-variant="outline"] {
+  border-color: color-mix(in srgb, var(--color-brand) 50%, transparent) !important;
+  background: transparent !important;
+  color: var(--color-brand) !important;
+  box-shadow: none !important;
+  transform: translateY(0) !important;
+}
+
+.pixie-internal-buttons [data-slot="pixie-button"][data-variant="outline"]:hover {
+  background: color-mix(in srgb, var(--color-brand) 10%, transparent) !important;
+  box-shadow: none !important;
+  transform: translateY(0) !important;
+}
+
 .font-cinematic {
   font-family: var(--font-sans), system-ui, sans-serif;
   letter-spacing: -0.02em;

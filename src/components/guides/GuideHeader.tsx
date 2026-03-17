@@ -25,9 +25,17 @@ export default function GuideHeader({ title, subtitle, category, updatedLabel }:
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button asChild>
-            <Link href="/contact?role=Owner">Contact Concierge</Link>
-          </Button>
+          <div className="relative">
+            <span className="dust-trail" aria-hidden="true" />
+            <Button
+              asChild
+              className="bg-white/6 px-5 py-2 text-white !text-white shadow-[0_6px_16px_rgba(35,53,107,0.18)] transition duration-300 hover:bg-white/14"
+            >
+              <Link href="/contact?role=Owner" className="text-white">
+                Contact Concierge
+              </Link>
+            </Button>
+          </div>
           <Button asChild variant="ghost">
             <Link href="/guides">Back to Guides</Link>
           </Button>

@@ -41,11 +41,21 @@ export default function OwnersPage() {
                 confidence and without the hassle.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Button asChild>
-                  <Link href="/owner/onboarding">Join as an Owner</Link>
-                </Button>
+                <div className="relative">
+                  <span className="dust-trail" aria-hidden="true" />
+                  <Button
+                    asChild
+                    className="bg-white/6 px-5 py-2 text-white !text-white shadow-[0_6px_16px_rgba(35,53,107,0.18)] transition duration-300 hover:bg-white/14"
+                  >
+                    <Link href="/owner/onboarding" className="text-white">
+                      Join as an Owner
+                    </Link>
+                  </Button>
+                </div>
                 <Button asChild variant="ghost">
-                  <Link href="/info/owners/information">Explore Owner Resources</Link>
+                  <Link href="/info/owners/information">
+                    Explore Owner Resources
+                  </Link>
                 </Button>
               </div>
               <p className="text-sm text-muted">

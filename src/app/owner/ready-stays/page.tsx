@@ -219,8 +219,10 @@ export default async function ReadyStaysPage({
             Have a confirmed reservation? Verify your private reservation, then list it as a public Ready Stay for guest booking.
           </p>
           <div className="mt-5">
-            <Button asChild>
-              <Link href="/owner/dashboard?tab=listings">Add Ready Stay</Link>
+            <Button asChild className="!text-white hover:!text-white">
+              <Link href="/owner/dashboard?tab=listings" className="!text-white hover:!text-white" style={{ color: "#fff" }}>
+                Add Ready Stay
+              </Link>
             </Button>
           </div>
         </Card>

@@ -189,9 +189,17 @@ export default function HowItWorksPage() {
                 with verified DVC owners.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Button asChild>
-                  <ReferralLink href="/calculator">Check Pricing</ReferralLink>
-                </Button>
+                <div className="relative">
+                  <span className="dust-trail" aria-hidden="true" />
+                  <Button
+                    asChild
+                    className="bg-white/6 px-5 py-2 text-white !text-white shadow-[0_6px_16px_rgba(35,53,107,0.18)] transition duration-300 hover:bg-white/14"
+                  >
+                    <ReferralLink href="/calculator" className="text-white">
+                      Check Pricing
+                    </ReferralLink>
+                  </Button>
+                </div>
                 <Button asChild variant="ghost">
                   <ReferralLink href="/plan">Submit a Request</ReferralLink>
                 </Button>
@@ -388,9 +396,17 @@ export default function HowItWorksPage() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <Button asChild>
-                  <ReferralLink href="/calculator">Check Pricing</ReferralLink>
-                </Button>
+                <div className="relative">
+                  <span className="dust-trail" aria-hidden="true" />
+                  <Button
+                    asChild
+                    className="bg-white/6 px-5 py-2 text-white !text-white shadow-[0_6px_16px_rgba(35,53,107,0.18)] transition duration-300 hover:bg-white/14"
+                  >
+                    <ReferralLink href="/calculator" className="text-white">
+                      Check Pricing
+                    </ReferralLink>
+                  </Button>
+                </div>
                 <Button asChild variant="ghost">
                   <ReferralLink href="/plan">Submit a Request</ReferralLink>
                 </Button>
