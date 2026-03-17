@@ -4,7 +4,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { compileMDX } from "next-mdx-remote/rsc";
-import matter from "gray-matter";
 
 import { mdxComponents } from "@/lib/mdx";
 import { supabaseServer } from "@/lib/supabase-server";
@@ -148,6 +147,7 @@ function isSupabaseConfigured() {
 }
 
 async function loadMdxGuides(): Promise<MdxGuide[]> {
+  const { default: matter } = await import("gray-matter");
   let files: string[] = [];
   try {
     files = await fs.readdir(GUIDES_DIR);

@@ -11,18 +11,18 @@ type ResetResponseRow = {
   renter_requests_deleted: number;
   rentals_deleted: number;
   confirmed_bookings_deleted: number;
+  booking_matches_deleted: number;
+  booking_request_guests_deleted: number;
+  guest_request_activity_deleted: number;
+  contracts_deleted: number;
+  contract_events_deleted: number;
+  rental_milestones_deleted: number;
+  rental_documents_deleted: number;
+  rental_exceptions_deleted: number;
+  payout_ledger_deleted: number;
 };
 
 export async function POST(request: Request) {
-  if (process.env.ALLOW_ADMIN_RESET !== 'true') {
-    return NextResponse.json({ error: 'Reset disabled in production.' }, { status: 403 });
-  }
-
-  const payload = (await request.json().catch(() => ({}))) as { code?: string };
-  if (payload.code !== REQUIRED_CODE) {
-    return NextResponse.json({ error: 'Invalid confirmation code.' }, { status: 403 });
-  }
-
   const sessionClient = await createSupabaseServerClient();
   const adminClient = getSupabaseAdminClient();
   const {
@@ -51,6 +51,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  if (process.env.ALLOW_ADMIN_RESET !== 'true') {
+    return NextResponse.json({ error: 'Reset disabled in this environment.' }, { status: 403 });
+  }
+
+  const payload = (await request.json().catch(() => ({}))) as { code?: string };
+  if (payload.code !== REQUIRED_CODE) {
+    return NextResponse.json({ error: 'Invalid confirmation code.' }, { status: 403 });
+  }
+
   if (!adminClient) {
     return NextResponse.json({ error: 'Service role key not configured' }, { status: 500 });
   }
@@ -66,9 +75,19 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({
+    ok: true,
     booking_requests_deleted: Number(row.booking_requests_deleted ?? 0),
     renter_requests_deleted: Number(row.renter_requests_deleted ?? 0),
     rentals_deleted: Number(row.rentals_deleted ?? 0),
     confirmed_bookings_deleted: Number(row.confirmed_bookings_deleted ?? 0),
+    booking_matches_deleted: Number(row.booking_matches_deleted ?? 0),
+    booking_request_guests_deleted: Number(row.booking_request_guests_deleted ?? 0),
+    guest_request_activity_deleted: Number(row.guest_request_activity_deleted ?? 0),
+    contracts_deleted: Number(row.contracts_deleted ?? 0),
+    contract_events_deleted: Number(row.contract_events_deleted ?? 0),
+    rental_milestones_deleted: Number(row.rental_milestones_deleted ?? 0),
+    rental_documents_deleted: Number(row.rental_documents_deleted ?? 0),
+    rental_exceptions_deleted: Number(row.rental_exceptions_deleted ?? 0),
+    payout_ledger_deleted: Number(row.payout_ledger_deleted ?? 0),
   });
 }

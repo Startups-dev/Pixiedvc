@@ -32,10 +32,11 @@ const PAGE_SIZE = 20;
 const dateFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
 
 type AdminPageProps = {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>;
 };
 
 export default async function AdminHome({ searchParams }: AdminPageProps) {
+  const resolvedSearchParams = await resolveSearchParams(searchParams);
   const { supabase: sessionClient } = await requireAdminUser('/admin');
   const supabaseAdmin = getSupabaseAdminClient();
   const supabase: AdminClient = supabaseAdmin ?? sessionClient;
@@ -43,18 +44,18 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
     data: { user },
   } = await sessionClient.auth.getUser();
 
-  const requestStatusParam = getParam(searchParams, 'requestStatus') ?? 'all';
+  const requestStatusParam = getParam(resolvedSearchParams, 'requestStatus') ?? 'all';
   const requestStatusFilter = normalizeStatus(requestStatusParam, REQUEST_STATUS_OPTIONS);
-  const requestPageQueryParam = getParam(searchParams, 'requestPage');
+  const requestPageQueryParam = getParam(resolvedSearchParams, 'requestPage');
   const requestPageParam = parsePageParam(requestPageQueryParam);
-  const requestQueryValue = getParam(searchParams, 'requestQuery');
+  const requestQueryValue = getParam(resolvedSearchParams, 'requestQuery');
   const requestQueryParam = requestQueryValue?.trim() ? requestQueryValue.trim() : undefined;
 
-  const ownerVerificationParam = getParam(searchParams, 'ownerVerification') ?? 'all';
+  const ownerVerificationParam = getParam(resolvedSearchParams, 'ownerVerification') ?? 'all';
   const ownerVerificationFilter = normalizeStatus(ownerVerificationParam, OWNER_VERIFICATION_OPTIONS);
-  const ownerPageQueryParam = getParam(searchParams, 'ownerPage');
+  const ownerPageQueryParam = getParam(resolvedSearchParams, 'ownerPage');
   const ownerPageParam = parsePageParam(ownerPageQueryParam);
-  const ownerQueryValue = getParam(searchParams, 'ownerQuery');
+  const ownerQueryValue = getParam(resolvedSearchParams, 'ownerQuery');
   const ownerQueryParam = ownerQueryValue?.trim() ? ownerQueryValue.trim() : undefined;
 
   const bookingFilters = {
@@ -93,7 +94,7 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
   const ownerStart = ownerTotal === 0 ? 0 : (ownerPage - 1) * ownerPageSize + 1;
   const ownerEnd = ownerTotal === 0 ? 0 : Math.min(ownerTotal, ownerPage * ownerPageSize);
 
-  const currentSearchParams = normalizeSearchParams(searchParams);
+  const currentSearchParams = normalizeSearchParams(resolvedSearchParams);
 
   return (
     <div className="min-h-screen bg-[#212121] text-[#ececec]">
@@ -534,7 +535,7 @@ async function countBookingRequests(
     }
     const { count, error } = await query;
     if (error) {
-      console.error('Failed to count booking requests', {
+      console.warn('Failed to count booking requests', {
         code: error.code,
         message: error.message,
         details: error.details,
@@ -578,7 +579,7 @@ async function fetchLatestBookingRequests(supabase: AdminClient, filters: Bookin
   const countQuery = applyBookingFilters(supabase.from('booking_requests').select('id', { count: 'exact', head: true }), filters);
   const { count: total = 0, error: countError } = await countQuery;
   if (countError) {
-    console.error('Failed to count booking requests', {
+    console.warn('Failed to count booking requests', {
       code: countError.code,
       message: countError.message,
       details: countError.details,
@@ -753,6 +754,13 @@ function getParam(params: Record<string, string | string[] | undefined> | undefi
     return value[0];
   }
   return value;
+}
+
+async function resolveSearchParams(
+  params: Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined> | undefined,
+) {
+  if (!params) return undefined;
+  return await params;
 }
 
 function normalizeStatus(value: string | undefined, options: { value: string }[]) {

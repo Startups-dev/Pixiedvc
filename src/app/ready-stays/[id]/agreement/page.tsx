@@ -321,22 +321,35 @@ export default async function ReadyStayAgreementPage({
     }
   }
 
-  const { data: ownerMembership } = await adminClient
-    .from('owner_memberships')
-    .select('owner_legal_full_name')
-    .eq('owner_id', readyStay.owner_id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const resolvedOwnerRecordId = ownerRecord?.id ?? ownerRecordFromStay?.id ?? null;
+
+  const { data: ownerMembership } = resolvedOwnerRecordId
+    ? await adminClient
+        .from('owner_memberships')
+        .select('owner_legal_full_name')
+        .eq('owner_id', resolvedOwnerRecordId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+
+  const snapshot = (contract.snapshot ?? {}) as ContractSnapshot;
+  const snapshotOwnerName = snapshot.parties?.owner?.fullName?.trim() ?? '';
+  const snapshotHasConcreteOwnerName =
+    snapshotOwnerName.length > 0 &&
+    snapshotOwnerName !== 'Owner' &&
+    snapshotOwnerName !== 'Not provided';
 
   const ownerLegalName =
     ownerRecord?.full_legal_name?.trim() ||
     ownerMembership?.owner_legal_full_name?.trim() ||
-    '';
+    (snapshotHasConcreteOwnerName ? snapshotOwnerName : '');
   const ownerLegalNameSource = ownerRecord?.full_legal_name?.trim()
     ? 'owners.full_legal_name'
     : ownerMembership?.owner_legal_full_name?.trim()
       ? 'owner_memberships.owner_legal_full_name'
+      : snapshotHasConcreteOwnerName
+        ? 'contracts.snapshot.parties.owner.fullName'
       : 'none';
 
   if (isDev) {
@@ -350,7 +363,7 @@ export default async function ReadyStayAgreementPage({
 
   debugReport.ownerResolution = {
     ...(debugReport.ownerResolution as Record<string, unknown>),
-    finalOwnerId: ownerRecord?.id ?? ownerRecordFromStay?.id ?? null,
+    finalOwnerId: resolvedOwnerRecordId,
     fullLegalNameFound: Boolean(ownerLegalName),
     legalNameSource: ownerLegalNameSource,
   };
@@ -367,7 +380,6 @@ export default async function ReadyStayAgreementPage({
         .maybeSingle()
     : { data: null };
 
-  const snapshot = (contract.snapshot ?? {}) as ContractSnapshot;
   const summary = snapshot.summary ?? null;
 
   const readyStayPricePerPointCents = Number(readyStay.guest_price_per_point_cents ?? 0);

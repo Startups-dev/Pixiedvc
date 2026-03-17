@@ -30,16 +30,13 @@ export const metadata: Metadata = {
   title: "PixieDVC • Disney Magic Meets Boutique Tech",
   description:
     "Plan enchanted Disney Vacation Club getaways with luxe UX, points intelligence, and concierge storytelling.",
+  themeColor: '#2E8FFF',
   openGraph: {
     title: "PixieDVC • Disney Magic Meets Boutique Tech",
     description:
       "Discover resorts, optimize points, and craft storybook itineraries with the PixieDVC planning studio.",
     type: "website",
   },
-};
-
-export const viewport = {
-  themeColor: '#2E8FFF',
 };
 
 export default function RootLayout({

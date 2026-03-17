@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
@@ -232,6 +231,78 @@ const SPLIT_SECTION_IMAGES_BY_SLUG: Record<string, ResortSplitImages> = {
       "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Aulani/AulaniAround.png",
     nearbyAmenities:
       "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Aulani/AulaniNearby.png",
+  },
+  "animal-kingdom-villas": {
+    about:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Animal%20Kingdom/about.png",
+    goodToKnow:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Animal%20Kingdom/animal%20kingdom%20good%20to%20know.png",
+    dining:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Animal%20Kingdom/dining.png",
+    gettingAround:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Animal%20Kingdom/getting%20around.png",
+    nearbyAmenities:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Animal%20Kingdom/nearby.png",
+  },
+  "riviera-resort": {
+    about:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Riviera/riviera%20about%20this%20resort.png",
+    goodToKnow:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Riviera/good%20to%20know.png",
+    dining:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Riviera/dining.png",
+    gettingAround:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Riviera/getting%20around.png",
+    nearbyAmenities:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Riviera/amenities%20nearby%20.png",
+  },
+  "polynesian-villas": {
+    about:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Polynesian/about.png",
+    goodToKnow:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Polynesian/good%20to%20know.png",
+    dining:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Polynesian/dining.png",
+    gettingAround:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Polynesian/getting%20around.png",
+    nearbyAmenities:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Polynesian/nearby.png",
+  },
+  "grand-floridian-villas": {
+    about:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/grand%20floridian/about.png",
+    goodToKnow:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/grand%20floridian/good%20to%20know.png",
+    dining:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/grand%20floridian/dining.png",
+    gettingAround:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/grand%20floridian/getting%20around.png",
+    nearbyAmenities:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/grand%20floridian/nearby.png",
+  },
+  "saratoga-springs": {
+    about:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Saratoga/about.png",
+    goodToKnow:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Saratoga/good%20to%20know.png",
+    dining:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Saratoga/dining.png",
+    gettingAround:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Saratoga/getting%20around.png",
+    nearbyAmenities:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Saratoga/nearby.png",
+  },
+  "old-key-west": {
+    about:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/old%20key/about.png",
+    goodToKnow:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/old%20key/good%20to%20know.png",
+    dining:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/old%20key/old%20key%20dinning%20.png",
+    gettingAround:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/old%20key/getting%20around.png",
+    nearbyAmenities:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/old%20key/old%20key%20nearby%20actviites%20.png",
   },
 };
 
@@ -699,25 +770,6 @@ function normalizeDiningName(value: string) {
     .replace(/\([^)]*\)/g, " ")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
-}
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
-  const resort = await getResortBySlug(slug);
-
-  if (!resort) {
-    return {};
-  }
-
-  return {
-    title: `${resort.name} – PixieDVC`,
-    description: resort.tagline,
-    openGraph: {
-      title: `${resort.name} – PixieDVC`,
-      description: resort.tagline,
-      images: resort.heroImage ? [{ url: resort.heroImage }] : undefined,
-    },
-  };
 }
 
 // export async function generateStaticParams() {
