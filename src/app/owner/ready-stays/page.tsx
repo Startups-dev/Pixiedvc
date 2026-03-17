@@ -29,7 +29,7 @@ export default async function ReadyStaysPage({
   searchParams?: { notice?: string };
 }) {
   const { user, owner } = await requireOwnerAccess("/owner/ready-stays");
-  const supabase = await createSupabaseServerClient();
+  await createSupabaseServerClient();
 
   const adminClient = getSupabaseAdminClient();
   if (!adminClient) {
@@ -244,8 +244,8 @@ export default async function ReadyStaysPage({
                     <th className="px-4 py-3 font-semibold">Resort</th>
                     <th className="px-4 py-3 font-semibold">Dates</th>
                     <th className="px-4 py-3 font-semibold">Points</th>
-                    <th className="px-4 py-3 font-semibold">Price/pt</th>
-                    <th className="px-4 py-3 font-semibold">Total</th>
+                    <th className="px-4 py-3 font-semibold">Your Payout/PT</th>
+                    <th className="px-4 py-3 font-semibold">Your Payout</th>
                     <th className="px-4 py-3 font-semibold">Status</th>
                     <th className="px-4 py-3 font-semibold">Action</th>
                   </tr>
@@ -257,12 +257,14 @@ export default async function ReadyStaysPage({
                       <td className="px-4 py-3 text-slate-500">
                         {formatDate(stay.check_in)} - {formatDate(stay.check_out)}
                       </td>
-                      <td className="px-4 py-3 text-slate-500">{stay.points ?? 0}</td>
                       <td className="px-4 py-3 text-slate-500">
-                        {formatCurrencyFromCents(stay.guest_price_per_point_cents)}
+                        {stay.points ?? 0}
                       </td>
                       <td className="px-4 py-3 text-slate-500">
-                        {formatCurrencyFromCents((stay.guest_price_per_point_cents ?? 0) * (stay.points ?? 0))}
+                        {formatCurrencyFromCents(stay.owner_price_per_point_cents)}
+                      </td>
+                      <td className="px-4 py-3 text-slate-500">
+                        {formatCurrencyFromCents((stay.owner_price_per_point_cents ?? 0) * (stay.points ?? 0))}
                       </td>
                       <td className="px-4 py-3 text-slate-500">Active</td>
                       <td className="px-4 py-3">
@@ -316,7 +318,8 @@ export default async function ReadyStaysPage({
                         <th className="px-4 py-3 font-semibold">Resort</th>
                         <th className="px-4 py-3 font-semibold">Dates</th>
                         <th className="px-4 py-3 font-semibold">Points</th>
-                        <th className="px-4 py-3 font-semibold">Total</th>
+                        <th className="px-4 py-3 font-semibold">Your Payout/PT</th>
+                        <th className="px-4 py-3 font-semibold">Your Payout</th>
                         <th className="px-4 py-3 font-semibold">Status</th>
                         <th className="px-4 py-3 font-semibold">Sold date</th>
                       </tr>
@@ -330,7 +333,10 @@ export default async function ReadyStaysPage({
                           </td>
                           <td className="px-4 py-3 text-slate-500">{stay.points ?? 0}</td>
                           <td className="px-4 py-3 text-slate-500">
-                            {formatCurrencyFromCents((stay.guest_price_per_point_cents ?? 0) * (stay.points ?? 0))}
+                            {formatCurrencyFromCents(stay.owner_price_per_point_cents)}
+                          </td>
+                          <td className="px-4 py-3 text-slate-500">
+                            {formatCurrencyFromCents((stay.owner_price_per_point_cents ?? 0) * (stay.points ?? 0))}
                           </td>
                           <td className="px-4 py-3 text-slate-500">
                             <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
