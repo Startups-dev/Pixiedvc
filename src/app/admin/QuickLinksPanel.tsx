@@ -81,6 +81,12 @@ const SECTIONS: QuickLinkSection[] = [
         href: '/admin/affiliates/applications',
       },
       {
+        id: 'partner-applications',
+        title: 'Partner Applications',
+        description: 'Review inbound advisor, affiliate, and service partner forms.',
+        href: '/admin/partners/applications',
+      },
+      {
         id: 'ledger',
         title: 'Finance Ledger',
         description: 'Aggregate payments, splits, and totals.',
