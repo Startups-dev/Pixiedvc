@@ -193,8 +193,9 @@ const DROPDOWNS: Record<string, DropdownConfig> = {
       {
         title: "Partner with PixieDVC",
         items: [
-          { label: "Become a Partner", href: "/partners/become-a-partner", icon: Users },
           { label: "Affiliate Program", href: "/partners/affiliate-program", icon: Sparkles },
+          { label: "Travel Advisors", href: "/partners#advisor", icon: Users },
+          { label: "Service Providers", href: "/partners#service", icon: Sparkles },
         ],
       },
     ],

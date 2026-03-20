@@ -32,7 +32,7 @@ export default function PartnersPage() {
         <section id="partnership-types" className="space-y-6 scroll-mt-24">
           <h2 className="text-3xl font-semibold text-[#0F2148]">Choose Your Partnership Type</h2>
           <div className="grid gap-6 md:grid-cols-3">
-            <article className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4">
+            <article id="advisor" className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4 scroll-mt-24">
               <h3 className="text-xl font-semibold text-[#0F2148]">Travel Advisors &amp; Agencies</h3>
               <p className="text-sm leading-relaxed text-[#0F2148]/75">
                 Offer Disney Vacation Club rentals to your clients without managing contracts, owner coordination, or
@@ -57,7 +57,7 @@ export default function PartnersPage() {
               </Button>
             </article>
 
-            <article className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4">
+            <article id="affiliate" className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4 scroll-mt-24">
               <h3 className="text-xl font-semibold text-[#0F2148]">Affiliates &amp; Content Creators</h3>
               <p className="text-sm leading-relaxed text-[#0F2148]/75">
                 Monetize your audience by referring travelers interested in Disney Vacation Club stays.
@@ -80,7 +80,7 @@ export default function PartnersPage() {
               </Button>
             </article>
 
-            <article className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4">
+            <article id="service" className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4 scroll-mt-24">
               <h3 className="text-xl font-semibold text-[#0F2148]">Experience &amp; Service Providers</h3>
               <p className="text-sm leading-relaxed text-[#0F2148]/75">
                 Enhance guest stays by offering services and experiences during their visit.

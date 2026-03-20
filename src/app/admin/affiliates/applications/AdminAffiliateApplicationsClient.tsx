@@ -221,13 +221,16 @@ export default function AdminAffiliateApplicationsClient({
 
               {selected.status === "pending" ? (
                 <div className="grid gap-2">
+                  <p className="text-[11px] text-[#8e8ea0]">
+                    Basic keeps affiliate status as pending review. Verified and Elite set verified affiliate access.
+                  </p>
                   <button
                     type="button"
                     className="rounded-full bg-[#10a37f] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white hover:bg-[#0d8c6d]"
                     disabled={saving !== null}
                     onClick={() => runAction("approve_basic")}
                   >
-                    {saving === "approve_basic" ? "Approving…" : "Approve (Basic)"}
+                    {saving === "approve_basic" ? "Approving…" : "Approve Basic (Pending Review)"}
                   </button>
                   <button
                     type="button"
@@ -235,7 +238,7 @@ export default function AdminAffiliateApplicationsClient({
                     disabled={saving !== null}
                     onClick={() => runAction("approve_verified")}
                   >
-                    {saving === "approve_verified" ? "Approving…" : "Approve (Verified)"}
+                    {saving === "approve_verified" ? "Approving…" : "Approve Verified"}
                   </button>
                   <button
                     type="button"
@@ -243,7 +246,7 @@ export default function AdminAffiliateApplicationsClient({
                     disabled={saving !== null}
                     onClick={() => runAction("approve_elite")}
                   >
-                    {saving === "approve_elite" ? "Approving…" : "Approve (Elite)"}
+                    {saving === "approve_elite" ? "Approving…" : "Approve Elite"}
                   </button>
                   <button
                     type="button"

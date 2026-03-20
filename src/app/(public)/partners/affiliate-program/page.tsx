@@ -143,20 +143,13 @@ export default function AffiliateProgramPage() {
         </div>
 
         <div className={`${affiliateCard} rounded-3xl p-6`}>
-          <div className={`${affiliateCard2} p-5`}>
-            <p className={`text-xs uppercase tracking-[0.28em] ${affiliateTextMuted}`}>Dashboard Preview</p>
-            <div className="mt-4 grid grid-cols-12 gap-3">
-              <div className="col-span-7 space-y-3">
-                <div className="h-5 rounded bg-slate-700" />
-                <div className="h-24 rounded-xl bg-slate-700/90" />
-                <div className="h-14 rounded-xl bg-slate-700/80" />
-              </div>
-              <div className="col-span-5 space-y-3">
-                <div className="h-16 rounded-xl bg-slate-700/80" />
-                <div className="h-16 rounded-xl bg-slate-700/80" />
-                <div className="h-16 rounded-xl bg-slate-700/80" />
-              </div>
-            </div>
+          <div className="overflow-hidden rounded-xl border border-white/10 bg-slate-900/40">
+            <img
+              src="https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Affiliate%20%20pages%20images/PixieDvc%20Affiliate%20Dashboard.png"
+              alt="PixieDVC Affiliate Dashboard preview"
+              className="h-auto w-full object-cover"
+              loading="lazy"
+            />
           </div>
         </div>
       </section>
