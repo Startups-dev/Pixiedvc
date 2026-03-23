@@ -2,6 +2,11 @@ import Link from "next/link";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import ReadyStaysMarketplaceClient from "@/components/ready-stays/ReadyStaysMarketplaceClient";
+import ReadyStaysSection from "@/components/ready-stays-showcase/ReadyStaysSection";
+import {
+  READY_STAYS_SHOWCASE_FLAGS,
+} from "@/lib/ready-stays/showcase-mock";
+import { getSearchReadyStaysShowcase } from "@/lib/ready-stays/showcase-live";
 
 const READY_STAY_GUIDE_LINKS = [
   { href: "/guides/ready-stays-transfer-linking#what-is-ready-stay", label: "1. What Is a Ready Stay?" },
@@ -25,6 +30,7 @@ export default async function ReadyStaysPublicPage({
     sort?: string;
   };
 }) {
+  const searchReadyStays = await getSearchReadyStaysShowcase(3);
   const supabase = await createSupabaseServerClient();
 
   const { data: resorts } = await supabase
@@ -92,6 +98,15 @@ export default async function ReadyStaysPublicPage({
         resorts={(resorts ?? []) as { id: string; name: string }[]}
         searchParams={searchParams ?? {}}
       />
+      {READY_STAYS_SHOWCASE_FLAGS.enableSearchReadyStays ? (
+        <ReadyStaysSection
+          title="Skip the wait - Book instantly"
+          subtitle="Featured opportunities selected for guests who want confirmed inventory now."
+          items={searchReadyStays}
+          layout="row"
+          className="pt-2"
+        />
+      ) : null}
 
       <section id="ready-stays-guide" className="space-y-5">
         <div className="space-y-2">

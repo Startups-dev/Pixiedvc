@@ -6,7 +6,12 @@ import BridgeChips from "@/components/BridgeChips";
 import ResortShowcase from "@/components/ResortShowcase";
 import ResortCollectionCard from "@/components/ResortCollectionCard";
 import ContextualGuides from "@/components/guides/ContextualGuides";
+import ReadyStaysSection from "@/components/ready-stays-showcase/ReadyStaysSection";
 import { STORIES } from "@/content/stories";
+import {
+  READY_STAYS_SHOWCASE_FLAGS,
+} from "@/lib/ready-stays/showcase-mock";
+import { getHomeReadyStaysShowcase } from "@/lib/ready-stays/showcase-live";
 
 const resortShowcase = [
   {
@@ -38,7 +43,9 @@ const resortShowcase = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const homeReadyStays = await getHomeReadyStaysShowcase(3);
+
   return (
     <>
       <Hero />
@@ -51,7 +58,7 @@ export default function Home() {
         </div>
 
         <div className="mt-12 grid gap-8 md:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition duration-200 hover:border-slate-300 hover:shadow-md">
             <div className="mb-6 h-48 w-full overflow-hidden rounded-xl bg-slate-100">
               <img
                 src="https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/main%20page%20ready-stay/PixieMatching.png"
@@ -60,20 +67,20 @@ export default function Home() {
               />
             </div>
 
-            <h3 className="text-xl font-semibold text-slate-900">Request Your Stay</h3>
+            <h3 className="text-xl font-semibold text-slate-950">Request Your Stay</h3>
 
-            <p className="mt-3 text-slate-500">
+            <p className="mt-4 max-w-[52ch] text-slate-600">
               Share your dates, preferred resort, and party details. We verify availability with real DVC owners and
               guide you step by step.
             </p>
 
-            <ul className="mt-4 space-y-2 text-sm text-slate-500">
+            <ul className="mt-4 space-y-2 text-sm text-slate-700">
               <li>• Personalized matching</li>
               <li>• Transparent pricing before you commit</li>
               <li>• Concierge support from start to confirmation</li>
             </ul>
 
-            <div className="mt-6">
+            <div className="mt-7">
               <Link
                 href="/check-dates"
                 className="inline-flex items-center rounded-xl bg-indigo-600 px-5 py-3 text-sm font-medium !text-white transition hover:bg-indigo-500"
@@ -83,7 +90,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition duration-200 hover:border-slate-300 hover:shadow-md">
             <div className="mb-6 h-48 w-full overflow-hidden rounded-xl bg-slate-100">
               <img
                 src="https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/main%20page%20ready-stay/ready-stay.png"
@@ -92,19 +99,19 @@ export default function Home() {
               />
             </div>
 
-            <h3 className="text-xl font-semibold text-slate-900">Browse Ready Stays</h3>
+            <h3 className="text-xl font-semibold text-slate-950">Browse Ready Stays</h3>
 
-            <p className="mt-3 text-slate-500">
+            <p className="mt-4 max-w-[52ch] text-slate-600">
               Confirmed DVC reservations available now. Secure premium villas without waiting for matching.
             </p>
 
-            <ul className="mt-4 space-y-2 text-sm text-slate-500">
+            <ul className="mt-4 space-y-2 text-sm text-slate-700">
               <li>• Pre-confirmed reservations</li>
               <li>• Ideal for flexible or last-minute trips</li>
               <li>• Updated inventory</li>
             </ul>
 
-            <div className="mt-6">
+            <div className="mt-7">
               <Link
                 href="/ready-stays"
                 className="inline-flex items-center rounded-xl border border-slate-300 px-5 py-3 text-sm font-medium text-slate-700 transition transform-gpu hover:-translate-y-0.5 hover:bg-slate-50"
@@ -119,6 +126,13 @@ export default function Home() {
           Verified owners • Secure payments • Concierge-led support
         </div>
       </section>
+      {READY_STAYS_SHOWCASE_FLAGS.enableHomeReadyStays ? (
+        <ReadyStaysSection
+          title="Book Instantly — Available Now"
+          subtitle="Pre-confirmed stays you can secure right now. No request needed."
+          items={homeReadyStays}
+        />
+      ) : null}
       <section className="h-24 bg-gradient-to-b from-white to-slate-100" aria-hidden="true" />
 
       <main className="bg-surface text-ink">

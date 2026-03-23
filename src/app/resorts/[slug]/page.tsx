@@ -13,11 +13,16 @@ import ResortChip from "@/components/resort/ResortChip";
 import ResortRoomLayouts from "@/components/resorts/ResortRoomLayouts";
 import ResortHighlightsSection from "@/components/resorts/ResortHighlightsSection";
 import ContextualGuides from "@/components/guides/ContextualGuides";
+import ReadyStaysSection from "@/components/ready-stays-showcase/ReadyStaysSection";
 import { getAllResortSlugs, getResortBySlug, getResortPhotos, getResortSummaries } from "@/lib/resorts";
 import { getHighlightsForResort, getResortSections } from "@/lib/resort-sections";
 import { resolveCalculatorCode } from "@/lib/resort-calculator";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { resortHighlights } from "@/content/resortHighlights";
+import {
+  READY_STAYS_SHOWCASE_FLAGS,
+} from "@/lib/ready-stays/showcase-mock";
+import { getResortReadyStaysShowcase } from "@/lib/ready-stays/showcase-live";
 
 import type { Resort } from "@/lib/resorts";
 
@@ -1052,6 +1057,7 @@ export default async function ResortPage({ params }: Props) {
   const hasNearbyAmenities = nearbyAmenities.length > 0;
   const splitImages = SPLIT_SECTION_IMAGES_BY_SLUG[slug] ?? {};
   const resortSummaries = await getResortSummaries();
+  const resortReadyStays = await getResortReadyStaysShowcase(resortData.slug, 6);
   const resortCode = resolveCalculatorCode({ slug: resortData.slug });
   const highlightChips = getHighlightsForResort({
     slug,
@@ -1112,6 +1118,14 @@ export default async function ResortPage({ params }: Props) {
 
       <QuickFacts id="availability" facts={resortData.facts} />
       <ResortAvailabilityCta slug={resortData.slug} name={resortData.name} />
+      {READY_STAYS_SHOWCASE_FLAGS.enableResortReadyStays && resortReadyStays.length > 0 ? (
+        <ReadyStaysSection
+          title={`Available ReadyStays at ${resortData.name}`}
+          subtitle="Curated stays available now with direct booking paths."
+          items={resortReadyStays}
+          className="py-12"
+        />
+      ) : null}
 
       <SplitSection
         title="About This Resort"

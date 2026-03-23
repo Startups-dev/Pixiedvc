@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 
 import { Button, Card } from "@pixiedvc/design-system";
+import { resolveReadyStaySignals } from "@/lib/ready-stays/signal-engine";
 import { resolveResortImage } from "@/lib/resort-image";
 
 type ReadyStayRow = {
@@ -59,35 +60,29 @@ function formatCurrencyFromCents(value: number) {
   }).format(value / 100);
 }
 
+function nightsBetween(checkIn: string, checkOut: string) {
+  const start = new Date(checkIn);
+  const end = new Date(checkOut);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 1;
+  const diff = end.getTime() - start.getTime();
+  return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)));
+}
+
+function estimatedSleeps(roomType: string) {
+  const normalized = roomType.toLowerCase();
+  if (normalized.includes("studio")) return 4;
+  if (normalized.includes("1") && normalized.includes("bed")) return 5;
+  if (normalized.includes("2") && normalized.includes("bed")) return 8;
+  if (normalized.includes("3") && normalized.includes("bed")) return 12;
+  return 4;
+}
+
 function imageIndexFromId(id: string) {
   let hash = 0;
   for (let i = 0; i < id.length; i += 1) {
     hash = (hash * 31 + id.charCodeAt(i)) % 5;
   }
   return (hash % 5) + 1;
-}
-
-function holidayLabel(seasonType: string | null) {
-  switch (seasonType) {
-    case "christmas":
-      return "Christmas";
-    case "halloween":
-      return "Halloween";
-    case "marathon":
-      return "Marathon";
-    case "spring_break":
-      return "Spring Break";
-    default:
-      return null;
-  }
-}
-
-function daysUntil(dateValue: string) {
-  const now = new Date();
-  const target = new Date(dateValue);
-  const diff = target.getTime() - now.getTime();
-  if (Number.isNaN(diff)) return null;
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
 function holidayPriority(seasonType: string | null) {
@@ -359,15 +354,28 @@ export default function ReadyStaysMarketplaceClient({
               const imageIndex = imageIndexFromId(stay.id);
               const image = resolveResortImage({ resortSlug, resortCode, imageIndex });
               const totalPriceCents = stay.guest_price_per_point_cents * stay.points;
-              const badge = holidayLabel(stay.season_type);
-              const daysToCheckIn = daysUntil(stay.check_in);
-              const urgencyBadge =
-                typeof daysToCheckIn === "number" && daysToCheckIn <= 30
-                  ? "Last-Minute Stay"
-                  : typeof daysToCheckIn === "number" && daysToCheckIn <= 60
-                    ? "Check-in Soon"
-                    : null;
-              const secondaryBadgeText = [badge, "Only 1 left"].filter(Boolean).join(" · ");
+              const nights = nightsBetween(stay.check_in, stay.check_out);
+              const nightlyPriceCents = Math.round(totalPriceCents / Math.max(nights, 1));
+              const comparableListings = sortedReadyStays.filter(
+                (candidate) => candidate.resort_id === stay.resort_id && candidate.room_type === stay.room_type,
+              );
+              const similarInventoryCount = comparableListings.length;
+              const comparableAverageTotalCents =
+                comparableListings.reduce(
+                  (sum, candidate) => sum + candidate.guest_price_per_point_cents * candidate.points,
+                  0,
+                ) / Math.max(similarInventoryCount, 1);
+              const lowestComparableTotalCents = Math.min(
+                ...comparableListings.map((candidate) => candidate.guest_price_per_point_cents * candidate.points),
+              );
+              const signals = resolveReadyStaySignals({
+                checkIn: stay.check_in,
+                seasonType: stay.season_type,
+                similarInventoryCount,
+                totalPriceCents,
+                comparableAverageTotalCents,
+                isLowestPriceComparable: similarInventoryCount > 1 && totalPriceCents === lowestComparableTotalCents,
+              });
 
               return (
                 <Card key={stay.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -375,44 +383,29 @@ export default function ReadyStaysMarketplaceClient({
                     <img src={image.url} alt={resortName} className="h-full w-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/35 to-transparent" />
                     <div className="absolute left-4 top-4 flex flex-col gap-2">
-                      {urgencyBadge ? (
-                        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                          {urgencyBadge === "Last-Minute Stay" ? "🔥 Last-Minute" : urgencyBadge}
+                      {signals.primary ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800">
+                          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-amber-500/80" />
+                          {signals.primary.label}
                         </span>
                       ) : null}
-                      <span className="inline-flex items-center rounded-full bg-white/85 px-3 py-1 text-[11px] font-medium text-slate-500">
-                        {secondaryBadgeText}
-                      </span>
                     </div>
                   </div>
-                  <div className="space-y-3 p-5">
+                  <div className="space-y-5 p-5">
                     <div>
                       <p className="text-sm font-semibold text-ink">{resortName}</p>
                       <p className="text-xs text-muted">
+                        {nights} {nights === 1 ? "Night" : "Nights"}
+                      </p>
+                      <p className="mt-2 text-xs text-muted">
                         {formatDate(stay.check_in)} – {formatDate(stay.check_out)}
+                        {" • "}
+                        Sleeps {estimatedSleeps(stay.room_type)}
                       </p>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-xs text-slate-500">
-                      <div>
-                        <p className="uppercase tracking-[0.2em] text-muted">Points</p>
-                        <p className="text-sm font-semibold text-ink">{stay.points}</p>
-                      </div>
-                      <div>
-                        <p className="uppercase tracking-[0.2em] text-muted">$/pt</p>
-                        <p className="text-sm font-semibold text-ink">
-                          {formatCurrencyFromCents(stay.guest_price_per_point_cents)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="uppercase tracking-[0.2em] text-muted">Total</p>
-                        <p className="text-lg font-bold text-slate-900">
-                          {formatCurrencyFromCents(totalPriceCents)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="space-y-1 text-xs text-slate-500">
-                      <p>✔ Confirmed Disney Reservation</p>
-                      <p>✔ Secure Transfer</p>
+                    <div className="space-y-1.5">
+                      <p className="text-3xl font-bold text-slate-900">{formatCurrencyFromCents(totalPriceCents)}</p>
+                      <p className="text-sm text-slate-500">{formatCurrencyFromCents(nightlyPriceCents)}/night</p>
                     </div>
                     <Button asChild size="sm" className="w-full [&_a]:!text-white">
                       <Link href={`/ready-stays/${stay.id}`} className="!text-white">
