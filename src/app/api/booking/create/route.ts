@@ -104,6 +104,15 @@ function splitName(fullName: string) {
   return { first: parts.slice(0, -1).join(" "), last: parts[parts.length - 1] };
 }
 
+function isMissingBuildingPreferenceColumn(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const message = "message" in error && typeof error.message === "string" ? error.message : "";
+  const details = "details" in error && typeof error.details === "string" ? error.details : "";
+  const hint = "hint" in error && typeof error.hint === "string" ? error.hint : "";
+  const combined = `${message} ${details} ${hint}`.toLowerCase();
+  return combined.includes("building_preference") && combined.includes("booking_requests");
+}
+
 export async function POST(request: Request) {
   try {
     const payload = (await request.json()) as BookingPayload;
@@ -209,6 +218,46 @@ export async function POST(request: Request) {
       Boolean(asString(guest.country));
     const agreementAccepted = Boolean(agreement.acceptTerms);
 
+    const fieldErrors: Record<string, string> = {};
+    if (!resortId) fieldErrors["trip.resortId"] = "Select a resort.";
+    if (!checkIn) fieldErrors["trip.checkIn"] = "Enter a valid check-in date.";
+    if (!checkOut) fieldErrors["trip.checkOut"] = "Enter a valid check-out date.";
+    if (!nights) fieldErrors["trip.checkOut"] = "Check-out must be after check-in.";
+    if (!primaryRoom) fieldErrors["trip.villaType"] = "Select a villa type.";
+    if (!totalPoints || totalPoints <= 0) fieldErrors["trip.points"] = "Points are required.";
+    if (!asString(guest.leadFirstName)) fieldErrors["guest.leadFirstName"] = "First name is required.";
+    if (!asString(guest.leadLastName)) fieldErrors["guest.leadLastName"] = "Last name is required.";
+    if (!asString(guest.email)) fieldErrors["guest.email"] = "Email is required.";
+    if (!asString(guest.phone)) fieldErrors["guest.phone"] = "Phone is required.";
+    if (!asString(guest.address)) fieldErrors["guest.address"] = "Address is required.";
+    if (!asString(guest.city)) fieldErrors["guest.city"] = "City is required.";
+    if (!asString(guest.region)) fieldErrors["guest.region"] = "State / Province is required.";
+    if (!asString(guest.postalCode)) fieldErrors["guest.postalCode"] = "Postal code is required.";
+    if (!asString(guest.country)) fieldErrors["guest.country"] = "Country is required.";
+    if (!agreement.acceptTerms) fieldErrors["agreement.acceptTerms"] = "You must accept the terms.";
+    if (!agreement.authorizeDeposit) {
+      fieldErrors["agreement.authorizeDeposit"] = "You must authorize the refundable deposit.";
+    }
+    if (!asString(agreement.signedName)) {
+      fieldErrors["agreement.signedName"] = "Please type your full name.";
+    }
+
+    if (Object.keys(fieldErrors).length > 0) {
+      const step = Object.keys(fieldErrors).some((key) => key.startsWith("agreement."))
+        ? "agreement"
+        : Object.keys(fieldErrors).some((key) => key.startsWith("guest."))
+          ? "guest"
+          : "trip";
+      return NextResponse.json(
+        {
+          error: "Please complete the missing required fields.",
+          step,
+          fieldErrors,
+        },
+        { status: 422 },
+      );
+    }
+
     const bookingStatus = agreement.gateway === "stripe" ? "draft" : "submitted";
 
     const signature = {
@@ -225,24 +274,35 @@ export async function POST(request: Request) {
       typeof totalPoints === "number" &&
       totalPoints > 0;
 
+    let supportsBuildingPreference = true;
+
     if (signatureComplete) {
       const activeStatuses = ["draft", "submitted", "pending_match", "pending_owner"];
-      let existingQuery = supabase
-        .from("booking_requests")
-        .select("id, status, updated_at")
-        .eq("renter_id", user.id)
-        .in("status", activeStatuses)
-        .order("updated_at", { ascending: false })
-        .limit(1);
+      const findExisting = async (includeBuildingPreference: boolean) => {
+        let query = supabase
+          .from("booking_requests")
+          .select("id, status, updated_at")
+          .eq("renter_id", user.id)
+          .in("status", activeStatuses)
+          .order("updated_at", { ascending: false })
+          .limit(1);
 
-      existingQuery = existingQuery.eq("check_in", checkIn);
-      existingQuery = existingQuery.eq("check_out", checkOut);
-      existingQuery = existingQuery.eq("primary_resort_id", resortId);
-      existingQuery = existingQuery.eq("total_points", totalPoints);
-      existingQuery = existingQuery.eq("primary_room", primaryRoom);
-      existingQuery = existingQuery.eq("building_preference", persistedBuildingPreference);
+        query = query.eq("check_in", checkIn);
+        query = query.eq("check_out", checkOut);
+        query = query.eq("primary_resort_id", resortId);
+        query = query.eq("total_points", totalPoints);
+        query = query.eq("primary_room", primaryRoom);
+        if (includeBuildingPreference) {
+          query = query.eq("building_preference", persistedBuildingPreference);
+        }
+        return query;
+      };
 
-      const { data: existingRows, error: existingError } = await existingQuery;
+      let { data: existingRows, error: existingError } = await findExisting(true);
+      if (existingError && isMissingBuildingPreferenceColumn(existingError)) {
+        supportsBuildingPreference = false;
+        ({ data: existingRows, error: existingError } = await findExisting(false));
+      }
       const existing = existingRows?.[0] ?? null;
       if (existingError) {
         console.error("[booking/create] lookup failed", existingError);
@@ -260,7 +320,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ bookingId: existing.id });
       }
     }
-    const bookingInsert = {
+    const bookingInsertBase = {
       renter_id: user.id,
       status: bookingStatus,
       check_in: checkIn,
@@ -268,7 +328,6 @@ export async function POST(request: Request) {
       nights,
       primary_resort_id: resortId,
       primary_room: primaryRoom,
-      building_preference: persistedBuildingPreference,
       primary_view: null,
       requires_accessibility: Boolean(trip.accessibility),
       secondary_resort_id: asString(trip.secondaryResortId) || null,
@@ -305,11 +364,24 @@ export async function POST(request: Request) {
       referral_code: payload.referral_code ?? null,
     };
 
-    const { data: booking, error: bookingError } = await supabase
+    const bookingInsert = supportsBuildingPreference
+      ? { ...bookingInsertBase, building_preference: persistedBuildingPreference }
+      : bookingInsertBase;
+
+    let { data: booking, error: bookingError } = await supabase
       .from("booking_requests")
       .insert(bookingInsert)
       .select("id")
       .single();
+
+    if (bookingError && supportsBuildingPreference && isMissingBuildingPreferenceColumn(bookingError)) {
+      supportsBuildingPreference = false;
+      ({ data: booking, error: bookingError } = await supabase
+        .from("booking_requests")
+        .insert(bookingInsertBase)
+        .select("id")
+        .single());
+    }
 
     if (bookingError || !booking?.id) {
       if (bookingError?.code === "23505" && signatureComplete) {
@@ -327,7 +399,9 @@ export async function POST(request: Request) {
         retryQuery = retryQuery.eq("primary_resort_id", resortId);
         retryQuery = retryQuery.eq("total_points", totalPoints);
         retryQuery = retryQuery.eq("primary_room", primaryRoom);
-        retryQuery = retryQuery.eq("building_preference", persistedBuildingPreference);
+        if (supportsBuildingPreference) {
+          retryQuery = retryQuery.eq("building_preference", persistedBuildingPreference);
+        }
 
         const { data: retryRows } = await retryQuery;
         const retryExisting = retryRows?.[0] ?? null;
