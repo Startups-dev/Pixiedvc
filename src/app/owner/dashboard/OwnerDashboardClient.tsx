@@ -276,7 +276,7 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
                   You’re set to Premium-only. This may prevent matches in the Standard window. Enable “Try Premium then Standard” to match faster.
                 </p>
                 <Button asChild variant="ghost">
-                  <Link href="/owner/memberships">Review matching preferences</Link>
+                  <Link href="/owner/memberships">Update matching preferences</Link>
                 </Button>
               </div>
             </Card>

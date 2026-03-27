@@ -229,3 +229,63 @@ export async function fixMembershipResortMapping(membershipId: string) {
   revalidatePath("/owner/dashboard");
   return { ok: true };
 }
+
+export async function updateOwnerMembershipMatchingPreferences(formData: FormData) {
+  const membershipId = String(formData.get("membership_id") ?? "").trim();
+  const matchingMode = String(formData.get("matching_mode") ?? "").trim();
+
+  if (!membershipId) {
+    return { ok: false, error: "Missing membership id." };
+  }
+
+  if (matchingMode !== "premium_only" && matchingMode !== "premium_then_standard") {
+    return { ok: false, error: "Invalid matching mode." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, error: "Not authenticated." };
+  }
+
+  const ownerId = await getOwnerIdForUser(user.id, supabase);
+  if (!ownerId) {
+    return { ok: false, error: "Owner record not found." };
+  }
+
+  const { data: membership, error: membershipError } = await supabase
+    .from("owner_memberships")
+    .select("id, owner_id")
+    .eq("id", membershipId)
+    .eq("owner_id", ownerId)
+    .maybeSingle();
+
+  if (membershipError) {
+    return { ok: false, error: membershipError.message };
+  }
+
+  if (!membership) {
+    return { ok: false, error: "Membership not found." };
+  }
+
+  const { error: updateError } = await supabase
+    .from("owner_memberships")
+    .update({
+      matching_mode: matchingMode,
+      allow_standard_rate_fallback: matchingMode === "premium_then_standard",
+      fallback_remind_at: matchingMode === "premium_then_standard" ? null : undefined,
+    })
+    .eq("id", membershipId)
+    .eq("owner_id", ownerId);
+
+  if (updateError) {
+    return { ok: false, error: updateError.message };
+  }
+
+  revalidatePath("/owner/memberships");
+  revalidatePath("/owner/dashboard");
+  return { ok: true };
+}

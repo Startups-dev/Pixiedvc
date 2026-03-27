@@ -136,7 +136,7 @@ export async function getHomeReadyStaysShowcase(limit = 3) {
     return buildHomeFallbackShowcase(limit);
   }
   const rows = await fetchPublicShowcaseRows("placement_home");
-  if (!rows) return buildHomeFallbackShowcase(limit);
+  if (!rows) return [];
   return mapAndLimit(rows, limit);
 }
 
@@ -145,7 +145,7 @@ export async function getResortReadyStaysShowcase(resortSlug: string, limit = 6)
     return getReadyStaysShowcaseForResort(resortSlug, limit);
   }
   const rows = await fetchPublicShowcaseRows("placement_resort", resortSlug);
-  if (!rows) return getReadyStaysShowcaseForResort(resortSlug, limit);
+  if (!rows) return [];
   return mapAndLimit(rows, limit);
 }
 
@@ -154,6 +154,6 @@ export async function getSearchReadyStaysShowcase(limit = 3) {
     return getReadyStaysShowcaseForSearch(limit);
   }
   const rows = await fetchPublicShowcaseRows("placement_search");
-  if (!rows) return getReadyStaysShowcaseForSearch(limit);
+  if (!rows) return [];
   return mapAndLimit(rows, limit);
 }
