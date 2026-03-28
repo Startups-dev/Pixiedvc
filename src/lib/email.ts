@@ -42,6 +42,15 @@ type ReadyStayBookingPackageEmailPayload = {
   transferUrl?: string | null;
 };
 
+type ConciergeHandoffEmailPayload = {
+  conversationId: string;
+  name?: string | null;
+  email?: string | null;
+  message?: string | null;
+  pageUrl?: string | null;
+  source?: 'escalate' | 'handoff';
+};
+
 const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL ?? 'hello@pixiedvc.com';
 
 async function sendResendEmail({
@@ -83,6 +92,30 @@ async function sendResendEmail({
 
 export async function sendPlainEmail({ to, subject, body, context }: { to: string; subject: string; body: string; context: string }) {
   await sendResendEmail({ to, subject, body, context });
+}
+
+export async function sendConciergeHandoffNotification(payload: ConciergeHandoffEmailPayload) {
+  const to = process.env.CONCIERGE_HANDOFF_EMAIL ?? process.env.RESEND_FROM_EMAIL ?? 'hello@pixiedvc.com';
+  const subject = 'New Concierge Request';
+  const body = [
+    'A guest requested concierge support.',
+    '',
+    `Conversation ID: ${payload.conversationId}`,
+    `Source: ${payload.source ?? 'handoff'}`,
+    `Name: ${payload.name?.trim() || '—'}`,
+    `Email: ${payload.email?.trim() || '—'}`,
+    `Page: ${payload.pageUrl?.trim() || '—'}`,
+    '',
+    'Message:',
+    payload.message?.trim() || '—',
+  ].join('\n');
+
+  await sendResendEmail({
+    to,
+    subject,
+    body,
+    context: 'concierge handoff notification',
+  });
 }
 
 export async function sendBookingConfirmationEmail(payload: BookingEmailPayload) {

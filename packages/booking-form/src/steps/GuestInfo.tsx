@@ -65,6 +65,16 @@ function splitCombinedAddress(value: string) {
   };
 }
 
+function looksLikeStructuredAutocompleteAddress(value: string) {
+  const parts = value
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length < 3) return false;
+  const hasPostal = /\b(\d{5}(?:-\d{4})?|[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d)\b/.test(value);
+  return hasPostal || parts.length >= 4;
+}
+
 async function resolvePostalFromGeocoder(address: string) {
   if (typeof window === "undefined") return "";
   const google = (window as Window & { google?: typeof window.google }).google;
@@ -99,7 +109,6 @@ export function GuestInfo({
   const [occupancyError, setOccupancyError] = useState<string | null>(null);
   const occupancyWarningRef = useRef<HTMLDivElement | null>(null);
   const addressRef = useRef<HTMLInputElement>(null);
-  const [addressUnlocked, setAddressUnlocked] = useState(false);
   const villaType = useWatch({ control, name: "trip.villaType" });
   const resortId = useWatch({ control, name: "trip.resortId" });
   const adultGuests = useWatch({ control, name: "guest.adultGuests" }) ?? [];
@@ -258,16 +267,13 @@ export function GuestInfo({
                 render={({ field }) => (
                   <TextInput
                     id="guest.address"
-                    placeholder="Start typing to search..."
-                    autoComplete="off"
-                    name="booking_lookup_address"
+                    placeholder="Street address"
+                    autoComplete="street-address"
                     autoCorrect="off"
-                    autoCapitalize="none"
+                    autoCapitalize="words"
                     spellCheck={false}
                     data-lpignore="true"
                     data-form-type="other"
-                    readOnly={!addressUnlocked}
-                    onFocus={() => setAddressUnlocked(true)}
                     value={field.value ?? ""}
                     onChange={field.onChange}
                     onBlur={async (event) => {
@@ -276,7 +282,7 @@ export function GuestInfo({
                       const currentCity = getValues("guest.city") ?? "";
                       const currentRegion = getValues("guest.region") ?? "";
                       const currentPostal = getValues("guest.postalCode") ?? "";
-                      if (!currentAddress.includes(",")) return;
+                      if (!looksLikeStructuredAutocompleteAddress(currentAddress)) return;
                       if (currentCity && currentRegion && currentPostal) return;
 
                       const split = splitCombinedAddress(currentAddress);
@@ -313,20 +319,20 @@ export function GuestInfo({
               {errors.guest?.address ? (
                 <HelperText>{errors.guest.address.message}</HelperText>
               ) : (
-                <HelperText>Start typing to search.</HelperText>
+                <HelperText>Type your full address manually or choose an autocomplete suggestion.</HelperText>
               )}
             </div>
             <div>
               <FieldLabel htmlFor="guest.city">City</FieldLabel>
-              <TextInput id="guest.city" {...register("guest.city")} />
+              <TextInput id="guest.city" autoComplete="address-level2" {...register("guest.city")} />
             </div>
             <div>
               <FieldLabel htmlFor="guest.region">State / Province</FieldLabel>
-              <TextInput id="guest.region" {...register("guest.region")} />
+              <TextInput id="guest.region" autoComplete="address-level1" {...register("guest.region")} />
             </div>
             <div>
               <FieldLabel htmlFor="guest.postalCode">Postal Code</FieldLabel>
-              <TextInput id="guest.postalCode" {...register("guest.postalCode")} />
+              <TextInput id="guest.postalCode" autoComplete="postal-code" {...register("guest.postalCode")} />
             </div>
 
             <div className="sm:col-span-2 space-y-4">

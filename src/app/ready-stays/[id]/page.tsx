@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { Check } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { Button, Card } from "@pixiedvc/design-system";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { resolveResortImage } from "@/lib/resort-image";
@@ -143,7 +143,10 @@ export default async function ReadyStayDetailPage({
             <details className="group">
               <summary className="flex cursor-pointer items-center justify-between text-sm font-semibold text-ink">
                 How transfer works
-                <span className="text-xs font-semibold text-muted">Expand</span>
+                <ChevronDown
+                  className="h-4 w-4 text-muted transition-transform duration-200 group-open:rotate-180"
+                  aria-hidden="true"
+                />
               </summary>
               <ul className="mt-4 space-y-2 text-sm text-muted">
                 <li>Guest books and signs the transfer agreement.</li>

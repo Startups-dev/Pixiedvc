@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import type { ReadyStayShowcaseItem } from "@/lib/ready-stays/showcase-mock";
+import { resolveResortImage } from "@/lib/resort-image";
 import {
   getReadyStaysShowcaseForHome,
   getReadyStaysShowcaseForResort,
@@ -40,11 +41,34 @@ function daysBetween(startDate: string, endDate: string) {
   return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)));
 }
 
+function isGenericShowcaseImage(url: string) {
+  const normalized = url.trim().toLowerCase();
+  if (!normalized) return true;
+  return (
+    normalized.includes("/main%20page%20ready-stay/") ||
+    normalized.includes("/main page ready-stay/") ||
+    normalized.endsWith("/ready-stay.png") ||
+    normalized.endsWith("/pixiematching.png")
+  );
+}
+
+function resolveShowcaseImageUrl(row: ReadyStayShowcaseRow, resortSlug: string) {
+  const explicitUrl = row.image_url?.trim() ?? "";
+  if (explicitUrl && !isGenericShowcaseImage(explicitUrl)) {
+    return explicitUrl;
+  }
+
+  const derived = resolveResortImage({ resortSlug, imageIndex: 1 }).url;
+  if (derived) return derived;
+
+  return explicitUrl;
+}
+
 function mapShowcaseRow(row: ReadyStayShowcaseRow): ReadyStayShowcaseItem | null {
   const resortSlug = row.resorts?.slug?.trim() ?? "";
   const resortName = row.resorts?.name?.trim() ?? "";
   const title = row.title?.trim() ?? "";
-  const imageUrl = row.image_url?.trim() ?? "";
+  const imageUrl = resolveShowcaseImageUrl(row, resortSlug);
   const slug = row.slug?.trim() ?? "";
   const nights = daysBetween(row.check_in, row.check_out);
   const totalPriceUsd = Math.round((Number(row.guest_price_per_point_cents ?? 0) * Number(row.points ?? 0)) / 100);

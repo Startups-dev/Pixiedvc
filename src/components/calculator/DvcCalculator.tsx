@@ -29,6 +29,8 @@ import {
 import { useReferral } from "@/hooks/useReferral";
 import { appendRefToUrl } from "@/lib/referral";
 
+const ENABLE_PREBOOKING_DINING_PLAN_CALCULATOR = false;
+
 function parseYMDToLocalDate(ymd: string) {
   const [y, m, d] = ymd.split("-").map(Number);
   return new Date(y, (m ?? 1) - 1, d ?? 1);
@@ -87,6 +89,9 @@ export default function DvcCalculator() {
   }, [room, meta]);
 
   useEffect(() => {
+    if (!ENABLE_PREBOOKING_DINING_PLAN_CALCULATOR) {
+      return;
+    }
     if (hasInitialized.current) {
       return;
     }
@@ -114,6 +119,9 @@ export default function DvcCalculator() {
   }, [searchParams]);
 
   useEffect(() => {
+    if (!ENABLE_PREBOOKING_DINING_PLAN_CALCULATOR) {
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     params.set("diningInterested", diningInterested ? "1" : "0");
     params.set("diningPlan", diningPlan);
@@ -386,107 +394,109 @@ export default function DvcCalculator() {
                 <Stat label={`${res.pricingTier} @ $${res.pppUSD}/pt`} value={`$${res.totalUSD.toLocaleString()}`} />
               </div>
 
-              <div className="mt-8 rounded-2xl border border-[#0F2148]/10 bg-white px-4 py-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-[#0F2148]/60">Dining Plan (Optional)</p>
-                    <p className="text-sm text-[#0F2148]/70">
-                      Would you be interested in adding a dining plan to your reservation?
-                    </p>
-                  </div>
-                  <Link
-                    href="/dining-plan"
-                    className="text-sm font-medium text-[#0F2148]/70 hover:underline"
-                  >
-                    What is the Dining Plan?
-                  </Link>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setDiningInterested(false)}
-                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                      diningInterested
-                        ? "border-[#0F2148]/20 text-[#0F2148]/60"
-                        : "border-[#0F2148] text-[#0F2148]"
-                    }`}
-                  >
-                    No, not interested
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDiningInterested(true)}
-                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                      diningInterested
-                        ? "border-[#0F2148] bg-[#0F2148] text-white"
-                        : "border-[#0F2148]/20 text-[#0F2148]/60"
-                    }`}
-                  >
-                    Yes, show dining plan options
-                  </button>
-                </div>
-
-                {diningInterested ? (
-                  <div className="mt-4 grid gap-4 md:grid-cols-4">
-                    <div className="md:col-span-2">
-                      <label className="text-sm font-semibold text-[#0F2148]">Plan</label>
-                      <select
-                        className="mt-2 w-full rounded-2xl border border-[#0F2148]/20 bg-white px-3 py-2 text-sm text-[#0F2148]"
-                        value={diningPlan}
-                        onChange={(event) => setDiningPlan(event.target.value as DiningPlanKey)}
-                      >
-                        <option value="quick">{DINING_PLAN_LABELS.quick}</option>
-                        <option value="standard">{DINING_PLAN_LABELS.standard}</option>
-                      </select>
-                    </div>
+              {ENABLE_PREBOOKING_DINING_PLAN_CALCULATOR ? (
+                <div className="mt-8 rounded-2xl border border-[#0F2148]/10 bg-white px-4 py-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <label className="text-sm font-semibold text-[#0F2148]">Adults (10+)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="mt-2 w-full rounded-2xl border border-[#0F2148]/20 bg-white px-3 py-2 text-sm text-[#0F2148]"
-                        value={diningAdults}
-                        onChange={(event) => setDiningAdults(Math.max(0, Number(event.target.value)))}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-semibold text-[#0F2148]">Children (3–9)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="mt-2 w-full rounded-2xl border border-[#0F2148]/20 bg-white px-3 py-2 text-sm text-[#0F2148]"
-                        value={diningChildren}
-                        onChange={(event) => setDiningChildren(Math.max(0, Number(event.target.value)))}
-                      />
-                    </div>
-
-                    <div className="md:col-span-4 space-y-1 text-sm text-[#0F2148]/75">
-                      <p>
-                        Estimated dining plan cost for your stay:{" "}
-                        <span className="font-semibold text-[#0F2148]">
-                          {new Intl.NumberFormat("en-US", {
-                            style: "currency",
-                            currency: "USD",
-                            maximumFractionDigits: 0,
-                          }).format(
-                            calculateDiningTotal({
-                              nights,
-                              plan: diningPlan,
-                              adults: diningAdults,
-                              children: diningChildren,
-                            }),
-                          )}
-                        </span>
-                      </p>
-                      <p className="text-xs text-[#0F2148]/60">
-                        Dining Plans are added after your reservation is secured; final pricing is set by Disney and may
-                        change.
+                      <p className="text-xs uppercase tracking-[0.2em] text-[#0F2148]/60">Dining Plan (Optional)</p>
+                      <p className="text-sm text-[#0F2148]/70">
+                        Would you be interested in adding a dining plan to your reservation?
                       </p>
                     </div>
+                    <Link
+                      href="/dining-plan"
+                      className="text-sm font-medium text-[#0F2148]/70 hover:underline"
+                    >
+                      What is the Dining Plan?
+                    </Link>
                   </div>
-                ) : null}
-              </div>
+
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setDiningInterested(false)}
+                      className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                        diningInterested
+                          ? "border-[#0F2148]/20 text-[#0F2148]/60"
+                          : "border-[#0F2148] text-[#0F2148]"
+                      }`}
+                    >
+                      No, not interested
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDiningInterested(true)}
+                      className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                        diningInterested
+                          ? "border-[#0F2148] bg-[#0F2148] text-white"
+                          : "border-[#0F2148]/20 text-[#0F2148]/60"
+                      }`}
+                    >
+                      Yes, show dining plan options
+                    </button>
+                  </div>
+
+                  {diningInterested ? (
+                    <div className="mt-4 grid gap-4 md:grid-cols-4">
+                      <div className="md:col-span-2">
+                        <label className="text-sm font-semibold text-[#0F2148]">Plan</label>
+                        <select
+                          className="mt-2 w-full rounded-2xl border border-[#0F2148]/20 bg-white px-3 py-2 text-sm text-[#0F2148]"
+                          value={diningPlan}
+                          onChange={(event) => setDiningPlan(event.target.value as DiningPlanKey)}
+                        >
+                          <option value="quick">{DINING_PLAN_LABELS.quick}</option>
+                          <option value="standard">{DINING_PLAN_LABELS.standard}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-semibold text-[#0F2148]">Adults (10+)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          className="mt-2 w-full rounded-2xl border border-[#0F2148]/20 bg-white px-3 py-2 text-sm text-[#0F2148]"
+                          value={diningAdults}
+                          onChange={(event) => setDiningAdults(Math.max(0, Number(event.target.value)))}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-semibold text-[#0F2148]">Children (3–9)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          className="mt-2 w-full rounded-2xl border border-[#0F2148]/20 bg-white px-3 py-2 text-sm text-[#0F2148]"
+                          value={diningChildren}
+                          onChange={(event) => setDiningChildren(Math.max(0, Number(event.target.value)))}
+                        />
+                      </div>
+
+                      <div className="md:col-span-4 space-y-1 text-sm text-[#0F2148]/75">
+                        <p>
+                          Estimated dining plan cost for your stay:{" "}
+                          <span className="font-semibold text-[#0F2148]">
+                            {new Intl.NumberFormat("en-US", {
+                              style: "currency",
+                              currency: "USD",
+                              maximumFractionDigits: 0,
+                            }).format(
+                              calculateDiningTotal({
+                                nights,
+                                plan: diningPlan,
+                                adults: diningAdults,
+                                children: diningChildren,
+                              }),
+                            )}
+                          </span>
+                        </p>
+                        <p className="text-xs text-[#0F2148]/60">
+                          Dining Plans are added after your reservation is secured; final pricing is set by Disney and may
+                          change.
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div className="mt-6 rounded-3xl border border-[#0F2148]/15 bg-[#0F2148]/5 p-6">
                 <h3 className="text-lg font-semibold text-[#0F2148]">Your stay summary</h3>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { sendConciergeHandoffNotification } from "@/lib/email";
 import { createServiceClient } from "@/lib/supabase-service-client";
 
 export async function POST(request: Request) {
@@ -65,6 +66,16 @@ export async function POST(request: Request) {
       : null;
 
   if (!assignedAgentUserId) {
+    await sendConciergeHandoffNotification({
+      conversationId: conversation.id,
+      name,
+      email: body?.email ?? null,
+      message: message ?? lastGuestMessageFromTranscript(transcript),
+      pageUrl,
+      source: "handoff",
+    }).catch((error) => {
+      console.warn("[support/handoff] notification failed", error);
+    });
     return NextResponse.json(
       {
         ok: true,
@@ -75,10 +86,32 @@ export async function POST(request: Request) {
     );
   }
 
+  await sendConciergeHandoffNotification({
+    conversationId: conversation.id,
+    name,
+    email: body?.email ?? null,
+    message: message ?? lastGuestMessageFromTranscript(transcript),
+    pageUrl,
+    source: "handoff",
+  }).catch((error) => {
+    console.warn("[support/handoff] notification failed", error);
+  });
+
   return NextResponse.json({
     ok: true,
     assigned: true,
     conversationId: conversation.id,
     agentUserId: assignedAgentUserId,
   });
+}
+
+function lastGuestMessageFromTranscript(transcript: unknown) {
+  if (!Array.isArray(transcript)) return null;
+  for (let i = transcript.length - 1; i >= 0; i -= 1) {
+    const item = transcript[i] as { role?: string; content?: string } | null;
+    if (item?.role === "user" && typeof item.content === "string" && item.content.trim()) {
+      return item.content.trim();
+    }
+  }
+  return null;
 }

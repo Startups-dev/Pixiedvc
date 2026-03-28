@@ -62,8 +62,20 @@ const RESORTS_BY_CODE: Record<string, ResortImageSpec> = {
 // Slugs can vary; keep mapping conservative and extend as you see real slugs in DB.
 // Keys should be normalized to lowercase.
 const RESORTS_BY_SLUG: Record<string, ResortImageSpec> = {
-  "aulani-disney-vacation-club-villas": RESORTS_BY_CODE.AUL,
+  "animal-kingdom-villas": RESORTS_BY_CODE.AKV,
+  "aulani": RESORTS_BY_CODE.AUL,
   "bay-lake-tower": RESORTS_BY_CODE.BLT,
+  "beach-club-villas": RESORTS_BY_CODE.BCV,
+  "boardwalk-villas": RESORTS_BY_CODE.BWV,
+  "boulder-ridge-villas": RESORTS_BY_CODE.BRV,
+  "copper-creek-villas": RESORTS_BY_CODE.CCV,
+  "grand-floridian-villas": RESORTS_BY_CODE.VGF,
+  "old-key-west": RESORTS_BY_CODE.OKW,
+  "polynesian-villas": RESORTS_BY_CODE.PVB,
+  "riviera-resort": RESORTS_BY_CODE.RIV,
+  "saratoga-springs": RESORTS_BY_CODE.SSR,
+  "vero-beach": RESORTS_BY_CODE.VB,
+  "aulani-disney-vacation-club-villas": RESORTS_BY_CODE.AUL,
   "disney-s-animal-kingdom-villas-kidani-village": RESORTS_BY_CODE.AKV,
   "disney-s-animal-kingdom-villas-jambo-house": RESORTS_BY_CODE.AKL,
   "disney-s-beach-club-villas": RESORTS_BY_CODE.BCV,
@@ -77,7 +89,6 @@ const RESORTS_BY_SLUG: Record<string, ResortImageSpec> = {
   "disney-s-vero-beach-resort": RESORTS_BY_CODE.VB,
   "the-villas-at-disneyland-hotel": RESORTS_BY_CODE.VDH,
   "the-villas-at-disney-s-grand-californian-hotel-spa": RESORTS_BY_CODE.VGC,
-  "grand-floridian-villas": RESORTS_BY_CODE.VGF,
 };
 
 function clampImageIndex(n: unknown): number {
@@ -143,4 +154,3 @@ export function resolveResortImage(params: {
     url: buildPublicUrl(fallbackPath),
   };
 }
-

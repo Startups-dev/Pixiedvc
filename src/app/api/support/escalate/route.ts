@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { sendConciergeHandoffNotification } from "@/lib/email";
 import { createServiceClient } from "@/lib/supabase-service-client";
 
 export async function POST(request: Request) {
@@ -14,6 +15,7 @@ export async function POST(request: Request) {
   const supabase = createServiceClient();
 
   let conversation = conversationId;
+  let createdConversation = false;
 
   if (!conversation) {
     const { data, error } = await supabase
@@ -38,6 +40,7 @@ export async function POST(request: Request) {
     }
 
     conversation = data.id;
+    createdConversation = true;
   } else {
     await supabase
       .from("support_conversations")
@@ -87,6 +90,18 @@ export async function POST(request: Request) {
     assignment && assignment.length > 0
       ? assignment[0].assigned_agent_user_id
       : null;
+
+  if (createdConversation) {
+    await sendConciergeHandoffNotification({
+      conversationId: conversation,
+      email: guestEmail,
+      message: lastUserMessage,
+      pageUrl,
+      source: "escalate",
+    }).catch((error) => {
+      console.warn("[support/escalate] notification failed", error);
+    });
+  }
 
   if (assignedAgentUserId) {
     await supabase.from("support_messages").insert({

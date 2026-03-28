@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase";
 
 type SupportSource = {
   slug: string;
@@ -162,6 +163,42 @@ export default function SupportPanel({
   useEffect(() => {
     if (typeof window === "undefined") return;
     setPathname(window.location.pathname);
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    const supabase = createClient();
+    void supabase.auth.getUser().then(async ({ data }) => {
+      if (!alive || !data?.user) return;
+      const email = data.user.email ?? "";
+      const metadataName =
+        (typeof data.user.user_metadata?.full_name === "string" && data.user.user_metadata.full_name.trim()) ||
+        (typeof data.user.user_metadata?.name === "string" && data.user.user_metadata.name.trim()) ||
+        "";
+      let profileName = "";
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, display_name")
+        .eq("id", data.user.id)
+        .maybeSingle();
+      if (profile) {
+        profileName =
+          (typeof (profile as { full_name?: string | null }).full_name === "string" &&
+            (profile as { full_name?: string | null }).full_name?.trim()) ||
+          (typeof (profile as { display_name?: string | null }).display_name === "string" &&
+            (profile as { display_name?: string | null }).display_name?.trim()) ||
+          "";
+      }
+      const resolvedName = profileName || metadataName;
+      setHandoffForm((prev) => ({
+        ...prev,
+        name: prev.name || resolvedName,
+        email: prev.email || email,
+      }));
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   function handleListScroll() {
@@ -641,18 +678,22 @@ export default function SupportPanel({
         role: msg.role,
         content: msg.content,
       }));
-      const response = await fetch("/api/support/handoff", {
+      const response = await fetch("/api/concierge/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          conversationId,
           name: handoffForm.name || null,
           email: handoffForm.email || null,
           topic: handoffForm.topic || null,
           message: handoffForm.phone
             ? `Phone: ${handoffForm.phone}\n${handoffForm.message}`
             : handoffForm.message,
-          transcript: transcriptPayload,
-          pageUrl: typeof window !== "undefined" ? window.location.href : "",
+          context: {
+            transcript: transcriptPayload,
+            category: category || null,
+          },
+          source_page: typeof window !== "undefined" ? window.location.href : "",
         }),
       });
       const data = await response.json();
@@ -670,7 +711,8 @@ export default function SupportPanel({
         ...prev,
         {
           role: "assistant",
-          content: "Thanks! A Pixie Concierge will follow up shortly.",
+          content:
+            "Your concierge request has been received. We’ll follow up soon.",
           senderLabel: "Pixie Concierge",
         },
       ]);
@@ -834,13 +876,19 @@ export default function SupportPanel({
                 </button>
               </div>
               <div className="flex items-center justify-start">
+                <span className={`text-xs ${theme.muted} mr-2`}>
+                  Prefer a human?
+                </span>
                 <button
                   type="button"
-                  onClick={requestConcierge}
+                  onClick={() => {
+                    setShowFollowUpChoice(false);
+                    setShowContactForm(true);
+                  }}
                   className={`text-xs font-semibold ${theme.muted}`}
                   disabled={handoffStatus === "sending"}
                 >
-                  Talk to a Concierge
+                  Request concierge help
                 </button>
               </div>
             </div>

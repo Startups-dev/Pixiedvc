@@ -10,6 +10,7 @@ type AgreementProps = {
   onBack: () => void;
   onSubmit: () => void;
   estimatedDeposit: number;
+  showCaptchaField?: boolean;
 };
 
 type FormValues = {
@@ -21,7 +22,12 @@ const gatewayTabs: { id: AgreementInput["gateway"]; label: string; description: 
   { id: "paypal", label: "PayPal", description: "Use your PayPal balance or linked account." },
 ];
 
-export function AgreementAndPayment({ onBack, onSubmit, estimatedDeposit }: AgreementProps) {
+export function AgreementAndPayment({
+  onBack,
+  onSubmit,
+  estimatedDeposit,
+  showCaptchaField = false,
+}: AgreementProps) {
   const {
     register,
     setValue,
@@ -51,6 +57,17 @@ export function AgreementAndPayment({ onBack, onSubmit, estimatedDeposit }: Agre
             Deposits are fully refundable if PixieDVC cannot match you with a qualifying owner inside the
             service window.
           </p>
+          {showCaptchaField ? (
+            <div>
+              <FieldLabel htmlFor="agreement.captchaToken">Security Check</FieldLabel>
+              <TextArea
+                id="agreement.captchaToken"
+                rows={2}
+                placeholder="reCAPTCHA token placeholder — wired in production"
+                {...register("agreement.captchaToken")}
+              />
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-6 space-y-6">
@@ -108,15 +125,6 @@ export function AgreementAndPayment({ onBack, onSubmit, estimatedDeposit }: Agre
             </p>
           </div>
 
-          <div>
-            <FieldLabel htmlFor="agreement.captchaToken">Security Check</FieldLabel>
-            <TextArea
-              id="agreement.captchaToken"
-              rows={2}
-              placeholder="reCAPTCHA token placeholder — wired in production"
-              {...register("agreement.captchaToken")}
-            />
-          </div>
         </div>
 
         {errors.agreement && !errors.agreement?.signedName ? (

@@ -42,7 +42,12 @@ export default async function BookingPage({
   return (
     <div className="min-h-screen bg-surface text-ink">
       <main className="mx-auto max-w-5xl px-6 py-20">
-        <BookingFlowClient prefill={fallbackPrefill} resorts={resorts} quoteToken={quoteToken} />
+        <BookingFlowClient
+          prefill={fallbackPrefill}
+          resorts={resorts}
+          quoteToken={quoteToken}
+          hideDepositBadge
+        />
       </main>
     </div>
   );

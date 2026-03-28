@@ -298,8 +298,12 @@ export default function HeaderClient({
   }, []);
 
   const handleChat = useCallback(() => {
-    openIntercom();
-  }, []);
+    const opened = openIntercom();
+    setOpenDropdown(null);
+    if (!opened) {
+      router.push("/support");
+    }
+  }, [router]);
   const ownerJoinHref = "/owner/onboarding";
   const ownerPortalHref = isAuthenticated
     ? "/owner/dashboard"
@@ -329,7 +333,7 @@ export default function HeaderClient({
 
   return (
     <header className="relative z-[100] w-full overflow-visible">
-      <div className="w-full border-b border-white/10 bg-[#0f2148]">
+      <div className="w-full border-b border-white/10 bg-[#0f2148] pt-4">
         <div className="mx-auto flex h-[80px] w-full max-w-[1200px] items-center px-4 md:px-6">
           <div className="shrink-0">
             <div className="logo-overlay">

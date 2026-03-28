@@ -18,7 +18,10 @@ import {
   AgreementInput,
   GuestInfoInput,
   TripDetailsInput,
+  agreementSchema,
   bookingFlowSchema,
+  guestInfoSchema,
+  tripDetailsSchema,
 } from "./schemas";
 
 const depositAmount = 99;
@@ -48,6 +51,12 @@ type GuestBookingDraft = {
     agreement?: AgreementInput;
     referralCode?: string;
   };
+};
+
+type BookingCreateErrorPayload = {
+  error?: string;
+  step?: StepKey;
+  fieldErrors?: Record<string, string>;
 };
 
 const motionVariants = {
@@ -265,9 +274,88 @@ export function BookingFlow({
   const nextStep = () => setStepIndex((i) => Math.min(i + 1, stepOrder.length - 1));
   const prevStep = () => setStepIndex((i) => Math.max(i - 1, 0));
 
+  const getStepLabel = (step: StepKey) => {
+    switch (step) {
+      case "trip":
+        return "Trip details";
+      case "guest":
+        return "Guest information";
+      case "agreement":
+        return "Agreement & payment";
+      default:
+        return "this step";
+    }
+  };
+
+  const focusAndScrollToInvalid = () => {
+    if (typeof window === "undefined") return;
+    requestAnimationFrame(() => {
+      const active = document.activeElement as HTMLElement | null;
+      if (active && active !== document.body) {
+        active.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      const firstInvalid = document.querySelector<HTMLElement>(
+        "[aria-invalid='true'], input:invalid, textarea:invalid, select:invalid",
+      );
+      if (firstInvalid) {
+        firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+        firstInvalid.focus();
+      }
+    });
+  };
+
+  const applyFieldErrors = (
+    fieldErrors: Record<string, string>,
+    fallbackStep: StepKey = currentStep,
+  ) => {
+    let targetStep: StepKey | null = null;
+    let first = true;
+    Object.entries(fieldErrors).forEach(([path, message]) => {
+      const firstSegment = path.split(".")[0] as StepKey;
+      if (!targetStep && (firstSegment === "trip" || firstSegment === "guest" || firstSegment === "agreement")) {
+        targetStep = firstSegment;
+      }
+      form.setError(path as never, { type: "manual", message }, { shouldFocus: first });
+      first = false;
+    });
+    const resolvedStep = targetStep ?? fallbackStep;
+    const stepIndexToSet = stepOrder.indexOf(resolvedStep);
+    if (stepIndexToSet >= 0) {
+      setStepIndex(stepIndexToSet);
+    }
+    setError(`Please complete required fields in ${getStepLabel(resolvedStep)}.`);
+    focusAndScrollToInvalid();
+  };
+
+  const validateStep = async (step: StepKey) => {
+    const value = form.getValues(step) as unknown;
+    const schema =
+      step === "trip"
+        ? tripDetailsSchema
+        : step === "guest"
+          ? guestInfoSchema
+          : agreementSchema;
+    const parsed = schema.safeParse(value);
+    if (!parsed.success) {
+      const fieldErrors: Record<string, string> = {};
+      parsed.error.issues.forEach((issue) => {
+        const pathParts = [step, ...issue.path.map((part) => String(part))];
+        const fieldPath = pathParts.join(".");
+        fieldErrors[fieldPath] = issue.message || "This field is required.";
+      });
+      applyFieldErrors(fieldErrors, step);
+      return false;
+    }
+    return true;
+  };
+
   const handleComplete = form.handleSubmit(async (values) => {
     setError(null);
     try {
+      if (!(await validateStep("agreement"))) {
+        return;
+      }
       const maxOccupancy = getMaxOccupancyForSelection({
         roomLabel: values.trip.villaType,
         resortCode: values.trip.resortId,
@@ -377,7 +465,19 @@ export function BookingFlow({
       });
 
       if (!response.ok) {
-        throw new Error("Something went wrong creating your booking draft.");
+        const payload = (await response.json().catch(() => null)) as BookingCreateErrorPayload | null;
+        if (payload?.fieldErrors && Object.keys(payload.fieldErrors).length > 0) {
+          applyFieldErrors(payload.fieldErrors, payload.step ?? "guest");
+          return;
+        }
+        if (payload?.step) {
+          const stepIndexToSet = stepOrder.indexOf(payload.step);
+          if (stepIndexToSet >= 0) setStepIndex(stepIndexToSet);
+          setError(payload.error ?? `Please complete required fields in ${getStepLabel(payload.step)}.`);
+          focusAndScrollToInvalid();
+          return;
+        }
+        throw new Error(payload?.error ?? "Something went wrong creating your booking draft.");
       }
 
       const json = (await response.json()) as { bookingId: string };
@@ -430,7 +530,18 @@ export function BookingFlow({
       onComplete(json.bookingId);
     } catch (err) {
       if (err instanceof ZodError) {
-        setError("Please fix the highlighted fields and try again.");
+        const fieldErrors: Record<string, string> = {};
+        err.issues.forEach((issue) => {
+          const path = issue.path.map((part) => String(part)).join(".");
+          if (path) {
+            fieldErrors[path] = issue.message || "This field is required.";
+          }
+        });
+        if (Object.keys(fieldErrors).length > 0) {
+          applyFieldErrors(fieldErrors, "guest");
+          return;
+        }
+        setError("Please complete the required fields before submitting.");
         return;
       }
       console.error(err);
@@ -482,7 +593,6 @@ export function BookingFlow({
         {error ? (
           <Card className="border border-[#dc2626] bg-[#fee2e2] text-[#7f1d1d]">
             <p className="font-semibold">{error}</p>
-            <p className="text-sm">Please fix the highlighted fields and try again.</p>
           </Card>
         ) : null}
 
@@ -496,11 +606,24 @@ export function BookingFlow({
             transition={{ duration: 0.35, ease: "easeOut" }}
           >
             {currentStep === "trip" ? (
-              <TripDetails onNext={nextStep} resorts={resorts} />
+              <TripDetails
+                onNext={async () => {
+                  setError(null);
+                  form.clearErrors("trip");
+                  const ok = await validateStep("trip");
+                  if (!ok) return;
+                  nextStep();
+                }}
+                resorts={resorts}
+              />
             ) : currentStep === "guest" ? (
               <GuestInfo
                 onBack={prevStep}
                 onNext={async () => {
+                  setError(null);
+                  form.clearErrors("guest");
+                  const ok = await validateStep("guest");
+                  if (!ok) return;
                   if (onGuestInfoSubmit) {
                     await onGuestInfoSubmit(form.getValues("guest"));
                     return;
@@ -516,7 +639,12 @@ export function BookingFlow({
                 onSignInClick={onSignInClick}
               />
             ) : (
-              <AgreementAndPayment onBack={prevStep} onSubmit={handleComplete} estimatedDeposit={depositAmount} />
+              <AgreementAndPayment
+                onBack={prevStep}
+                onSubmit={handleComplete}
+                estimatedDeposit={depositAmount}
+                showCaptchaField={isReadyStaysFlow}
+              />
             )}
           </motion.div>
         </AnimatePresence>
