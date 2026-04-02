@@ -26,6 +26,16 @@ type SupportPanelProps = {
   className?: string;
 };
 
+type TwilioWindow = Window & {
+  Twilio?: {
+    Conversations?: {
+      Client: {
+        create: (token: string) => Promise<unknown>;
+      };
+    };
+  };
+};
+
 type SupportChatStreamEvent = {
   type?: "start" | "chunk" | "done";
   text?: string;
@@ -54,7 +64,7 @@ export default function SupportPanel({
   const [category, setCategory] = useState("");
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [handoffConnected, setHandoffConnected] = useState(false);
-  const [noAgentAvailable, setNoAgentAvailable] = useState(false);
+  const [liveChatActive, setLiveChatActive] = useState(false);
   const [showFollowUpChoice, setShowFollowUpChoice] = useState(false);
   const [showContactForm, setShowContactForm] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -71,6 +81,7 @@ export default function SupportPanel({
   });
   const listRef = useRef<HTMLDivElement | null>(null);
   const shouldStickToBottomRef = useRef(true);
+  const conversationPollInFlightRef = useRef(false);
 
   const isNearBottom = (container: HTMLDivElement) =>
     container.scrollHeight - container.scrollTop - container.clientHeight < 100;
@@ -165,6 +176,53 @@ export default function SupportPanel({
     setPathname(window.location.pathname);
   }, []);
 
+  function openConciergeFallbackForm() {
+    setShowFollowUpChoice(false);
+    setShowContactForm(true);
+    setTimeout(() => scrollToBottom("smooth"), 0);
+  }
+
+  async function initializeTwilioClient(nextConversationId: string) {
+    const tokenResponse = await fetch(
+      `/api/support/live/token?conversationId=${encodeURIComponent(nextConversationId)}`,
+    );
+    if (!tokenResponse.ok) {
+      throw new Error("live_token_unavailable");
+    }
+    const tokenPayload = (await tokenResponse.json()) as { token?: string };
+    if (!tokenPayload.token) {
+      throw new Error("missing_live_token");
+    }
+
+    const twilioWindow = window as TwilioWindow;
+    if (!twilioWindow.Twilio?.Conversations?.Client) {
+      await new Promise<void>((resolve, reject) => {
+        const existingScript = document.getElementById("twilio-conversations-sdk");
+        if (existingScript) {
+          existingScript.addEventListener("load", () => resolve(), { once: true });
+          existingScript.addEventListener("error", () => reject(new Error("twilio_sdk_load_failed")), {
+            once: true,
+          });
+          return;
+        }
+        const script = document.createElement("script");
+        script.id = "twilio-conversations-sdk";
+        script.src = "https://media.twiliocdn.com/sdk/js/conversations/v2.5/twilio-conversations.min.js";
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error("twilio_sdk_load_failed"));
+        document.body.appendChild(script);
+      });
+    }
+
+    if (!twilioWindow.Twilio?.Conversations?.Client) {
+      throw new Error("twilio_sdk_missing");
+    }
+
+    await twilioWindow.Twilio.Conversations.Client.create(tokenPayload.token);
+    setLiveChatActive(true);
+  }
+
   useEffect(() => {
     let alive = true;
     const supabase = createClient();
@@ -209,10 +267,16 @@ export default function SupportPanel({
     setShowScrollButton(!nearBottom);
   }
 
+  const shouldPollConversation =
+    Boolean(conversationId) &&
+    liveChatActive;
+
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || !shouldPollConversation) return;
     let alive = true;
     const poll = async () => {
+      if (conversationPollInFlightRef.current) return;
+      conversationPollInFlightRef.current = true;
       try {
         const response = await fetch(
           `/api/support/conversation?conversationId=${conversationId}`,
@@ -245,7 +309,6 @@ export default function SupportPanel({
         );
         if (nextMessages.some((msg) => msg.senderLabel === "Concierge")) {
           setHandoffConnected(true);
-          setNoAgentAvailable(false);
         }
         setMessages((prev) => {
           const seen = new Set(prev.map((msg) => msg.id).filter(Boolean));
@@ -259,15 +322,18 @@ export default function SupportPanel({
         });
       } catch (error) {
         // ignore polling errors
+      } finally {
+        conversationPollInFlightRef.current = false;
       }
     };
-    const interval = setInterval(poll, 4000);
+    const interval = setInterval(poll, 8000);
     void poll();
     return () => {
       alive = false;
       clearInterval(interval);
+      conversationPollInFlightRef.current = false;
     };
-  }, [conversationId]);
+  }, [conversationId, shouldPollConversation, liveChatActive]);
 
   function buildClientFallbackAnswer(
     query: string,
@@ -384,6 +450,37 @@ export default function SupportPanel({
   async function sendMessage() {
     const trimmed = input.trim();
     if (!trimmed || loading) return;
+
+    if (handoffConnected && liveChatActive && conversationId) {
+      setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
+      setInput("");
+      setLoading(true);
+      try {
+        const response = await fetch("/api/support/live/message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ conversationId, content: trimmed }),
+        });
+        if (!response.ok) {
+          throw new Error("live_message_failed");
+        }
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content:
+              "Live chat is temporarily unavailable. Please share your details below and we’ll follow up.",
+            senderLabel: "Pixie Concierge",
+          },
+        ]);
+        openConciergeFallbackForm();
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     const pendingId = `pending-assistant-${Date.now()}`;
     const requestMessages: SupportMessage[] = [
       ...messages,
@@ -568,7 +665,6 @@ export default function SupportPanel({
         setConversationId(data.conversationId);
       }
       setHandoffConnected(Boolean(data?.assigned));
-      setNoAgentAvailable(Boolean(data?.noAgentAvailable));
       setHandoffStatus("sent");
     } catch (error) {
       setHandoffStatus("idle");
@@ -601,18 +697,15 @@ export default function SupportPanel({
       });
       const data = await response.json();
       if (!response.ok) {
-        setNoAgentAvailable(true);
+        setLiveChatActive(false);
         setHandoffConnected(false);
-        setShowFollowUpChoice(true);
-        setShowContactForm(false);
+        openConciergeFallbackForm();
         setMessages((prev) => [
           ...prev,
           {
             role: "assistant",
-            content:
-              "✨ Our concierge desk is busy at the moment. Would you like us to follow up with you shortly?",
+            content: "I’ll connect you with a concierge. Please share a few details below.",
             senderLabel: "Pixie Concierge",
-            action: "followup-choice",
           },
         ]);
         setHandoffStatus("idle");
@@ -622,50 +715,102 @@ export default function SupportPanel({
         setConversationId(data.conversationId);
       }
       setHandoffConnected(Boolean(data?.assigned));
-      setNoAgentAvailable(Boolean(data?.noAgentAvailable));
       if (data?.assigned) {
         setShowFollowUpChoice(false);
         setShowContactForm(false);
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content:
-              "You’re connected to a Pixie Concierge. They’ll reply here shortly.",
-            senderLabel: "Pixie Concierge",
-          },
-        ]);
+        if (data?.liveEnabled && data?.conversationId) {
+          try {
+            await initializeTwilioClient(data.conversationId);
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "assistant",
+                content:
+                  "You’re connected to a Pixie Concierge. You can message them live now.",
+                senderLabel: "Pixie Concierge",
+              },
+            ]);
+          } catch {
+            setLiveChatActive(false);
+            setHandoffConnected(false);
+            openConciergeFallbackForm();
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "assistant",
+                content: "I’ll connect you with a concierge. Please share a few details below.",
+                senderLabel: "Pixie Concierge",
+              },
+            ]);
+          }
+        } else {
+          setLiveChatActive(false);
+          setHandoffConnected(false);
+          openConciergeFallbackForm();
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: "I’ll connect you with a concierge. Please share a few details below.",
+              senderLabel: "Pixie Concierge",
+            },
+          ]);
+        }
       } else {
-        setShowFollowUpChoice(true);
-        setShowContactForm(false);
+        setLiveChatActive(false);
+        openConciergeFallbackForm();
         setMessages((prev) => [
           ...prev,
           {
             role: "assistant",
-            content:
-              "✨ Our concierge desk is busy at the moment. Would you like us to follow up with you shortly?",
+            content: "I’ll connect you with a concierge. Please share a few details below.",
             senderLabel: "Pixie Concierge",
-            action: "followup-choice",
           },
         ]);
       }
       setHandoffStatus("idle");
     } catch (error) {
-      setNoAgentAvailable(true);
+      setLiveChatActive(false);
       setHandoffConnected(false);
-      setShowFollowUpChoice(true);
-      setShowContactForm(false);
+      openConciergeFallbackForm();
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content:
-            "✨ Our concierge desk is busy at the moment. Would you like us to follow up with you shortly?",
+          content: "I’ll connect you with a concierge. Please share a few details below.",
           senderLabel: "Pixie Concierge",
-          action: "followup-choice",
         },
       ]);
       setHandoffStatus("idle");
+    }
+  }
+
+  async function endConversation() {
+    if (!conversationId) return;
+    try {
+      await fetch("/api/support/conversation/close", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId }),
+      });
+    } catch {
+      // best-effort close
+    } finally {
+      setLiveChatActive(false);
+      setHandoffConnected(false);
+      setShowContactForm(false);
+      setShowFollowUpChoice(false);
+      setHandoffStatus("idle");
+      setConversationId(null);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "This conversation has been closed. Start a new message anytime.",
+          senderLabel: "Pixie Concierge",
+        },
+      ]);
+      setTimeout(() => scrollToBottom("smooth"), 0);
     }
   }
 
@@ -781,8 +926,20 @@ export default function SupportPanel({
                 </div>
               )}
               {!isUser && message.handoffSuggested && (
-                <div className={`text-xs ${theme.muted}`}>
-                  If you need help with a specific booking or account issue, you can request a concierge below.
+                <div className="space-y-2">
+                  <div className={`text-xs ${theme.muted}`}>
+                    If you need help with a specific booking or account issue, you can request a concierge below.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void requestConcierge();
+                    }}
+                    className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-100"
+                    disabled={handoffStatus === "sending"}
+                  >
+                    I want to speak to a human
+                  </button>
                 </div>
               )}
             </div>
@@ -882,14 +1039,24 @@ export default function SupportPanel({
                 <button
                   type="button"
                   onClick={() => {
-                    setShowFollowUpChoice(false);
-                    setShowContactForm(true);
+                    void requestConcierge();
                   }}
                   className={`text-xs font-semibold ${theme.muted}`}
                   disabled={handoffStatus === "sending"}
                 >
                   Request concierge help
                 </button>
+                {(handoffConnected || liveChatActive) ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void endConversation();
+                    }}
+                    className="ml-3 text-xs font-semibold text-rose-400 hover:text-rose-300"
+                  >
+                    End chat
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>

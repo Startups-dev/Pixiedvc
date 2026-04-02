@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { createClient } from "@/lib/supabase";
 
@@ -18,6 +18,19 @@ type SupportMessage = {
   created_at: string;
 };
 
+type AgentAvailabilityStatus = {
+  ok: boolean;
+  isAdmin?: boolean;
+  isSupportAgent?: boolean;
+  profileRole?: string | null;
+  appRole?: string | null;
+  isOnline?: boolean;
+  isActive?: boolean;
+  maxConcurrent?: number;
+  openChats?: number;
+  canReceiveLiveChats?: boolean;
+};
+
 export default function SupportAgentDashboard() {
   const supabase = useMemo(() => createClient(), []);
   const [userId, setUserId] = useState<string | null>(null);
@@ -30,6 +43,63 @@ export default function SupportAgentDashboard() {
   );
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [reply, setReply] = useState("");
+  const [agentStatusNote, setAgentStatusNote] = useState<string | null>(null);
+  const [availabilityStatus, setAvailabilityStatus] = useState<AgentAvailabilityStatus | null>(null);
+  const [audioReady, setAudioReady] = useState(false);
+  const [newAssignedIds, setNewAssignedIds] = useState<Record<string, true>>({});
+  const [activeUnreadCount, setActiveUnreadCount] = useState(0);
+  const [conversationOpenAt, setConversationOpenAt] = useState<Record<string, number>>({});
+  const [lastAgentReplyAt, setLastAgentReplyAt] = useState<Record<string, number>>({});
+  const assignedInitializedRef = useRef(false);
+  const seenAssignedRef = useRef(new Set<string>());
+  const lastRingAtRef = useRef(0);
+  const messageIdsByConversationRef = useRef(new Map<string, Set<string>>());
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const conversationOpenAtRef = useRef<Record<string, number>>({});
+  const lastAgentReplyAtRef = useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    conversationOpenAtRef.current = conversationOpenAt;
+  }, [conversationOpenAt]);
+
+  useEffect(() => {
+    lastAgentReplyAtRef.current = lastAgentReplyAt;
+  }, [lastAgentReplyAt]);
+
+  const ring = useCallback(() => {
+    const now = Date.now();
+    if (!audioReady) return;
+    if (now - lastRingAtRef.current < 1200) return;
+    lastRingAtRef.current = now;
+    try {
+      const AudioCtx =
+        (window as Window & { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext })
+          .AudioContext ??
+        (window as Window & { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = audioContextRef.current ?? new AudioCtx();
+      audioContextRef.current = ctx;
+      const playTone = (frequency: number, delay: number) => {
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.value = frequency;
+        gain.gain.value = 0.0001;
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+        const start = ctx.currentTime + delay;
+        gain.gain.exponentialRampToValueAtTime(0.08, start + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
+        oscillator.start(start);
+        oscillator.stop(start + 0.2);
+      };
+      playTone(880, 0);
+      playTone(660, 0.17);
+    } catch {
+      // no-op
+    }
+  }, [audioReady]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -40,20 +110,34 @@ export default function SupportAgentDashboard() {
   }, [supabase]);
 
   useEffect(() => {
+    if (audioReady) return;
+    const unlockAudio = () => {
+      setAudioReady(true);
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+    };
+    window.addEventListener("pointerdown", unlockAudio);
+    window.addEventListener("keydown", unlockAudio);
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+    };
+  }, [audioReady]);
+
+  useEffect(() => {
     if (!userId) return;
     const loadAgent = async () => {
-      const { data } = await supabase
-        .from("support_agents")
-        .select("online, max_concurrent")
-        .eq("user_id", userId)
-        .single();
-      if (data) {
-        setOnline(Boolean(data.online));
-        setMaxConcurrent(data.max_concurrent ?? 1);
+      const response = await fetch("/api/support/agent/online");
+      const payload = (await response.json().catch(() => null)) as AgentAvailabilityStatus | null;
+      if (!response.ok || !payload?.ok) {
+        return;
       }
+      setAvailabilityStatus(payload);
+      setOnline(Boolean(payload.isOnline));
+      setMaxConcurrent(payload.maxConcurrent ?? 1);
     };
     void loadAgent();
-  }, [supabase, userId]);
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -75,6 +159,26 @@ export default function SupportAgentDashboard() {
       if (!alive) return;
       setAssigned((assignedRows ?? []) as HandoffRow[]);
       setQueue((queueRows ?? []) as HandoffRow[]);
+
+      const assignedIds = new Set((assignedRows ?? []).map((row) => row.conversation_id));
+      if (!assignedInitializedRef.current) {
+        assignedIds.forEach((id) => seenAssignedRef.current.add(id));
+        assignedInitializedRef.current = true;
+        return;
+      }
+      const newlyAssigned = [...assignedIds].filter((id) => !seenAssignedRef.current.has(id));
+      if (newlyAssigned.length > 0) {
+        setNewAssignedIds((prev) => {
+          const next = { ...prev };
+          newlyAssigned.forEach((id) => {
+            next[id] = true;
+          });
+          return next;
+        });
+        ring();
+      }
+      seenAssignedRef.current.clear();
+      assignedIds.forEach((id) => seenAssignedRef.current.add(id));
     };
     const interval = setInterval(refresh, 5000);
     void refresh();
@@ -82,19 +186,40 @@ export default function SupportAgentDashboard() {
       alive = false;
       clearInterval(interval);
     };
-  }, [supabase, userId]);
+  }, [supabase, userId, ring]);
 
   useEffect(() => {
     if (!selectedConversation) return;
     let alive = true;
     const refreshMessages = async () => {
-      const { data } = await supabase
-        .from("support_messages")
-        .select("id,sender,content,created_at")
-        .eq("conversation_id", selectedConversation)
-        .order("created_at", { ascending: true });
-      if (alive) {
-        setMessages((data ?? []) as SupportMessage[]);
+      const response = await fetch(
+        `/api/support/conversation?conversationId=${encodeURIComponent(selectedConversation)}`,
+      );
+      const data = (await response.json()) as { ok?: boolean; messages?: SupportMessage[] };
+      if (alive && data?.ok) {
+        const nextMessages = (data.messages ?? []) as SupportMessage[];
+        setMessages(nextMessages);
+
+        const seenIds =
+          messageIdsByConversationRef.current.get(selectedConversation) ?? new Set<string>();
+        const newGuestMessages = nextMessages.filter(
+          (message) => message.sender === "guest" && !seenIds.has(message.id),
+        );
+        nextMessages.forEach((message) => seenIds.add(message.id));
+        messageIdsByConversationRef.current.set(selectedConversation, seenIds);
+
+        const conversationOpenedAt = conversationOpenAtRef.current[selectedConversation] ?? Date.now();
+        const lastReplyAt = lastAgentReplyAtRef.current[selectedConversation] ?? 0;
+        const unreadGuestMessages = nextMessages.filter((message) => {
+          if (message.sender !== "guest") return false;
+          const createdAt = new Date(message.created_at).getTime();
+          return createdAt >= conversationOpenedAt && createdAt > lastReplyAt;
+        });
+        setActiveUnreadCount(unreadGuestMessages.length);
+
+        if (newGuestMessages.length > 0 && selectedConversation) {
+          ring();
+        }
       }
     };
     const interval = setInterval(refreshMessages, 4000);
@@ -103,7 +228,7 @@ export default function SupportAgentDashboard() {
       alive = false;
       clearInterval(interval);
     };
-  }, [supabase, selectedConversation]);
+  }, [selectedConversation, ring]);
 
   if (!userId) {
     return (
@@ -117,21 +242,49 @@ export default function SupportAgentDashboard() {
   }
 
   async function updateOnline(nextOnline: boolean) {
+    const previous = online;
     setOnline(nextOnline);
-    await fetch("/api/support/agent/online", {
+    const response = await fetch("/api/support/agent/online", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ online: nextOnline, maxConcurrent }),
     });
+    if (!response.ok) {
+      setOnline(previous);
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string; isAdmin?: boolean; profileRole?: string | null; appRole?: string | null }
+        | null;
+      if (payload?.error === "NOT_AGENT_ELIGIBLE") {
+        setAgentStatusNote(
+          `Not eligible for live agent mode (isAdmin: ${String(payload.isAdmin)}, profileRole: ${payload.profileRole ?? "null"}, appRole: ${payload.appRole ?? "null"}).`,
+        );
+      } else {
+        setAgentStatusNote("Unable to update agent availability.");
+      }
+      return;
+    }
+    const payload = (await response.json().catch(() => null)) as AgentAvailabilityStatus | null;
+    if (payload?.ok) {
+      setAvailabilityStatus(payload);
+      setOnline(Boolean(payload.isOnline));
+      setMaxConcurrent(payload.maxConcurrent ?? 1);
+    }
+    setAgentStatusNote(null);
   }
 
   async function updateMaxConcurrent(nextValue: number) {
     setMaxConcurrent(nextValue);
-    await fetch("/api/support/agent/online", {
+    const response = await fetch("/api/support/agent/online", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ online, maxConcurrent: nextValue }),
     });
+    const payload = (await response.json().catch(() => null)) as AgentAvailabilityStatus | null;
+    if (payload?.ok) {
+      setAvailabilityStatus(payload);
+      setOnline(Boolean(payload.isOnline));
+      setMaxConcurrent(payload.maxConcurrent ?? nextValue);
+    }
   }
 
   async function sendReply() {
@@ -143,6 +296,11 @@ export default function SupportAgentDashboard() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ conversationId: selectedConversation, content: trimmed }),
     });
+    setLastAgentReplyAt((prev) => ({
+      ...prev,
+      [selectedConversation]: Date.now(),
+    }));
+    setActiveUnreadCount(0);
   }
 
   async function claimConversation(conversationId: string) {
@@ -151,6 +309,32 @@ export default function SupportAgentDashboard() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ conversationId }),
     });
+  }
+
+  function selectConversation(conversationId: string) {
+    setSelectedConversation(conversationId);
+    setConversationOpenAt((prev) => ({
+      ...prev,
+      [conversationId]: prev[conversationId] ?? Date.now(),
+    }));
+    setNewAssignedIds((prev) => {
+      if (!prev[conversationId]) return prev;
+      const next = { ...prev };
+      delete next[conversationId];
+      return next;
+    });
+    setActiveUnreadCount(0);
+  }
+
+  async function endConversation() {
+    if (!selectedConversation) return;
+    await fetch("/api/support/conversation/close", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversationId: selectedConversation }),
+    });
+    setSelectedConversation(null);
+    setMessages([]);
   }
 
   return (
@@ -195,6 +379,22 @@ export default function SupportAgentDashboard() {
             </button>
           </div>
         </div>
+        {agentStatusNote ? (
+          <p className="mt-3 text-xs text-rose-600">{agentStatusNote}</p>
+        ) : null}
+        {availabilityStatus ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="rounded-full border border-slate-300 px-2 py-1 text-slate-700">
+              Eligible: {(availabilityStatus.isAdmin || availabilityStatus.isSupportAgent) ? "Yes" : "No"}
+            </span>
+            <span className="rounded-full border border-slate-300 px-2 py-1 text-slate-700">
+              Online: {availabilityStatus.isOnline ? "Yes" : "No"}
+            </span>
+            <span className="rounded-full border border-slate-300 px-2 py-1 text-slate-700">
+              Can receive live chats: {availabilityStatus.canReceiveLiveChats ? "Yes" : "No"}
+            </span>
+          </div>
+        ) : null}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
@@ -209,14 +409,23 @@ export default function SupportAgentDashboard() {
                 <button
                   key={item.conversation_id}
                   type="button"
-                  onClick={() => setSelectedConversation(item.conversation_id)}
+                  onClick={() => selectConversation(item.conversation_id)}
                   className={`w-full rounded-xl border px-3 py-2 text-left text-xs ${
                     selectedConversation === item.conversation_id
                       ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-200 bg-slate-50 text-slate-700"
+                      : newAssignedIds[item.conversation_id]
+                        ? "border-emerald-300 bg-emerald-50 text-slate-800"
+                        : "border-slate-200 bg-slate-50 text-slate-700"
                   }`}
                 >
-                  <div className="font-semibold">Conversation</div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-semibold">Conversation</div>
+                    {newAssignedIds[item.conversation_id] ? (
+                      <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                        New
+                      </span>
+                    ) : null}
+                  </div>
                   <div className="mt-1 text-[10px] uppercase tracking-wide">
                     {item.status}
                   </div>
@@ -253,9 +462,25 @@ export default function SupportAgentDashboard() {
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="text-sm font-semibold text-slate-900">
-            Conversation
-          </h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-slate-900">
+              Conversation
+            </h2>
+            {selectedConversation ? (
+              <button
+                type="button"
+              onClick={endConversation}
+              className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700"
+            >
+              End chat
+            </button>
+          ) : null}
+        </div>
+          {selectedConversation && activeUnreadCount > 0 ? (
+            <p className="mt-2 text-xs font-semibold text-emerald-700">
+              {activeUnreadCount} unread guest message{activeUnreadCount === 1 ? "" : "s"}
+            </p>
+          ) : null}
           {!selectedConversation ? (
             <p className="mt-3 text-sm text-slate-500">
               Select a conversation to view messages.
