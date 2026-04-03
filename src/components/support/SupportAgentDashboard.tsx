@@ -13,7 +13,8 @@ type HandoffRow = {
 
 type SupportMessage = {
   id: string;
-  sender: "guest" | "ai" | "agent";
+  sender: "guest" | "ai" | "agent" | "system";
+  sender_display_name?: string | null;
   content: string;
   created_at: string;
 };
@@ -491,7 +492,7 @@ export default function SupportAgentDashboard() {
                 {messages.map((message) => (
                   <div key={message.id} className="text-sm">
                     <span className="mr-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                      {message.sender}
+                      {message.sender_display_name || message.sender}
                     </span>
                     <span className="text-slate-800">{message.content}</span>
                   </div>

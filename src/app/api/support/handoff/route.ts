@@ -10,6 +10,7 @@ export async function POST(request: Request) {
   const name = body?.name ? String(body.name) : null;
   const topic = body?.topic ? String(body.topic) : null;
   const message = body?.message ? String(body.message) : null;
+  const nowIso = new Date().toISOString();
 
   if (!Array.isArray(transcript) || transcript.length === 0) {
     return NextResponse.json(
@@ -23,11 +24,14 @@ export async function POST(request: Request) {
     .from("support_conversations")
     .insert({
       guest_email: body?.email ?? null,
-      status: "handoff",
+      status: "open",
       page_url: pageUrl,
+      source_page: pageUrl,
       guest_name: name,
+      guest_type: "anonymous",
       topic,
       intake_message: message,
+      updated_at: nowIso,
     })
     .select("id")
     .single();
@@ -43,6 +47,12 @@ export async function POST(request: Request) {
     .map((item) => ({
       conversation_id: conversation.id,
       sender: item.role === "assistant" ? "ai" : "guest",
+      sender_type: item.role === "assistant" ? "ai" : "guest",
+      sender_display_name:
+        item.role === "assistant"
+          ? "Pixie Concierge"
+          : name || body?.email || "Anonymous Visitor",
+      message: String(item.content ?? ""),
       content: String(item.content ?? ""),
     }))
     .filter((item) => item.content.trim().length > 0);

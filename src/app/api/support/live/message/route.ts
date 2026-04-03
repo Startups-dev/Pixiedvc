@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   const supabase = createServiceClient();
   const { data: conversation, error } = await supabase
     .from("support_conversations")
-    .select("guest_user_id, twilio_conversation_sid")
+    .select("guest_user_id, guest_name, twilio_conversation_sid")
     .eq("id", conversationId)
     .maybeSingle();
 
@@ -39,12 +39,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "FORBIDDEN" }, { status: 403 });
   }
 
+  await supabase.from("support_messages").insert({
+    conversation_id: conversationId,
+    sender: "guest",
+    sender_type: "guest",
+    sender_user_id: user.id,
+    sender_display_name: conversation.guest_name || user.email || "Guest",
+    message: content,
+    content,
+    metadata: { source: "live_message" },
+  });
+
   await sendTwilioMessage({
     conversationSid: conversation.twilio_conversation_sid,
     author: `guest:${user.id}`,
     body: content,
     attributes: { source: "pixiedvc-web-guest" },
   });
+
+  await supabase
+    .from("support_conversations")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", conversationId);
 
   return NextResponse.json({ ok: true });
 }

@@ -65,8 +65,59 @@ export async function POST(request: Request) {
   }
 
   await serviceClient
+    .from("support_messages")
+    .insert({
+      conversation_id: conversationId,
+      sender: "ai",
+      sender_type: "system",
+      sender_user_id: user.id,
+      sender_display_name: "System",
+      message: isAssignedAgent
+        ? "Concierge ended the conversation."
+        : "Guest ended the conversation.",
+      content: isAssignedAgent
+        ? "Concierge ended the conversation."
+        : "Guest ended the conversation.",
+      metadata: { closedBy: isAssignedAgent ? "agent" : "guest" },
+    });
+
+  const { data: transcript } = await serviceClient
+    .from("support_messages")
+    .select("sender_type, sender, sender_display_name, message, content, created_at")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: false })
+    .limit(12);
+
+  const summary = (transcript ?? [])
+    .slice()
+    .reverse()
+    .map((entry) => {
+      const senderType = entry.sender_type ?? entry.sender ?? "system";
+      const senderName =
+        entry.sender_display_name ??
+        (senderType === "guest"
+          ? "Guest"
+          : senderType === "agent"
+            ? "Concierge"
+            : senderType === "ai"
+              ? "Pixie Concierge"
+              : "System");
+      const text = (entry.message ?? entry.content ?? "").trim();
+      if (!text) return null;
+      return `${senderName}: ${text}`;
+    })
+    .filter(Boolean)
+    .join(" | ")
+    .slice(0, 2000);
+
+  await serviceClient
     .from("support_conversations")
-    .update({ status: "closed" })
+    .update({
+      status: "closed",
+      closed_at: nowIso,
+      updated_at: nowIso,
+      summary: summary || null,
+    })
     .eq("id", conversationId);
 
   return NextResponse.json({ ok: true });

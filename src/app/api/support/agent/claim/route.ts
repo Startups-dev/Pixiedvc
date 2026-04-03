@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
   const { data: agent } = await supabase
     .from("support_agents")
-    .select("online, active, max_concurrent")
+    .select("online, active, max_concurrent, nickname")
     .eq("user_id", eligibility.user.id)
     .single();
 
@@ -69,6 +69,29 @@ export async function POST(request: Request) {
     .from("support_agents")
     .update({ last_assigned_at: new Date().toISOString() })
     .eq("user_id", eligibility.user.id);
+
+  const agentNickname = agent?.nickname?.trim() || "Pixie Concierge";
+  const nowIso = new Date().toISOString();
+  await supabase
+    .from("support_conversations")
+    .update({
+      status: "claimed",
+      agent_user_id: eligibility.user.id,
+      agent_nickname: agentNickname,
+      updated_at: nowIso,
+    })
+    .eq("id", conversationId);
+
+  await supabase.from("support_messages").insert({
+    conversation_id: conversationId,
+    sender: "ai",
+    sender_type: "system",
+    sender_user_id: eligibility.user.id,
+    sender_display_name: "System",
+    message: `${agentNickname} joined the conversation.`,
+    content: `${agentNickname} joined the conversation.`,
+    metadata: { event: "agent_claimed" },
+  });
 
   return NextResponse.json({ ok: true });
 }

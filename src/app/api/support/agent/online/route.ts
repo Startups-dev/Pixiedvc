@@ -9,7 +9,7 @@ async function buildAgentLiveStatus(
 ) {
   const { data: agent } = await supabase
     .from("support_agents")
-    .select("online, active, max_concurrent, role, created_at")
+    .select("online, active, max_concurrent, role, nickname, created_at")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -32,6 +32,7 @@ async function buildAgentLiveStatus(
     openChats,
     canReceiveLiveChats,
     supportAgentRole: agent?.role ?? null,
+    nickname: agent?.nickname ?? null,
     supportAgentCreatedAt: agent?.created_at ?? null,
   };
 }

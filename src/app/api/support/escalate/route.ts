@@ -14,6 +14,7 @@ export async function POST(request: Request) {
   const conversationId = body?.conversationId as string | undefined;
   const guestEmail = body?.guestEmail ? String(body.guestEmail) : null;
   const pageUrl = body?.pageUrl ? String(body.pageUrl) : null;
+  const guestName = body?.guestName ? String(body.guestName).trim() : null;
   const lastUserMessage = body?.lastUserMessage
     ? String(body.lastUserMessage)
     : null;
@@ -28,15 +29,28 @@ export async function POST(request: Request) {
 
   let conversation = conversationId;
   let createdConversation = false;
+  const guestType = user?.id ? "authenticated" : "anonymous";
+  const resolvedGuestName =
+    guestName ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email ||
+    "Anonymous Visitor";
+  const resolvedGuestEmail = guestEmail ?? user?.email ?? null;
+  const nowIso = new Date().toISOString();
 
   if (!conversation) {
     const { data, error } = await supabase
       .from("support_conversations")
       .insert({
-        guest_email: guestEmail,
-        status: "handoff",
+        guest_email: resolvedGuestEmail,
+        status: "open",
         page_url: pageUrl,
+        source_page: pageUrl,
+        guest_name: resolvedGuestName,
+        guest_type: guestType,
         guest_user_id: user?.id ?? null,
+        updated_at: nowIso,
       })
       .select("id")
       .single();
@@ -58,10 +72,14 @@ export async function POST(request: Request) {
     await supabase
       .from("support_conversations")
       .update({
-        status: "handoff",
-        guest_email: guestEmail,
+        status: "open",
+        guest_email: resolvedGuestEmail,
         page_url: pageUrl,
+        source_page: pageUrl,
+        guest_name: resolvedGuestName,
+        guest_type: guestType,
         guest_user_id: user?.id ?? null,
+        updated_at: nowIso,
       })
       .eq("id", conversation);
   }
@@ -70,6 +88,10 @@ export async function POST(request: Request) {
     await supabase.from("support_messages").insert({
       conversation_id: conversation,
       sender: "guest",
+      sender_type: "guest",
+      sender_user_id: user?.id ?? null,
+      sender_display_name: resolvedGuestName,
+      message: lastUserMessage,
       content: lastUserMessage,
     });
   }
@@ -154,6 +176,7 @@ export async function POST(request: Request) {
 
   let liveEnabled = false;
   let twilioConversationSid: string | null = null;
+  let assignedAgentNickname: string | null = null;
 
   if (assignedAgentUserId && user?.id && twilioConfigured) {
     const { data: currentConversation } = await supabase
@@ -185,6 +208,8 @@ export async function POST(request: Request) {
         .update({
           twilio_conversation_sid: twilioConversationSid,
           handoff_mode: "twilio_live",
+          status: "claimed",
+          updated_at: new Date().toISOString(),
         })
         .eq("id", conversation);
 
@@ -213,7 +238,7 @@ export async function POST(request: Request) {
   if (createdConversation) {
     await sendConciergeHandoffNotification({
       conversationId: conversation,
-      email: guestEmail,
+      email: resolvedGuestEmail,
       message: lastUserMessage,
       pageUrl,
       source: "escalate",
@@ -223,19 +248,48 @@ export async function POST(request: Request) {
   }
 
   if (assignedAgentUserId) {
+    const { data: assignedAgent } = await supabase
+      .from("support_agents")
+      .select("nickname")
+      .eq("user_id", assignedAgentUserId)
+      .maybeSingle();
+    assignedAgentNickname = assignedAgent?.nickname?.trim() || "Pixie Concierge";
+
+    await supabase
+      .from("support_conversations")
+      .update({
+        agent_user_id: assignedAgentUserId,
+        agent_nickname: assignedAgentNickname,
+        status: "claimed",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", conversation);
+  }
+
+  if (assignedAgentUserId) {
     await supabase.from("support_messages").insert({
       conversation_id: conversation,
       sender: "ai",
-      content:
-        "You’re connected to a concierge. They’ll reply here shortly.",
+      sender_type: "system",
+      sender_display_name: "System",
+      message: `You’re connected to ${assignedAgentNickname ?? "a concierge"}. They’ll reply here shortly.`,
+      content: `You’re connected to ${assignedAgentNickname ?? "a concierge"}. They’ll reply here shortly.`,
     });
   } else {
     await supabase.from("support_messages").insert({
       conversation_id: conversation,
       sender: "ai",
+      sender_type: "system",
+      sender_display_name: "System",
+      message:
+        "All concierge seats are currently busy. If you’d like, share your email and we’ll follow up.",
       content:
         "All concierge seats are currently busy. If you’d like, share your email and we’ll follow up.",
     });
+    await supabase
+      .from("support_conversations")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", conversation);
   }
 
   return NextResponse.json({

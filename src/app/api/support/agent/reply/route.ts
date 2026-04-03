@@ -35,20 +35,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
 
+  let agentNickname = "Pixie Concierge";
   if (handoff.assigned_agent_user_id !== eligibility.user.id) {
     const { data: agent } = await supabase
       .from("support_agents")
-      .select("role")
+      .select("role, nickname")
       .eq("user_id", eligibility.user.id)
       .single();
     if (!agent || agent.role !== "admin") {
       return NextResponse.json({ ok: false }, { status: 403 });
     }
+    agentNickname = agent.nickname?.trim() || agentNickname;
+  } else {
+    const { data: agent } = await supabase
+      .from("support_agents")
+      .select("nickname")
+      .eq("user_id", eligibility.user.id)
+      .maybeSingle();
+    agentNickname = agent?.nickname?.trim() || agentNickname;
   }
 
   const { error } = await supabase.from("support_messages").insert({
     conversation_id: conversationId,
     sender: "agent",
+    sender_type: "agent",
+    sender_user_id: eligibility.user.id,
+    sender_display_name: agentNickname,
+    message: content,
     agent_user_id: eligibility.user.id,
     content,
   });
@@ -72,6 +85,16 @@ export async function POST(request: Request) {
       attributes: { source: "pixiedvc-web-agent" },
     });
   }
+
+  await supabase
+    .from("support_conversations")
+    .update({
+      status: "claimed",
+      agent_user_id: eligibility.user.id,
+      agent_nickname: agentNickname,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", conversationId);
 
   return NextResponse.json({ ok: true });
 }

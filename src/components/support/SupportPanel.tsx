@@ -286,8 +286,9 @@ export default function SupportPanel({
         const nextMessages = (data.messages ?? []).map(
           (message: {
             id: string;
-            sender: "guest" | "ai" | "agent";
+            sender: "guest" | "ai" | "agent" | "system";
             content: string;
+            sender_display_name?: string | null;
           }) => {
             if (message.sender === "guest") {
               return {
@@ -301,9 +302,12 @@ export default function SupportPanel({
                 role: "assistant" as const,
                 content: message.content,
                 senderLabel:
-                  message.sender === "agent"
+                  message.sender_display_name ||
+                  (message.sender === "agent"
                     ? "Concierge"
-                    : "Pixie Concierge",
+                    : message.sender === "system"
+                      ? "System"
+                      : "Pixie Concierge"),
               };
           },
         );
@@ -656,6 +660,7 @@ export default function SupportPanel({
         body: JSON.stringify({
           conversationId,
           guestEmail: handoffForm.email || null,
+          guestName: handoffForm.name || null,
           lastUserMessage,
           pageUrl: typeof window !== "undefined" ? window.location.href : "",
         }),
@@ -691,6 +696,7 @@ export default function SupportPanel({
         body: JSON.stringify({
           conversationId,
           guestEmail: handoffForm.email || null,
+          guestName: handoffForm.name || null,
           lastUserMessage,
           pageUrl: typeof window !== "undefined" ? window.location.href : "",
         }),

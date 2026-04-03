@@ -57,15 +57,18 @@ export async function POST(request: Request) {
     .from("support_conversations")
     .insert({
       guest_email: email,
-      status: "handoff",
+      status: "open",
       page_url: "/partners/apply",
+      source_page: "/partners/apply",
       guest_name: name,
+      guest_type: "anonymous",
       topic,
       intake_message: formattedMessage,
       context: {
         source: "partner_apply_form",
         partnership_type: partnershipType,
       },
+      updated_at: new Date().toISOString(),
     })
     .select("id")
     .single();
@@ -80,6 +83,9 @@ export async function POST(request: Request) {
   await supabase.from("support_messages").insert({
     conversation_id: conversation.id,
     sender: "guest",
+    sender_type: "guest",
+    sender_display_name: name,
+    message: formattedMessage,
     content: formattedMessage,
     metadata: {
       partnership_type: partnershipType,

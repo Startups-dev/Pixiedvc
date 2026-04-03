@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createServiceClient } from "@/lib/supabase-service-client";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   buildExcerpt,
   buildSupportContext,
@@ -40,6 +41,60 @@ type SupportChatDebugLog = {
   pageUrl: string | null;
   errorMessage?: string;
 };
+
+type GuestIdentity = {
+  guestUserId: string | null;
+  guestType: "authenticated" | "anonymous";
+  guestName: string | null;
+  guestEmail: string | null;
+};
+
+async function resolveGuestIdentity(): Promise<GuestIdentity> {
+  try {
+    const authClient = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await authClient.auth.getUser();
+    if (!user) {
+      return {
+        guestUserId: null,
+        guestType: "anonymous",
+        guestName: "Anonymous Visitor",
+        guestEmail: null,
+      };
+    }
+
+    const metadataName =
+      (typeof user.user_metadata?.full_name === "string" && user.user_metadata.full_name.trim()) ||
+      (typeof user.user_metadata?.name === "string" && user.user_metadata.name.trim()) ||
+      null;
+
+    const { data: profile } = await authClient
+      .from("profiles")
+      .select("full_name, display_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const profileName =
+      (typeof profile?.full_name === "string" && profile.full_name.trim()) ||
+      (typeof profile?.display_name === "string" && profile.display_name.trim()) ||
+      null;
+
+    return {
+      guestUserId: user.id,
+      guestType: "authenticated",
+      guestName: profileName ?? metadataName ?? user.email ?? "Guest",
+      guestEmail: user.email ?? null,
+    };
+  } catch {
+    return {
+      guestUserId: null,
+      guestType: "anonymous",
+      guestName: "Anonymous Visitor",
+      guestEmail: null,
+    };
+  }
+}
 
 type RecommendationPreference =
   | "magic_kingdom"
@@ -815,6 +870,7 @@ export async function POST(request: Request) {
     const pageUrl = body?.pageUrl ? String(body.pageUrl) : "";
     pageUrlForLog = pageUrl || null;
     const conversationId = body?.conversationId ? String(body.conversationId) : null;
+    const guestIdentity = await resolveGuestIdentity();
 
     logSupportChatDebug({
       stage: "request-received",
@@ -924,9 +980,15 @@ export async function POST(request: Request) {
           const { data: conversation, error: conversationError } = await supabase
             .from("support_conversations")
             .insert({
-              status: "ai",
+              status: "open",
               page_url: context.pageUrl,
+              source_page: context.pageUrl,
               context,
+              guest_user_id: guestIdentity.guestUserId,
+              guest_type: guestIdentity.guestType,
+              guest_name: guestIdentity.guestName,
+              guest_email: guestIdentity.guestEmail,
+              updated_at: new Date().toISOString(),
             })
             .select("id")
             .single();
@@ -954,7 +1016,17 @@ export async function POST(request: Request) {
         } else {
           const { error: conversationUpdateError } = await supabase
             .from("support_conversations")
-            .update({ page_url: context.pageUrl, context, status: "ai" })
+            .update({
+              page_url: context.pageUrl,
+              source_page: context.pageUrl,
+              context,
+              status: "open",
+              guest_user_id: guestIdentity.guestUserId,
+              guest_type: guestIdentity.guestType,
+              guest_name: guestIdentity.guestName,
+              guest_email: guestIdentity.guestEmail,
+              updated_at: new Date().toISOString(),
+            })
             .eq("id", activeConversationId);
           logSupportChatDebug({
             stage: "conversation-persistence",
@@ -993,6 +1065,13 @@ export async function POST(request: Request) {
             .insert({
               conversation_id: activeConversationId,
               sender: "guest",
+              sender_type: "guest",
+              sender_user_id: guestIdentity.guestUserId,
+              sender_display_name:
+                guestIdentity.guestName ??
+                guestIdentity.guestEmail ??
+                "Anonymous Visitor",
+              message: query,
               content: query,
               metadata: { pageUrl: context.pageUrl, context },
             })
@@ -1261,6 +1340,9 @@ export async function POST(request: Request) {
                 .insert({
                   conversation_id: activeConversationId,
                   sender: "ai",
+                  sender_type: "ai",
+                  sender_display_name: "Pixie Concierge",
+                  message: answer,
                   content: answer,
                   metadata: {
                     confidence: retrieval.confidence,
