@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase";
 
 type SupportSource = {
@@ -25,6 +25,13 @@ type SupportPanelProps = {
   variant?: "light" | "dark" | "widget";
   className?: string;
 };
+
+type ConciergeConnectionState =
+  | "idle"
+  | "searching"
+  | "connecting"
+  | "connected"
+  | "fallback";
 
 type TwilioWindow = Window & {
   Twilio?: {
@@ -63,15 +70,18 @@ export default function SupportPanel({
   const [loading, setLoading] = useState(false);
   const [category, setCategory] = useState("");
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [guestLiveToken, setGuestLiveToken] = useState<string | null>(null);
   const [handoffConnected, setHandoffConnected] = useState(false);
   const [liveChatActive, setLiveChatActive] = useState(false);
   const [showFollowUpChoice, setShowFollowUpChoice] = useState(false);
-  const [showContactForm, setShowContactForm] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [pathname, setPathname] = useState("");
-  const [handoffStatus, setHandoffStatus] = useState<
-    "idle" | "sending" | "sent"
-  >("idle");
+  const [conciergeConnectionState, setConciergeConnectionState] =
+    useState<ConciergeConnectionState>("idle");
+  const [connectedAgentNickname, setConnectedAgentNickname] = useState("Pixie Concierge");
+  const [contactSubmitStatus, setContactSubmitStatus] = useState<"idle" | "sending" | "sent">(
+    "idle",
+  );
   const [handoffForm, setHandoffForm] = useState({
     name: "",
     email: "",
@@ -82,6 +92,10 @@ export default function SupportPanel({
   const listRef = useRef<HTMLDivElement | null>(null);
   const shouldStickToBottomRef = useRef(true);
   const conversationPollInFlightRef = useRef(false);
+  const conversationPollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const escalationCheckInFlightRef = useRef(false);
+  const conciergeRequestInFlightRef = useRef(false);
+  const joinedMessageByConversationRef = useRef(new Set<string>());
 
   const isNearBottom = (container: HTMLDivElement) =>
     container.scrollHeight - container.scrollTop - container.clientHeight < 100;
@@ -178,13 +192,89 @@ export default function SupportPanel({
 
   function openConciergeFallbackForm() {
     setShowFollowUpChoice(false);
-    setShowContactForm(true);
+    setConciergeConnectionState("fallback");
     setTimeout(() => scrollToBottom("smooth"), 0);
   }
 
-  async function initializeTwilioClient(nextConversationId: string) {
+  const resetConversationState = useCallback(() => {
+    setLiveChatActive(false);
+    setHandoffConnected(false);
+    setConversationId(null);
+    setGuestLiveToken(null);
+    setConnectedAgentNickname("Pixie Concierge");
+    setConciergeConnectionState((prev) => (prev === "fallback" ? prev : "idle"));
+  }, []);
+
+  function playConnectingSignal() {
+    try {
+      const AudioCtx =
+        (window as Window & { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext })
+          .AudioContext ??
+        (window as Window & { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.value = 740;
+      gain.gain.value = 0.0001;
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      gain.gain.exponentialRampToValueAtTime(0.06, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
+      oscillator.start();
+      oscillator.stop(ctx.currentTime + 0.2);
+    } catch {
+      // no-op
+    }
+  }
+
+  async function resolveValidConversationIdForEscalation() {
+    if (!conversationId || escalationCheckInFlightRef.current) {
+      return conversationId;
+    }
+
+    escalationCheckInFlightRef.current = true;
+    try {
+      const response = await fetch(
+        `/api/support/conversation?conversationId=${encodeURIComponent(conversationId)}`,
+      );
+      if (!response.ok) {
+        resetConversationState();
+        return null;
+      }
+
+      const data = (await response.json()) as {
+        ok?: boolean;
+        status?: string;
+        handoffMode?: string | null;
+      };
+      const invalidConversation =
+        !data?.ok || data?.status === "closed" || data?.handoffMode === "offline";
+      if (invalidConversation) {
+        resetConversationState();
+        return null;
+      }
+
+      return conversationId;
+    } catch {
+      resetConversationState();
+      return null;
+    } finally {
+      escalationCheckInFlightRef.current = false;
+    }
+  }
+
+  async function initializeTwilioClient(
+    nextConversationId: string,
+    nextGuestLiveToken?: string | null,
+  ) {
+    const guestTokenQuery = nextGuestLiveToken
+      ? `&guestLiveToken=${encodeURIComponent(nextGuestLiveToken)}`
+      : "";
     const tokenResponse = await fetch(
-      `/api/support/live/token?conversationId=${encodeURIComponent(nextConversationId)}`,
+      `/api/support/live/token?conversationId=${encodeURIComponent(nextConversationId)}${guestTokenQuery}`,
     );
     if (!tokenResponse.ok) {
       throw new Error("live_token_unavailable");
@@ -267,22 +357,71 @@ export default function SupportPanel({
     setShowScrollButton(!nearBottom);
   }
 
-  const shouldPollConversation =
-    Boolean(conversationId) &&
-    liveChatActive;
+  const shouldPollConversation = Boolean(conversationId) && liveChatActive;
 
   useEffect(() => {
     if (!conversationId || !shouldPollConversation) return;
     let alive = true;
+    const POLL_MS_VISIBLE = 6000;
+    const POLL_MS_HIDDEN = 20000;
+
+    const clearPollTimeout = () => {
+      if (conversationPollTimeoutRef.current) {
+        clearTimeout(conversationPollTimeoutRef.current);
+        conversationPollTimeoutRef.current = null;
+      }
+    };
+
+    const scheduleNextPoll = (delayMs: number) => {
+      clearPollTimeout();
+      conversationPollTimeoutRef.current = setTimeout(() => {
+        void poll();
+      }, delayMs);
+    };
+
+    const nextDelayForVisibility = () =>
+      typeof document !== "undefined" && document.visibilityState === "visible"
+        ? POLL_MS_VISIBLE
+        : POLL_MS_HIDDEN;
+
     const poll = async () => {
+      if (!alive) return;
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        scheduleNextPoll(POLL_MS_HIDDEN);
+        return;
+      }
       if (conversationPollInFlightRef.current) return;
       conversationPollInFlightRef.current = true;
       try {
         const response = await fetch(
           `/api/support/conversation?conversationId=${conversationId}`,
         );
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as
+            | { error?: string; closed?: boolean }
+            | null;
+          const isTerminal =
+            response.status === 400 &&
+            Boolean(
+              payload?.closed ||
+                payload?.error === "Conversation is closed." ||
+                payload?.error === "Conversation not found.",
+            );
+          if (alive && isTerminal) {
+            resetConversationState();
+          }
+          if (alive) {
+            scheduleNextPoll(nextDelayForVisibility());
+          }
+          return;
+        }
         const data = await response.json();
-        if (!alive || !data?.ok) return;
+        if (!alive || !data?.ok) {
+          if (alive) {
+            scheduleNextPoll(nextDelayForVisibility());
+          }
+          return;
+        }
         const nextMessages = (data.messages ?? []).map(
           (message: {
             id: string;
@@ -304,14 +443,14 @@ export default function SupportPanel({
                 senderLabel:
                   message.sender_display_name ||
                   (message.sender === "agent"
-                    ? "Concierge"
+                    ? connectedAgentNickname
                     : message.sender === "system"
                       ? "System"
                       : "Pixie Concierge"),
               };
           },
         );
-        if (nextMessages.some((msg) => msg.senderLabel === "Concierge")) {
+        if (nextMessages.some((msg) => msg.senderLabel === connectedAgentNickname)) {
           setHandoffConnected(true);
         }
         setMessages((prev) => {
@@ -324,20 +463,32 @@ export default function SupportPanel({
           });
           return merged;
         });
-      } catch (error) {
-        // ignore polling errors
+        if (alive) {
+          scheduleNextPoll(nextDelayForVisibility());
+        }
+      } catch {
+        // Keep live mode active on transient fetch failures.
+        if (alive) {
+          scheduleNextPoll(nextDelayForVisibility());
+        }
       } finally {
         conversationPollInFlightRef.current = false;
       }
     };
-    const interval = setInterval(poll, 8000);
+
     void poll();
     return () => {
       alive = false;
-      clearInterval(interval);
+      clearPollTimeout();
       conversationPollInFlightRef.current = false;
     };
-  }, [conversationId, shouldPollConversation, liveChatActive]);
+  }, [
+    conversationId,
+    shouldPollConversation,
+    liveChatActive,
+    connectedAgentNickname,
+    resetConversationState,
+  ]);
 
   function buildClientFallbackAnswer(
     query: string,
@@ -455,7 +606,12 @@ export default function SupportPanel({
     const trimmed = input.trim();
     if (!trimmed || loading) return;
 
-    if (handoffConnected && liveChatActive && conversationId) {
+    const isLiveConnected =
+      Boolean(conversationId) &&
+      liveChatActive &&
+      (handoffConnected || conciergeConnectionState === "connected");
+
+    if (isLiveConnected) {
       setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
       setInput("");
       setLoading(true);
@@ -463,7 +619,11 @@ export default function SupportPanel({
         const response = await fetch("/api/support/live/message", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ conversationId, content: trimmed }),
+          body: JSON.stringify({
+            conversationId,
+            content: trimmed,
+            guestLiveToken: guestLiveToken || undefined,
+          }),
         });
         if (!response.ok) {
           throw new Error("live_message_failed");
@@ -474,7 +634,7 @@ export default function SupportPanel({
           {
             role: "assistant",
             content:
-              "Live chat is temporarily unavailable. Please share your details below and we’ll follow up.",
+              "All concierge are currently assisting other guests. We can follow up quickly — just leave your details.",
             senderLabel: "Pixie Concierge",
           },
         ]);
@@ -524,6 +684,7 @@ export default function SupportPanel({
         const data = await response.json();
         if (data?.conversationId) {
           setConversationId(data.conversationId);
+          setGuestLiveToken(null);
         }
         setMessages((prev) =>
           prev
@@ -562,6 +723,7 @@ export default function SupportPanel({
       const applyEvent = (event: SupportChatStreamEvent) => {
         if (event.conversationId) {
           setConversationId(event.conversationId);
+          setGuestLiveToken(null);
         }
 
         setMessages((prev) =>
@@ -617,7 +779,7 @@ export default function SupportPanel({
         const event = JSON.parse(buffer.trim()) as SupportChatStreamEvent;
         applyEvent(event);
       }
-    } catch (error) {
+    } catch {
       const previousUserMessage =
         [...requestMessages]
           .slice(0, -1)
@@ -644,49 +806,15 @@ export default function SupportPanel({
     }
   }
 
-  async function submitHandoff(event: React.FormEvent) {
-    event.preventDefault();
-    if (handoffStatus !== "idle") return;
-    setHandoffStatus("sending");
-
-    try {
-      const lastUserMessage =
-        handoffForm.message ||
-        [...messages].reverse().find((msg) => msg.role === "user")?.content ||
-        "";
-      const response = await fetch("/api/support/escalate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId,
-          guestEmail: handoffForm.email || null,
-          guestName: handoffForm.name || null,
-          lastUserMessage,
-          pageUrl: typeof window !== "undefined" ? window.location.href : "",
-        }),
-      });
-      const data = await response.json();
-      if (data?.conversationId) {
-        setConversationId(data.conversationId);
-      }
-      setHandoffConnected(Boolean(data?.assigned));
-      setHandoffStatus("sent");
-    } catch (error) {
-      setHandoffStatus("idle");
-    }
-  }
-
   async function requestConcierge() {
-    setHandoffStatus("sending");
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "assistant",
-        content: "✨ Let me check if a Pixie Concierge is available…",
-        senderLabel: "Pixie Concierge",
-      },
-    ]);
+    if (conciergeRequestInFlightRef.current) return;
+    conciergeRequestInFlightRef.current = true;
+    setShowFollowUpChoice(false);
+    setConciergeConnectionState("searching");
+    setGuestLiveToken(null);
     try {
+      const startedAt = Date.now();
+      const validConversationId = await resolveValidConversationIdForEscalation();
       const lastUserMessage =
         [...messages].reverse().find((msg) => msg.role === "user")?.content ||
         "";
@@ -694,7 +822,7 @@ export default function SupportPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          conversationId,
+          conversationId: validConversationId,
           guestEmail: handoffForm.email || null,
           guestName: handoffForm.name || null,
           lastUserMessage,
@@ -705,89 +833,79 @@ export default function SupportPanel({
       if (!response.ok) {
         setLiveChatActive(false);
         setHandoffConnected(false);
+        const elapsed = Date.now() - startedAt;
+        const waitMs = Math.max(0, 3500 - elapsed);
+        if (waitMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, waitMs));
+        }
         openConciergeFallbackForm();
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: "I’ll connect you with a concierge. Please share a few details below.",
-            senderLabel: "Pixie Concierge",
-          },
-        ]);
-        setHandoffStatus("idle");
         return;
       }
       if (data?.conversationId) {
         setConversationId(data.conversationId);
       }
+      setGuestLiveToken(data?.guestLiveToken ? String(data.guestLiveToken) : null);
       setHandoffConnected(Boolean(data?.assigned));
       if (data?.assigned) {
-        setShowFollowUpChoice(false);
-        setShowContactForm(false);
+        const nickname = String(data?.agentNickname || "Pixie Concierge");
+        setConnectedAgentNickname(nickname);
+        setConciergeConnectionState("connecting");
+        playConnectingSignal();
         if (data?.liveEnabled && data?.conversationId) {
           try {
-            await initializeTwilioClient(data.conversationId);
-            setMessages((prev) => [
-              ...prev,
-              {
-                role: "assistant",
-                content:
-                  "You’re connected to a Pixie Concierge. You can message them live now.",
-                senderLabel: "Pixie Concierge",
-              },
-            ]);
+            await initializeTwilioClient(
+              data.conversationId,
+              data?.guestLiveToken ? String(data.guestLiveToken) : null,
+            );
+            setConciergeConnectionState("connected");
+            if (!joinedMessageByConversationRef.current.has(data.conversationId)) {
+              joinedMessageByConversationRef.current.add(data.conversationId);
+              setMessages((prev) => [
+                ...prev,
+                {
+                  role: "assistant",
+                  content: `${nickname} joined the chat.`,
+                  senderLabel: "System",
+                },
+              ]);
+            }
           } catch {
             setLiveChatActive(false);
             setHandoffConnected(false);
+            const elapsed = Date.now() - startedAt;
+            const waitMs = Math.max(0, 3500 - elapsed);
+            if (waitMs > 0) {
+              await new Promise((resolve) => setTimeout(resolve, waitMs));
+            }
             openConciergeFallbackForm();
-            setMessages((prev) => [
-              ...prev,
-              {
-                role: "assistant",
-                content: "I’ll connect you with a concierge. Please share a few details below.",
-                senderLabel: "Pixie Concierge",
-              },
-            ]);
           }
         } else {
           setLiveChatActive(false);
           setHandoffConnected(false);
+          const elapsed = Date.now() - startedAt;
+          const waitMs = Math.max(0, 3500 - elapsed);
+          if (waitMs > 0) {
+            await new Promise((resolve) => setTimeout(resolve, waitMs));
+          }
           openConciergeFallbackForm();
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "assistant",
-              content: "I’ll connect you with a concierge. Please share a few details below.",
-              senderLabel: "Pixie Concierge",
-            },
-          ]);
         }
       } else {
         setLiveChatActive(false);
+        setHandoffConnected(false);
+        const elapsed = Date.now() - startedAt;
+        const waitMs = Math.max(0, 3500 - elapsed);
+        if (waitMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, waitMs));
+        }
         openConciergeFallbackForm();
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: "I’ll connect you with a concierge. Please share a few details below.",
-            senderLabel: "Pixie Concierge",
-          },
-        ]);
       }
-      setHandoffStatus("idle");
-    } catch (error) {
+    } catch {
       setLiveChatActive(false);
       setHandoffConnected(false);
+      await new Promise((resolve) => setTimeout(resolve, 3500));
       openConciergeFallbackForm();
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "I’ll connect you with a concierge. Please share a few details below.",
-          senderLabel: "Pixie Concierge",
-        },
-      ]);
-      setHandoffStatus("idle");
+    } finally {
+      conciergeRequestInFlightRef.current = false;
     }
   }
 
@@ -797,17 +915,20 @@ export default function SupportPanel({
       await fetch("/api/support/conversation/close", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId }),
+        body: JSON.stringify({
+          conversationId,
+          guestLiveToken: guestLiveToken || undefined,
+        }),
       });
     } catch {
       // best-effort close
     } finally {
       setLiveChatActive(false);
       setHandoffConnected(false);
-      setShowContactForm(false);
       setShowFollowUpChoice(false);
-      setHandoffStatus("idle");
+      setConciergeConnectionState("idle");
       setConversationId(null);
+      setGuestLiveToken(null);
       setMessages((prev) => [
         ...prev,
         {
@@ -822,8 +943,8 @@ export default function SupportPanel({
 
   async function submitContactFallback(event: React.FormEvent) {
     event.preventDefault();
-    if (handoffStatus !== "idle") return;
-    setHandoffStatus("sending");
+    if (contactSubmitStatus !== "idle") return;
+    setContactSubmitStatus("sending");
     try {
       const transcriptPayload = messages.map((msg) => ({
         role: msg.role,
@@ -849,14 +970,14 @@ export default function SupportPanel({
       });
       const data = await response.json();
       if (!response.ok) {
-        setHandoffStatus("idle");
+        setContactSubmitStatus("idle");
         return;
       }
       if (data?.conversationId) {
         setConversationId(data.conversationId);
+        setGuestLiveToken(null);
       }
-      setHandoffStatus("sent");
-      setShowContactForm(false);
+      setContactSubmitStatus("sent");
       setShowFollowUpChoice(false);
       setMessages((prev) => [
         ...prev,
@@ -867,8 +988,8 @@ export default function SupportPanel({
           senderLabel: "Pixie Concierge",
         },
       ]);
-    } catch (error) {
-      setHandoffStatus("idle");
+    } catch {
+      setContactSubmitStatus("idle");
     }
   }
 
@@ -876,6 +997,18 @@ export default function SupportPanel({
     variant === "widget" ? "h-full min-h-0" : "h-full min-h-[520px]";
   const composerHeightClass =
     variant === "widget" ? "min-h-[168px]" : "min-h-[220px]";
+
+  const showContactForm = conciergeConnectionState === "fallback";
+  const conciergeStatusMessage =
+    conciergeConnectionState === "searching"
+      ? "✨ Finding an available concierge..."
+      : conciergeConnectionState === "connecting"
+        ? "🔔 Connecting you to a concierge..."
+        : conciergeConnectionState === "connected"
+          ? `👋 You’re now connected with ${connectedAgentNickname}`
+          : conciergeConnectionState === "fallback"
+            ? "All concierge are currently assisting other guests. We can follow up quickly — just leave your details."
+            : null;
 
   return (
     <div
@@ -909,6 +1042,11 @@ export default function SupportPanel({
         onScroll={handleListScroll}
         className="pixie-scrollbar flex-1 min-h-0 space-y-4 overflow-y-auto px-5 py-4"
       >
+        {conciergeStatusMessage ? (
+          <div className={`rounded-xl border px-3 py-2 text-xs ${theme.chip}`}>
+            {conciergeStatusMessage}
+          </div>
+        ) : null}
         {messages.map((message, index) => {
           const isUser = message.role === "user";
           return (
@@ -941,10 +1079,10 @@ export default function SupportPanel({
                     onClick={() => {
                       void requestConcierge();
                     }}
-                    className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-100"
-                    disabled={handoffStatus === "sending"}
+                    className="rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-900 hover:bg-white"
+                    disabled={conciergeRequestInFlightRef.current}
                   >
-                    I want to speak to a human
+                    💬 Talk to a Concierge Now
                   </button>
                 </div>
               )}
@@ -956,7 +1094,7 @@ export default function SupportPanel({
             <button
               type="button"
               onClick={() => {
-                setShowContactForm(true);
+                setConciergeConnectionState("fallback");
                 setShowFollowUpChoice(false);
               }}
               className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-100"
@@ -967,7 +1105,7 @@ export default function SupportPanel({
               type="button"
               onClick={() => {
                 setShowFollowUpChoice(false);
-                setShowContactForm(false);
+                setConciergeConnectionState("idle");
                 setMessages((prev) => [
                   ...prev,
                   {
@@ -1047,10 +1185,10 @@ export default function SupportPanel({
                   onClick={() => {
                     void requestConcierge();
                   }}
-                  className={`text-xs font-semibold ${theme.muted}`}
-                  disabled={handoffStatus === "sending"}
+                  className="rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-900 hover:bg-white"
+                  disabled={conciergeRequestInFlightRef.current}
                 >
-                  Request concierge help
+                  💬 Talk to a Concierge Now
                 </button>
                 {(handoffConnected || liveChatActive) ? (
                   <button
@@ -1128,9 +1266,9 @@ export default function SupportPanel({
                   <button
                     type="submit"
                     className="rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-900"
-                    disabled={handoffStatus === "sending"}
+                    disabled={contactSubmitStatus === "sending"}
                   >
-                    {handoffStatus === "sent" ? "Submitted" : "Send details"}
+                    {contactSubmitStatus === "sent" ? "Submitted" : "Send details"}
                   </button>
                 </div>
               </form>

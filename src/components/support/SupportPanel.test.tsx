@@ -44,16 +44,33 @@ describe("SupportPanel concierge handoff", () => {
     expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
   });
 
-  it("opens the concierge request form from 'Request concierge help'", async () => {
+  it("opens the concierge request form from concierge CTA", async () => {
     const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          ok: true,
+          assigned: false,
+          conversationId: "conv-1",
+        }),
+      }),
+    );
     render(<SupportPanel />);
     scrollToMock.mockClear();
 
-    await user.click(screen.getByRole("button", { name: "Request concierge help" }));
+    await user.click(screen.getByRole("button", { name: "💬 Talk to a Concierge Now" }));
 
-    expect(
-      screen.getByText("I’ll connect you with a concierge. Please share a few details below."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("✨ Finding an available concierge...")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          "All concierge are currently assisting other guests. We can follow up quickly — just leave your details.",
+        ),
+      ).toBeInTheDocument(),
+      { timeout: 5000 },
+    );
     expect(screen.getByText("Share a few details and we’ll follow up.")).toBeInTheDocument();
 
     await waitFor(() => {
@@ -61,11 +78,11 @@ describe("SupportPanel concierge handoff", () => {
     });
   });
 
-  it("opens the concierge request form from 'I want to speak to a human'", async () => {
+  it("opens concierge flow from in-chat handoff button", async () => {
     const user = userEvent.setup();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
         ok: true,
         headers: {
           get: () => "application/json",
@@ -74,7 +91,18 @@ describe("SupportPanel concierge handoff", () => {
           answer: "I can help with that.",
           handoffSuggested: true,
         }),
-      }),
+      })
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          ok: true,
+          assigned: false,
+          conversationId: "conv-2",
+        }),
+      });
+    vi.stubGlobal(
+      "fetch",
+      fetchMock,
     );
 
     render(<SupportPanel />);
@@ -83,13 +111,22 @@ describe("SupportPanel concierge handoff", () => {
     await user.type(screen.getByPlaceholderText("Ask anything DVC..."), "Need help with booking");
     await user.click(screen.getByRole("button", { name: "Send" }));
 
-    expect(await screen.findByRole("button", { name: "I want to speak to a human" })).toBeInTheDocument();
+    const conciergeButtons = await screen.findAllByRole("button", {
+      name: "💬 Talk to a Concierge Now",
+    });
+    expect(conciergeButtons.length).toBeGreaterThan(0);
 
-    await user.click(screen.getByRole("button", { name: "I want to speak to a human" }));
+    await user.click(conciergeButtons[0]);
 
-    expect(
-      screen.getByText("I’ll connect you with a concierge. Please share a few details below."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("✨ Finding an available concierge...")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          "All concierge are currently assisting other guests. We can follow up quickly — just leave your details.",
+        ),
+      ).toBeInTheDocument(),
+      { timeout: 5000 },
+    );
     expect(screen.getByText("Share a few details and we’ll follow up.")).toBeInTheDocument();
 
     await waitFor(() => {

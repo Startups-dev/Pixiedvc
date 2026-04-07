@@ -7,6 +7,7 @@ import {
   createTwilioAccessToken,
   isTwilioConfigured,
 } from "@/lib/twilio-conversations";
+import { verifySupportLiveGuestToken } from "@/lib/support/live-guest-token";
 
 export async function GET(request: Request) {
   if (!isTwilioConfigured()) {
@@ -25,19 +26,16 @@ export async function GET(request: Request) {
     );
   }
 
+  const guestLiveToken = searchParams.get("guestLiveToken") ?? "";
   const authClient = await createSupabaseServerClient();
   const {
     data: { user },
   } = await authClient.auth.getUser();
 
-  if (!user) {
-    return NextResponse.json({ ok: false, error: "AUTH_REQUIRED" }, { status: 401 });
-  }
-
   const supabase = createServiceClient();
   const { data: conversation, error: conversationError } = await supabase
     .from("support_conversations")
-    .select("id, guest_user_id, twilio_conversation_sid")
+    .select("id, guest_user_id, guest_type, twilio_conversation_sid")
     .eq("id", conversationId)
     .maybeSingle();
 
@@ -48,19 +46,30 @@ export async function GET(request: Request) {
     );
   }
 
-  const isGuest = conversation.guest_user_id === user.id;
-  const { data: agent } = await supabase
-    .from("support_agents")
-    .select("role")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  const isAgent = Boolean(agent?.role === "agent" || agent?.role === "admin");
+  let identity = "";
 
-  if (!isGuest && !isAgent) {
-    return NextResponse.json({ ok: false, error: "FORBIDDEN" }, { status: 403 });
+  if (user) {
+    const isGuest = conversation.guest_user_id === user.id;
+    const { data: agent } = await supabase
+      .from("support_agents")
+      .select("role")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const isAgent = Boolean(agent?.role === "agent" || agent?.role === "admin");
+    if (!isGuest && !isAgent) {
+      return NextResponse.json({ ok: false, error: "FORBIDDEN" }, { status: 403 });
+    }
+    identity = isAgent ? `agent:${user.id}` : `guest:${user.id}`;
+  } else {
+    const canUseAnonymousGuestIdentity =
+      conversation.guest_type === "anonymous" &&
+      verifySupportLiveGuestToken(guestLiveToken, conversationId);
+    if (!canUseAnonymousGuestIdentity) {
+      return NextResponse.json({ ok: false, error: "AUTH_REQUIRED" }, { status: 401 });
+    }
+    identity = `guest:anon:${conversationId}`;
   }
 
-  const identity = isAgent ? `agent:${user.id}` : `guest:${user.id}`;
   await addTwilioParticipant(conversation.twilio_conversation_sid, identity);
 
   const token = createTwilioAccessToken(identity);

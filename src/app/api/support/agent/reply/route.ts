@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase-service-client";
 import { sendTwilioMessage } from "@/lib/twilio-conversations";
 import { getSupportAgentEligibility } from "@/lib/support-agent-auth";
+import { persistSupportMessage } from "@/lib/support/persist-message";
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
     agentNickname = agent?.nickname?.trim() || agentNickname;
   }
 
-  const { error } = await supabase.from("support_messages").insert({
+  const persistResult = await persistSupportMessage(supabase, {
     conversation_id: conversationId,
     sender: "agent",
     sender_type: "agent",
@@ -66,7 +67,12 @@ export async function POST(request: Request) {
     content,
   });
 
-  if (error) {
+  if (!persistResult.ok) {
+    console.error("[support/agent/reply] message insert failed", {
+      conversationId,
+      fullError: persistResult.fullError?.message,
+      fallbackError: persistResult.fallbackError?.message,
+    });
     return NextResponse.json({ ok: false }, { status: 400 });
   }
 

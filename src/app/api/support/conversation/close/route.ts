@@ -3,10 +3,12 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase-service-client";
 import { getSupportAgentEligibility } from "@/lib/support-agent-auth";
+import { verifySupportLiveGuestToken } from "@/lib/support/live-guest-token";
 
 export async function POST(request: Request) {
   const body = await request.json();
   const conversationId = String(body?.conversationId ?? "").trim();
+  const guestLiveToken = String(body?.guestLiveToken ?? "");
 
   if (!conversationId) {
     return NextResponse.json(
@@ -20,10 +22,6 @@ export async function POST(request: Request) {
     data: { user },
   } = await authClient.auth.getUser();
 
-  if (!user) {
-    return NextResponse.json({ ok: false, error: "AUTH_REQUIRED" }, { status: 401 });
-  }
-
   const serviceClient = createServiceClient();
   const { data: handoff } = await serviceClient
     .from("support_handoffs")
@@ -32,16 +30,20 @@ export async function POST(request: Request) {
     .maybeSingle();
   const { data: conversation } = await serviceClient
     .from("support_conversations")
-    .select("guest_user_id")
+    .select("guest_user_id, guest_type")
     .eq("id", conversationId)
     .maybeSingle();
 
-  const eligibility = await getSupportAgentEligibility();
+  const eligibility = user ? await getSupportAgentEligibility() : null;
   const isSupportAgent = Boolean(eligibility?.isAdmin || eligibility?.isSupportAgent);
-  const isAssignedAgent = handoff?.assigned_agent_user_id === user.id;
-  const isConversationGuest = conversation?.guest_user_id === user.id;
+  const isAssignedAgent = Boolean(user?.id) && handoff?.assigned_agent_user_id === user?.id;
+  const isConversationGuest = Boolean(user?.id) && conversation?.guest_user_id === user?.id;
+  const isAnonymousGuestWithToken =
+    !user &&
+    conversation?.guest_type === "anonymous" &&
+    verifySupportLiveGuestToken(guestLiveToken, conversationId);
 
-  if (!isConversationGuest && !isAssignedAgent && !isSupportAgent) {
+  if (!isConversationGuest && !isAssignedAgent && !isSupportAgent && !isAnonymousGuestWithToken) {
     return NextResponse.json({ ok: false, error: "FORBIDDEN" }, { status: 403 });
   }
 
@@ -70,7 +72,7 @@ export async function POST(request: Request) {
       conversation_id: conversationId,
       sender: "ai",
       sender_type: "system",
-      sender_user_id: user.id,
+      sender_user_id: user?.id ?? null,
       sender_display_name: "System",
       message: isAssignedAgent
         ? "Concierge ended the conversation."

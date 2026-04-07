@@ -102,6 +102,7 @@ export async function sendConciergeHandoffNotification(payload: ConciergeHandoff
     '',
     `Conversation ID: ${payload.conversationId}`,
     `Source: ${payload.source ?? 'handoff'}`,
+    `Timestamp: ${new Date().toISOString()}`,
     `Name: ${payload.name?.trim() || '—'}`,
     `Email: ${payload.email?.trim() || '—'}`,
     `Page: ${payload.pageUrl?.trim() || '—'}`,
