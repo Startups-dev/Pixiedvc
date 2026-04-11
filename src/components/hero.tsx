@@ -1,16 +1,20 @@
 import Image from "next/image";
-import Link from "next/link";
 
 import { Button } from "@pixiedvc/design-system";
 import ReferralLink from "@/components/referral/ReferralLink";
 
 export async function Hero() {
+  const heroImageSrc = process.env.NEXT_PUBLIC_HERO_IMAGE_SRC?.trim() || "/images/castle-hero.png";
+  const heroImageAlt = heroImageSrc.includes("castle")
+    ? "Cinderella Castle with monorail at dusk"
+    : "PixieDVC resort hero image";
+
   return (
     <section className="relative overflow-hidden">
       <div className="absolute inset-0">
         <Image
-          src="/images/castle-hero.png"
-          alt="Cinderella Castle with monorail at dusk"
+          src={heroImageSrc}
+          alt={heroImageAlt}
           fill
           priority
           sizes="100vw"
@@ -25,86 +29,89 @@ export async function Hero() {
 
       <div className="relative z-20 mx-auto max-w-[1200px] px-4 pt-[56px] pb-16 md:px-6 lg:pt-[64px]">
         <div className="flex flex-col gap-12 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
-          <div className="flex max-w-[620px] flex-col lg:min-h-[520px]">
+          <div className="flex max-w-[620px] flex-col lg:max-w-[780px] lg:min-h-[520px]">
             <div>
-              <span className="relative -top-[35px] inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white backdrop-blur">
-                Luxury Disney resorts, smarter pricing, zero hassle.
-              </span>
-              <h2 className="mt-2 max-w-[15ch] font-display !text-[50px] !leading-[1.05] !font-semibold !text-white drop-shadow-[0_6px_20px_rgba(12,15,44,0.3)] sm:!text-[52px] lg:!text-[56px]">
-                Luxury Disney resorts, without the complexity.
+              <h2 className="mt-2 max-w-[24ch] lg:max-w-[760px] font-display !text-[50px] !leading-[1.03] !font-bold !text-white drop-shadow-[0_6px_20px_rgba(12,15,44,0.3)] sm:!text-[52px] lg:!text-[56px]">
+                <span className="block lg:whitespace-nowrap">Stay at Disney&apos;s luxury resorts</span>
+                <span className="block lg:whitespace-nowrap">without paying Disney prices.</span>
               </h2>
             </div>
             <p
-              className="mt-6 max-w-md font-sans !text-white/70"
-              style={{ fontSize: "13px", lineHeight: "1.7" }}
+              className="mt-2 max-w-lg text-xl font-semibold text-white sm:text-2xl"
+              style={{ lineHeight: "1.45" }}
             >
-              A concierge-led, faster way to book Disney Vacation Club villas.
+              Save 40–60% vs booking direct with Disney
             </p>
-            <div className="mt-8">
+            <p
+              className="mt-5 max-w-xl font-sans !text-white/70"
+              style={{ fontSize: "14px", lineHeight: "1.75" }}
+            >
+              A concierge-led service that matches you with verified owners, simple, secure, and handled for you.
+            </p>
+            <div className="mt-5">
               <div className="flex flex-col gap-3 sm:flex-row">
                 <div className="relative">
                   <span className="dust-trail" aria-hidden="true" />
                   <Button
                     asChild
-                  className="bg-white/6 px-5 py-2 text-white !text-white shadow-[0_6px_16px_rgba(35,53,107,0.18)] transition duration-300 hover:bg-white/14"
-                >
+          className="ring-1 ring-white/10 border border-white/15 bg-white/12 px-7 py-3 text-base font-semibold text-white !text-white shadow-[0_8px_20px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.2)] transition-transform duration-200 hover:scale-[1.03] hover:bg-white/22"
+                  >
                     <ReferralLink href="/plan" className="text-white">
-                      Check My Dates →
+                      Check Availability
                     </ReferralLink>
                   </Button>
                 </div>
               </div>
-              <p className="mt-[35px] text-xs uppercase tracking-[0.2em] text-white/70">
-                ✔ Verified owners • Secure payments • Concierge-led
-              </p>
+              <div className="mt-6 inline-flex items-center gap-x-8 text-xs tracking-[0.08em] text-white/85">
+                <span className="inline-flex items-center">
+                  <span className="mr-2 text-[10px] text-green-400">✔</span>
+                  Verified owners
+                </span>
+                <span>•</span>
+                <span>Secure payments</span>
+                <span>•</span>
+                <span>Concierge support</span>
+              </div>
             </div>
           </div>
 
-          <div className="w-full max-w-[320px] self-stretch rounded-3xl border border-white/12 bg-white/8 p-[1.5px] shadow-[0_12px_40px_rgba(0,0,0,0.28)] backdrop-blur-md sm:max-w-[340px]">
-            <div className="rounded-3xl bg-[#14234b] p-6 lg:min-h-[540px] lg:p-8">
-              <div className="flex h-full flex-col">
+          <div className="w-full max-w-[320px] self-stretch rounded-3xl border border-white/10 bg-white/5 p-[1.5px] shadow-xl shadow-black/30 backdrop-blur-md sm:max-w-[340px]">
+            <div className="rounded-3xl bg-[#14234b] px-6 pt-6 pb-4 lg:min-h-[540px] lg:px-8 lg:pt-8 lg:pb-5">
+              <div className="flex h-full flex-col justify-center">
                 <div>
                   <p className="text-center text-xs font-semibold uppercase tracking-[0.25em] text-white/65">
-                    What Happens After You Check Your Dates
+                    How it works
                   </p>
                 </div>
                 <div>
                   <div className="mt-5">
                     <p className="text-sm font-semibold text-white">
-                      Share your dates & resort preferences
+                      Tell us your dates
                     </p>
                     <p className="mt-1 text-xs text-white/65">Takes about 60 seconds</p>
                   </div>
                   <div className="mt-4 border-t border-white/8 pt-4">
                     <p className="text-sm font-semibold text-white">We match you with verified owners</p>
-                    <p className="mt-1 text-xs text-white/65">Typical match time: 6–24 hours</p>
+                    <p className="mt-1 text-xs text-white/65">Typically within hours</p>
                   </div>
                   <div className="mt-4 border-t border-white/8 pt-4">
-                    <p className="text-sm font-semibold text-white">Review your villa & confirm</p>
-                    <p className="mt-1 text-xs text-white/65">Secure, clear, concierge-led</p>
+                    <p className="text-sm font-semibold text-white">Review and confirm your stay</p>
+                    <p className="mt-1 text-xs text-white/65">No surprises, fully protected</p>
                   </div>
                 </div>
-                <div className="mt-8">
-                  <p className="text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-white/50">
-                    Why PixieDVC Works
-                  </p>
-                  <div className="mt-3 space-y-2 pl-3 text-[11px] text-white/70">
-                    <p>• Owners are pre-verified before matching</p>
-                    <p>• Pricing is transparent before you commit</p>
-                    <p>• You approve the match before anything is booked</p>
+                <div className="mt-4">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center">
+                    <p className="text-sm font-medium text-white/80">
+                      Guests typically save $1,200 per stay
+                    </p>
+                    <p className="mt-2 text-sm font-medium text-white/75">
+                      Most matches happen within 6–24 hours
+                    </p>
                   </div>
                 </div>
-                <p className="mt-4 text-xs text-white/50">You stay in control at every step.</p>
-                <div className="mt-8 flex justify-center">
-                  <Button
-                    asChild
-                    className="w-fit rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white !text-white hover:bg-white/20"
-                  >
-                    <Link href="/plan" className="text-white">
-                      Start My Match →
-                    </Link>
-                  </Button>
-                </div>
+                <p className="mt-5 text-center text-[12px] text-white/62">
+                  The same villas, the same experience, for a fraction of the cost.
+                </p>
               </div>
             </div>
           </div>
