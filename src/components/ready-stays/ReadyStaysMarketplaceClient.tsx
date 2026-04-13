@@ -16,6 +16,8 @@ type ReadyStayRow = {
   room_type: string;
   season_type: string;
   guest_price_per_point_cents: number;
+  original_guest_price_per_point_cents: number | null;
+  price_reduced_at: string | null;
   resorts?: {
     name?: string | null;
     slug?: string | null;
@@ -107,6 +109,8 @@ function sortReadyStays(list: ReadyStayRow[], sort: string) {
       return sorted.sort((a, b) => {
         const checkInDelta = a.check_in.localeCompare(b.check_in);
         if (checkInDelta !== 0) return checkInDelta;
+        const markdownDelta = Number(Boolean(b.price_reduced_at)) - Number(Boolean(a.price_reduced_at));
+        if (markdownDelta !== 0) return markdownDelta;
         const holidayDelta = holidayPriority(b.season_type) - holidayPriority(a.season_type);
         if (holidayDelta !== 0) return holidayDelta;
         const totalA = a.guest_price_per_point_cents * a.points;
@@ -354,6 +358,11 @@ export default function ReadyStaysMarketplaceClient({
               const imageIndex = imageIndexFromId(stay.id);
               const image = resolveResortImage({ resortSlug, resortCode, imageIndex });
               const totalPriceCents = stay.guest_price_per_point_cents * stay.points;
+              const originalTotalPriceCents =
+                stay.original_guest_price_per_point_cents &&
+                stay.original_guest_price_per_point_cents > stay.guest_price_per_point_cents
+                  ? stay.original_guest_price_per_point_cents * stay.points
+                  : null;
               const nights = nightsBetween(stay.check_in, stay.check_out);
               const nightlyPriceCents = Math.round(totalPriceCents / Math.max(nights, 1));
               const comparableListings = sortedReadyStays.filter(
@@ -404,8 +413,16 @@ export default function ReadyStaysMarketplaceClient({
                       </p>
                     </div>
                     <div className="space-y-1.5">
+                      {originalTotalPriceCents ? (
+                        <p className="text-sm text-slate-400 line-through">{formatCurrencyFromCents(originalTotalPriceCents)}</p>
+                      ) : null}
                       <p className="text-3xl font-bold text-slate-900">{formatCurrencyFromCents(totalPriceCents)}</p>
                       <p className="text-sm text-slate-500">{formatCurrencyFromCents(nightlyPriceCents)}/night</p>
+                      {originalTotalPriceCents ? (
+                        <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                          Price reduced
+                        </span>
+                      ) : null}
                     </div>
                     <Button asChild size="sm" className="w-full [&_a]:!text-white">
                       <Link href={`/ready-stays/${stay.id}`} className="!text-white">

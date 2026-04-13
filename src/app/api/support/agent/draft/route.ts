@@ -15,6 +15,8 @@ type BookingState = {
   budget: string | null;
 };
 
+type BookingPath = "ready_stays" | "liquidation_opportunities" | "matching_request";
+
 const RESORT_MATCHERS: Array<{ pattern: RegExp; value: string }> = [
   { pattern: /\bbay lake tower\b/i, value: "Bay Lake Tower" },
   { pattern: /\briviera\b/i, value: "Riviera" },
@@ -158,6 +160,38 @@ function getAcknowledgment(state: BookingState): string {
   return "Thanks for the details.";
 }
 
+function detectBookingPath(transcript: string, state: BookingState): BookingPath {
+  const normalized = transcript.toLowerCase();
+  const liquidationSignals =
+    normalized.includes("liquidation") ||
+    normalized.includes("expiring points") ||
+    normalized.includes("last-minute deal") ||
+    normalized.includes("last minute deal") ||
+    normalized.includes("last-minute deals") ||
+    normalized.includes("last minute deals") ||
+    normalized.includes("cheapest") ||
+    normalized.includes("best deal") ||
+    (normalized.includes("deal") && normalized.includes("flexible")) ||
+    normalized.includes("i'm flexible") ||
+    normalized.includes("im flexible");
+  if (liquidationSignals) {
+    return "liquidation_opportunities";
+  }
+
+  const readyStaySignals =
+    normalized.includes("ready stay") ||
+    normalized.includes("ready stays") ||
+    normalized.includes("book now") ||
+    normalized.includes("book instantly") ||
+    normalized.includes("available now") ||
+    normalized.includes("price reduced");
+  if (readyStaySignals || (state.resort && hasExactDates(state.dates))) {
+    return "ready_stays";
+  }
+
+  return "matching_request";
+}
+
 function buildSummary(state: BookingState): string {
   const subject = state.resort ? `a ${state.resort} stay` : "your stay";
   const datePart = state.dates
@@ -179,16 +213,41 @@ function buildSummary(state: BookingState): string {
   return `I’m seeing ${subject} ${details.join(" ")}.`;
 }
 
-function buildAgentDraft(state: BookingState): string {
-  const nextField = getNextMissingField(state);
-  const nextQuestion = nextField
+function buildNextQuestion(path: BookingPath, nextField: keyof BookingState | null): string {
+  if (path === "liquidation_opportunities") {
+    if (nextField === "dates") {
+      return "What date window can you travel in, and how flexible are you on exact dates?";
+    }
+    if (nextField === "resort") {
+      return "Are you open to multiple resorts for the strongest deal, or should I focus on one resort first?";
+    }
+    if (nextField === "roomType") {
+      return "Are you open to whichever room type prices best, or do you want me to prioritize a specific room type?";
+    }
+  }
+  return nextField
     ? nextQuestionMap[nextField]
     : "Would you like me to move forward with checking the best available options?";
+}
+
+function buildNextStep(path: BookingPath): string {
+  if (path === "ready_stays") {
+    return "I’ll check confirmed Ready Stays first so we can prioritize an instant-book option.";
+  }
+  if (path === "liquidation_opportunities") {
+    return "I’ll check current Liquidation Opportunities and prioritize the strongest value options.";
+  }
+  return "I’ll use this to narrow the best available options for your stay.";
+}
+
+function buildAgentDraft(state: BookingState, path: BookingPath): string {
+  const nextField = getNextMissingField(state);
+  const nextQuestion = buildNextQuestion(path, nextField);
 
   return [
     getAcknowledgment(state),
     buildSummary(state),
-    "I’ll use this to narrow the best available options for your stay.",
+    buildNextStep(path),
     nextQuestion,
   ].join("\n\n");
 }
@@ -248,7 +307,14 @@ export async function POST(request: Request) {
     .join("\n");
 
   const bookingState = extractBookingState(transcriptText);
-  const draft = buildAgentDraft(bookingState);
+  const bookingPath = detectBookingPath(transcriptText, bookingState);
+  const draft = buildAgentDraft(bookingState, bookingPath);
 
-  return NextResponse.json({ ok: true, draft, generated: true, state: bookingState });
+  return NextResponse.json({
+    ok: true,
+    draft,
+    generated: true,
+    state: bookingState,
+    bookingPath,
+  });
 }

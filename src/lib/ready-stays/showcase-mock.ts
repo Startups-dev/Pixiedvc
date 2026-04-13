@@ -8,12 +8,14 @@ export type ReadyStayShowcaseItem = {
   nights: number;
   sleeps: number;
   totalPriceUsd: number;
+  originalTotalPriceUsd?: number;
   imageUrl: string;
   badge: string;
   ctaLabel: string;
   href: string;
   featured: boolean;
   priority: number;
+  priceReducedAt?: string;
 };
 
 export { READY_STAYS_SHOWCASE_FLAGS } from "@/lib/ready-stays/showcase-config";

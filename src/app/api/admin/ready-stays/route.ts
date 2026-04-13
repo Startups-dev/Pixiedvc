@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { isUserAdmin } from "@/lib/admin";
 import { READY_STAYS_SHOWCASE_FLAGS } from "@/lib/ready-stays/showcase-config";
+import { FEE_PER_POINT_CENTS } from "@/lib/ready-stays/ownerPricing";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -35,6 +36,8 @@ type ReadyStayMutationPayload = {
   season_type?: string;
   owner_price_per_point_cents?: number;
   guest_price_per_point_cents?: number;
+  original_guest_price_per_point_cents?: number;
+  price_reduced_at?: string | null;
 };
 
 function normalizeText(value: unknown) {
@@ -74,6 +77,24 @@ function validateDates(payload: ReadyStayMutationPayload) {
 }
 
 function normalizePayload(payload: ReadyStayMutationPayload, createMode = false) {
+  const normalizedOwnerPrice =
+    Number.isFinite(Number(payload.owner_price_per_point_cents))
+      ? Number(payload.owner_price_per_point_cents)
+      : undefined;
+  const normalizedGuestPrice =
+    Number.isFinite(Number(payload.guest_price_per_point_cents))
+      ? Number(payload.guest_price_per_point_cents)
+      : undefined;
+
+  let ownerPriceForSave = normalizedOwnerPrice;
+  let guestPriceForSave = normalizedGuestPrice;
+
+  if (normalizedOwnerPrice != null) {
+    guestPriceForSave = normalizedOwnerPrice + FEE_PER_POINT_CENTS;
+  } else if (normalizedGuestPrice != null) {
+    ownerPriceForSave = normalizedGuestPrice - FEE_PER_POINT_CENTS;
+  }
+
   const normalized: Record<string, unknown> = {
     slug: normalizeText(payload.slug),
     title: normalizeText(payload.title),
@@ -91,6 +112,8 @@ function normalizePayload(payload: ReadyStayMutationPayload, createMode = false)
     priority: payload.priority,
     status: payload.status,
     sleeps: payload.sleeps,
+    owner_price_per_point_cents: ownerPriceForSave,
+    guest_price_per_point_cents: guestPriceForSave,
   };
 
   if (createMode) {
@@ -103,8 +126,6 @@ function normalizePayload(payload: ReadyStayMutationPayload, createMode = false)
       points: payload.points,
       room_type: normalizeText(payload.room_type),
       season_type: normalizeText(payload.season_type),
-      owner_price_per_point_cents: payload.owner_price_per_point_cents,
-      guest_price_per_point_cents: payload.guest_price_per_point_cents,
     });
   }
 
@@ -158,7 +179,7 @@ export async function GET() {
   const { data, error } = await guard.adminClient
     .from("ready_stays")
     .select(
-      "id, slug, title, short_description, status, featured, priority, sort_override, placement_home, placement_resort, placement_search, check_in, check_out, points, sleeps, image_url, badge, cta_label, href, expires_at, owner_id, rental_id, resort_id, room_type, season_type, owner_price_per_point_cents, guest_price_per_point_cents, created_at, updated_at, resorts(name, slug)",
+      "id, slug, title, short_description, status, featured, priority, sort_override, placement_home, placement_resort, placement_search, check_in, check_out, points, sleeps, image_url, badge, cta_label, href, expires_at, owner_id, rental_id, resort_id, room_type, season_type, owner_price_per_point_cents, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, created_at, updated_at, resorts(name, slug)",
     )
     .order("created_at", { ascending: false })
     .limit(300);
@@ -188,6 +209,10 @@ export async function POST(request: Request) {
 
   if (!Number.isFinite(Number(payload.owner_price_per_point_cents)) || !Number.isFinite(Number(payload.guest_price_per_point_cents))) {
     return NextResponse.json({ error: "Owner and guest point prices are required." }, { status: 400 });
+  }
+
+  if (Number(payload.guest_price_per_point_cents) < FEE_PER_POINT_CENTS) {
+    return NextResponse.json({ error: "Guest price must be at least Pixie fee amount." }, { status: 400 });
   }
 
   const status = payload.status ?? "draft";
@@ -228,6 +253,13 @@ export async function PATCH(request: Request) {
 
   if (payload.status && !ALLOWED_STATUSES.has(payload.status)) {
     return NextResponse.json({ error: "Invalid status." }, { status: 400 });
+  }
+
+  if (
+    Number.isFinite(Number(payload.guest_price_per_point_cents)) &&
+    Number(payload.guest_price_per_point_cents) < FEE_PER_POINT_CENTS
+  ) {
+    return NextResponse.json({ error: "Guest price must be at least Pixie fee amount." }, { status: 400 });
   }
 
   const dateError = validateDates(payload);

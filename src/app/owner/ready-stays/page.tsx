@@ -226,6 +226,17 @@ export default async function ReadyStaysPage({
             </Button>
           </div>
         </Card>
+        <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Would you like to liquidate expiring points?</h2>
+          <p className="mt-2 text-sm text-muted">
+            For expiring points submit a last-minute liquidation request using this link.
+          </p>
+          <div className="mt-5">
+            <Button asChild variant="ghost">
+              <Link href="/owner/liquidation-opportunities">Submit expiring points</Link>
+            </Button>
+          </div>
+        </Card>
       </section>
 
       <section id="active" className="space-y-4">

@@ -17,6 +17,8 @@ type ReadyStayShowcaseRow = {
   check_out: string;
   points: number;
   guest_price_per_point_cents: number;
+  original_guest_price_per_point_cents: number | null;
+  price_reduced_at: string | null;
   image_url: string | null;
   badge: string | null;
   cta_label: string | null;
@@ -72,6 +74,11 @@ function mapShowcaseRow(row: ReadyStayShowcaseRow): ReadyStayShowcaseItem | null
   const slug = row.slug?.trim() ?? "";
   const nights = daysBetween(row.check_in, row.check_out);
   const totalPriceUsd = Math.round((Number(row.guest_price_per_point_cents ?? 0) * Number(row.points ?? 0)) / 100);
+  const originalTotalPriceUsd =
+    row.original_guest_price_per_point_cents != null &&
+    Number(row.original_guest_price_per_point_cents) > Number(row.guest_price_per_point_cents)
+      ? Math.round((Number(row.original_guest_price_per_point_cents) * Number(row.points ?? 0)) / 100)
+      : undefined;
 
   if (!resortSlug || !resortName || !title || !imageUrl || !slug || nights <= 0 || totalPriceUsd <= 0) {
     return null;
@@ -87,12 +94,14 @@ function mapShowcaseRow(row: ReadyStayShowcaseRow): ReadyStayShowcaseItem | null
     nights,
     sleeps: Number(row.sleeps ?? 4),
     totalPriceUsd,
+    originalTotalPriceUsd,
     imageUrl,
     badge: row.badge?.trim() || "Ready to Book",
     ctaLabel: row.cta_label?.trim() || "View Stay",
     href: row.href?.trim() || `/ready-stays/${row.id}`,
     featured: Boolean(row.featured),
     priority: Number(row.priority ?? 0),
+    priceReducedAt: row.price_reduced_at ?? undefined,
   };
 }
 
@@ -108,6 +117,9 @@ function sortShowcaseRows(rows: ReadyStayShowcaseRow[]) {
     const priorityDelta = Number(b.priority ?? 0) - Number(a.priority ?? 0);
     if (priorityDelta !== 0) return priorityDelta;
 
+    const markdownDelta = Number(Boolean(b.price_reduced_at)) - Number(Boolean(a.price_reduced_at));
+    if (markdownDelta !== 0) return markdownDelta;
+
     return a.check_in.localeCompare(b.check_in);
   });
 }
@@ -118,8 +130,8 @@ async function fetchPublicShowcaseRows(placementColumn: "placement_home" | "plac
   const nowIso = new Date().toISOString();
 
   const selectClause = resortSlug
-    ? "id, slug, title, short_description, check_in, check_out, points, guest_price_per_point_cents, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, resorts!inner(name, slug)"
-    : "id, slug, title, short_description, check_in, check_out, points, guest_price_per_point_cents, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, resorts(name, slug)";
+    ? "id, slug, title, short_description, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, resorts!inner(name, slug)"
+    : "id, slug, title, short_description, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, resorts(name, slug)";
 
   let query = supabase
     .from("ready_stays")

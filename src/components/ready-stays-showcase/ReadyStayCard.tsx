@@ -32,6 +32,9 @@ function formatCurrency(value: number) {
 
 export default function ReadyStayCard({ item, compact = false }: ReadyStayCardProps) {
   const nightly = Math.round(item.totalPriceUsd / Math.max(item.nights, 1));
+  const originalNightly = item.originalTotalPriceUsd
+    ? Math.round(item.originalTotalPriceUsd / Math.max(item.nights, 1))
+    : null;
   const destination = item.href?.trim() || `/ready-stays/${item.id}`;
   const isValidDetailDestination = destination.startsWith("/ready-stays/") && destination !== "/ready-stays";
   const safeDestination = isValidDetailDestination ? destination : "/ready-stays";
@@ -84,8 +87,19 @@ export default function ReadyStayCard({ item, compact = false }: ReadyStayCardPr
           </p>
 
           <div className="relative z-10 mt-6 space-y-1.5">
+            {item.originalTotalPriceUsd ? (
+              <p className="text-sm !text-white/65 line-through">
+                {formatCurrency(item.originalTotalPriceUsd)}
+                {originalNightly ? ` • ${formatCurrency(originalNightly)}/night` : ""}
+              </p>
+            ) : null}
             <p className="text-3xl font-semibold !text-white">{formatCurrency(item.totalPriceUsd)}</p>
             <p className="text-sm !text-white/80">{formatCurrency(nightly)}/night</p>
+            {item.originalTotalPriceUsd ? (
+              <span className="inline-flex rounded-full bg-emerald-100/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-900">
+                Price reduced
+              </span>
+            ) : null}
           </div>
 
           <span className="relative z-10 mt-6 inline-flex items-center rounded-full border border-white/70 bg-white/22 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] !text-white transition duration-300 hover:-translate-y-0.5 hover:border-white hover:bg-white/30 group-hover:border-white group-hover:bg-white/28">

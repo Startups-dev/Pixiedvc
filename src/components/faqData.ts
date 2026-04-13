@@ -136,6 +136,16 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
           "DVC rentals already offer significant savings versus cash rates. Sometimes last-minute availability or pre-confirmed stays may be listed at special pricing. Inventory varies.",
       },
       {
+        question: "What does “Price reduced” mean on a Ready Stay?",
+        answer:
+          "A “Price reduced” Ready Stay means the owner has lowered the price of an existing reservation to make it more attractive.\n\nYou still get:\n- the same confirmed stay\n- the same booking protections\n- the same booking process\n\nOnly the price has been reduced.",
+      },
+      {
+        question: "What are Liquidation Opportunities?",
+        answer:
+          "Liquidation Opportunities are special, limited-time deals created when an owner has points that are close to expiring.\n\nInstead of letting those points go unused, the owner works with PixieDVC to create a deal for travelers.\n\nUnlike Ready Stays:\n- availability may be limited\n- some flexibility on dates or resort may be required\n- booking is not always instant and may involve our concierge team\n\nThese opportunities are curated and may be shared through our newsletter.",
+      },
+      {
         question: "How can I contact you if I still have questions?",
         answer:
           "Contact our team by phone, email, or live chat during posted support hours. We're happy to help with resort selection, dates, and general planning questions.",

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { computeCapsForStay, FEE_PER_POINT_CENTS } from "@/lib/ready-stays/pricingEngine";
@@ -7,7 +6,6 @@ import { computeCapsForStay, FEE_PER_POINT_CENTS } from "@/lib/ready-stays/prici
 const GLOBAL_MIN_OWNER_CENTS = 1400;
 
 export async function POST(request: NextRequest) {
-  const cookieStore = await cookies();
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -135,4 +133,82 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ ok: true, id: createdReadyStay.id, alreadyListed: false });
+}
+
+export async function PATCH(request: NextRequest) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const payload = await request.json().catch(() => ({}));
+  const readyStayId = typeof payload?.id === "string" ? payload.id.trim() : "";
+  const ownerPrice = Number(payload?.owner_price_per_point_cents);
+
+  if (!readyStayId || !Number.isFinite(ownerPrice)) {
+    return NextResponse.json({ error: "Missing listing id or pricing." }, { status: 400 });
+  }
+  if (ownerPrice <= 0) {
+    return NextResponse.json({ error: "Invalid owner price." }, { status: 400 });
+  }
+
+  const { data: readyStay, error: readyStayError } = await supabase
+    .from("ready_stays")
+    .select("id, owner_id, check_in, check_out, status")
+    .eq("id", readyStayId)
+    .maybeSingle();
+
+  if (readyStayError || !readyStay || readyStay.owner_id !== user.id) {
+    return NextResponse.json({ error: "Listing not found." }, { status: 404 });
+  }
+
+  if (["sold", "removed", "expired"].includes(readyStay.status)) {
+    return NextResponse.json({ error: "This listing can no longer be repriced." }, { status: 400 });
+  }
+
+  const maxOwnerCents = Math.round(
+    getMaxOwnerPayout({ checkIn: readyStay.check_in, checkOut: readyStay.check_out }) * 100,
+  );
+  const minOwnerCents = GLOBAL_MIN_OWNER_CENTS;
+
+  if (ownerPrice < minOwnerCents) {
+    return NextResponse.json(
+      {
+        error: `Owner price below minimum. Minimum is $${(minOwnerCents / 100).toFixed(2)}/pt.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  if (ownerPrice > maxOwnerCents) {
+    return NextResponse.json(
+      {
+        error:
+          `Owner price above maximum for these dates/resort. ` +
+          `Max is $${(maxOwnerCents / 100).toFixed(2)}/pt.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  const guestPrice = ownerPrice + FEE_PER_POINT_CENTS;
+
+  const { error: updateError } = await supabase
+    .from("ready_stays")
+    .update({
+      owner_price_per_point_cents: ownerPrice,
+      guest_price_per_point_cents: guestPrice,
+    })
+    .eq("id", readyStayId)
+    .eq("owner_id", user.id);
+
+  if (updateError) {
+    return NextResponse.json({ error: updateError.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true, id: readyStayId });
 }

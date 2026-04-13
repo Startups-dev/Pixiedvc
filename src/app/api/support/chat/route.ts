@@ -154,6 +154,23 @@ function logSupportChatBranch(
 function detectSupportIntent(query: string) {
   const normalized = query.toLowerCase();
   if (
+    normalized.includes("liquidation") ||
+    normalized.includes("liquidation opportunity") ||
+    normalized.includes("liquidation opportunities") ||
+    normalized.includes("expiring points") ||
+    normalized.includes("last-minute deal") ||
+    normalized.includes("last minute deal") ||
+    normalized.includes("last-minute deals") ||
+    normalized.includes("last minute deals") ||
+    normalized.includes("any deals") ||
+    normalized.includes("cheapest option") ||
+    normalized.includes("cheap option") ||
+    (normalized.includes("deals") && normalized.includes("flexible")) ||
+    (normalized.includes("deal") && normalized.includes("flexible"))
+  ) {
+    return "liquidation_opportunities";
+  }
+  if (
     normalized.includes("how much") ||
     normalized.includes("cost") ||
     normalized.includes("price") ||
@@ -493,6 +510,10 @@ function fallbackResponse(
   frustrationFollowup = false,
 ) {
   const intent = detectSupportIntent(query);
+  const normalizedQuery = query.toLowerCase();
+  const readyStaysFallback = normalizedQuery.includes("price reduced")
+    ? "Ready Stays are confirmed reservations with defined resort, room, dates, and stay length that can be booked right away. “Price reduced” means the owner lowered the price of that existing reservation; the stay confirmation and booking protections remain the same."
+    : "Ready Stays are confirmed reservation opportunities with defined resort, room type, dates, and stay length, so they are built for immediate booking and faster checkout than a custom request.";
   const answerByIntent: Record<string, string> = {
     dvc_basics:
       "Disney Vacation Club point rental allows guests to stay at DVC resorts using a member’s points instead of booking Disney’s standard cash rate directly. On PixieDVC, you can estimate trip options and then submit a stay request.",
@@ -506,8 +527,9 @@ function fallbackResponse(
       "Once a reservation is confirmed and linked in My Disney Experience, guests can typically use Disney planning features like trip management, dining reservations, transportation access, and Early Theme Park Entry where available. Specific features depend on Disney policies and resort location.",
     availability_matching:
       "PixieDVC reservations use DVC member points, so availability must be checked before a stay is confirmed. After you submit a request, PixieDVC starts owner matching to find a member who can create that reservation for your dates, resort, and room type. If matched, the booking moves forward to agreement and payment; if not, alternatives can be suggested.",
-    ready_stays:
-      "Ready Stays are pre-assembled reservation opportunities with defined resort, room type, dates, and stay length, so they can often move faster than a custom request. They are not guaranteed until booking is completed, and they may disappear if another guest secures the stay first.",
+    ready_stays: readyStaysFallback,
+    liquidation_opportunities:
+      "Liquidation Opportunities are curated, limited-time deals created when owners have points close to expiring. They are not always pre-reserved instant bookings, so availability can require date/resort flexibility and may involve concierge confirmation.",
     pricing_payments: buildPricingFallback(pricingPreference),
     owner_onboarding:
       "Owner onboarding covers profile details, required verification, and membership setup so owners can participate in listing or matching flows. I can break down each step if you want.",

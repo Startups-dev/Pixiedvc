@@ -36,6 +36,8 @@ type ReadyStayRow = {
   season_type: string;
   owner_price_per_point_cents: number;
   guest_price_per_point_cents: number;
+  original_guest_price_per_point_cents: number | null;
+  price_reduced_at: string | null;
   created_at: string;
   updated_at: string;
   resorts?: {
@@ -88,7 +90,7 @@ export default async function AdminReadyStaysPage() {
     adminClient
       .from("ready_stays")
       .select(
-        "id, slug, title, short_description, status, featured, priority, sort_override, placement_home, placement_resort, placement_search, check_in, check_out, points, sleeps, image_url, badge, cta_label, href, expires_at, owner_id, rental_id, resort_id, room_type, season_type, owner_price_per_point_cents, guest_price_per_point_cents, created_at, updated_at, resorts(name, slug)",
+        "id, slug, title, short_description, status, featured, priority, sort_override, placement_home, placement_resort, placement_search, check_in, check_out, points, sleeps, image_url, badge, cta_label, href, expires_at, owner_id, rental_id, resort_id, room_type, season_type, owner_price_per_point_cents, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, created_at, updated_at, resorts(name, slug)",
       )
       .order("created_at", { ascending: false })
       .limit(300),

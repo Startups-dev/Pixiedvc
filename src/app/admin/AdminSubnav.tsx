@@ -1,7 +1,13 @@
 import Link from 'next/link';
 
 type AdminSubnavProps = {
-  current: 'matching' | 'ledger' | 'affiliates' | 'affiliate-applications' | 'platform-tools';
+  current:
+    | 'matching'
+    | 'ledger'
+    | 'affiliates'
+    | 'affiliate-applications'
+    | 'platform-tools'
+    | 'liquidation-opportunities';
 };
 
 const items = [
@@ -10,6 +16,7 @@ const items = [
   { key: 'affiliates', label: 'Affiliates', href: '/admin/affiliates' },
   { key: 'affiliate-applications', label: 'Affiliate Applications', href: '/admin/affiliates/applications' },
   { key: 'ledger', label: 'Finance Ledger', href: '/admin/reports/ledger' },
+  { key: 'liquidation-opportunities', label: 'Liquidation Opportunities', href: '/admin/liquidation-opportunities' },
   { key: 'platform-tools', label: 'Platform Tools', href: '/admin/platform-tools' },
 ] as const;
 

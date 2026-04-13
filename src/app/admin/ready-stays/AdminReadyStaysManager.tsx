@@ -37,6 +37,8 @@ type ReadyStayRow = {
   season_type: string;
   owner_price_per_point_cents: number;
   guest_price_per_point_cents: number;
+  original_guest_price_per_point_cents: number | null;
+  price_reduced_at: string | null;
   created_at: string;
   updated_at: string;
   resorts?: {
@@ -69,6 +71,10 @@ type RowEditor = {
   href: string;
   sleeps: number;
   expires_at: string;
+  owner_price_per_point_cents: number;
+  guest_price_per_point_cents: number;
+  original_guest_price_per_point_cents: number;
+  price_reduced_at: string;
 };
 
 function toEditor(row: ReadyStayRow): RowEditor {
@@ -89,6 +95,12 @@ function toEditor(row: ReadyStayRow): RowEditor {
     href: row.href ?? '',
     sleeps: Number(row.sleeps ?? 4),
     expires_at: row.expires_at ? row.expires_at.slice(0, 16) : '',
+    owner_price_per_point_cents: Number(row.owner_price_per_point_cents ?? 0),
+    guest_price_per_point_cents: Number(row.guest_price_per_point_cents ?? 0),
+    original_guest_price_per_point_cents: Number(
+      row.original_guest_price_per_point_cents ?? row.guest_price_per_point_cents ?? 0,
+    ),
+    price_reduced_at: row.price_reduced_at ? row.price_reduced_at.slice(0, 16) : "",
   };
 }
 
@@ -156,6 +168,14 @@ export default function AdminReadyStaysManager({ rows, resorts }: Props) {
     }));
   }
 
+  function updateRowOwnerPrice(id: string, nextOwnerPrice: number) {
+    const owner = Number.isFinite(nextOwnerPrice) ? Math.max(0, Math.round(nextOwnerPrice)) : 0;
+    setRowEditor(id, {
+      owner_price_per_point_cents: owner,
+      guest_price_per_point_cents: owner + 700,
+    });
+  }
+
   async function saveRow(id: string) {
     const row = editors[id];
     if (!row) return;
@@ -184,6 +204,7 @@ export default function AdminReadyStaysManager({ rows, resorts }: Props) {
         href: row.href,
         sleeps: row.sleeps,
         expires_at: row.expires_at ? isoOrNull(row.expires_at) : null,
+        owner_price_per_point_cents: row.owner_price_per_point_cents,
       }),
     });
 
@@ -266,7 +287,7 @@ export default function AdminReadyStaysManager({ rows, resorts }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold" style={{ color: '#64748b' }}>Manage live placements</h2>
-          <p className="text-sm text-[#b4b4b4]">Toggle visibility, featured state, ordering, and CTA fields.</p>
+          <p className="text-sm text-[#b4b4b4]">Toggle visibility, featured state, ordering, and lower guest-facing listing prices when needed.</p>
         </div>
         <button
           type="button"
@@ -315,6 +336,9 @@ export default function AdminReadyStaysManager({ rows, resorts }: Props) {
               {createLoading ? 'Creating…' : 'Create Ready Stay'}
             </button>
           </div>
+          <p className="md:col-span-2 text-[11px] text-[#8e8ea0]">
+            Lowering owner price lowers the guest-facing listing price for this stay.
+          </p>
         </section>
       ) : null}
 
@@ -327,6 +351,7 @@ export default function AdminReadyStaysManager({ rows, resorts }: Props) {
               <th className="px-3 py-2">Placements</th>
               <th className="px-3 py-2">Priority</th>
               <th className="px-3 py-2">Media/CTA</th>
+              <th className="px-3 py-2">Pricing</th>
               <th className="px-3 py-2">Actions</th>
             </tr>
           </thead>
@@ -362,6 +387,30 @@ export default function AdminReadyStaysManager({ rows, resorts }: Props) {
                     <input className="w-full rounded border border-[#3a3a3a] bg-[#212121] px-2 py-1" value={editor.href} onChange={(e) => setRowEditor(row.id, { href: e.target.value })} placeholder="href" />
                     <input className="w-full rounded border border-[#3a3a3a] bg-[#212121] px-2 py-1" value={editor.badge} onChange={(e) => setRowEditor(row.id, { badge: e.target.value })} placeholder="badge" />
                     <input className="w-full rounded border border-[#3a3a3a] bg-[#212121] px-2 py-1" value={editor.cta_label} onChange={(e) => setRowEditor(row.id, { cta_label: e.target.value })} placeholder="cta label" />
+                  </td>
+                  <td className="space-y-2 px-3 py-3">
+                    <label className="block text-[11px] text-[#8e8ea0]">Owner payout / pt</label>
+                    <input
+                      type="number"
+                      className="w-full rounded border border-[#3a3a3a] bg-[#212121] px-2 py-1"
+                      value={editor.owner_price_per_point_cents}
+                      onChange={(e) => updateRowOwnerPrice(row.id, Number(e.target.value))}
+                      placeholder="owner payout / pt"
+                    />
+                    <p className="text-[11px] text-[#b4b4b4]">
+                      Guest listing: ${(editor.guest_price_per_point_cents / 100).toFixed(2)}/pt
+                    </p>
+                    <p className="text-[11px] text-[#8e8ea0]">
+                      Original guest: ${(editor.original_guest_price_per_point_cents / 100).toFixed(2)}/pt
+                    </p>
+                    {editor.guest_price_per_point_cents < editor.original_guest_price_per_point_cents ? (
+                      <p className="text-[11px] font-semibold text-[#86efac]">
+                        Price reduced
+                        {editor.price_reduced_at ? ` • ${new Date(editor.price_reduced_at).toLocaleDateString()}` : ""}
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-[#8e8ea0]">No active markdown</p>
+                    )}
                   </td>
                   <td className="space-y-2 px-3 py-3">
                     <button type="button" disabled={rowBusy} onClick={() => saveRow(row.id)} className="w-full rounded bg-[#10a37f] px-3 py-1 font-semibold text-white disabled:opacity-50">

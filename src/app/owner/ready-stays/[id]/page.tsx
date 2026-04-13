@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Button, Card } from "@pixiedvc/design-system";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import ReadyStayMarkdownForm from "@/components/owner/ReadyStayMarkdownForm";
 
 function formatDate(value: string | null) {
   if (!value) return "—";
@@ -35,7 +35,6 @@ function getStatusPillClasses(status: string) {
 }
 
 export default async function OwnerReadyStayDetailPage({ params }: { params: { id: string } }) {
-  const cookieStore = await cookies();
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -48,7 +47,7 @@ export default async function OwnerReadyStayDetailPage({ params }: { params: { i
   const { data: readyStay } = await supabase
     .from("ready_stays")
     .select(
-      "id, rental_id, status, check_in, check_out, room_type, points, owner_price_per_point_cents, guest_price_per_point_cents, created_at, updated_at, resorts(name)",
+      "id, rental_id, status, check_in, check_out, room_type, points, owner_price_per_point_cents, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, created_at, updated_at, resorts(name)",
     )
     .eq("id", params.id)
     .eq("owner_id", user.id)
@@ -73,6 +72,11 @@ export default async function OwnerReadyStayDetailPage({ params }: { params: { i
   const ownerPrice = Number(readyStay.owner_price_per_point_cents ?? 0);
   const guestPrice = Number(readyStay.guest_price_per_point_cents ?? 0);
   const totalGuest = points * guestPrice;
+  const originalGuestPrice = Number(
+    readyStay.original_guest_price_per_point_cents ?? readyStay.guest_price_per_point_cents ?? 0,
+  );
+  const originalTotalGuest =
+    originalGuestPrice > guestPrice && originalGuestPrice > 0 ? originalGuestPrice * points : null;
   const lifecycle = getLifecycleLabel(readyStay.status);
 
   return (
@@ -133,20 +137,36 @@ export default async function OwnerReadyStayDetailPage({ params }: { params: { i
             <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Total Price</p>
             <p className="mt-1 text-sm text-ink">{formatCurrencyFromCents(totalGuest)}</p>
           </div>
+          {originalTotalGuest ? (
+            <>
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Original Guest Price / Point</p>
+                <p className="mt-1 text-sm text-slate-500 line-through">
+                  {formatCurrencyFromCents(originalGuestPrice)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Original Total</p>
+                <p className="mt-1 text-sm text-slate-500 line-through">
+                  {formatCurrencyFromCents(originalTotalGuest)}
+                </p>
+              </div>
+            </>
+          ) : null}
         </div>
       </Card>
 
       <Card className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Actions</h2>
-        <div className="flex flex-wrap gap-3">
-          <Button asChild>
-            <Link href={`/owner/rentals/${readyStay.rental_id}`}>Edit Listing</Link>
-          </Button>
-          <Button disabled variant="ghost">
-            Pause Listing
-          </Button>
-          <Button disabled variant="ghost">
-            Remove Listing
+        <ReadyStayMarkdownForm
+          readyStayId={readyStay.id}
+          initialOwnerPricePerPointCents={ownerPrice}
+          originalGuestPricePerPointCents={readyStay.original_guest_price_per_point_cents ?? null}
+          currentGuestPricePerPointCents={guestPrice}
+        />
+        <div className="pt-2">
+          <Button asChild variant="ghost">
+            <Link href={`/owner/rentals/${readyStay.rental_id}`}>Back to reservation details</Link>
           </Button>
         </div>
       </Card>

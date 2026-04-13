@@ -6,23 +6,6 @@ import { Button, Card } from "@pixiedvc/design-system";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { resolveResortImage } from "@/lib/resort-image";
 
-type ReadyStayDetail = {
-  id: string;
-  resort_id: string;
-  check_in: string;
-  check_out: string;
-  points: number;
-  room_type: string;
-  season_type: string;
-  guest_price_per_point_cents: number;
-  owner_price_per_point_cents: number;
-  resorts?: {
-    name?: string | null;
-    slug?: string | null;
-    calculator_code?: string | null;
-  } | null;
-};
-
 function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
@@ -69,7 +52,7 @@ export default async function ReadyStayDetailPage({
   const { data: stay } = await supabase
     .from("ready_stays")
     .select(
-      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, owner_price_per_point_cents, resorts(name, slug, calculator_code)",
+      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, owner_price_per_point_cents, resorts(name, slug, calculator_code)",
     )
     .eq("id", params.id)
     .eq("status", "active")
@@ -86,6 +69,11 @@ export default async function ReadyStayDetailPage({
   const image = resolveResortImage({ resortSlug, resortCode, imageIndex });
   const badge = holidayLabel(stay.season_type);
   const totalPriceCents = stay.guest_price_per_point_cents * stay.points;
+  const originalTotalPriceCents =
+    stay.original_guest_price_per_point_cents &&
+    stay.original_guest_price_per_point_cents > stay.guest_price_per_point_cents
+      ? stay.original_guest_price_per_point_cents * stay.points
+      : null;
   const ctaHref = `/ready-stays/${stay.id}/book`;
 
   return (
@@ -173,10 +161,18 @@ export default async function ReadyStayDetailPage({
 
             <div className="mt-6 space-y-2">
               <p className="text-xs uppercase tracking-[0.2em] text-muted">Total price</p>
+              {originalTotalPriceCents ? (
+                <p className="text-sm text-slate-400 line-through">{formatCurrencyFromCents(originalTotalPriceCents)}</p>
+              ) : null}
               <p className="text-3xl font-semibold text-ink">{formatCurrencyFromCents(totalPriceCents)}</p>
               <p className="text-sm text-muted">
                 {stay.points} points • {formatCurrencyFromCents(stay.guest_price_per_point_cents)}/pt
               </p>
+              {originalTotalPriceCents ? (
+                <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                  Price reduced
+                </span>
+              ) : null}
             </div>
 
             <div className="my-5 h-px w-full bg-slate-200" />

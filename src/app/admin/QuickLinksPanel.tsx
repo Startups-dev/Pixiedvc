@@ -69,6 +69,12 @@ const SECTIONS: QuickLinkSection[] = [
         description: 'Monitor instant-book listings and statuses.',
         href: '/admin/ready-stays',
       },
+      {
+        id: 'liquidation-opportunities',
+        title: 'Liquidation Opportunities',
+        description: 'Review expiring-points and short-notice owner submissions.',
+        href: '/admin/liquidation-opportunities',
+      },
     ],
   },
   {

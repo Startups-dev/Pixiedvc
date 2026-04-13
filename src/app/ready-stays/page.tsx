@@ -41,9 +41,10 @@ export default async function ReadyStaysPublicPage({
   let query = supabase
     .from("ready_stays")
     .select(
-      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, resorts(name, slug, calculator_code)",
+      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, resorts(name, slug, calculator_code)",
     )
     .eq("status", "active")
+    .order("price_reduced_at", { ascending: false, nullsFirst: false })
     .order("check_in", { ascending: true });
 
   if (searchParams?.resort) {
