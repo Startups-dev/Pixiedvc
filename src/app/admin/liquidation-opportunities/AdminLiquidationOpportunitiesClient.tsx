@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 type Row = {
   id: string;
+  owner_user_id: string;
   status: string;
   points_available: number;
   expiration_date: string;
@@ -18,7 +19,12 @@ type Row = {
   admin_notes: string | null;
   created_at: string;
   home_resort?: { name?: string | null } | null;
-  owner_profile?: { email?: string | null; display_name?: string | null } | null;
+  owner_profile?: {
+    email?: string | null;
+    display_name?: string | null;
+    phone?: string | null;
+    role?: string | null;
+  } | null;
 };
 
 const STATUS_OPTIONS = ["pending_review", "approved", "rejected", "featured", "closed"] as const;
@@ -122,6 +128,10 @@ export default function AdminLiquidationOpportunitiesClient({ rows }: { rows: Ro
                   <td className="px-3 py-3">
                     <p className="font-semibold text-[#ececec]">{row.owner_profile?.display_name ?? "Owner"}</p>
                     <p className="text-[11px] text-[#8e8ea0]">{row.owner_profile?.email ?? "No email"}</p>
+                    <p className="text-[11px] text-[#8e8ea0]">{row.owner_profile?.phone ?? "No phone"}</p>
+                    <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#6f6f7f]">
+                      {row.owner_profile?.role ?? "owner"} · {row.owner_user_id.slice(0, 8)}
+                    </p>
                   </td>
                   <td className="space-y-1 px-3 py-3">
                     <p className="font-semibold text-[#ececec]">{row.home_resort?.name ?? "Resort TBD"}</p>

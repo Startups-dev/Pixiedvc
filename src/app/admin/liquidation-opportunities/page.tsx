@@ -8,6 +8,7 @@ import AdminLiquidationOpportunitiesClient from "@/app/admin/liquidation-opportu
 
 type Row = {
   id: string;
+  owner_user_id: string;
   status: string;
   points_available: number;
   expiration_date: string;
@@ -21,7 +22,12 @@ type Row = {
   admin_notes: string | null;
   created_at: string;
   home_resort?: { name?: string | null } | null;
-  owner_profile?: { email?: string | null; display_name?: string | null } | null;
+  owner_profile?: {
+    email?: string | null;
+    display_name?: string | null;
+    phone?: string | null;
+    role?: string | null;
+  } | null;
 };
 
 export default async function AdminLiquidationOpportunitiesPage() {
@@ -44,7 +50,7 @@ export default async function AdminLiquidationOpportunitiesPage() {
   const { data, error } = await admin
     .from("point_liquidation_requests")
     .select(
-      "id, status, points_available, expiration_date, urgency_level, target_price_per_point_cents, flexibility_notes, newsletter_opt_in, featured_in_newsletter, admin_approved, public_visibility, admin_notes, created_at, home_resort:resorts(name), owner_profile:profiles(email, display_name)",
+      "id, owner_user_id, status, points_available, expiration_date, urgency_level, target_price_per_point_cents, flexibility_notes, newsletter_opt_in, featured_in_newsletter, admin_approved, public_visibility, admin_notes, created_at, home_resort:resorts(name), owner_profile:profiles(email, display_name, phone, role)",
     )
     .order("created_at", { ascending: false })
     .limit(400);

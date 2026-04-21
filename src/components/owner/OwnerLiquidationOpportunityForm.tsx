@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@pixiedvc/design-system";
+const labelClassName = "block text-[11px] font-semibold uppercase leading-none tracking-[0.28em] text-[#9aa8bc]";
+const fieldClassName =
+  "h-12 w-full rounded-[13px] border border-[#7184a3]/24 bg-[#05070a] px-4 text-[15px] font-medium text-[#edf4ff] shadow-[inset_0_1px_2px_rgba(0,0,0,0.5),inset_0_-1px_0_rgba(255,255,255,0.025)] outline-none transition placeholder:text-[#7d8da3] focus:border-[#02acfb] focus:shadow-[inset_0_1px_2px_rgba(0,0,0,0.34),0_0_0_2px_rgba(2,172,251,0.22)]";
+const selectClassName = `${fieldClassName} appearance-none bg-[linear-gradient(45deg,transparent_50%,#9aa8bc_50%),linear-gradient(135deg,#9aa8bc_50%,transparent_50%)] bg-[length:6px_6px,6px_6px] bg-[position:calc(100%-18px)_20px,calc(100%-12px)_20px] bg-no-repeat pr-11`;
 
 type ResortOption = {
   id: string;
@@ -17,9 +20,6 @@ export default function OwnerLiquidationOpportunityForm({ resorts }: { resorts: 
     points_available: "",
     expiration_date: "",
     urgency_level: "moderate",
-    travel_window_start: "",
-    travel_window_end: "",
-    room_type: "",
     target_price_per_point_cents: "",
     flexibility_notes: "",
     newsletter_opt_in: true,
@@ -44,9 +44,6 @@ export default function OwnerLiquidationOpportunityForm({ resorts }: { resorts: 
           points_available: Number(form.points_available),
           expiration_date: form.expiration_date,
           urgency_level: form.urgency_level,
-          travel_window_start: form.travel_window_start || null,
-          travel_window_end: form.travel_window_end || null,
-          room_type: form.room_type || null,
           target_price_per_point_cents: form.target_price_per_point_cents
             ? Number(form.target_price_per_point_cents)
             : null,
@@ -63,9 +60,6 @@ export default function OwnerLiquidationOpportunityForm({ resorts }: { resorts: 
         ...prev,
         points_available: "",
         expiration_date: "",
-        travel_window_start: "",
-        travel_window_end: "",
-        room_type: "",
         target_price_per_point_cents: "",
         flexibility_notes: "",
       }));
@@ -78,11 +72,11 @@ export default function OwnerLiquidationOpportunityForm({ resorts }: { resorts: 
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-3 md:grid-cols-2">
-      <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Home resort</span>
+    <form onSubmit={onSubmit} className="grid gap-x-5 gap-y-4 md:grid-cols-2">
+      <label className="space-y-2">
+        <span className={labelClassName}>Home resort</span>
         <select
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          className={selectClassName}
           value={form.home_resort_id}
           onChange={(event) => setForm((prev) => ({ ...prev, home_resort_id: event.target.value }))}
         >
@@ -94,135 +88,97 @@ export default function OwnerLiquidationOpportunityForm({ resorts }: { resorts: 
         </select>
       </label>
 
-      <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Points available</span>
+      <label className="space-y-2">
+        <span className={labelClassName}>Points available</span>
         <input
           type="number"
           min={1}
           required
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          className={fieldClassName}
           value={form.points_available}
           onChange={(event) => setForm((prev) => ({ ...prev, points_available: event.target.value }))}
         />
       </label>
 
-      <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Expiration date</span>
+      <label className="space-y-2">
+        <span className={labelClassName}>Expiration date</span>
         <input
           type="date"
           required
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          className={fieldClassName}
           value={form.expiration_date}
           onChange={(event) => setForm((prev) => ({ ...prev, expiration_date: event.target.value }))}
         />
       </label>
 
-      <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.2em] text-slate-500">
-          How quickly do you need to use these points?
-        </span>
-        <select
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-          value={form.urgency_level}
-          onChange={(event) => setForm((prev) => ({ ...prev, urgency_level: event.target.value }))}
-        >
-          <option value="not_urgent">Not urgent</option>
-          <option value="moderate">Moderate</option>
-          <option value="urgent">Urgent</option>
-        </select>
-      </label>
-
-      <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Target price / point (cents)</span>
+      <label className="space-y-2">
+        <span className={labelClassName}>Your target price per point</span>
         <input
           type="number"
           min={1}
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          className={fieldClassName}
           value={form.target_price_per_point_cents}
           onChange={(event) =>
             setForm((prev) => ({ ...prev, target_price_per_point_cents: event.target.value }))
           }
         />
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-          <p className="font-semibold uppercase tracking-[0.14em] text-slate-700">How to price your points</p>
-          <div className="mt-2 space-y-2">
-            <p>
-              <span className="font-semibold text-slate-800">60+ days left</span>
-              <br />
-              - Aim closer to market pricing
-              <br />
-              - Best if you are not in a rush
-            </p>
-            <p>
-              <span className="font-semibold text-slate-800">30–60 days left</span>
-              <br />
-              - Consider pricing slightly lower to attract faster interest
-            </p>
-            <p>
-              <span className="font-semibold text-slate-800">Under 30 days</span>
-              <br />
-              - Price more aggressively to improve the chances of booking in time
-            </p>
-          </div>
+      </label>
+
+      <div className="liquidation-guidance-panel rounded-2xl border p-4 text-[13px] leading-5 text-[#b7c3d4] md:col-span-2">
+        <div className="flex items-center gap-3 border-b border-[#7184a3]/20 pb-3">
+          <span className="h-2.5 w-2.5 rounded-full border border-[#02acfb]/70 bg-[#02acfb]/20 shadow-[0_0_12px_rgba(2,172,251,0.28)]" />
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#edf4ff]">
+            How to price your points
+          </p>
         </div>
-      </label>
+        <ul className="mt-3 space-y-2">
+          <li>• Fast placement for expiring points</li>
+          <li>• Priced below market to move quickly</li>
+          <li>• Lower price = faster match</li>
+        </ul>
+        <div className="mt-4 space-y-2 border-t border-[#7184a3]/20 pt-3">
+          <p className="font-semibold text-[#edf4ff]">Suggested pricing:</p>
+          <ul className="space-y-1">
+            <li>• 60+ days: ~$16/pt</li>
+            <li>• 45–60 days: $12–15/pt</li>
+            <li>• 30–45 days: $8–11/pt</li>
+            <li>• &lt;30 days: $5–7/pt</li>
+          </ul>
+          <p>Pricing is set by you based on urgency.</p>
+          <p>You approve any booking before it&apos;s confirmed.</p>
+        </div>
+      </div>
 
-      <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Travel window start</span>
-        <input
-          type="date"
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-          value={form.travel_window_start}
-          onChange={(event) => setForm((prev) => ({ ...prev, travel_window_start: event.target.value }))}
-        />
-      </label>
-
-      <label className="space-y-1">
-        <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Travel window end</span>
-        <input
-          type="date"
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-          value={form.travel_window_end}
-          onChange={(event) => setForm((prev) => ({ ...prev, travel_window_end: event.target.value }))}
-        />
-      </label>
-
-      <label className="space-y-1 md:col-span-2">
-        <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Room type (optional)</span>
-        <input
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-          value={form.room_type}
-          onChange={(event) => setForm((prev) => ({ ...prev, room_type: event.target.value }))}
-          placeholder="Studio, 1 Bedroom, or flexible"
-        />
-      </label>
-
-      <label className="space-y-1 md:col-span-2">
-        <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Flexibility notes</span>
+      <label className="space-y-2 md:col-span-2">
+        <span className={labelClassName}>Anything else we should know? (optional)</span>
         <textarea
-          className="min-h-[100px] w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          className={`${fieldClassName} min-h-20 resize-none py-3 leading-5`}
           value={form.flexibility_notes}
           onChange={(event) => setForm((prev) => ({ ...prev, flexibility_notes: event.target.value }))}
-          placeholder="Short-notice flexibility, resort swaps, date range notes, etc."
         />
       </label>
 
-      <label className="inline-flex items-center gap-2 text-sm text-slate-700 md:col-span-2">
+      <label className="inline-flex items-center gap-3 text-[13px] font-medium text-[#b7c3d4] md:col-span-2">
         <input
           type="checkbox"
+          className="h-4 w-4 appearance-none rounded border border-[#02acfb] bg-[#0b1422] shadow-[inset_0_1px_1px_rgba(0,0,0,0.45)] checked:border-[#02acfb] checked:bg-[#02acfb]"
           checked={form.newsletter_opt_in}
           onChange={(event) => setForm((prev) => ({ ...prev, newsletter_opt_in: event.target.checked }))}
         />
-        Include this opportunity in curated newsletter consideration
+        Include this offer in curated newsletter consideration
       </label>
 
-      {error ? <p className="text-sm text-rose-600 md:col-span-2">{error}</p> : null}
-      {notice ? <p className="text-sm text-emerald-700 md:col-span-2">{notice}</p> : null}
+      {error ? <p className="text-sm text-[#fca5a5] md:col-span-2">{error}</p> : null}
+      {notice ? <p className="text-sm text-[#9cc7aa] md:col-span-2">{notice}</p> : null}
 
       <div className="md:col-span-2">
-        <Button type="submit" disabled={submitting}>
-          {submitting ? "Submitting..." : "Submit Last-Minute Opportunity"}
-        </Button>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="h-11 rounded-[10px] border border-[rgba(2,172,251,0.7)] bg-[#0A0F1A] bg-none px-7 text-[14px] font-semibold text-white shadow-none transition-colors duration-150 [background-image:none] hover:border-[#02ACFB] hover:bg-[#101A2B] hover:shadow-[0_0_12px_rgba(2,172,251,0.25)] focus-visible:border-[#02ACFB] focus-visible:bg-[#101A2B] focus-visible:shadow-[0_0_12px_rgba(2,172,251,0.25)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {submitting ? "Submitting..." : "Find a guest for my points"}
+        </button>
       </div>
     </form>
   );

@@ -74,33 +74,56 @@ export async function POST(request: NextRequest) {
 
   const { data: ownerRecord } = await admin
     .from("owners")
-    .select("id, user_id")
+    .select("id, user_id, agreement_accepted_at")
     .or(`id.eq.${user.id},user_id.eq.${user.id}`)
     .maybeSingle();
 
+  if (!ownerRecord) {
+    return NextResponse.json({ error: "Owner access required." }, { status: 403 });
+  }
+
+  if (!ownerRecord.agreement_accepted_at) {
+    return NextResponse.json({ error: "Owner agreement must be accepted before submitting." }, { status: 403 });
+  }
+
   const ownerId = ownerRecord?.id ?? null;
 
-  const { data, error } = await admin
+  const baseInsert = {
+    owner_user_id: user.id,
+    owner_id: ownerId,
+    home_resort_id: homeResortId,
+    points_available: Math.round(pointsAvailable),
+    expiration_date: expirationDate,
+    travel_window_start: travelWindowStart,
+    travel_window_end: travelWindowEnd,
+    room_type: roomType,
+    target_price_per_point_cents: Number.isFinite(targetPricePerPointCents)
+      ? Math.round(targetPricePerPointCents)
+      : null,
+    flexibility_notes: flexibilityNotes,
+    newsletter_opt_in: newsletterOptIn,
+    status: "pending_review",
+  };
+
+  let { data, error } = await admin
     .from("point_liquidation_requests")
     .insert({
-      owner_user_id: user.id,
-      owner_id: ownerId,
-      home_resort_id: homeResortId,
-      points_available: Math.round(pointsAvailable),
-      expiration_date: expirationDate,
+      ...baseInsert,
       urgency_level: urgencyLevel,
-      travel_window_start: travelWindowStart,
-      travel_window_end: travelWindowEnd,
-      room_type: roomType,
-      target_price_per_point_cents: Number.isFinite(targetPricePerPointCents)
-        ? Math.round(targetPricePerPointCents)
-        : null,
-      flexibility_notes: flexibilityNotes,
-      newsletter_opt_in: newsletterOptIn,
-      status: "pending_review",
     })
     .select("id")
     .single();
+
+  // Backward-compatible fallback while environments catch up on migration.
+  if (error?.message?.toLowerCase().includes("urgency_level")) {
+    const retry = await admin
+      .from("point_liquidation_requests")
+      .insert(baseInsert)
+      .select("id")
+      .single();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error || !data) {
     return NextResponse.json({ error: error?.message ?? "Unable to submit opportunity." }, { status: 400 });

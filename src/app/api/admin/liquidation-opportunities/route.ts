@@ -47,7 +47,7 @@ export async function GET() {
   const { data, error } = await admin
     .from("point_liquidation_requests")
     .select(
-      "id, owner_user_id, points_available, expiration_date, urgency_level, travel_window_start, travel_window_end, room_type, target_price_per_point_cents, flexibility_notes, newsletter_opt_in, featured_in_newsletter, admin_approved, public_visibility, status, admin_notes, created_at, updated_at, home_resort:resorts(name), owner_profile:profiles(email, display_name)",
+      "id, owner_user_id, points_available, expiration_date, urgency_level, travel_window_start, travel_window_end, room_type, target_price_per_point_cents, flexibility_notes, newsletter_opt_in, featured_in_newsletter, admin_approved, public_visibility, status, admin_notes, created_at, updated_at, home_resort:resorts(name), owner_profile:profiles(email, display_name, phone, role)",
     )
     .order("created_at", { ascending: false })
     .limit(400);

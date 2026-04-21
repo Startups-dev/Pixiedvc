@@ -1,6 +1,4 @@
-import Link from "next/link";
-
-import { Card, Button } from "@pixiedvc/design-system";
+import { Card } from "@pixiedvc/design-system";
 import { requireOwnerAccess } from "@/lib/owner/requireOwnerAccess";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import OwnerLiquidationOpportunityForm from "@/components/owner/OwnerLiquidationOpportunityForm";
@@ -18,10 +16,12 @@ export default async function OwnerLiquidationOpportunitiesPage() {
 
   if (!admin) {
     return (
-      <main className="mx-auto max-w-5xl space-y-6 px-6 py-12">
-        <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm text-rose-600">Admin service is unavailable. Try again later.</p>
-        </Card>
+      <main className="min-h-screen bg-background-primary">
+        <div className="mx-auto max-w-5xl space-y-6 px-6 py-14">
+          <Card className="!rounded-2xl !border-border-subtle !bg-background-secondary p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_16px_40px_rgba(0,0,0,0.3)]">
+            <p className="text-sm text-slate-300">Admin service is unavailable. Try again later.</p>
+          </Card>
+        </div>
       </main>
     );
   }
@@ -46,73 +46,80 @@ export default async function OwnerLiquidationOpportunitiesPage() {
   ]);
 
   return (
-    <main className="mx-auto max-w-5xl space-y-8 px-6 py-12">
-      <header className="space-y-3">
-        <p className="text-xs uppercase tracking-[0.3em] text-muted">Owner opportunities</p>
-        <h1 className="text-3xl font-semibold text-ink">Last-Minute Liquidation Opportunities</h1>
-        <p className="max-w-3xl text-sm text-muted">
-          This flow is for expiring points and short-notice opportunities, not standard Ready Stays. PixieDVC reviews each submission, helps match the right guest, and can optionally feature approved opportunities in curated newsletter placements. This is concierge-assisted and not an instant public listing.
-        </p>
-        <div>
-          <Button asChild variant="ghost">
-            <Link href="/owner/ready-stays">Back to Ready Stays</Link>
-          </Button>
-        </div>
-      </header>
+    <main className="min-h-screen bg-background-primary">
+      <div className="mx-auto max-w-5xl space-y-10 px-6 py-14">
+        <Card className="!rounded-2xl !border-border-subtle !bg-background-secondary p-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_16px_40px_rgba(0,0,0,0.3)]">
+          <header className="space-y-4">
+            <h1 className="text-3xl font-semibold text-white md:text-4xl" style={{ color: "#ffffff" }}>
+              Soon to expire points?
+            </h1>
+            <p className="max-w-3xl text-sm leading-relaxed text-slate-300">
+              We&apos;ll help you move them fast.
+              <br />
+              <br />
+              If your points are expiring soon, our concierge team will price and promote them to active guest demand through our curated newsletter.
+            </p>
+          </header>
+        </Card>
 
-      <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Submit a last-minute deal</h2>
-        <p className="mt-2 text-sm text-muted">
-          Submit your details and target pricing guidance, and we will review, prioritize, and route the opportunity through concierge-assisted matching.
-        </p>
-        <div className="mt-5">
-          <OwnerLiquidationOpportunityForm resorts={(resorts ?? []) as Array<{ id: string; name: string }>} />
-        </div>
-      </Card>
-
-      <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Your submissions</h2>
-        {rows?.length ? (
-          <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-[0.2em] text-slate-500">
-                <tr>
-                  <th className="px-4 py-3 text-left font-semibold">Resort</th>
-                  <th className="px-4 py-3 text-left font-semibold">Points</th>
-                  <th className="px-4 py-3 text-left font-semibold">Expiration</th>
-                  <th className="px-4 py-3 text-left font-semibold">Target</th>
-                  <th className="px-4 py-3 text-left font-semibold">Status</th>
-                  <th className="px-4 py-3 text-left font-semibold">Newsletter</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {(rows as Array<Record<string, unknown>>).map((row) => (
-                  <tr key={String(row.id)}>
-                    <td className="px-4 py-3 text-ink">
-                      {typeof (row.home_resort as { name?: string } | null)?.name === "string"
-                        ? (row.home_resort as { name: string }).name
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{Number(row.points_available ?? 0)}</td>
-                    <td className="px-4 py-3 text-slate-600">{formatDate((row.expiration_date as string) ?? null)}</td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {row.target_price_per_point_cents
-                        ? `$${(Number(row.target_price_per_point_cents) / 100).toFixed(2)}/pt`
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">{String(row.status ?? "pending_review")}</td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {row.featured_in_newsletter ? "Featured" : row.newsletter_opt_in ? "Opted in" : "No"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <Card className="liquidation-submit-panel !rounded-[22px] p-7 md:p-8">
+          <h2 className="text-[19px] font-semibold uppercase leading-tight tracking-[0.24em] text-white" style={{ color: "#ffffff" }}>
+            Submit your points for review
+          </h2>
+          <p className="mt-3 max-w-4xl border-b border-[#7184a3]/20 pb-5 text-[15px] leading-6 text-[#b7c3d4]">
+            Share your points, timing, and pricing target, and our team will review and prioritize the best matching path.
+          </p>
+          <div className="mt-5">
+            <OwnerLiquidationOpportunityForm resorts={(resorts ?? []) as Array<{ id: string; name: string }>} />
           </div>
-        ) : (
-          <p className="mt-4 text-sm text-muted">No submissions yet.</p>
-        )}
-      </Card>
+        </Card>
+
+        <Card className="!rounded-2xl !border-border-subtle !bg-background-secondary p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_16px_40px_rgba(0,0,0,0.3)]">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-white" style={{ color: "#ffffff" }}>
+            Your submissions
+          </h2>
+          {rows?.length ? (
+            <div className="mt-4 overflow-x-auto rounded-2xl border border-border-subtle">
+              <table className="min-w-full divide-y divide-border-subtle text-sm">
+                <thead className="bg-background-tertiary text-xs uppercase tracking-[0.2em] text-slate-300">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-semibold">Resort</th>
+                    <th className="px-4 py-3 text-left font-semibold">Points</th>
+                    <th className="px-4 py-3 text-left font-semibold">Expiration</th>
+                    <th className="px-4 py-3 text-left font-semibold">Target</th>
+                    <th className="px-4 py-3 text-left font-semibold">Status</th>
+                    <th className="px-4 py-3 text-left font-semibold">Newsletter</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border-subtle">
+                  {(rows as Array<Record<string, unknown>>).map((row) => (
+                    <tr key={String(row.id)}>
+                      <td className="px-4 py-3 text-slate-300">
+                        {typeof (row.home_resort as { name?: string } | null)?.name === "string"
+                          ? (row.home_resort as { name: string }).name
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-slate-300">{Number(row.points_available ?? 0)}</td>
+                      <td className="px-4 py-3 text-slate-300">{formatDate((row.expiration_date as string) ?? null)}</td>
+                      <td className="px-4 py-3 text-slate-300">
+                        {row.target_price_per_point_cents
+                          ? `$${(Number(row.target_price_per_point_cents) / 100).toFixed(2)}/pt`
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-slate-300">{String(row.status ?? "pending_review")}</td>
+                      <td className="px-4 py-3 text-slate-300">
+                        {row.featured_in_newsletter ? "Featured" : row.newsletter_opt_in ? "Opted in" : "No"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-slate-300">No submissions yet.</p>
+          )}
+        </Card>
+      </div>
     </main>
   );
 }
