@@ -4,7 +4,7 @@ import { Button } from "@pixiedvc/design-system";
 import ReferralLink from "@/components/referral/ReferralLink";
 
 export async function Hero() {
-  const heroImageSrc = process.env.NEXT_PUBLIC_HERO_IMAGE_SRC?.trim() || "/images/castle-hero.png";
+  const heroImageSrc = "/images/hero-new.png";
   const heroImageAlt = heroImageSrc.includes("castle")
     ? "Cinderella Castle with monorail at dusk"
     : "PixieDVC resort hero image";
