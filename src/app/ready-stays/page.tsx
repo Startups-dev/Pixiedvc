@@ -32,6 +32,8 @@ export default async function ReadyStaysPublicPage({
 }) {
   const searchReadyStays = await getSearchReadyStaysShowcase(3);
   const supabase = await createSupabaseServerClient();
+  const today = new Date().toISOString().slice(0, 10);
+  const nowMs = Date.now();
 
   const { data: resorts } = await supabase
     .from("resorts")
@@ -41,9 +43,10 @@ export default async function ReadyStaysPublicPage({
   let query = supabase
     .from("ready_stays")
     .select(
-      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, resorts(name, slug, calculator_code)",
+      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, expires_at, locked_until, resorts(name, slug, calculator_code)",
     )
     .eq("status", "active")
+    .gte("check_out", today)
     .order("price_reduced_at", { ascending: false, nullsFirst: false })
     .order("check_in", { ascending: true });
 
@@ -83,6 +86,23 @@ export default async function ReadyStaysPublicPage({
   }
 
   const { data: readyStays } = await query;
+  const visibleReadyStays = (readyStays ?? []).filter((stay) => {
+    if (stay.expires_at) {
+      const expiresAt = new Date(stay.expires_at);
+      if (!Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() <= nowMs) {
+        return false;
+      }
+    }
+
+    if (stay.locked_until) {
+      const lockedUntil = new Date(stay.locked_until);
+      if (!Number.isNaN(lockedUntil.getTime()) && lockedUntil.getTime() >= nowMs) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 
   return (
     <main className="mx-auto max-w-6xl space-y-10 px-6 py-12">
@@ -95,7 +115,7 @@ export default async function ReadyStaysPublicPage({
       </header>
 
       <ReadyStaysMarketplaceClient
-        readyStays={readyStays ?? []}
+        readyStays={visibleReadyStays}
         resorts={(resorts ?? []) as { id: string; name: string }[]}
         searchParams={searchParams ?? {}}
       />

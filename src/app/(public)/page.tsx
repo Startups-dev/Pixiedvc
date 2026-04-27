@@ -2,10 +2,12 @@ import Link from "next/link";
 import { Sparkles } from "lucide-react";
 
 import { Hero } from "@/components/hero";
+import EmailLeadCapture from "@/components/EmailLeadCapture";
 import BridgeChips from "@/components/BridgeChips";
 import ResortShowcase from "@/components/ResortShowcase";
 import ResortCollectionCard from "@/components/ResortCollectionCard";
 import ContextualGuides from "@/components/guides/ContextualGuides";
+import ReadyStaysEmptyState from "@/components/ready-stays-showcase/ReadyStaysEmptyState";
 import ReadyStaysSection from "@/components/ready-stays-showcase/ReadyStaysSection";
 import { STORIES } from "@/content/stories";
 import {
@@ -49,6 +51,17 @@ export default async function Home() {
   return (
     <>
       <Hero />
+      <section className="mx-auto max-w-7xl px-6 pt-6">
+        <EmailLeadCapture
+          source="hero_bar"
+          headline="Get Disney deals before they’re gone"
+          buttonLabel="Get Deals"
+          helperText="Real availability. Real pricing. Only meaningful updates."
+          className="rounded-[28px] border border-[#d9e3fb] bg-[linear-gradient(135deg,rgba(244,247,255,0.96),rgba(255,255,255,0.92))] px-5 py-5 shadow-[0_18px_45px_rgba(15,33,72,0.08)] backdrop-blur sm:px-6"
+          innerClassName="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8"
+          compact
+        />
+      </section>
       <section className="mx-auto max-w-7xl px-6 py-20">
         <div className="text-center">
           <h2 className="text-3xl font-semibold text-slate-900">Two Ways to Secure Your Stay</h2>
@@ -126,12 +139,27 @@ export default async function Home() {
           Verified owners • Secure payments • Concierge-led support
         </div>
       </section>
-      {READY_STAYS_SHOWCASE_FLAGS.enableHomeReadyStays ? (
-        <ReadyStaysSection
-          title="Book Instantly — Available Now"
-          subtitle="Pre-confirmed stays you can secure right now. No request needed."
-          items={homeReadyStays}
+      <section className="mx-auto max-w-4xl px-6 pb-8">
+        <EmailLeadCapture
+          source="post_intent"
+          headline="Want deals like these before they sell out?"
+          body="We’ll send you new availability and last-minute opportunities as they appear."
+          buttonLabel="Get Alerts"
+          align="center"
+          className="rounded-[32px] border border-slate-200/80 bg-white px-6 py-8 shadow-[0_26px_60px_rgba(15,33,72,0.08)] sm:px-10"
+          innerClassName="mx-auto max-w-3xl"
         />
+      </section>
+      {READY_STAYS_SHOWCASE_FLAGS.enableHomeReadyStays ? (
+        homeReadyStays.length ? (
+          <ReadyStaysSection
+            title="Book Instantly — Available Now"
+            subtitle="Pre-confirmed stays you can secure right now. No request needed."
+            items={homeReadyStays}
+          />
+        ) : (
+          <ReadyStaysEmptyState />
+        )
       ) : null}
       <section className="h-24 bg-gradient-to-b from-white to-slate-100" aria-hidden="true" />
 
@@ -185,6 +213,15 @@ export default async function Home() {
                   />
                 ))}
               </div>
+              <EmailLeadCapture
+                source="resort_section"
+                headline="Track prices for these resorts"
+                body="Get notified when availability and pricing change."
+                buttonLabel="Track Prices"
+                className="mt-8 rounded-[28px] border border-[#dfe6f5] bg-white/80 px-5 py-5 shadow-[0_14px_32px_rgba(15,33,72,0.05)]"
+                innerClassName="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8"
+                compact
+              />
             </div>
           </section>
 
@@ -242,6 +279,17 @@ export default async function Home() {
             </div>
           </section>
 
+        <section className="mx-auto max-w-5xl px-6 py-6">
+          <EmailLeadCapture
+            source="bottom_cta"
+            headline="Not ready to book yet?"
+            body="We’ll send you the best Disney stays as they become available."
+            buttonLabel="Get Deals"
+            className="rounded-[32px] border border-[#dbe3f6] bg-[linear-gradient(135deg,rgba(247,249,255,0.95),rgba(255,255,255,0.98))] px-6 py-8 shadow-[0_24px_55px_rgba(15,33,72,0.08)]"
+            innerClassName="mx-auto max-w-3xl"
+            align="center"
+          />
+        </section>
         <div className="h-[90px] w-full bg-[linear-gradient(to_bottom,rgba(255,255,255,1)_0%,rgba(255,255,255,0.85)_40%,rgba(255,255,255,0)_100%)]" />
         <section
             id="PixieBooking"

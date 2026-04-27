@@ -722,7 +722,7 @@ export default function HeaderClient({
                     <Link
                       href="/login"
                       onClick={closeMobile}
-                      className="inline-flex w-full items-center justify-center rounded-full border border-white/40 px-4 py-2 text-sm font-semibold text-white/85 transition hover:text-white"
+                      className="inline-flex w-full items-center justify-center rounded-full border border-white/40 px-4 py-2 text-sm font-semibold !text-white transition hover:!text-white"
                     >
                       Login
                     </Link>

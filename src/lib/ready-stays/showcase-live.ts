@@ -13,6 +13,7 @@ type ReadyStayShowcaseRow = {
   slug: string | null;
   title: string | null;
   short_description: string | null;
+  created_at: string | null;
   check_in: string;
   check_out: string;
   points: number;
@@ -27,6 +28,8 @@ type ReadyStayShowcaseRow = {
   priority: number | null;
   sort_override: number | null;
   sleeps: number | null;
+  expires_at: string | null;
+  locked_until: string | null;
   resorts:
     | {
         name?: string | null;
@@ -124,22 +127,55 @@ function sortShowcaseRows(rows: ReadyStayShowcaseRow[]) {
   });
 }
 
-async function fetchPublicShowcaseRows(placementColumn: "placement_home" | "placement_resort" | "placement_search", resortSlug?: string) {
-  const supabase = await createSupabaseServerClient();
+function isRowPubliclyAvailable(row: Pick<ReadyStayShowcaseRow, "check_out" | "expires_at" | "locked_until">) {
   const today = new Date().toISOString().slice(0, 10);
-  const nowIso = new Date().toISOString();
+  const now = Date.now();
+
+  if (row.check_out < today) return false;
+
+  if (row.expires_at) {
+    const expiresAt = new Date(row.expires_at);
+    if (!Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() <= now) {
+      return false;
+    }
+  }
+
+  if (row.locked_until) {
+    const lockedUntil = new Date(row.locked_until);
+    if (!Number.isNaN(lockedUntil.getTime()) && lockedUntil.getTime() >= now) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function sortHomepageFallbackRows(rows: ReadyStayShowcaseRow[]) {
+  return [...rows].sort((a, b) => {
+    const checkInDelta = a.check_in.localeCompare(b.check_in);
+    if (checkInDelta !== 0) return checkInDelta;
+
+    const aCreatedAt = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const bCreatedAt = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return bCreatedAt - aCreatedAt;
+  });
+}
+
+async function fetchPublicShowcaseRows(placementColumn?: "placement_home" | "placement_resort" | "placement_search", resortSlug?: string) {
+  const supabase = await createSupabaseServerClient();
 
   const selectClause = resortSlug
-    ? "id, slug, title, short_description, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, resorts!inner(name, slug)"
-    : "id, slug, title, short_description, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, resorts(name, slug)";
+    ? "id, slug, title, short_description, created_at, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, expires_at, locked_until, resorts!inner(name, slug)"
+    : "id, slug, title, short_description, created_at, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, expires_at, locked_until, resorts(name, slug)";
 
   let query = supabase
     .from("ready_stays")
     .select(selectClause)
-    .eq("status", "active")
-    .eq(placementColumn, true)
-    .gte("check_out", today)
-    .or(`expires_at.is.null,expires_at.gt.${nowIso}`);
+    .eq("status", "active");
+
+  if (placementColumn) {
+    query = query.eq(placementColumn, true);
+  }
 
   if (resortSlug) query = query.eq("resorts.slug", resortSlug);
 
@@ -153,7 +189,7 @@ async function fetchPublicShowcaseRows(placementColumn: "placement_home" | "plac
     return null;
   }
 
-  return (data ?? []) as ReadyStayShowcaseRow[];
+  return ((data ?? []) as ReadyStayShowcaseRow[]).filter((row) => isRowPubliclyAvailable(row));
 }
 
 function mapAndLimit(rows: ReadyStayShowcaseRow[], limit: number) {
@@ -171,9 +207,15 @@ export async function getHomeReadyStaysShowcase(limit = 3) {
   if (!READY_STAYS_SHOWCASE_FLAGS.enableReadyStaysLiveData) {
     return buildHomeFallbackShowcase(limit);
   }
-  const rows = await fetchPublicShowcaseRows("placement_home");
-  if (!rows) return [];
-  return mapAndLimit(rows, limit);
+  const homepageRows = await fetchPublicShowcaseRows("placement_home");
+  if (!homepageRows) return [];
+  if (homepageRows.length > 0) {
+    return mapAndLimit(homepageRows, limit);
+  }
+
+  const fallbackRows = await fetchPublicShowcaseRows();
+  if (!fallbackRows) return [];
+  return sortHomepageFallbackRows(fallbackRows).map(mapShowcaseRow).filter(Boolean).slice(0, limit) as ReadyStayShowcaseItem[];
 }
 
 export async function getResortReadyStaysShowcase(resortSlug: string, limit = 6) {

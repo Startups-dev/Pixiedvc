@@ -140,7 +140,7 @@ export default function AdminReadyStaysManager({ rows, resorts }: Props) {
     featured: false,
     priority: 0,
     sort_override: '',
-    placement_home: false,
+    placement_home: true,
     placement_resort: true,
     placement_search: false,
     expires_at: '',
@@ -337,7 +337,7 @@ export default function AdminReadyStaysManager({ rows, resorts }: Props) {
             </button>
           </div>
           <p className="md:col-span-2 text-[11px] text-[#8e8ea0]">
-            Lowering owner price lowers the guest-facing listing price for this stay.
+            Lowering owner price lowers the guest-facing listing price for this stay. Home placement is enabled by default for launch visibility.
           </p>
         </section>
       ) : null}
