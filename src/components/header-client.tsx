@@ -304,10 +304,10 @@ export default function HeaderClient({
       router.push("/support");
     }
   }, [router]);
-  const ownerJoinHref = "/owner/onboarding";
+  const ownerJoinHref = "/owners";
   const ownerPortalHref = isAuthenticated
     ? "/owner/dashboard"
-    : "/login?next=/owner/dashboard&intent=owner";
+    : "/login?redirect=/owner/dashboard&intent=owner";
   const ownerDropdown: DropdownConfig = {
     columns: 1,
     sections: [
@@ -315,7 +315,7 @@ export default function HeaderClient({
         title: "Owner Access",
         items: [
           { label: "Join as an Owner", href: ownerJoinHref, icon: Users },
-          { label: "Owner Portal", href: ownerPortalHref, icon: ShieldCheck },
+          { label: "Owner Dashboard", href: ownerPortalHref, icon: ShieldCheck },
         ],
       },
     ],
@@ -525,9 +525,9 @@ export default function HeaderClient({
               ) : (
                 <Link
                   href="/login"
-                  className="rounded-full border border-white/40 px-4 py-1 text-sm text-white/85 transition hover:text-white"
+                  className="rounded-full border border-white/50 bg-white/6 px-4 py-1 text-sm text-white/92 transition hover:border-white/65 hover:bg-white/10 hover:text-white"
                 >
-                  Login
+                  Sign in
                 </Link>
               )}
             </div>
@@ -571,7 +571,7 @@ export default function HeaderClient({
             <div className="mx-auto max-w-[1200px] space-y-4 px-4 py-4">
               <div className="grid gap-2 text-sm text-white/85">
                 {NAV_LINKS.map((item) => {
-                  const dropdown = DROPDOWNS[item.label];
+                  const dropdown = item.label === "Owners" ? ownerDropdown : DROPDOWNS[item.label];
                   if (!dropdown) {
                     return (
                       <Link
@@ -680,7 +680,7 @@ export default function HeaderClient({
 
               <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
                 <p className="text-xs uppercase tracking-[0.2em] text-white/60">
-                  {isAuthenticated ? "Account" : "Member Login"}
+                  {isAuthenticated ? "Account" : "Member Sign In"}
                 </p>
                 {isAuthenticated ? (
                   <div className="mt-3 grid gap-2 text-sm text-white/85">
@@ -724,7 +724,7 @@ export default function HeaderClient({
                       onClick={closeMobile}
                       className="inline-flex w-full items-center justify-center rounded-full border border-white/40 px-4 py-2 text-sm font-semibold !text-white transition hover:!text-white"
                     >
-                      Login
+                      Sign in
                     </Link>
                   </div>
                 )}

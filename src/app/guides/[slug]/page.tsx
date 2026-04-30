@@ -12,6 +12,7 @@ import { getAllResortSlugs } from "@/lib/resorts";
 import GuideImagePlaceholder from "@/app/guides/components/GuideImagePlaceholder";
 
 const BAY_LAKE_TOWER_SLUG = "bay-lake-tower";
+const HOW_RENTING_DVC_POINTS_WORKS_SLUG = "how-renting-dvc-points-works";
 const BAY_LAKE_HERO_IMAGE =
   "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Guides/Bay%20Lake/BayLake_dusk_shot";
 const BAY_LAKE_LOCATION_IMAGE =
@@ -609,6 +610,272 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
         },
       ]
     : [];
+
+  if (slug === HOW_RENTING_DVC_POINTS_WORKS_SLUG) {
+    const requestSteps = [
+      {
+        title: "Tell us your trip",
+        body: "Share your dates, resort preferences, room type, and flexibility.",
+      },
+      {
+        title: "We match you with a verified owner",
+        body: "Our concierge team works your request with owners whose points fit your stay.",
+      },
+      {
+        title: "Review before committing",
+        body: "You review the details, agreement, and next steps before any payment is required.",
+      },
+      {
+        title: "Secure and link your reservation",
+        body: "Once confirmed, your stay is booked and you receive details to link and plan in Disney tools.",
+      },
+    ];
+    const readyStaySteps = [
+      {
+        title: "Browse confirmed stays",
+        body: "View reservations already secured by verified owners.",
+      },
+      {
+        title: "Pick a stay that fits",
+        body: "Choose the dates, resort, and room type that work for your trip.",
+      },
+      {
+        title: "Secure it before it's gone",
+        body: "Move quickly on fixed-date inventory when the right stay appears.",
+      },
+    ];
+
+    return (
+      <main className="bg-[#f5f1ea] text-[#0F2148]">
+        <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top,rgba(93,120,255,0.22),transparent_34%),linear-gradient(180deg,#0c1631_0%,#152753_54%,#0e1d42_100%)]">
+          <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:28px_28px]" />
+          <div className="relative mx-auto max-w-6xl px-6 py-20 md:py-24">
+            <div className="max-w-4xl">
+              <p className="inline-flex items-center rounded-full border border-white/15 bg-white/8 px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-white/80 backdrop-blur-sm">
+                PixieDVC Booking Guide
+              </p>
+              <h1 className="mt-6 max-w-4xl font-display text-4xl leading-[0.96] text-white sm:text-5xl lg:text-7xl">
+                How PixieDVC Booking Works
+              </h1>
+              <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/78 sm:text-lg">
+                Save on Disney Deluxe villas through verified DVC owners, with two simple ways to book: request a
+                custom stay or choose a confirmed Ready Stay.
+              </p>
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <Link
+                  href="/plan"
+                  className="inline-flex items-center rounded-full bg-[linear-gradient(to_bottom,rgba(255,255,255,0.16),rgba(255,255,255,0.03)_46%,rgba(255,255,255,0)_52%),linear-gradient(to_right,#1f3567,#5b78ff)] px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(18,35,74,0.42)] transition-[transform,box-shadow,filter] duration-300 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_18px_36px_rgba(18,35,74,0.5)]"
+                >
+                  Find Your Stay
+                </Link>
+                <p className="text-sm text-white/62">{updatedLabel}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-6 py-16 md:py-20">
+          <div className="space-y-6">
+            <div className="max-w-3xl space-y-3">
+              <p className="text-xs uppercase tracking-[0.24em] text-[#0F2148]/55">Two Ways to Book</p>
+              <h2 className="font-display text-3xl text-[#0F2148] sm:text-4xl">Choose the booking path that fits your trip</h2>
+            </div>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <Card className="rounded-[30px] border border-[#0F2148]/8 bg-white p-8 shadow-[0_20px_50px_rgba(15,33,72,0.08)]">
+                <p className="text-xs uppercase tracking-[0.22em] text-[#5b78ff]">Custom Match</p>
+                <h3 className="mt-3 font-display text-3xl text-[#0F2148]">Request Your Stay</h3>
+                <p className="mt-3 text-base font-medium text-[#0F2148]/72">
+                  Best for specific dates, resorts, or room types.
+                </p>
+                <p className="mt-4 text-sm leading-7 text-[#0F2148]/76">
+                  Tell us your travel dates, resort preferences, and room type. PixieDVC matches you with verified DVC owners.
+                </p>
+                <ul className="mt-6 space-y-3 text-sm text-[#0F2148]/78">
+                  <li>Specific travel dates</li>
+                  <li>Preferred resorts</li>
+                  <li>Planning ahead</li>
+                  <li>Concierge guidance</li>
+                </ul>
+                <div className="mt-8">
+                  <Link
+                    href="/plan"
+                    className="inline-flex items-center rounded-full bg-[#0F2148] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1A2F66]"
+                  >
+                    Check Availability
+                  </Link>
+                </div>
+              </Card>
+
+              <Card className="rounded-[30px] border border-[#0F2148]/8 bg-[linear-gradient(180deg,#fffaf1_0%,#f6efe2_100%)] p-8 shadow-[0_20px_50px_rgba(15,33,72,0.08)]">
+                <p className="text-xs uppercase tracking-[0.22em] text-[#b67b1e]">Instant Opportunity</p>
+                <h3 className="mt-3 font-display text-3xl text-[#0F2148]">Browse Ready Stays</h3>
+                <p className="mt-3 text-base font-medium text-[#0F2148]/72">
+                  Best for faster booking and last-minute value.
+                </p>
+                <p className="mt-4 text-sm leading-7 text-[#0F2148]/76">
+                  Choose from confirmed reservations already secured by verified owners.
+                </p>
+                <ul className="mt-6 space-y-3 text-sm text-[#0F2148]/78">
+                  <li>Flexible travel</li>
+                  <li>Last-minute trips</li>
+                  <li>Fixed dates</li>
+                  <li>Deal opportunities</li>
+                </ul>
+                <div className="mt-8">
+                  <Link
+                    href="/ready-stays"
+                    className="inline-flex items-center rounded-full border border-[#0F2148]/14 bg-white px-5 py-2.5 text-sm font-semibold text-[#0F2148] transition hover:border-[#0F2148]/28 hover:bg-white/80"
+                  >
+                    View Ready Stays
+                  </Link>
+                </div>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-white py-16 md:py-20">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
+              <div className="space-y-5">
+                <p className="text-xs uppercase tracking-[0.24em] text-[#0F2148]/55">Renting DVC Points, Simplified</p>
+                <h2 className="font-display text-3xl leading-tight text-[#0F2148] sm:text-4xl">
+                  The same Disney villas, booked a different way.
+                </h2>
+              </div>
+              <div className="space-y-4 text-base leading-relaxed text-[#0F2148]/78">
+                <p>
+                  Renting DVC points gives you access to the same Disney Deluxe villas, often at a much lower price than booking direct through Disney.
+                </p>
+                <p>
+                  Instead of booking from Disney hotel inventory, your stay is booked through a Disney Vacation Club owner with eligible points.
+                </p>
+                <p>
+                  PixieDVC makes that process feel clear by handling verification, coordination, and the path to confirmation for you.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-16 md:py-20">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="max-w-3xl">
+              <p className="text-xs uppercase tracking-[0.24em] text-[#0F2148]/55">Request Flow</p>
+              <h2 className="mt-3 font-display text-3xl text-[#0F2148] sm:text-4xl">If You Request a Stay</h2>
+            </div>
+            <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+              {requestSteps.map((step, index) => (
+                <Card
+                  key={step.title}
+                  className="rounded-[28px] border border-[#0F2148]/8 bg-[linear-gradient(180deg,#ffffff_0%,#f7f4ef_100%)] p-6 shadow-[0_18px_44px_rgba(15,33,72,0.08)]"
+                >
+                  <p className="text-xs uppercase tracking-[0.22em] text-[#5b78ff]">Step {index + 1}</p>
+                  <h3 className="mt-3 font-display text-2xl leading-tight text-[#0F2148]">{step.title}</h3>
+                  <p className="mt-4 text-sm leading-7 text-[#0F2148]/75">{step.body}</p>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-white py-16 md:py-20">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="max-w-3xl">
+              <p className="text-xs uppercase tracking-[0.24em] text-[#0F2148]/55">Ready Stays Flow</p>
+              <h2 className="mt-3 font-display text-3xl text-[#0F2148] sm:text-4xl">If You Choose a Ready Stay</h2>
+            </div>
+            <div className="mt-10 grid gap-5 md:grid-cols-3">
+              {readyStaySteps.map((step, index) => (
+                <Card
+                  key={step.title}
+                  className="rounded-[28px] border border-[#0F2148]/8 bg-[linear-gradient(180deg,#ffffff_0%,#f7f4ef_100%)] p-6 shadow-[0_18px_44px_rgba(15,33,72,0.08)]"
+                >
+                  <p className="text-xs uppercase tracking-[0.22em] text-[#b67b1e]">Step {index + 1}</p>
+                  <h3 className="mt-3 font-display text-2xl leading-tight text-[#0F2148]">{step.title}</h3>
+                  <p className="mt-4 text-sm leading-7 text-[#0F2148]/75">{step.body}</p>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-[#11224b] py-16 text-white md:py-20">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+              <div className="space-y-4">
+                <p className="text-xs uppercase tracking-[0.24em] text-white/58">Trust</p>
+                <h2 className="font-display text-3xl text-white sm:text-4xl">Why This Is Safe</h2>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {[
+                  "Verified DVC owners only",
+                  "Booked through Disney's official system",
+                  "Clear agreement before payment",
+                  "Concierge support from start to finish",
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="rounded-[24px] border border-white/10 bg-white/8 px-5 py-5 text-sm font-medium text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-sm"
+                  >
+                    <span className="inline-flex items-start gap-3">
+                      <span aria-hidden="true">✔</span>
+                      <span>{item}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-16 md:py-20">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-start">
+              <div className="space-y-4">
+                <p className="text-xs uppercase tracking-[0.24em] text-[#0F2148]/55">PixieDVC Value</p>
+                <h2 className="font-display text-3xl text-[#0F2148] sm:text-4xl">
+                  Concierge-led, Not Marketplace Chaos
+                </h2>
+              </div>
+              <div className="space-y-4 text-base leading-relaxed text-[#0F2148]/78">
+                <p>
+                  Direct owner rentals often require you to evaluate strangers, manage coordination, and handle the booking process yourself.
+                </p>
+                <p>
+                  PixieDVC handles owner verification, communication, coordination, and the process from request through confirmation, so the path feels safer and simpler.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-[linear-gradient(180deg,#152753_0%,#0c1631_100%)] py-16 text-white md:py-20">
+          <div className="mx-auto max-w-4xl px-6 text-center">
+            <p className="text-xs uppercase tracking-[0.24em] text-white/58">Next Step</p>
+            <h2 className="mt-3 font-display text-3xl text-white sm:text-5xl">Ready to find your stay?</h2>
+            <p className="mt-4 text-base leading-relaxed text-white/72">
+              Choose the booking path that fits your trip and move forward with clarity.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/plan"
+                className="inline-flex items-center rounded-full bg-[linear-gradient(to_bottom,rgba(255,255,255,0.16),rgba(255,255,255,0.03)_46%,rgba(255,255,255,0)_52%),linear-gradient(to_right,#1f3567,#5b78ff)] px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(18,35,74,0.42)] transition-[transform,box-shadow,filter] duration-300 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_18px_36px_rgba(18,35,74,0.5)]"
+              >
+                Find Your Stay
+              </Link>
+              <Link
+                href="/ready-stays"
+                className="inline-flex items-center rounded-full border border-white/18 bg-white/8 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/12"
+              >
+                Browse Ready Stays
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <div className="bg-[#F7F5F2] py-20">

@@ -57,7 +57,7 @@ export default function GuestsPage() {
                   </div>
                 </Suspense>
                 <Button asChild variant="ghost">
-                  <Link href="/info/guests/rental-process">See How Rentals Work</Link>
+                  <Link href="/guides/how-renting-dvc-points-works">See How Rentals Work</Link>
                 </Button>
               </div>
               <div className="flex flex-col gap-2 text-sm text-muted sm:flex-row sm:flex-wrap">

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Image from "next/image";
 
 import { Button } from "@pixiedvc/design-system";
@@ -31,22 +32,20 @@ export async function Hero() {
         <div className="flex flex-col gap-12 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
           <div className="flex max-w-[620px] flex-col lg:max-w-[780px] lg:min-h-[520px]">
             <div>
+              <span className="inline-block rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.12em] text-white/85 backdrop-blur-sm">
+                THE DISNEY HACK YOU&apos;VE BEEN LOOKING FOR
+              </span>
               <h2 className="mt-2 max-w-[24ch] lg:max-w-[760px] font-display !text-[50px] !leading-[1.03] !font-bold !text-white drop-shadow-[0_6px_20px_rgba(12,15,44,0.3)] sm:!text-[52px] lg:!text-[56px]">
-                <span className="block lg:whitespace-nowrap">Stay at Disney&apos;s luxury resorts</span>
-                <span className="block lg:whitespace-nowrap">without paying Disney prices.</span>
+                <span className="block lg:whitespace-nowrap">Disney Deluxe Resorts</span>
+                <span className="block lg:whitespace-nowrap">for 50% Less</span>
               </h2>
             </div>
-            <p
-              className="mt-2 max-w-lg text-xl font-semibold text-white sm:text-2xl"
-              style={{ lineHeight: "1.45" }}
-            >
-              Save 40–60% vs booking direct with Disney
-            </p>
             <p
               className="mt-5 max-w-xl font-sans !text-white/70"
               style={{ fontSize: "14px", lineHeight: "1.75" }}
             >
-              A concierge-led service that matches you with verified owners, simple, secure, and handled for you.
+              Access the same Disney villas for a fraction of the price. We match you with verified owners and handle the
+              entire booking for you.
             </p>
             <div className="mt-5">
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -57,11 +56,21 @@ export async function Hero() {
           className="ring-1 ring-white/10 border border-white/15 bg-white/12 px-7 py-3 text-base font-semibold text-white !text-white shadow-[0_8px_20px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.2)] transition-transform duration-200 hover:scale-[1.03] hover:bg-white/22"
                   >
                     <ReferralLink href="/plan" className="text-white">
-                      Check Availability
+                      Find Your Stay
                     </ReferralLink>
                   </Button>
                 </div>
               </div>
+              <p className="mt-3 text-sm text-white/70">
+                No account needed to start.{" "}
+                <Link
+                  href="/login?next=/plan"
+                  className="inline-flex items-center rounded-full border border-white/25 bg-white/10 px-2.5 py-0.5 font-medium text-white transition hover:border-white/40 hover:bg-white/16"
+                >
+                  Sign in
+                </Link>{" "}
+                anytime.
+              </p>
               <div className="mt-6 inline-flex items-center gap-x-8 text-xs tracking-[0.08em] text-white/85">
                 <span className="inline-flex items-center">
                   <span className="mr-2 text-[10px] text-green-400">✔</span>

@@ -362,7 +362,6 @@ export default async function Home() {
               <p className="mt-8 text-xs uppercase tracking-[0.2em] text-white/60">
                 ✔ Verified owners • Secure payments • Concierge-led support
               </p>
-              <p className="mt-2 text-xs text-white/50">Advanced planning tools coming soon.</p>
             </div>
           </section>
 

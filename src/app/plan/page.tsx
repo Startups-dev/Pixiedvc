@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { Button } from "@pixiedvc/design-system";
 import ReferralLink from "@/components/referral/ReferralLink";
 
@@ -12,6 +13,12 @@ export default function PlanLandingPage() {
           </h1>
           <p className="text-sm font-medium text-muted">
             Three ways to book, pick what fits you best.
+          </p>
+          <p className="text-sm text-muted">
+            Already have an account?{" "}
+            <Link href="/login?next=/plan" className="font-semibold text-ink underline underline-offset-4">
+              Sign in
+            </Link>
           </p>
         </section>
 

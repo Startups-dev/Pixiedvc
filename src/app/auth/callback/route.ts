@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const tokenType = searchParams.get("type");
-  const next = searchParams.get("next");
+  const next = searchParams.get("next") ?? searchParams.get("redirect");
   const supabase = await createSupabaseServerClient();
 
   if (code) {
