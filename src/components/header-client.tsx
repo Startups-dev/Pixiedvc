@@ -106,8 +106,6 @@ const DROPDOWNS: Record<string, DropdownConfig> = {
           { label: "Disney Dining Plans", href: "/dining-plan", icon: FileText },
           { label: "Ready Stays (Instant Booking)", href: "/ready-stays", icon: Calendar },
           { label: "How Guest Renting Works", href: "/guides/how-renting-dvc-points-works", icon: BookOpen },
-          { label: "Confirmed Reservations", enabled: false, icon: CheckCircle2 },
-          { label: "Guest Policies & Rules", href: "/guests/policies", icon: FileText },
         ],
       },
       {

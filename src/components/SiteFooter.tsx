@@ -15,6 +15,7 @@ const LEGAL_LINKS = [
   { label: "Terms", href: "/terms" },
   { label: "Privacy", href: "/privacy" },
   { label: "Refund / Cancellation", href: "/policies" },
+  { label: "Guest Policies", href: "/guests/policies" },
 ];
 
 const EXPLORE_LINKS = [

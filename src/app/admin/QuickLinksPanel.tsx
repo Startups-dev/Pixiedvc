@@ -46,6 +46,12 @@ const SECTIONS: QuickLinkSection[] = [
         href: '/admin/owners',
       },
       {
+        id: 'users',
+        title: 'Users',
+        description: 'Review auth users, display names, full names, and providers.',
+        href: '/admin/users',
+      },
+      {
         id: 'owner-verifications',
         title: 'Owner Verifications',
         description: 'Review and approve owner verification flows.',

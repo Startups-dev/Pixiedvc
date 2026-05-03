@@ -96,6 +96,15 @@ export async function saveProfile(input: {
     throw new Error(error.message);
   }
 
+  await sb.auth.updateUser({
+    data: {
+      ...(user.user_metadata ?? {}),
+      display_name: input.display_name ?? user.user_metadata?.display_name ?? null,
+      full_name: input.full_name ?? user.user_metadata?.full_name ?? null,
+      name: input.full_name ?? input.display_name ?? user.user_metadata?.name ?? null,
+    },
+  });
+
   return { ok: true };
 }
 
@@ -360,13 +369,15 @@ export async function completeOnboarding() {
 
   const { data: profile, error: profileError } = await sb
     .from('profiles')
-    .select('role')
+    .select('role, display_name, full_name')
     .eq('id', user.id)
     .maybeSingle();
 
   if (profileError) {
     throw new Error(profileError.message);
   }
+
+  let ownerLegalFullName: string | null = null;
 
   if (profile?.role === 'owner') {
     const { data: ownerMembership, error: ownerMembershipError } = await sb
@@ -382,7 +393,9 @@ export async function completeOnboarding() {
       throw new Error(ownerMembershipError.message);
     }
 
-    if (!ownerMembership?.owner_legal_full_name) {
+    ownerLegalFullName = ownerMembership?.owner_legal_full_name ?? null;
+
+    if (!ownerLegalFullName) {
       throw new Error('Owner legal full name is required to complete onboarding.');
     }
   }
@@ -404,6 +417,14 @@ export async function completeOnboarding() {
       ...(user.user_metadata ?? {}),
       onboarding_completed: true,
       role: profile?.role ?? user.user_metadata?.role,
+      display_name: profile?.display_name ?? user.user_metadata?.display_name ?? ownerLegalFullName ?? null,
+      full_name: profile?.full_name ?? user.user_metadata?.full_name ?? ownerLegalFullName ?? null,
+      name:
+        profile?.full_name ??
+        profile?.display_name ??
+        user.user_metadata?.name ??
+        ownerLegalFullName ??
+        null,
     },
   });
 
