@@ -96,6 +96,10 @@ const valueItems = [
     title: "Clear terms upfront",
     body: "Review payout and booking details before accepting.",
   },
+  {
+    title: "Get paid quickly",
+    body: "Receive most of your payout after booking, with the remainder at check-in.",
+  },
 ];
 
 const notes = [
@@ -246,13 +250,13 @@ export default function OwnersPage() {
                   href="/owner/onboarding"
                   className="inline-flex items-center rounded-full bg-[linear-gradient(to_bottom,rgba(255,255,255,0.16),rgba(255,255,255,0.03)_46%,rgba(255,255,255,0)_52%),linear-gradient(to_right,#1f3567,#5b78ff)] px-6 py-3 text-sm font-semibold !text-white shadow-[0_14px_32px_rgba(18,35,74,0.42)] transition-[transform,box-shadow,filter] duration-300 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_18px_36px_rgba(18,35,74,0.5)]"
                 >
-                  List Your Points
+                  List Points for Custom Matches
                 </Link>
                 <Link
                   href="/owner/onboarding"
                   className="inline-flex items-center rounded-full border border-[#0F2148]/14 bg-white px-6 py-3 text-sm font-semibold text-[#0F2148] transition hover:border-[#0F2148]/28"
                 >
-                  Rent a Confirmed Reservation
+                  List a Ready Stay
                 </Link>
               </div>
               <div className="flex flex-col gap-3 pt-2 text-sm text-[#0F2148]/60 sm:flex-row sm:flex-wrap sm:justify-center">
@@ -313,7 +317,7 @@ export default function OwnersPage() {
           />
           <div className="space-y-6">
             <p className="text-xs uppercase tracking-[0.24em] text-[#7d8490]">Custom Matches</p>
-            <h2 className="text-2xl font-bold leading-tight text-[#0B1F44] sm:text-4xl">List Your DVC Points</h2>
+            <h2 className="text-2xl font-bold leading-tight text-[#0B1F44] sm:text-4xl">Custom Matches</h2>
             <p className="text-[19px] font-medium leading-[1.5] text-[#4f5866]">
               Best if you have unused points
             </p>
@@ -351,9 +355,9 @@ export default function OwnersPage() {
               <div>
                   <Link
                     href="/owner/onboarding"
-                    className="inline-flex h-12 items-center rounded-full bg-[#0B1F44] px-6 text-sm font-semibold !text-white shadow-[0_10px_24px_rgba(11,31,68,0.18)] transition hover:bg-[#173566] hover:!text-white hover:shadow-[0_14px_28px_rgba(11,31,68,0.22)]"
+                    className="inline-flex h-12 items-center rounded-full border border-[#0B1F44]/18 bg-white px-6 text-sm font-semibold text-[#0B1F44] transition hover:border-[#0B1F44]/32 hover:bg-[#f8fafc]"
                   >
-                    List My Points
+                    List Points for Custom Matches
                   </Link>
               </div>
               <HowItWorksPanel label="How Custom Matches works" steps={customMatchSteps} />
@@ -367,7 +371,7 @@ export default function OwnersPage() {
           <div className="grid gap-12 lg:grid-cols-[1.02fr_0.98fr] lg:items-start">
             <div className="space-y-6">
               <p className="text-xs uppercase tracking-[0.24em] text-[#7d8490]">Ready Stays</p>
-              <h2 className="text-2xl font-bold leading-tight text-[#0B1F44] sm:text-4xl">Rent a Confirmed Reservation</h2>
+              <h2 className="text-2xl font-bold leading-tight text-[#0B1F44] sm:text-4xl">Ready Stays</h2>
               <p className="text-[19px] font-medium leading-[1.5] text-[#4f5866]">
                 Best for faster placement and last-minute value
               </p>
@@ -392,9 +396,9 @@ export default function OwnersPage() {
                 <div>
                   <Link
                     href="/owner/onboarding"
-                    className="inline-flex h-12 items-center rounded-full bg-[#0B1F44] px-6 text-sm font-semibold !text-white shadow-[0_10px_24px_rgba(11,31,68,0.18)] transition hover:bg-[#173566] hover:!text-white hover:shadow-[0_14px_28px_rgba(11,31,68,0.22)]"
+                    className="inline-flex h-12 items-center rounded-full border border-[#0B1F44]/18 bg-white px-6 text-sm font-semibold text-[#0B1F44] transition hover:border-[#0B1F44]/32 hover:bg-[#f8fafc]"
                   >
-                    List My Reservation
+                    List a Ready Stay
                   </Link>
                 </div>
                 <HowItWorksPanel label="How Ready Stays works" steps={readyStaySteps} />
@@ -475,20 +479,6 @@ export default function OwnersPage() {
                 </Card>
               ))}
             </div>
-            <div className="pt-3">
-              <p className="text-[18px] font-semibold leading-7 text-[#0B1F44]">Ready to list your points?</p>
-              <div className="mt-4">
-                <Link
-                  href="/owner/onboarding"
-                  className="inline-flex h-12 items-center rounded-full bg-[#0B1F44] px-6 text-sm font-semibold !text-white shadow-[0_10px_24px_rgba(11,31,68,0.18)] transition hover:bg-[#173566] hover:!text-white hover:shadow-[0_14px_28px_rgba(11,31,68,0.22)]"
-                >
-                  List My Points
-                </Link>
-              </div>
-              <p className="mt-3 text-sm leading-6 text-[#6f7683]">
-                Takes less than 2 minutes. No commitment required.
-              </p>
-            </div>
           </div>
         </div>
       </section>
@@ -496,25 +486,34 @@ export default function OwnersPage() {
       <section className="border-t border-[#0F2148]/8 bg-white py-16 md:py-20">
         <div className="mx-auto max-w-4xl px-6 text-center">
           <h2 className="text-[38px] font-semibold leading-tight text-[#06080d] sm:text-[52px]">
-            Ready to earn from your unused DVC points?
+            Ready to earn from your DVC points or reservation?
           </h2>
           <p className="mt-4 text-[18px] leading-[1.65] text-[#5f6673] sm:text-[19px]">
-            List your points or confirmed reservation today and let PixieDVC help you find the right guest.
+            Choose the path that fits what you already have.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/owner/onboarding"
               className="inline-flex items-center rounded-full bg-[linear-gradient(to_bottom,rgba(255,255,255,0.16),rgba(255,255,255,0.03)_46%,rgba(255,255,255,0)_52%),linear-gradient(to_right,#1f3567,#5b78ff)] px-6 py-3 text-sm font-semibold !text-white shadow-[0_14px_32px_rgba(18,35,74,0.42)] transition-[transform,box-shadow,filter] duration-300 hover:-translate-y-[1px] hover:!text-white hover:brightness-105 hover:shadow-[0_18px_36px_rgba(18,35,74,0.5)]"
             >
-              Start Owner Listing
+              List Points for Custom Matches
+            </Link>
+            <Link
+              href="/owner/onboarding"
+              className="inline-flex items-center rounded-full border border-[#0F2148]/14 bg-white px-6 py-3 text-sm font-semibold text-[#0F2148] transition hover:border-[#0F2148]/28"
+            >
+              List a Ready Stay
             </Link>
             <Link
               href="/contact"
-              className="inline-flex items-center rounded-full border border-[#0F2148]/14 bg-white px-6 py-3 text-sm font-semibold text-[#0F2148] transition hover:border-[#0F2148]/28"
+              className="inline-flex items-center rounded-full border border-transparent bg-transparent px-3 py-3 text-sm font-semibold text-[#5f6673] transition hover:text-[#0F2148]"
             >
               Contact Owner Concierge
             </Link>
           </div>
+          <p className="mt-4 text-sm leading-6 text-[#6f7683]">
+            Takes less than 2 minutes. No commitment required.
+          </p>
         </div>
       </section>
     </main>

@@ -646,15 +646,14 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
     ];
 
     return (
-      <main className="bg-[#f5f1ea] text-[#0F2148]">
+      <main className="bg-[#f8f6f2] text-[#0F2148]">
         <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top,rgba(93,120,255,0.22),transparent_34%),linear-gradient(180deg,#0c1631_0%,#152753_54%,#0e1d42_100%)]">
-          <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:28px_28px]" />
           <div className="relative mx-auto max-w-6xl px-6 py-20 md:py-24">
             <div className="max-w-4xl">
               <p className="inline-flex items-center rounded-full border border-white/15 bg-white/8 px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-white/80 backdrop-blur-sm">
                 PixieDVC Booking Guide
               </p>
-              <h1 className="mt-6 max-w-4xl font-display text-4xl leading-[0.96] text-white sm:text-5xl lg:text-7xl">
+              <h1 className="mt-6 max-w-4xl text-2xl font-semibold leading-[1.02] !text-white sm:text-3xl lg:text-[2.625rem]">
                 How PixieDVC Booking Works
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/78 sm:text-lg">
@@ -664,11 +663,10 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <Link
                   href="/plan"
-                  className="inline-flex items-center rounded-full bg-[linear-gradient(to_bottom,rgba(255,255,255,0.16),rgba(255,255,255,0.03)_46%,rgba(255,255,255,0)_52%),linear-gradient(to_right,#1f3567,#5b78ff)] px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(18,35,74,0.42)] transition-[transform,box-shadow,filter] duration-300 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_18px_36px_rgba(18,35,74,0.5)]"
+                  className="inline-flex items-center rounded-full bg-[linear-gradient(to_bottom,rgba(255,255,255,0.16),rgba(255,255,255,0.03)_46%,rgba(255,255,255,0)_52%),linear-gradient(to_right,#1f3567,#5b78ff)] px-6 py-3 text-sm font-semibold !text-white shadow-[0_14px_32px_rgba(18,35,74,0.42)] transition-[transform,box-shadow,filter] duration-300 hover:-translate-y-[1px] hover:!text-white hover:brightness-105 hover:shadow-[0_18px_36px_rgba(18,35,74,0.5)]"
                 >
                   Find Your Stay
                 </Link>
-                <p className="text-sm text-white/62">{updatedLabel}</p>
               </div>
             </div>
           </div>
@@ -678,12 +676,12 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
           <div className="space-y-6">
             <div className="max-w-3xl space-y-3">
               <p className="text-xs uppercase tracking-[0.24em] text-[#0F2148]/55">Two Ways to Book</p>
-              <h2 className="font-display text-3xl text-[#0F2148] sm:text-4xl">Choose the booking path that fits your trip</h2>
+              <h2 className="text-3xl font-semibold text-[#0F2148] sm:text-4xl">Choose the booking path that fits your trip</h2>
             </div>
             <div className="grid gap-6 lg:grid-cols-2">
-              <Card className="rounded-[30px] border border-[#0F2148]/8 bg-white p-8 shadow-[0_20px_50px_rgba(15,33,72,0.08)]">
+              <Card className="rounded-xl border border-[#0F2148]/8 bg-white p-8 shadow-[0_18px_40px_rgba(15,33,72,0.06)]">
                 <p className="text-xs uppercase tracking-[0.22em] text-[#5b78ff]">Custom Match</p>
-                <h3 className="mt-3 font-display text-3xl text-[#0F2148]">Request Your Stay</h3>
+                <h3 className="mt-3 text-3xl font-semibold text-[#0F2148]">Request Your Stay</h3>
                 <p className="mt-3 text-base font-medium text-[#0F2148]/72">
                   Best for specific dates, resorts, or room types.
                 </p>
@@ -699,16 +697,16 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
                 <div className="mt-8">
                   <Link
                     href="/plan"
-                    className="inline-flex items-center rounded-full bg-[#0F2148] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1A2F66]"
+                    className="inline-flex items-center rounded-full bg-[linear-gradient(to_bottom,rgba(255,255,255,0.16),rgba(255,255,255,0.03)_46%,rgba(255,255,255,0)_52%),linear-gradient(to_right,#1f3567,#5b78ff)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(18,35,74,0.42)] transition-[transform,box-shadow,filter] duration-300 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_18px_36px_rgba(18,35,74,0.5)]"
                   >
                     Check Availability
                   </Link>
                 </div>
               </Card>
 
-              <Card className="rounded-[30px] border border-[#0F2148]/8 bg-[linear-gradient(180deg,#fffaf1_0%,#f6efe2_100%)] p-8 shadow-[0_20px_50px_rgba(15,33,72,0.08)]">
-                <p className="text-xs uppercase tracking-[0.22em] text-[#b67b1e]">Instant Opportunity</p>
-                <h3 className="mt-3 font-display text-3xl text-[#0F2148]">Browse Ready Stays</h3>
+              <Card className="rounded-xl border border-[#0F2148]/8 bg-[linear-gradient(180deg,#fffaf1_0%,#f6efe2_100%)] p-8 shadow-[0_18px_40px_rgba(15,33,72,0.06)]">
+                <p className="text-xs uppercase tracking-[0.22em] text-[#b67b1e]">Pre-Booked Reservations</p>
+                <h3 className="mt-3 text-3xl font-semibold text-[#0F2148]">Browse Ready Stays</h3>
                 <p className="mt-3 text-base font-medium text-[#0F2148]/72">
                   Best for faster booking and last-minute value.
                 </p>
@@ -739,7 +737,7 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
             <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
               <div className="space-y-5">
                 <p className="text-xs uppercase tracking-[0.24em] text-[#0F2148]/55">Renting DVC Points, Simplified</p>
-                <h2 className="font-display text-3xl leading-tight text-[#0F2148] sm:text-4xl">
+                <h2 className="text-3xl font-semibold leading-tight text-[#0F2148] sm:text-4xl">
                   The same Disney villas, booked a different way.
                 </h2>
               </div>
@@ -762,16 +760,16 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
           <div className="mx-auto max-w-6xl px-6">
             <div className="max-w-3xl">
               <p className="text-xs uppercase tracking-[0.24em] text-[#0F2148]/55">Request Flow</p>
-              <h2 className="mt-3 font-display text-3xl text-[#0F2148] sm:text-4xl">If You Request a Stay</h2>
+              <h2 className="mt-3 text-3xl font-semibold text-[#0F2148] sm:text-4xl">If You Request a Stay</h2>
             </div>
             <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
               {requestSteps.map((step, index) => (
                 <Card
                   key={step.title}
-                  className="rounded-[28px] border border-[#0F2148]/8 bg-[linear-gradient(180deg,#ffffff_0%,#f7f4ef_100%)] p-6 shadow-[0_18px_44px_rgba(15,33,72,0.08)]"
+                  className="rounded-xl border border-[#0F2148]/8 bg-[linear-gradient(180deg,#ffffff_0%,#f7f4ef_100%)] p-6 shadow-[0_16px_36px_rgba(15,33,72,0.06)]"
                 >
                   <p className="text-xs uppercase tracking-[0.22em] text-[#5b78ff]">Step {index + 1}</p>
-                  <h3 className="mt-3 font-display text-2xl leading-tight text-[#0F2148]">{step.title}</h3>
+                  <h3 className="mt-3 text-2xl font-semibold leading-tight text-[#0F2148]">{step.title}</h3>
                   <p className="mt-4 text-sm leading-7 text-[#0F2148]/75">{step.body}</p>
                 </Card>
               ))}
@@ -783,16 +781,16 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
           <div className="mx-auto max-w-6xl px-6">
             <div className="max-w-3xl">
               <p className="text-xs uppercase tracking-[0.24em] text-[#0F2148]/55">Ready Stays Flow</p>
-              <h2 className="mt-3 font-display text-3xl text-[#0F2148] sm:text-4xl">If You Choose a Ready Stay</h2>
+              <h2 className="mt-3 text-3xl font-semibold text-[#0F2148] sm:text-4xl">If You Choose a Ready Stay</h2>
             </div>
             <div className="mt-10 grid gap-5 md:grid-cols-3">
               {readyStaySteps.map((step, index) => (
                 <Card
                   key={step.title}
-                  className="rounded-[28px] border border-[#0F2148]/8 bg-[linear-gradient(180deg,#ffffff_0%,#f7f4ef_100%)] p-6 shadow-[0_18px_44px_rgba(15,33,72,0.08)]"
+                  className="rounded-xl border border-[#0F2148]/8 bg-[linear-gradient(180deg,#ffffff_0%,#f7f4ef_100%)] p-6 shadow-[0_16px_36px_rgba(15,33,72,0.06)]"
                 >
                   <p className="text-xs uppercase tracking-[0.22em] text-[#b67b1e]">Step {index + 1}</p>
-                  <h3 className="mt-3 font-display text-2xl leading-tight text-[#0F2148]">{step.title}</h3>
+                  <h3 className="mt-3 text-2xl font-semibold leading-tight text-[#0F2148]">{step.title}</h3>
                   <p className="mt-4 text-sm leading-7 text-[#0F2148]/75">{step.body}</p>
                 </Card>
               ))}
@@ -805,7 +803,7 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
             <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
               <div className="space-y-4">
                 <p className="text-xs uppercase tracking-[0.24em] text-white/58">Trust</p>
-                <h2 className="font-display text-3xl text-white sm:text-4xl">Why This Is Safe</h2>
+                <h2 className="text-3xl font-semibold text-white sm:text-4xl">Why This Is Safe</h2>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 {[
@@ -816,7 +814,7 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
                 ].map((item) => (
                   <div
                     key={item}
-                    className="rounded-[24px] border border-white/10 bg-white/8 px-5 py-5 text-sm font-medium text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-sm"
+                    className="rounded-xl border border-white/10 bg-white/8 px-5 py-5 text-sm font-medium text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-sm"
                   >
                     <span className="inline-flex items-start gap-3">
                       <span aria-hidden="true">✔</span>
@@ -834,7 +832,7 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
             <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-start">
               <div className="space-y-4">
                 <p className="text-xs uppercase tracking-[0.24em] text-[#0F2148]/55">PixieDVC Value</p>
-                <h2 className="font-display text-3xl text-[#0F2148] sm:text-4xl">
+                <h2 className="text-3xl font-semibold text-[#0F2148] sm:text-4xl">
                   Concierge-led, Not Marketplace Chaos
                 </h2>
               </div>
@@ -853,7 +851,7 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
         <section className="bg-[linear-gradient(180deg,#152753_0%,#0c1631_100%)] py-16 text-white md:py-20">
           <div className="mx-auto max-w-4xl px-6 text-center">
             <p className="text-xs uppercase tracking-[0.24em] text-white/58">Next Step</p>
-            <h2 className="mt-3 font-display text-3xl text-white sm:text-5xl">Ready to find your stay?</h2>
+            <h2 className="mt-3 text-3xl font-semibold text-white sm:text-5xl">Ready to find your stay?</h2>
             <p className="mt-4 text-base leading-relaxed text-white/72">
               Choose the booking path that fits your trip and move forward with clarity.
             </p>

@@ -1,84 +1,144 @@
 import { Suspense } from "react";
-import Link from "next/link";
+import { Search, Sparkles } from "lucide-react";
 import { Button } from "@pixiedvc/design-system";
 import ReferralLink from "@/components/referral/ReferralLink";
+import { buildTripIntentQuery, parseTripIntentFromSearchParams } from "@/lib/trip-intent";
 
-export default function PlanLandingPage() {
+export default async function PlanLandingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const tripIntent = parseTripIntentFromSearchParams(resolvedSearchParams);
+  const tripQuery = buildTripIntentQuery(tripIntent).toString();
+  const readyStaysHref = tripQuery ? `/ready-stays?${tripQuery}` : "/ready-stays";
+  const resortsHref = tripQuery ? `/plan/resorts?${tripQuery}` : "/plan/resorts";
+  const guidedHref = tripQuery ? `/plan/guided?${tripQuery}` : "/plan/guided";
+
   return (
-    <div className="min-h-screen bg-white text-ink">
-      <main className="mx-auto max-w-6xl px-6 py-16 font-sans">
-        <section className="space-y-3">
-          <h1 className="text-3xl font-semibold leading-tight text-ink sm:text-4xl">
-            How do you want to book your Disney stay?
+    <div className="min-h-screen bg-[linear-gradient(180deg,#10224b_0%,#182d5d_16%,#eef2fb_42%,#f7f4ef_100%)] text-ink">
+      <main className="mx-auto max-w-7xl px-6 py-16 font-sans sm:py-20">
+        <section className="mx-auto max-w-3xl text-center">
+          <h1 className="text-3xl font-semibold leading-tight !text-white sm:text-[2.85rem] sm:leading-[1.04]">
+            Choose how you&apos;d like to book your Disney villa stay
           </h1>
-          <p className="text-sm font-medium text-muted">
-            Three ways to book, pick what fits you best.
-          </p>
-          <p className="text-sm text-muted">
-            Already have an account?{" "}
-            <Link href="/login?next=/plan" className="font-semibold text-ink underline underline-offset-4">
-              Sign in
-            </Link>
+          <p className="mt-4 text-base leading-7 text-white/76 sm:text-lg">
+            Two ways to plan your stay, depending on how you prefer to book.
           </p>
         </section>
 
         <Suspense fallback={null}>
-          <section className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <ReferralLink
-              href="/ready-stays"
-              className="group flex h-full flex-col items-center justify-between rounded-lg border border-ink/50 bg-white p-6 text-center shadow-[0_12px_34px_rgba(15,33,72,0.12)] transition hover:border-ink/55 hover:shadow-[0_12px_34px_rgba(15,33,72,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
-            >
-              <div className="space-y-3">
-                <p className="inline-flex w-fit rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-700">
-                  Fastest
-                </p>
-                <h2 className="text-2xl font-semibold text-ink">Book instantly</h2>
-                <p className="text-sm font-medium text-muted">
-                  See confirmed stays available right now. No waiting or matching required.
-                </p>
-              </div>
-              <div className="mt-6">
-                <Button asChild>
-                  <span>View available stays</span>
-                </Button>
-              </div>
-            </ReferralLink>
+          <section className="relative mx-auto mt-10 max-w-[1180px]">
+            <div className="grid gap-5 lg:grid-cols-2">
+              <ReferralLink
+                href={readyStaysHref}
+                className="group relative min-h-[392px] overflow-hidden rounded-[2rem] bg-[#0f2148] shadow-[0_28px_80px_rgba(15,33,72,0.22)] transition duration-300 hover:-translate-y-[2px] hover:shadow-[0_34px_90px_rgba(15,33,72,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4c5fd7]/40"
+              >
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0"
+                  style={{
+                    backgroundImage:
+                      "linear-gradient(180deg, rgba(10,20,40,0.06) 0%, rgba(10,20,40,0.16) 22%, rgba(10,20,40,0.82) 76%, rgba(6,12,28,0.92) 100%), linear-gradient(135deg, rgba(6,12,28,0.10) 0%, rgba(6,12,28,0.04) 30%, rgba(6,12,28,0.56) 72%, rgba(6,12,28,0.84) 100%), url(https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/Riviera/RR4.png)",
+                    backgroundPosition: "center",
+                    backgroundSize: "cover",
+                  }}
+                />
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 bg-[radial-gradient(circle_at_12%_92%,rgba(4,10,26,0.72),transparent_38%)]"
+                />
+                <div className="relative flex min-h-[392px] flex-col justify-between p-6 sm:p-7">
+                  <div className="max-w-md">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-white/16 bg-white/10 px-3 py-1.5 text-[11px] font-semibold tracking-[0.16em] text-white/92 backdrop-blur-[2px]">
+                      <Sparkles className="h-[14px] w-[14px]" strokeWidth={1.8} />
+                      <span>Fastest</span>
+                    </div>
+                  </div>
+                  <div className="max-w-md">
+                    <h2 className="text-[2rem] font-semibold leading-[0.98] !text-white sm:text-[2.3rem]">
+                      Book instantly
+                    </h2>
+                    <p className="mt-4 text-[15px] leading-7 text-white/88 sm:text-base">
+                      Browse pre-confirmed Disney villa stays already secured by DVC owners.
+                    </p>
+                    <p className="mt-3 text-sm leading-6 text-white/72">No matching required.</p>
+                    <div className="mt-6">
+                      <Button
+                        asChild
+                        className="rounded-xl border border-white/10 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.16),rgba(255,255,255,0.04)_42%,rgba(255,255,255,0)_52%),linear-gradient(to_right,#18284d,#4560d2)] px-6 py-3 text-sm shadow-[0_18px_36px_rgba(10,18,42,0.34)]"
+                      >
+                        <span>Explore Ready Stays</span>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </ReferralLink>
 
-            <ReferralLink
-              href="/plan/resorts"
-              className="group flex h-full flex-col items-center justify-between rounded-lg border border-ink/35 bg-white p-6 text-center transition hover:border-ink/45 hover:shadow-[0_10px_30px_rgba(15,33,72,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
-            >
-              <div className="space-y-3">
-                <h2 className="text-2xl font-semibold text-ink">I know what I want</h2>
-                <p className="text-sm font-medium text-muted">
-                  Enter your dates and resort. We will match you quickly with verified owners.
-                </p>
-              </div>
-              <div className="mt-6">
-                <Button asChild>
-                  <span>Start my request</span>
-                </Button>
-              </div>
-            </ReferralLink>
+              <ReferralLink
+                href={resortsHref}
+                className="group relative min-h-[392px] overflow-hidden rounded-[2rem] bg-[#132653] shadow-[0_30px_84px_rgba(15,33,72,0.24)] transition duration-300 hover:-translate-y-[2px] hover:shadow-[0_36px_96px_rgba(15,33,72,0.30)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4c5fd7]/40"
+              >
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0"
+                  style={{
+                    backgroundImage:
+                      "linear-gradient(180deg, rgba(10,18,38,0.06) 0%, rgba(10,18,38,0.16) 20%, rgba(10,18,38,0.84) 74%, rgba(5,10,24,0.94) 100%), linear-gradient(135deg, rgba(5,10,24,0.08) 0%, rgba(5,10,24,0.02) 28%, rgba(5,10,24,0.62) 72%, rgba(5,10,24,0.88) 100%), url(https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/bay-lake-tower/BTC1.png)",
+                    backgroundPosition: "center",
+                    backgroundSize: "cover",
+                  }}
+                />
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 bg-[radial-gradient(circle_at_12%_92%,rgba(4,10,26,0.82),transparent_38%)]"
+                />
+                <div className="relative flex min-h-[392px] flex-col justify-between p-6 sm:p-7">
+                  <div className="max-w-lg">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-white/16 bg-white/10 px-3 py-1.5 text-[11px] font-semibold tracking-[0.16em] text-white/92 backdrop-blur-[2px]">
+                      <Search className="h-[14px] w-[14px]" strokeWidth={1.8} />
+                      <span>Most flexible</span>
+                    </div>
+                  </div>
+                  <div className="max-w-lg">
+                    <h2 className="text-[2rem] font-semibold leading-[0.98] !text-white sm:text-[2.3rem]">
+                      Build your stay
+                    </h2>
+                    <p className="mt-4 max-w-md text-[15px] leading-7 text-white/88 sm:text-base">
+                      Choose your resort, dates, and villa type. PixieDVC matches your request with verified DVC owners.
+                    </p>
+                    <p className="mt-3 text-sm leading-6 text-white/72">Best when you already know what you want.</p>
+                    <div className="mt-6">
+                      <Button
+                        asChild
+                        className="rounded-xl border border-white/10 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.16),rgba(255,255,255,0.04)_42%,rgba(255,255,255,0)_52%),linear-gradient(to_right,#18284d,#4560d2)] px-6 py-3 text-sm shadow-[0_18px_36px_rgba(10,18,42,0.36)]"
+                      >
+                        <span>Start my request</span>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </ReferralLink>
+            </div>
 
-            <ReferralLink
-              href="/plan/guided"
-              className="group flex h-full flex-col items-center justify-between rounded-lg border border-ink/35 bg-white p-6 text-center transition hover:border-ink/45 hover:shadow-[0_10px_30px_rgba(15,33,72,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
-            >
-              <div className="space-y-3">
-                <h2 className="text-2xl font-semibold text-ink">Help me choose</h2>
-                <p className="text-sm font-medium text-muted">
-                  Answer a few questions and we will recommend the best resorts for your trip.
-                </p>
-              </div>
-              <div className="mt-6">
-                <Button asChild>
-                  <span>Start guided planning</span>
-                </Button>
-              </div>
-            </ReferralLink>
+            <div className="mx-auto mt-10 max-w-3xl text-center">
+              <h2 className="text-[1.65rem] font-semibold leading-tight text-[#10224b] sm:text-[1.85rem]">
+                Need help choosing the perfect resort?
+              </h2>
+              <p className="mx-auto mt-3 max-w-2xl text-[15px] leading-7 text-[#4b5f87]/84 sm:text-base">
+                Answer a few questions and our concierge planner will recommend the best Disney villa options for your
+                trip.
+              </p>
+              <ReferralLink
+                href={guidedHref}
+                className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#10224b] transition hover:text-[#4457c7]"
+              >
+                <span>Get resort recommendations</span>
+                <span aria-hidden="true">→</span>
+              </ReferralLink>
+            </div>
           </section>
-          <p className="mt-6 text-sm font-medium text-muted">Verified owners, Secure booking, Concierge support</p>
         </Suspense>
       </main>
     </div>

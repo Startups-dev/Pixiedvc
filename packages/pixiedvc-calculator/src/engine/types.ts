@@ -33,7 +33,7 @@ export type ResortYearChart = {
   periods: TravelPeriod[];
 };
 
-export type PricingTier = "PREMIUM" | "REGULAR" | "ADVANTAGE";
+export type PricingTier = "PREMIER_ACCESS" | "PRIORITY_ACCESS" | "SELECT_ACCESS" | "VALUE_ACCESS";
 
 export type ResortMeta = {
   code: string;                   // "AKV"
@@ -65,5 +65,5 @@ export type QuoteResult = {
   baseUSD: number;
   feeUSD: number;
   totalUSD: number;
-  pricingTier: string; // Display name like "Premium" or "Regular"
+  pricingTier: string; // Display name like "Premier Access" or "Select Access"
 };

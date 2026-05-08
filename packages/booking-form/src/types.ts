@@ -2,6 +2,8 @@ export type Prefill = {
   resortId: string;
   resortName: string;
   villaType: string;
+  viewType?: string;
+  pricingTier?: string;
   checkIn: string;
   checkOut: string;
   points: number;

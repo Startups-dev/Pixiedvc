@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import ReferralLink from "@/components/referral/ReferralLink";
 import { useMemo, useState } from "react";
+import { ArrowRight, CalendarDays, Check, Compass, Sparkles, Users } from "lucide-react";
 
-import { Button, Card, SectionHeader } from "@pixiedvc/design-system";
+import { Button } from "@pixiedvc/design-system";
+import ReferralLink from "@/components/referral/ReferralLink";
 import { useReferral } from "@/hooks/useReferral";
 import { appendRefToUrl } from "@/lib/referral";
 
@@ -66,6 +67,31 @@ const resortCatalog = [
   },
 ];
 
+const resortImages: Record<string, string> = {
+  "bay-lake-tower":
+    "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/bay-lake-tower/BTC1.png",
+  "grand-floridian-villas":
+    "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/grand-floridian-villas/GFV1.png",
+  "polynesian-villas":
+    "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/Polynesian-villas-and-bungalows/PVB1.png",
+  "copper-creek-villas":
+    "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/Copper-creek-villas-and-cabins/CCV1.png",
+  "boulder-ridge-villas":
+    "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/boulder-ridge-villas/BRV1.png",
+  "boardwalk-villas":
+    "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/Boardwalk/BDW1.png",
+  "beach-club-villas":
+    "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/beach-club-villa/BCV1.png",
+  "riviera-resort":
+    "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/Riviera/RR1.png",
+  "animal-kingdom-villas":
+    "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/animal-kingdom-lodge/AKL1.png",
+  "saratoga-springs":
+    "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/saratoga-springs-resort/SSR1.png",
+  "old-key-west":
+    "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/old-key-west/OKW1.png",
+};
+
 const partyOptions = ["Couple", "Family", "Friends", "Solo"] as const;
 const priorityOptions = [
   "Closest to parks",
@@ -75,11 +101,18 @@ const priorityOptions = [
 ] as const;
 
 const vibeOptions = [
-  { id: "magic-kingdom", label: "Magic Kingdom focus" },
-  { id: "epcot", label: "Epcot focus" },
-  { id: "skyliner", label: "Skyliner" },
-  { id: "quiet", label: "Quiet" },
-  { id: "dining", label: "Dining" },
+  { id: "magic-kingdom", label: "Near Magic Kingdom" },
+  { id: "epcot", label: "Near EPCOT" },
+  { id: "skyliner", label: "Skyliner access" },
+  { id: "quiet", label: "Quiet & relaxing" },
+  { id: "dining", label: "Great dining nearby" },
+] as const;
+
+const plannerSteps = [
+  { label: "Party & Style", icon: Users },
+  { label: "Travel Dates", icon: CalendarDays },
+  { label: "Resort Preferences", icon: Compass },
+  { label: "Your Matches", icon: Sparkles },
 ] as const;
 
 type PriorityOption = (typeof priorityOptions)[number];
@@ -198,23 +231,75 @@ function recommendResorts(input: PlannerInput) {
 
 function reasonFor(slug: string, input: PlannerInput) {
   if (input.priority === "Closest to parks") {
-    if (slug === "bay-lake-tower") return "Walk or monorail access to Magic Kingdom with easy park mornings.";
-    if (slug === "boardwalk-villas") return "BoardWalk and Epcot access with quick park hopping.";
+    if (slug === "bay-lake-tower") return "Direct walking or monorail access makes Magic Kingdom mornings especially easy.";
+    if (slug === "boardwalk-villas") return "BoardWalk energy with quick access to EPCOT and easy park hopping.";
   }
   if (input.priority === "Best value") {
-    if (slug === "saratoga-springs") return "Spacious rooms and strong point value with a calm vibe.";
-    if (slug === "old-key-west") return "Large villas and classic DVC value with a laid-back setting.";
+    if (slug === "saratoga-springs") return "Spacious rooms, calmer grounds, and one of the strongest value profiles in DVC.";
+    if (slug === "old-key-west") return "Large villas and a laid-back setting that consistently delivers strong value.";
   }
   if (input.priority === "Luxury") {
-    if (slug === "grand-floridian-villas") return "Top-tier finishings with an iconic resort setting.";
-    if (slug === "riviera-resort") return "Boutique feel, Skyliner access, and elevated dining.";
+    if (slug === "grand-floridian-villas") return "Elegant finishings, standout dining, and an iconic Magic Kingdom-area setting.";
+    if (slug === "riviera-resort") return "Boutique style, Skyliner convenience, and elevated dining for a more polished stay.";
   }
-  if (slug === "animal-kingdom-villas") return "Savanna views and a relaxing atmosphere away from crowds.";
-  if (slug === "beach-club-villas") return "Steps to Epcot and pool time with a relaxed atmosphere.";
-  if (slug === "polynesian-villas") return "Great dining and Magic Kingdom convenience with island ambiance.";
-  if (slug === "copper-creek-villas") return "Calm lodge-style setting with easy Magic Kingdom area access.";
-  if (slug === "boulder-ridge-villas") return "Quiet, rustic atmosphere with strong Magic Kingdom area convenience.";
-  return "A strong fit based on your priorities and availability windows.";
+  if (slug === "animal-kingdom-villas") return "A quieter escape with scenic views and a slower, more immersive resort pace.";
+  if (slug === "beach-club-villas") return "A relaxed resort atmosphere with effortless EPCOT access and strong pool time built in.";
+  if (slug === "polynesian-villas") return "A relaxed island-style resort with strong dining and one of the easiest Magic Kingdom commutes on property.";
+  if (slug === "copper-creek-villas") return "A calm lodge-style resort with a more secluded feel and dependable Magic Kingdom-area access.";
+  if (slug === "boulder-ridge-villas") return "Rustic atmosphere, quieter paths, and a calmer take on the Magic Kingdom area.";
+  return "A strong fit for the travel style and resort priorities you shared with our concierge planner.";
+}
+
+function matchLabel(slug: string, input: PlannerInput) {
+  if (input.priority === "Closest to parks") return "Best for easy park access";
+  if (input.priority === "Best value") return "Best value fit";
+  if (input.priority === "Luxury") return "Best elevated resort match";
+  if (slug === "animal-kingdom-villas") return "Best for a slower scenic trip";
+  return "Best overall match";
+}
+
+function whyPicked(slug: string, input: PlannerInput) {
+  const labels = input.vibes.map((vibe) => {
+    if (vibe === "magic-kingdom") return "Magic Kingdom access";
+    if (vibe === "epcot") return "EPCOT access";
+    if (vibe === "skyliner") return "Skyliner access";
+    if (vibe === "quiet") return "a quieter resort atmosphere";
+    if (vibe === "dining") return "great dining";
+    return vibe;
+  });
+
+  const priorityLine =
+    input.priority === "Closest to parks"
+      ? "park access"
+      : input.priority === "Best value"
+        ? "overall value"
+        : input.priority === "Luxury"
+          ? "a more elevated resort feel"
+          : "a relaxing resort atmosphere";
+
+  if (labels.length === 0) {
+    return `Recommended based on your preference for ${priorityLine}.`;
+  }
+
+  if (labels.length === 1) {
+    return `Recommended based on your preference for ${priorityLine} and ${labels[0]}.`;
+  }
+
+  return `Recommended based on your preference for ${priorityLine}, ${labels[0]}, and ${labels[1]}.`;
+}
+
+function formatTag(tag: string) {
+  if (tag === "magic-kingdom") return "Near Magic Kingdom";
+  if (tag === "epcot") return "Near EPCOT";
+  if (tag === "skyliner") return "Skyliner Access";
+  if (tag === "quiet") return "Quiet & Relaxing";
+  if (tag === "dining") return "Great Dining";
+  if (tag === "relaxing") return "Relaxing";
+  if (tag === "parks") return "Park Access";
+  if (tag === "luxury") return "Luxury";
+  if (tag === "value") return "Value";
+  if (tag === "scenic") return "Scenic";
+  return tag.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function buildCalculatorLink(slug: string, checkIn: string, nights: number, ref: string | null) {
@@ -224,20 +309,125 @@ function buildCalculatorLink(slug: string, checkIn: string, nights: number, ref:
   return appendRefToUrl(`/calculator?${params.toString()}`, ref);
 }
 
+function StepProgress({ step }: { step: number }) {
+  return (
+    <div className="rounded-[1.4rem] border border-[#e4e9f6] bg-[linear-gradient(180deg,rgba(250,251,255,0.98),rgba(245,245,241,0.96))] px-4 py-4 shadow-[0_12px_34px_rgba(15,33,72,0.08)] sm:px-5">
+      <div className="flex items-center justify-between gap-2">
+        {plannerSteps.map((item, index) => {
+          const position = index + 1;
+          const isComplete = position < step;
+          const isActive = position === step;
+          const Icon = item.icon;
+
+          return (
+            <div key={item.label} className="flex min-w-0 flex-1 items-center gap-2">
+              <div className="min-w-0 flex-1 sm:min-w-[9.5rem]">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition ${
+                      isActive
+                        ? "border-[#6c7df1]/38 bg-[#5366d3] text-white shadow-[0_10px_24px_rgba(40,56,120,0.24)]"
+                        : isComplete
+                          ? "border-[#d8e0f0] bg-[#eef2ff] text-[#3d518f]"
+                          : "border-[#e3e8f5] bg-white text-[#8a98b4]"
+                    }`}
+                  >
+                    {isComplete ? <Check className="h-4 w-4" strokeWidth={2.2} /> : <Icon className="h-4 w-4" strokeWidth={1.9} />}
+                  </span>
+                  <span
+                    className={`text-sm font-medium ${
+                      isActive ? "text-[#10224b]" : isComplete ? "text-[#3d518f]" : "text-[#8a98b4]"
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </div>
+              </div>
+              {index < plannerSteps.length - 1 ? (
+                <span className={`hidden h-px flex-1 rounded-full sm:block ${position < step ? "bg-[#6172de]/65" : "bg-[#e3e8f5]"}`} />
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Shell({
+  title,
+  description,
+  children,
+  step,
+  onBack,
+  primaryLabel,
+  primaryDisabled,
+  hideFooter,
+  onPrimary,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  step: number;
+  onBack?: () => void;
+  primaryLabel: string;
+  primaryDisabled?: boolean;
+  hideFooter?: boolean;
+  onPrimary: () => void;
+}) {
+  return (
+    <div className="overflow-hidden rounded-[2rem] border border-[#dfe6f8]/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,247,243,0.96))] shadow-[0_30px_80px_rgba(15,33,72,0.12)]">
+      <div className="border-b border-[#e6ebf7] px-6 py-6 sm:px-8">
+        <div className="space-y-5">
+          <StepProgress step={step} />
+          <div className="max-w-2xl space-y-2">
+          <h2 className="text-[1.9rem] font-semibold leading-tight text-[#10224b] sm:text-[2.2rem]">{title}</h2>
+          <p className="text-[15px] leading-7 text-[#4b5f87] sm:text-base">{description}</p>
+          </div>
+        </div>
+      </div>
+      <div className="px-6 py-6 sm:px-8 sm:py-7">{children}</div>
+      {hideFooter ? null : (
+        <div className="flex items-center justify-between border-t border-[#e6ebf7] bg-[linear-gradient(180deg,rgba(249,250,255,0.96),rgba(244,243,238,0.92))] px-6 py-4 sm:px-8">
+          <div className="flex items-center gap-3 text-sm text-[#556989]">
+            {onBack ? (
+              <button type="button" onClick={onBack} className="font-semibold text-[#10224b] transition hover:text-[#4457c7]">
+                ← Back
+              </button>
+            ) : (
+              <span />
+            )}
+          </div>
+          <Button
+            onClick={onPrimary}
+            disabled={primaryDisabled}
+            className="rounded-xl px-6 py-3 text-sm shadow-[0_16px_34px_rgba(18,28,63,0.24)] disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            {primaryLabel}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function GuidedPlannerClient() {
   const [step, setStep] = useState(1);
-  const [partyType, setPartyType] = useState<(typeof partyOptions)[number]>("Family");
-  const [priority, setPriority] = useState<PriorityOption>("Closest to parks");
+  const [partyType, setPartyType] = useState<(typeof partyOptions)[number] | null>(null);
+  const [priority, setPriority] = useState<PriorityOption | null>(null);
   const [checkIn, setCheckIn] = useState(new Date().toISOString().slice(0, 10));
   const [nights, setNights] = useState(5);
   const [flexibility, setFlexibility] = useState("Fixed");
   const [vibes, setVibes] = useState<string[]>([]);
   const { ref } = useReferral();
 
-  const recommendations = useMemo(
-    () => recommendResorts({ priority, vibes }),
-    [priority, vibes],
-  );
+  const safePriority = priority ?? "Closest to parks";
+  const recommendations = useMemo(() => recommendResorts({ priority: safePriority, vibes }), [safePriority, vibes]);
+  const plannerIntro =
+    step === 1
+      ? "Answer one quick question at a time and we will shape the right Disney villa direction for your trip."
+      : "A few answers is all we need to recommend the resorts that best fit your travel style, pace, and priorities.";
+  const showPlannerHero = step !== 4;
 
   const toggleVibe = (id: string) => {
     setVibes((prev) => {
@@ -247,49 +437,65 @@ export default function GuidedPlannerClient() {
     });
   };
 
-  return (
-    <div className="space-y-10">
-      <SectionHeader
-        eyebrow="Guided Planner"
-        title="A few answers, then instant pricing"
-        description="Share what matters most and we will recommend resorts that match your style."
-      />
+  const handlePartySelect = (option: (typeof partyOptions)[number]) => {
+    setPartyType(option);
+  };
 
-      <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.2em] text-muted">
-        {[
-          "Party",
-          "Dates",
-          "Resort vibe",
-          "Results",
-        ].map((label, index) => (
-          <span
-            key={label}
-            className={`rounded-full px-4 py-1 ${step === index + 1 ? "bg-brand/10 text-brand" : "bg-white/70 text-muted"}`}
-          >
-            {index + 1}. {label}
-          </span>
-        ))}
-      </div>
+  const handlePrioritySelect = (option: PriorityOption) => {
+    setPriority(option);
+    setStep(2);
+  };
+
+  return (
+    <div className="space-y-5">
+      {showPlannerHero ? (
+        <div className="space-y-3">
+          <p className="text-xs uppercase tracking-[0.28em] text-white/72">Concierge Planner</p>
+          <div className="max-w-3xl space-y-3">
+            <h1 className="text-3xl font-semibold leading-tight !text-white sm:text-[2.75rem] sm:leading-[1.04]">
+              Tell us what this Disney villa trip should feel like
+            </h1>
+            <p className="max-w-2xl text-base leading-7 text-white/84 sm:text-lg">
+              {plannerIntro}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-xs uppercase tracking-[0.28em] text-white/72">PixieDVC Concierge Planner</p>
+        </div>
+      )}
 
       {step === 1 ? (
-        <Card className="space-y-6">
-          <div className="space-y-2">
-            <h2 className="font-display text-2xl text-ink">Party + trip style</h2>
-            <p className="text-sm text-muted">Tell us who is traveling and what you value most.</p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted">Party type</p>
-              <div className="flex flex-wrap gap-2">
+        <Shell
+          step={step}
+          title={partyType === null ? "Who is traveling?" : "What matters most for this trip?"}
+          description={
+            partyType === null
+              ? "Start with the kind of trip you are planning so we can narrow the right Disney villa fit."
+              : "Now tell us the main priority so your resort matches feel more intentional."
+          }
+          hideFooter
+          primaryLabel={partyType === null ? "Continue" : "Continue to travel dates"}
+          primaryDisabled={partyType === null || priority === null}
+          onPrimary={() => {
+            if (partyType === null) return;
+            if (priority === null) return;
+            setStep(2);
+          }}
+        >
+          {partyType === null ? (
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-3">
                 {partyOptions.map((option) => (
                   <button
                     key={option}
                     type="button"
-                    onClick={() => setPartyType(option)}
-                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    onClick={() => handlePartySelect(option)}
+                    className={`rounded-2xl px-4 py-2.5 text-sm font-semibold transition ${
                       partyType === option
-                        ? "bg-brand text-white"
-                        : "border border-ink/10 bg-white/80 text-ink hover:border-brand"
+                        ? "bg-[linear-gradient(to_right,#18284d,#4560d2)] text-white shadow-[0_12px_28px_rgba(28,43,88,0.18)]"
+                        : "border border-[#d7deef] bg-white/90 text-[#10224b] hover:border-[#93a5df] hover:bg-[#f5f8ff]"
                     }`}
                   >
                     {option}
@@ -297,18 +503,31 @@ export default function GuidedPlannerClient() {
                 ))}
               </div>
             </div>
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted">Top priority</p>
-              <div className="flex flex-col gap-2">
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 text-sm text-[#556989]">
+                <span className="font-medium">Traveling as:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPartyType(null);
+                    setPriority(null);
+                  }}
+                  className="rounded-full bg-[#eef2ff] px-3 py-1 font-semibold text-[#2f4579] transition hover:bg-[#e4ebff]"
+                >
+                  {partyType}
+                </button>
+              </div>
+              <div className="flex flex-col gap-3">
                 {priorityOptions.map((option) => (
                   <button
                     key={option}
                     type="button"
-                    onClick={() => setPriority(option)}
-                    className={`rounded-2xl border px-4 py-2 text-left text-sm font-semibold transition ${
+                    onClick={() => handlePrioritySelect(option)}
+                    className={`rounded-[1.2rem] border px-4 py-3 text-left text-sm font-semibold transition ${
                       priority === option
-                        ? "border-brand bg-brand/10 text-brand"
-                        : "border-ink/10 bg-white/80 text-ink hover:border-brand"
+                        ? "border-[#3650aa] bg-[linear-gradient(to_right,#18284d,#4560d2)] text-white shadow-[0_12px_28px_rgba(28,43,88,0.18)]"
+                        : "border-[#d7deef] bg-white/90 text-[#10224b] hover:border-[#93a5df] hover:bg-[#f8faff]"
                     }`}
                   >
                     {option}
@@ -316,68 +535,73 @@ export default function GuidedPlannerClient() {
                 ))}
               </div>
             </div>
-          </div>
-          <div className="flex justify-between">
-            <div className="text-xs uppercase tracking-[0.2em] text-muted">Step 1 of 4</div>
-            <Button onClick={() => setStep(2)}>Next</Button>
-          </div>
-        </Card>
+          )}
+        </Shell>
       ) : null}
 
       {step === 2 ? (
-        <Card className="space-y-6">
-          <div className="space-y-2">
-            <h2 className="font-display text-2xl text-ink">Dates</h2>
-            <p className="text-sm text-muted">Add your dates so we can personalize pricing.</p>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-2">
-            <label className="space-y-2 text-sm text-muted">
-              Check-in date
+        <Shell
+          step={step}
+          title="When would you like to travel?"
+          description="Add your dates so we can tailor your resort recommendations."
+          primaryLabel="Continue to resort preferences"
+          onPrimary={() => setStep(3)}
+          onBack={() => setStep(1)}
+        >
+          <div className="grid gap-6 sm:grid-cols-3">
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[#556989]">Check-in date</span>
               <input
                 type="date"
                 value={checkIn}
                 onChange={(event) => setCheckIn(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-ink"
+                className="w-full rounded-[1.15rem] border border-[#d8e0f0] bg-white/92 px-4 py-3 text-sm text-[#10224b] shadow-[0_8px_20px_rgba(30,47,92,0.05)] outline-none transition focus:border-[#7b8ce7] focus:ring-2 focus:ring-[#dfe5ff]"
               />
             </label>
-            <label className="space-y-2 text-sm text-muted">
-              Flexibility
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[#556989]">Date flexibility</span>
               <select
                 value={flexibility}
                 onChange={(event) => setFlexibility(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-ink"
+                className="w-full rounded-[1.15rem] border border-[#d8e0f0] bg-white/92 px-4 py-3 text-sm text-[#10224b] shadow-[0_8px_20px_rgba(30,47,92,0.05)] outline-none transition focus:border-[#7b8ce7] focus:ring-2 focus:ring-[#dfe5ff]"
               >
                 <option>Fixed</option>
                 <option>Flexible by ±1–2 days</option>
               </select>
             </label>
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-[#556989]">Length of stay</span>
+              <div className="relative">
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={nights}
+                  onChange={(event) => {
+                    const next = Number(event.target.value);
+                    if (Number.isNaN(next)) return;
+                    setNights(Math.min(30, Math.max(1, next)));
+                  }}
+                  className="w-full rounded-[1.15rem] border border-[#d8e0f0] bg-white/92 px-4 py-3 pr-20 text-sm text-[#10224b] shadow-[0_8px_20px_rgba(30,47,92,0.05)] outline-none transition focus:border-[#7b8ce7] focus:ring-2 focus:ring-[#dfe5ff]"
+                />
+                <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm font-medium text-[#556989]">
+                  night(s)
+                </span>
+              </div>
+            </label>
           </div>
-          <div className="space-y-2 text-sm text-muted">
-            Nights: <span className="font-semibold text-ink">{nights}</span>
-            <input
-              type="range"
-              min={1}
-              max={14}
-              value={nights}
-              onChange={(event) => setNights(Number(event.target.value))}
-              className="w-full"
-            />
-          </div>
-          <div className="flex justify-between">
-            <Button variant="ghost" onClick={() => setStep(1)}>
-              Back
-            </Button>
-            <Button onClick={() => setStep(3)}>Next</Button>
-          </div>
-        </Card>
+        </Shell>
       ) : null}
 
       {step === 3 ? (
-        <Card className="space-y-6">
-          <div className="space-y-2">
-            <h2 className="font-display text-2xl text-ink">Resort vibe</h2>
-            <p className="text-sm text-muted">Pick up to two vibes that sound like your trip.</p>
-          </div>
+        <Shell
+          step={step}
+          title="What matters most for this stay?"
+          description="Pick the experiences that matter most and we’ll prioritize resorts that match your travel style."
+          primaryLabel="See my resort matches"
+          onPrimary={() => setStep(4)}
+          onBack={() => setStep(2)}
+        >
           <div className="flex flex-wrap gap-3">
             {vibeOptions.map((option) => {
               const isActive = vibes.includes(option.id);
@@ -386,10 +610,10 @@ export default function GuidedPlannerClient() {
                   key={option.id}
                   type="button"
                   onClick={() => toggleVibe(option.id)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  className={`rounded-full px-4 py-2.5 text-sm font-semibold transition ${
                     isActive
-                      ? "bg-brand text-white"
-                      : "border border-ink/10 bg-white/80 text-ink hover:border-brand"
+                      ? "bg-[linear-gradient(to_right,#18284d,#4560d2)] text-white shadow-[0_12px_28px_rgba(28,43,88,0.20)]"
+                      : "border border-[#d7deef] bg-white/90 text-[#10224b] hover:border-[#93a5df] hover:bg-[#f5f8ff]"
                   }`}
                 >
                   {option.label}
@@ -397,51 +621,99 @@ export default function GuidedPlannerClient() {
               );
             })}
           </div>
-          <div className="flex justify-between">
-            <Button variant="ghost" onClick={() => setStep(2)}>
-              Back
-            </Button>
-            <Button onClick={() => setStep(4)}>See results</Button>
-          </div>
-        </Card>
+          <p className="mt-4 text-sm text-[#617391]">
+            Choosing one or two priorities helps us narrow the best resort matches for your trip.
+          </p>
+        </Shell>
       ) : null}
 
       {step === 4 ? (
-        <Card className="space-y-6">
-          <div className="space-y-2">
-            <h2 className="font-display text-2xl text-ink">Your best-fit resorts</h2>
-            <p className="text-sm text-muted">
-              Based on your answers ({partyType.toLowerCase()} trip, {priority.toLowerCase()}), these are strong fits.
-            </p>
-          </div>
-          <div className="grid gap-4">
-            {recommendations.map((slug) => {
-              const resort = resortCatalog.find((item) => item.slug === slug);
-              if (!resort) return null;
-              return (
-                <div key={slug} className="rounded-3xl border border-ink/10 bg-white/90 p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="font-display text-xl text-ink">{resort.name}</p>
-                      <p className="text-sm text-muted">{reasonFor(slug, { priority, vibes })}</p>
-                    </div>
-                    <Button asChild>
-                      <Link href={buildCalculatorLink(slug, checkIn, nights, ref)}>Estimate this stay</Link>
-                    </Button>
-                  </div>
+        <div className="space-y-6">
+          <div className="overflow-hidden rounded-[2rem] border border-[#dfe6f8]/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,247,243,0.96))] shadow-[0_30px_80px_rgba(15,33,72,0.12)]">
+            <div className="border-b border-[#e6ebf7] px-6 py-6 sm:px-8">
+              <div className="space-y-5">
+                <StepProgress step={step} />
+                <div className="max-w-2xl space-y-2">
+                <h2 className="text-[1.9rem] font-semibold leading-tight text-[#10224b] sm:text-[2.2rem]">
+                  Your PixieDVC concierge recommendations
+                </h2>
+                <p className="text-[15px] leading-7 text-[#4b5f87] sm:text-base">
+                  Based on your trip style and priorities, these are the strongest resort matches to explore first.
+                </p>
                 </div>
-              );
-            })}
+              </div>
+            </div>
+            <div className="grid gap-5 px-6 py-6 sm:px-8 sm:py-7">
+              {recommendations.map((slug, index) => {
+                const resort = resortCatalog.find((item) => item.slug === slug);
+                if (!resort) return null;
+                return (
+                  <div
+                    key={slug}
+                    className="overflow-hidden rounded-[1.75rem] border border-[#dde4f5] bg-white/94 shadow-[0_18px_50px_rgba(15,33,72,0.08)]"
+                  >
+                    <div className="grid lg:grid-cols-[1.05fr,1.2fr]">
+                      <div className="relative min-h-[220px] overflow-hidden">
+                        <div
+                          aria-hidden="true"
+                          className="absolute inset-0"
+                          style={{
+                            backgroundImage: `linear-gradient(180deg, rgba(10,20,40,0.04) 0%, rgba(10,20,40,0.14) 48%, rgba(10,20,40,0.54) 100%), url(${resortImages[slug] ?? resortImages["riviera-resort"]})`,
+                            backgroundPosition: "center",
+                            backgroundSize: "cover",
+                          }}
+                        />
+                        <div className="relative flex min-h-[220px] items-end p-5">
+                          <div className="rounded-full border border-white/18 bg-white/12 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-white backdrop-blur-[3px]">
+                            {index === 0 ? "Top Match" : "Recommended for your trip"}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col justify-between p-5 sm:p-6">
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <p className="text-xs uppercase tracking-[0.22em] text-[#6b7b99]">{matchLabel(slug, { priority: safePriority, vibes })}</p>
+                            <h3 className="text-[1.95rem] font-semibold leading-tight text-[#10224b] sm:text-[2.15rem]">{resort.name}</h3>
+                            <p className="max-w-xl text-[15px] leading-7 text-[#4b5f87] sm:text-base">
+                              {reasonFor(slug, { priority: safePriority, vibes })}
+                            </p>
+                            <p className="max-w-xl text-sm leading-6 text-[#6b7b99]">
+                              {whyPicked(slug, { priority: safePriority, vibes })}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {resort.tags.slice(0, 3).map((tag) => (
+                              <span key={tag} className="rounded-full bg-[#eef2ff] px-3 py-1 text-xs font-medium text-[#42548a]">
+                                {formatTag(tag)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="mt-6 flex flex-wrap items-center gap-3">
+                          <Button asChild className="rounded-xl px-5 py-3 text-sm !text-white hover:!text-white shadow-[0_16px_34px_rgba(18,28,63,0.20)]">
+                            <Link href={buildCalculatorLink(slug, checkIn, nights, ref)}>Estimate this stay</Link>
+                          </Button>
+                          <Link href={`/resorts/${slug}`} className="text-sm font-semibold text-[#6b7b99] transition hover:text-[#10224b]">
+                            Learn more about this resort
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between border-t border-[#e6ebf7] bg-[linear-gradient(180deg,rgba(249,250,255,0.96),rgba(244,243,238,0.92))] px-6 py-4 sm:px-8">
+              <button type="button" onClick={() => setStep(3)} className="text-sm font-semibold text-[#10224b] transition hover:text-[#4457c7]">
+                ← Back
+              </button>
+              <ReferralLink href="/plan" className="inline-flex items-center gap-2 text-sm font-semibold text-[#10224b] transition hover:text-[#4457c7]">
+                <span>Start over</span>
+                <ArrowRight className="h-4 w-4" strokeWidth={2} />
+              </ReferralLink>
+            </div>
           </div>
-          <div className="flex justify-between">
-            <Button variant="ghost" onClick={() => setStep(3)}>
-              Back
-            </Button>
-            <ReferralLink href="/plan" className="text-sm font-semibold text-brand hover:text-brand/80">
-              Start over
-            </ReferralLink>
-          </div>
-        </Card>
+        </div>
       ) : null}
     </div>
   );

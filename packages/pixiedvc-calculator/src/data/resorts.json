@@ -2,7 +2,7 @@
   {
     "code": "AKV",
     "name": "Animal Kingdom Villas",
-    "category": "REGULAR",
+    "category": "SELECT_ACCESS",
     "roomTypes": ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     "viewsByRoom": {
       "STUDIO": ["V", "R", "SV", "C"],
@@ -26,7 +26,7 @@
   {
     "code": "AUL",
     "name": "Aulani, Ko Olina, Hawai'i",
-    "category": "PREMIUM",
+    "category": "PRIORITY_ACCESS",
     "roomTypes": ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     "viewsByRoom": {
       "STUDIO": ["S", "I", "P", "O"],
@@ -50,7 +50,7 @@
   {
     "code": "BLT",
     "name": "Bay Lake Tower at Contemporary Resort",
-    "category": "REGULAR",
+    "category": "SELECT_ACCESS",
     "roomTypes": ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     "viewsByRoom": {
       "STUDIO": ["S", "L", "T"],
@@ -73,7 +73,7 @@
   {
     "code": "BCV",
     "name": "Beach Club Villas",
-    "category": "PREMIUM",
+    "category": "PREMIER_ACCESS",
     "roomTypes": ["STUDIO", "ONEBR", "TWOBR"],
     "viewsByRoom": {
       "STUDIO": ["S"],
@@ -92,7 +92,7 @@
   {
     "code": "BWV",
     "name": "Boardwalk Villas",
-    "category": "PREMIUM",
+    "category": "PRIORITY_ACCESS",
     "roomTypes": ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     "viewsByRoom": {
       "STUDIO": ["S", "P"],
@@ -114,7 +114,7 @@
   {
     "code": "BRV",
     "name": "Boulder Ridge Villas at Disney's Wilderness Lodge",
-    "category": "REGULAR",
+    "category": "SELECT_ACCESS",
     "roomTypes": ["STUDIO", "ONEBR", "TWOBR"],
     "viewsByRoom": {
       "STUDIO": ["S"],
@@ -133,7 +133,7 @@
   {
     "code": "HHI",
     "name": "Disney's Hilton Head Island Resort",
-    "category": "ADVANTAGE",
+    "category": "VALUE_ACCESS",
     "roomTypes": ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     "viewsByRoom": {
       "STUDIO": ["S"],
@@ -154,7 +154,7 @@
   {
     "code": "OKW",
     "name": "Disney's Old Key West Resort",
-    "category": "ADVANTAGE",
+    "category": "VALUE_ACCESS",
     "roomTypes": ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     "viewsByRoom": {
       "STUDIO": ["S"],
@@ -175,7 +175,7 @@
   {
     "code": "PVB",
     "name": "Disney's Polynesian Villas & Bungalows",
-    "category": "PREMIUM",
+    "category": "PREMIER_ACCESS",
     "roomTypes": ["STUDIO", "DUOSTUDIO", "DELUXESTUDIO", "ONEBR", "TWOBR", "TWOBRBUNGALOW", "PENTHOUSE"],
     "viewsByRoom": {
       "STUDIO": ["R"],
@@ -205,7 +205,7 @@
   {
     "code": "RVA",
     "name": "Disney's Riviera Resort",
-    "category": "PREMIUM",
+    "category": "SELECT_ACCESS",
     "roomTypes": ["TOWERSTUDIO", "DELUXESTUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     "viewsByRoom": {
       "TOWERSTUDIO": ["S"],
@@ -229,7 +229,7 @@
   {
     "code": "SSR",
     "name": "Saratoga Springs Resort & Spa",
-    "category": "ADVANTAGE",
+    "category": "VALUE_ACCESS",
     "roomTypes": ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA", "TREEHOUSE"],
     "viewsByRoom": {
       "STUDIO": ["S", "P"],
@@ -253,7 +253,7 @@
   {
     "code": "VB",
     "name": "Disney's Vero Beach Resort",
-    "category": "ADVANTAGE",
+    "category": "VALUE_ACCESS",
     "roomTypes": ["INNROOM", "STUDIO", "ONEBR", "TWOBR", "COTTAGE"],
     "viewsByRoom": {
       "INNROOM": ["S", "O"],
@@ -277,7 +277,7 @@
   {
     "code": "CCV",
     "name": "Copper Creek Villas & Cabins at Disney's Wilderness Lodge",
-    "category": "REGULAR",
+    "category": "SELECT_ACCESS",
     "roomTypes": ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA", "CABIN"],
     "viewsByRoom": {
       "STUDIO": ["S"],
@@ -300,7 +300,7 @@
   {
     "code": "VDH",
     "name": "The Villas at Disneyland Hotel",
-    "category": "PREMIUM",
+    "category": "PRIORITY_ACCESS",
     "roomTypes": ["DUOSTUDIO", "DELUXESTUDIO", "GARDENDUOSTUDIO", "GARDENDELUXESTUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     "viewsByRoom": {
       "DUOSTUDIO": ["S", "P"],
@@ -328,7 +328,7 @@
   {
     "code": "VGC",
     "name": "The Villas at Disney's Grand Californian Hotel & Spa",
-    "category": "PREMIUM",
+    "category": "PRIORITY_ACCESS",
     "roomTypes": ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     "viewsByRoom": {
       "STUDIO": ["S"],
@@ -349,7 +349,7 @@
   {
     "code": "VGF",
     "name": "The Villas at Disney's Grand Floridian Resort & Spa",
-    "category": "PREMIUM",
+    "category": "PRIORITY_ACCESS",
     "roomTypes": ["RESORTSTUDIO", "STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     "viewsByRoom": {
       "RESORTSTUDIO": ["R", "P", "TP"],

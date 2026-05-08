@@ -7,6 +7,25 @@ import { BookingFlow } from "@pixiedvc/booking-form";
 import type { Prefill } from "@pixiedvc/booking-form";
 import type { GuestInfoInput } from "@pixiedvc/booking-form";
 
+const CALC_CODE_TO_SLUG: Record<string, string> = {
+  AKV: "animal-kingdom-villas",
+  AUL: "aulani",
+  BLT: "bay-lake-tower",
+  BCV: "beach-club-villas",
+  BWV: "boardwalk-villas",
+  BRV: "boulder-ridge-villas",
+  CCV: "copper-creek-villas",
+  HHI: "hilton-head-island",
+  OKW: "old-key-west",
+  PVB: "polynesian-villas",
+  RVA: "riviera-resort",
+  SSR: "saratoga-springs",
+  VB: "vero-beach",
+  VDH: "the-villas-at-disneyland-hotel",
+  VGC: "the-villas-at-disneys-grand-californian-hotel-spa",
+  VGF: "grand-floridian-villas",
+};
+
 export default function BookingFlowClient({
   prefill,
   resorts,
@@ -61,6 +80,8 @@ export default function BookingFlowClient({
           resortCode?: string;
           resortName?: string;
           villaType?: string;
+          viewType?: string;
+          pricingTier?: string;
           checkIn?: string;
           checkOut?: string;
           points?: number;
@@ -73,10 +94,19 @@ export default function BookingFlowClient({
         return;
       }
 
+      const resolvedResort =
+        resorts.find((resort) => {
+          if (quote.resortName && resort.name === quote.resortName) return true;
+          const resortCodeSlug = quote.resortCode ? CALC_CODE_TO_SLUG[quote.resortCode] : null;
+          return Boolean(resortCodeSlug && resort.slug === resortCodeSlug);
+        }) ?? null;
+
       setResolvedPrefill({
-        resortId: quote.resortCode ?? prefill.resortId,
-        resortName: quote.resortName ?? prefill.resortName,
+        resortId: resolvedResort?.id ?? quote.resortCode ?? prefill.resortId,
+        resortName: resolvedResort?.name ?? quote.resortName ?? prefill.resortName,
         villaType: quote.villaType ?? prefill.villaType,
+        viewType: quote.viewType ?? prefill.viewType,
+        pricingTier: quote.pricingTier ?? prefill.pricingTier,
         checkIn: quote.checkIn ?? prefill.checkIn,
         checkOut: quote.checkOut ?? prefill.checkOut,
         points: typeof quote.points === "number" ? quote.points : prefill.points,
@@ -86,7 +116,7 @@ export default function BookingFlowClient({
     } catch {
       setQuoteStatus("missing");
     }
-  }, [prefill, quoteToken]);
+  }, [prefill, quoteToken, resorts]);
 
   if (quoteStatus === "loading") {
     return null;

@@ -1,5 +1,8 @@
 export type DiningPlanKey = "quick" | "standard";
 
+// Preserved for future post-booking enhancement flows such as trip management,
+// concierge upsells, and "Enhance Your Stay" surfaces. Dining plan pricing is
+// intentionally not part of the active reservation estimate funnel.
 // Update pricing here when Disney publishes new Dining Plan rates.
 export const DINING_PLAN_LABELS: Record<DiningPlanKey, string> = {
   quick: "Quick-Service Dining Plan",

@@ -8,32 +8,30 @@ function calculatePricePerPoint(resortCode: string, checkInDate: string, booking
   const meta = Resorts.find(r => r.code === resortCode);
   if (!meta) throw new Error(`Unknown resort ${resortCode}`);
 
-  // For non-Premium resorts, always use standard rate
-  if (meta.category !== "PREMIUM") {
+  // Year-round tiers stay fixed regardless of booking window.
+  if (meta.category === "SELECT_ACCESS" || meta.category === "VALUE_ACCESS") {
     return {
       ppp: RATE_BY_CATEGORY[meta.category],
       tierName: TIER_DISPLAY_NAMES[meta.category]
     };
   }
 
-  // Premium resorts: check booking window
+  // Premier / Priority access tiers upgrade only when secured 7-11 months in advance.
   const checkIn = parseISO(checkInDate);
   const bookingDateParsed = bookingDate ? parseISO(bookingDate) : new Date();
   const monthsInAdvance = differenceInMonths(checkIn, bookingDateParsed);
 
-  // 0-7 months in advance: REGULAR rate ($23) - Regular tier
-  // 7-11 months in advance: PREMIUM rate ($25) - Premium tier
   if (monthsInAdvance < 7) {
     return {
-      ppp: RATE_BY_CATEGORY.REGULAR,
-      tierName: TIER_DISPLAY_NAMES.REGULAR
-    };
-  } else {
-    return {
-      ppp: RATE_BY_CATEGORY.PREMIUM,
-      tierName: TIER_DISPLAY_NAMES.PREMIUM
+      ppp: RATE_BY_CATEGORY.SELECT_ACCESS,
+      tierName: TIER_DISPLAY_NAMES.SELECT_ACCESS
     };
   }
+
+  return {
+    ppp: RATE_BY_CATEGORY[meta.category],
+    tierName: TIER_DISPLAY_NAMES[meta.category]
+  };
 }
 
 function findResortCategory(resortCode: string) {
@@ -64,18 +62,25 @@ function pointsForNight(period: any, room: string, view: string, iso: string) {
 
 export function quoteStay(input: QuoteInput): QuoteResult {
   const { resortCode, room, view, checkIn, nights, bookingDate } = input;
-  const year = input.chartYear ?? input.year ?? Number(checkIn.slice(0, 4));
-  const chart = loadResortYearChart(resortCode, year);
-  if (!chart) throw new Error(`No chart for ${resortCode} in ${year}`);
 
-  // Calculate price per point based on booking window for Premium resorts
+  // Calculate the guest access tier based on resort category and booking window.
   const { ppp, tierName } = calculatePricePerPoint(resortCode, checkIn, bookingDate);
 
   let totalPoints = 0;
   const nightly: QuoteResult["nightly"] = [];
+  const chartCache = new Map<number, ResortYearChart>();
 
   for (let i = 0; i < nights; i++) {
     const iso = formatISO(addDays(parseISO(checkIn), i), { representation: "date" });
+    const chartYear = Number(iso.slice(0, 4));
+    let chart = chartCache.get(chartYear);
+    if (!chart) {
+      chart = loadResortYearChart(resortCode, chartYear);
+      if (!chart) {
+        throw new Error(`No chart for ${resortCode} in ${chartYear}`);
+      }
+      chartCache.set(chartYear, chart);
+    }
     const period = periodForDate(chart, iso);
     if (!period) {
       throw new Error(`No travel period found for date ${iso} at ${resortCode}`);

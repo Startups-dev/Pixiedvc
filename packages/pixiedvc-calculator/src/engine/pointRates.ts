@@ -1,10 +1,11 @@
-export type PointRateTier = "PREMIUM" | "REGULAR" | "ADVANTAGE";
+export type PointRateTier = "PREMIER_ACCESS" | "PRIORITY_ACCESS" | "SELECT_ACCESS" | "VALUE_ACCESS";
 
 // Update these rates whenever David publishes new tier pricing.
 export const POINT_RATE_BY_TIER: Record<PointRateTier, number> = {
-  PREMIUM: 25.0,
-  REGULAR: 23.0,
-  ADVANTAGE: 20.0,
+  PREMIER_ACCESS: 29.0,
+  PRIORITY_ACCESS: 26.0,
+  SELECT_ACCESS: 24.0,
+  VALUE_ACCESS: 22.0,
 };
 
 export function getPointRate(tier: PointRateTier) {

@@ -6,6 +6,8 @@ export const tripDetailsSchema = z.object({
   resortId: z.string().min(1),
   resortName: z.string().min(1),
   villaType: z.string().min(1),
+  viewType: z.string().optional(),
+  pricingTier: z.string().optional(),
   building_preference: z.enum(["none", "jambo", "kidani"]).default("none"),
   checkIn: z.string().min(1),
   checkOut: z.string().min(1),
@@ -53,6 +55,7 @@ export const guestInfoSchema = z.object({
   leadGuest: z.string().optional(),
   additionalGuests: z.array(z.string().min(1)).optional(),
   referralSource: z.string().optional(),
+  accessibilityNotes: z.string().optional(),
   comments: z.string().optional(),
 });
 

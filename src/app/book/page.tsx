@@ -12,6 +12,8 @@ const fallbackPrefill = {
   resortId: "UNKNOWN",
   resortName: "DVC Resort",
   villaType: "Villa",
+  viewType: "",
+  pricingTier: "",
   checkIn: "",
   checkOut: "",
   points: 0,
@@ -46,6 +48,8 @@ export default async function BookingPage({
           prefill={fallbackPrefill}
           resorts={resorts}
           quoteToken={quoteToken}
+          startAtGuestInfo
+          flowLabel="PixieDVC Reservation"
           hideDepositBadge
         />
       </main>

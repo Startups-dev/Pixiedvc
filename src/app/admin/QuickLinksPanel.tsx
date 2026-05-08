@@ -52,6 +52,12 @@ const SECTIONS: QuickLinkSection[] = [
         href: '/admin/users',
       },
       {
+        id: 'image-gallery',
+        title: 'Image Gallery',
+        description: 'Review internally referenced image URLs in one gallery view.',
+        href: '/admin/image-gallery',
+      },
+      {
         id: 'owner-verifications',
         title: 'Owner Verifications',
         description: 'Review and approve owner verification flows.',

@@ -30,7 +30,7 @@ Try these to verify the calculation engine:
    - Check-in: 2026-09-04 (Friday - Travel Period 1)
    - Nights: 3 (Fri, Sat, Sun)
    - Expected Points: 13 + 13 + 10 = 36 points
-   - Expected Cost: 36 × $23/pt = $828 + 7.5% = $890.10
+   - Expected Cost: 36 × $24/pt = $864 + 7.5% = $928.80
 
 2. **Travel Period Crossing Test**
    - Check-in: 2025-08-30 (Saturday - Travel Period 4)
@@ -52,9 +52,10 @@ Try these to verify the calculation engine:
 
 ### Price Calculation
 - **Base Cost** = Total Points × Price Per Point (PPP)
-  - PREMIUM resorts: $25/pt
-  - REGULAR resorts (AKV): $23/pt
-  - ADVANTAGE resorts: $20/pt
+  - Premier Access resorts: $29/pt
+  - Priority Access resorts: $26/pt
+  - Select Access resorts: $24/pt
+  - Value Access resorts: $22/pt
 - **Service Fee** = Base Cost × 7.5%
 - **Total** = Base Cost + Service Fee
 
@@ -79,7 +80,7 @@ To add another resort (e.g., Beach Club):
 {
   "code": "BCV",
   "name": "Beach Club Villas",
-  "category": "PREMIUM",
+  "category": "PREMIER_ACCESS",
   "roomTypes": ["STUDIO", "ONEBR", "TWOBR"],
   "viewsByRoom": {
     "STUDIO": ["S", "SV"],

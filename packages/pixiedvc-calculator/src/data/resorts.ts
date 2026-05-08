@@ -5,7 +5,7 @@ export const resortsData: ResortMeta[] = [
   {
     code: "AKV",
     name: "Animal Kingdom Villas",
-    category: "REGULAR",
+    category: "SELECT_ACCESS",
     roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     viewsByRoom: {
       STUDIO: ["V", "R", "SV", "C"],
@@ -29,7 +29,7 @@ export const resortsData: ResortMeta[] = [
   {
     code: "AUL",
     name: "Aulani, Ko Olina, Hawai'i",
-    category: "PREMIUM",
+    category: "PRIORITY_ACCESS",
     roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     viewsByRoom: {
       STUDIO: ["S", "I", "P", "O"],
@@ -53,7 +53,7 @@ export const resortsData: ResortMeta[] = [
   {
     code: "BLT",
     name: "Bay Lake Tower at Contemporary Resort",
-    category: "REGULAR",
+    category: "SELECT_ACCESS",
     roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     viewsByRoom: {
       STUDIO: ["S", "L", "T"],
@@ -76,7 +76,7 @@ export const resortsData: ResortMeta[] = [
   {
     code: "BCV",
     name: "Beach Club Villas",
-    category: "PREMIUM",
+    category: "PREMIER_ACCESS",
     roomTypes: ["STUDIO", "ONEBR", "TWOBR"],
     viewsByRoom: {
       STUDIO: ["S"],
@@ -95,7 +95,7 @@ export const resortsData: ResortMeta[] = [
   {
     code: "BWV",
     name: "Boardwalk Villas",
-    category: "PREMIUM",
+    category: "PRIORITY_ACCESS",
     roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     viewsByRoom: {
       STUDIO: ["S", "P"],
@@ -117,7 +117,7 @@ export const resortsData: ResortMeta[] = [
   {
     code: "BRV",
     name: "Boulder Ridge Villas at Disney's Wilderness Lodge",
-    category: "REGULAR",
+    category: "SELECT_ACCESS",
     roomTypes: ["STUDIO", "ONEBR", "TWOBR"],
     viewsByRoom: {
       STUDIO: ["S"],
@@ -136,7 +136,7 @@ export const resortsData: ResortMeta[] = [
   {
     code: "HHI",
     name: "Disney's Hilton Head Island Resort",
-    category: "ADVANTAGE",
+    category: "VALUE_ACCESS",
     roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     viewsByRoom: {
       STUDIO: ["S"],
@@ -157,7 +157,7 @@ export const resortsData: ResortMeta[] = [
   {
     code: "OKW",
     name: "Disney's Old Key West Resort",
-    category: "ADVANTAGE",
+    category: "VALUE_ACCESS",
     roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     viewsByRoom: {
       STUDIO: ["S"],
@@ -178,7 +178,7 @@ export const resortsData: ResortMeta[] = [
   {
     code: "PVB",
     name: "Disney's Polynesian Villas & Bungalows",
-    category: "PREMIUM",
+    category: "PREMIER_ACCESS",
     roomTypes: ["STUDIO", "DUOSTUDIO", "DELUXESTUDIO", "ONEBR", "TWOBR", "TWOBRBUNGALOW", "PENTHOUSE"],
     viewsByRoom: {
       STUDIO: ["R"],
@@ -208,7 +208,7 @@ export const resortsData: ResortMeta[] = [
   {
     code: "RVA",
     name: "Disney's Riviera Resort",
-    category: "PREMIUM",
+    category: "SELECT_ACCESS",
     roomTypes: ["TOWERSTUDIO", "DELUXESTUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     viewsByRoom: {
       TOWERSTUDIO: ["S"],
@@ -232,7 +232,7 @@ export const resortsData: ResortMeta[] = [
   {
     code: "SSR",
     name: "Saratoga Springs Resort & Spa",
-    category: "ADVANTAGE",
+    category: "VALUE_ACCESS",
     roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA", "TREEHOUSE"],
     viewsByRoom: {
       STUDIO: ["S", "P"],
@@ -256,7 +256,7 @@ export const resortsData: ResortMeta[] = [
   {
     code: "VB",
     name: "Disney's Vero Beach Resort",
-    category: "ADVANTAGE",
+    category: "VALUE_ACCESS",
     roomTypes: ["INNROOM", "STUDIO", "ONEBR", "TWOBR", "COTTAGE"],
     viewsByRoom: {
       INNROOM: ["S", "O"],
@@ -280,7 +280,7 @@ export const resortsData: ResortMeta[] = [
   {
     code: "CCV",
     name: "Copper Creek Villas & Cabins at Disney's Wilderness Lodge",
-    category: "REGULAR",
+    category: "SELECT_ACCESS",
     roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA", "CABIN"],
     viewsByRoom: {
       STUDIO: ["S"],
@@ -303,7 +303,7 @@ export const resortsData: ResortMeta[] = [
   {
     code: "VDH",
     name: "The Villas at Disneyland Hotel",
-    category: "PREMIUM",
+    category: "PRIORITY_ACCESS",
     roomTypes: ["DUOSTUDIO", "DELUXESTUDIO", "GARDENDUOSTUDIO", "GARDENDELUXESTUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     viewsByRoom: {
       DUOSTUDIO: ["S", "P"],
@@ -331,7 +331,7 @@ export const resortsData: ResortMeta[] = [
   {
     code: "VGC",
     name: "The Villas at Disney's Grand Californian Hotel & Spa",
-    category: "PREMIUM",
+    category: "PRIORITY_ACCESS",
     roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     viewsByRoom: {
       STUDIO: ["S"],
@@ -352,7 +352,7 @@ export const resortsData: ResortMeta[] = [
   {
     code: "VGF",
     name: "The Villas at Disney's Grand Floridian Resort & Spa",
-    category: "PREMIUM",
+    category: "PRIORITY_ACCESS",
     roomTypes: ["RESORTSTUDIO", "STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     viewsByRoom: {
       RESORTSTUDIO: ["R", "P", "TP"],

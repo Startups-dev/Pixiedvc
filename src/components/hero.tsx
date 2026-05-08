@@ -1,14 +1,17 @@
 import Link from "next/link";
 import Image from "next/image";
 
-import { Button } from "@pixiedvc/design-system";
-import ReferralLink from "@/components/referral/ReferralLink";
+import HeroSearchBar from "@/components/HeroSearchBar";
+import { getCanonicalResorts } from "@/lib/resorts/getResorts";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function Hero() {
   const heroImageSrc = "/images/hero-new.png";
   const heroImageAlt = heroImageSrc.includes("castle")
     ? "Cinderella Castle with monorail at dusk"
     : "PixieDVC resort hero image";
+  const supabase = await createSupabaseServerClient();
+  const resorts = await getCanonicalResorts(supabase, { select: "id,name,slug" }).catch(() => []);
 
   return (
     <section className="relative overflow-hidden">
@@ -47,33 +50,23 @@ export async function Hero() {
               Access the same Disney villas for a fraction of the price. We match you with verified owners and handle the
               entire booking for you.
             </p>
-            <div className="mt-5">
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <div className="relative">
-                  <span className="dust-trail" aria-hidden="true" />
-                  <Button
-                    asChild
-          className="ring-1 ring-white/10 border border-white/15 bg-white/12 px-7 py-3 text-base font-semibold text-white !text-white shadow-[0_8px_20px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.2)] transition-transform duration-200 hover:scale-[1.03] hover:bg-white/22"
+            <div className="mt-4">
+              <HeroSearchBar resorts={resorts} />
+              <div className="mt-2 inline-flex max-w-[440px] self-start rounded-2xl border border-white/12 bg-white/[0.06] px-4 py-3 shadow-sm backdrop-blur-md">
+                <p className="text-[13px] text-white/80">
+                  No account needed to start —{" "}
+                  <Link
+                    href="/login?next=/plan"
+                    className="inline-flex items-center rounded-full border border-white/40 bg-white/10 px-2.5 py-0.5 font-medium text-white transition hover:bg-white/15"
                   >
-                    <ReferralLink href="/plan" className="text-white">
-                      Find Your Stay
-                    </ReferralLink>
-                  </Button>
-                </div>
+                    Sign in
+                  </Link>{" "}
+                  anytime.
+                </p>
               </div>
-              <p className="mt-3 text-sm text-white/70">
-                No account needed to start.{" "}
-                <Link
-                  href="/login?next=/plan"
-                  className="inline-flex items-center rounded-full border border-white/25 bg-white/10 px-2.5 py-0.5 font-medium text-white transition hover:border-white/40 hover:bg-white/16"
-                >
-                  Sign in
-                </Link>{" "}
-                anytime.
-              </p>
-              <div className="mt-6 inline-flex items-center gap-x-8 text-xs tracking-[0.08em] text-white/85">
+              <div className="mt-3 inline-flex items-center gap-x-12 text-[11px] tracking-[0.08em] text-white">
                 <span className="inline-flex items-center">
-                  <span className="mr-2 text-[10px] text-green-400">✔</span>
+                  <span className="mr-2 text-[10px] text-green-300">✔</span>
                   Verified owners
                 </span>
                 <span>•</span>
@@ -84,41 +77,41 @@ export async function Hero() {
             </div>
           </div>
 
-          <div className="w-full max-w-[320px] self-stretch rounded-3xl border border-white/10 bg-white/5 p-[1.5px] shadow-xl shadow-black/30 backdrop-blur-md sm:max-w-[340px]">
-            <div className="rounded-3xl bg-[#14234b] px-6 pt-6 pb-4 lg:min-h-[540px] lg:px-8 lg:pt-8 lg:pb-5">
+          <div className="w-full max-w-[320px] self-stretch rounded-3xl border border-white/7 bg-white/[0.035] p-[1.5px] shadow-lg shadow-black/20 backdrop-blur-md sm:max-w-[340px]">
+            <div className="rounded-3xl bg-[rgba(20,35,75,0.84)] px-6 pt-6 pb-4 lg:min-h-[540px] lg:px-8 lg:pt-8 lg:pb-5">
               <div className="flex h-full flex-col justify-center">
                 <div>
-                  <p className="text-center text-xs font-semibold uppercase tracking-[0.25em] text-white/65">
+                  <p className="text-center text-xs font-semibold uppercase tracking-[0.25em] text-white/58">
                     How it works
                   </p>
                 </div>
                 <div>
                   <div className="mt-5">
-                    <p className="text-sm font-semibold text-white">
+                    <p className="text-sm font-semibold text-white/92">
                       Tell us your dates
                     </p>
-                    <p className="mt-1 text-xs text-white/65">Takes about 60 seconds</p>
+                    <p className="mt-1 text-xs text-white/58">Takes about 60 seconds</p>
                   </div>
-                  <div className="mt-4 border-t border-white/8 pt-4">
-                    <p className="text-sm font-semibold text-white">We match you with verified owners</p>
-                    <p className="mt-1 text-xs text-white/65">Typically within hours</p>
+                  <div className="mt-4 border-t border-white/6 pt-4">
+                    <p className="text-sm font-semibold text-white/92">We match you with verified owners</p>
+                    <p className="mt-1 text-xs text-white/58">Typically within hours</p>
                   </div>
-                  <div className="mt-4 border-t border-white/8 pt-4">
-                    <p className="text-sm font-semibold text-white">Review and confirm your stay</p>
-                    <p className="mt-1 text-xs text-white/65">No surprises, fully protected</p>
+                  <div className="mt-4 border-t border-white/6 pt-4">
+                    <p className="text-sm font-semibold text-white/92">Review and confirm your stay</p>
+                    <p className="mt-1 text-xs text-white/58">No surprises, fully protected</p>
                   </div>
                 </div>
                 <div className="mt-4">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center">
-                    <p className="text-sm font-medium text-white/80">
+                  <div className="rounded-2xl border border-white/7 bg-white/[0.04] px-4 py-3 text-center">
+                    <p className="text-sm font-medium text-white/74">
                       Guests typically save $1,200 per stay
                     </p>
-                    <p className="mt-2 text-sm font-medium text-white/75">
+                    <p className="mt-2 text-sm font-medium text-white/70">
                       Most matches happen within 6–24 hours
                     </p>
                   </div>
                 </div>
-                <p className="mt-5 text-center text-[12px] text-white/62">
+                <p className="mt-5 text-center text-[12px] text-white/56">
                   The same villas, the same experience, for a fraction of the cost.
                 </p>
               </div>

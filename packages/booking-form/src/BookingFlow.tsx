@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CheckIcon } from "@heroicons/react/24/solid";
 import { AnimatePresence, motion } from "framer-motion";
 import { FormProvider, useForm } from "react-hook-form";
 import { ZodError } from "zod";
@@ -11,6 +12,7 @@ import { AgreementAndPayment } from "./steps/AgreementAndPayment";
 import { GuestInfo } from "./steps/GuestInfo";
 import { TripDetails } from "./steps/TripDetails";
 import { getMaxOccupancyForSelection } from "@/lib/occupancy";
+import { resolveResortImage } from "@/lib/resort-image";
 import { useReferral } from "@/hooks/useReferral";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import type { Prefill, OnComplete } from "./types";
@@ -65,6 +67,36 @@ const motionVariants = {
   exit: { opacity: 0, y: -20 },
 };
 
+function formatDateRange(checkIn?: string, checkOut?: string) {
+  if (!checkIn || !checkOut) return "";
+  const start = new Date(`${checkIn}T00:00:00`);
+  const end = new Date(`${checkOut}T00:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "";
+
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const startLabel = start.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+  const endLabel = end.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  return `${startLabel}–${endLabel}`;
+}
+
+function calculateNights(checkIn?: string, checkOut?: string) {
+  if (!checkIn || !checkOut) return 0;
+  const start = new Date(`${checkIn}T00:00:00`);
+  const end = new Date(`${checkOut}T00:00:00`);
+  const diff = end.getTime() - start.getTime();
+  if (Number.isNaN(diff) || diff <= 0) return 0;
+  return Math.round(diff / (1000 * 60 * 60 * 24));
+}
+
 type BookingFlowProps = {
   prefill: Prefill;
   resorts: Array<{ id: string; name: string; slug?: string | null }>;
@@ -90,7 +122,7 @@ export function BookingFlow({
   startAtGuestInfo = false,
   flowLabel = "Booking Flow",
   hideDepositBadge = false,
-  stepDisplayOffset = 0,
+  stepDisplayOffset = startAtGuestInfo ? 1 : 0,
   totalStepsOverride,
   disableAddressAutocomplete = false,
   onGuestInfoNext,
@@ -115,6 +147,8 @@ export function BookingFlow({
         resortId: prefill.resortId,
         resortName: prefill.resortName,
         villaType: prefill.villaType,
+        viewType: prefill.viewType,
+        pricingTier: prefill.pricingTier,
         building_preference: "none",
         checkIn: prefill.checkIn,
         checkOut: prefill.checkOut,
@@ -144,6 +178,7 @@ export function BookingFlow({
         leadGuest: "",
         additionalGuests: [],
         referralSource: "",
+        accessibilityNotes: "",
         comments: "",
         ...initialGuest,
       },
@@ -268,8 +303,7 @@ export function BookingFlow({
 
   const currentStep = stepOrder[stepIndex] ?? stepOrder[0];
   const displayedStep = stepIndex + 1 + stepDisplayOffset;
-  const displayedTotalSteps = totalStepsOverride ?? stepOrder.length;
-  const progressPercent = Math.min(100, Math.max(0, (displayedStep / displayedTotalSteps) * 100));
+  const displayedTotalSteps = totalStepsOverride ?? 3;
 
   const nextStep = () => setStepIndex((i) => Math.min(i + 1, stepOrder.length - 1));
   const prevStep = () => setStepIndex((i) => Math.max(i - 1, 0));
@@ -277,7 +311,7 @@ export function BookingFlow({
   const getStepLabel = (step: StepKey) => {
     switch (step) {
       case "trip":
-        return "Trip details";
+        return "Review your stay";
       case "guest":
         return "Guest information";
       case "agreement":
@@ -445,6 +479,14 @@ export function BookingFlow({
       );
       const adults = 1 + (parsed.guest.adultGuests?.length ?? 0);
       const youths = parsed.guest.childGuests?.length ?? 0;
+      const combinedComments = [
+        parsed.trip.accessibility && parsed.guest.accessibilityNotes?.trim()
+          ? `Accessibility accommodations: ${parsed.guest.accessibilityNotes.trim()}`
+          : null,
+        parsed.guest.comments?.trim() ? parsed.guest.comments.trim() : null,
+      ]
+        .filter(Boolean)
+        .join("\n\n");
       const response = await fetch("/api/booking/create", {
         method: "POST",
         headers: {
@@ -458,6 +500,7 @@ export function BookingFlow({
             additionalGuests: [...adultNames, ...childNames].filter(Boolean),
             adults,
             youths,
+            comments: combinedComments,
           },
           depositAmount,
           referral_code: ref ?? null,
@@ -554,41 +597,117 @@ export function BookingFlow({
   const stepLabel = useMemo(() => {
     switch (currentStep) {
       case "trip":
-        return "Trip details";
+        return "Stay details";
       case "guest":
         return "Guest information";
       case "agreement":
-        return "Agreement & payment";
+        return "Review & deposit";
       default:
         return "";
     }
   }, [currentStep]);
 
+  const progressSteps: Array<{ key: StepKey; label: string }> = [
+    { key: "trip", label: "Stay Details" },
+    { key: "guest", label: "Guest Information" },
+    { key: "agreement", label: "Review & Deposit" },
+  ];
+
+  const currentProgressIndex =
+    currentStep === "trip" ? 0 : currentStep === "guest" ? 1 : 2;
+  const progressPercent = Math.min(100, Math.max(0, (displayedStep / displayedTotalSteps) * 100));
+  const tripValues = form.watch("trip");
+  const guestValues = form.watch("guest");
+  const selectedResort =
+    resorts.find((resort) => resort.id === tripValues.resortId || resort.slug === tripValues.resortId) ?? null;
+  const reservationImage = resolveResortImage({
+    resortCode: tripValues.resortId,
+    resortSlug: selectedResort?.slug,
+    imageIndex: 1,
+  }).url;
+  const reservationNights = calculateNights(tripValues.checkIn, tripValues.checkOut);
+  const reservationDateLabel = formatDateRange(tripValues.checkIn, tripValues.checkOut);
+  const reservationGuestCount =
+    1 + (guestValues?.adultGuests?.length ?? 0) + (guestValues?.childGuests?.length ?? 0);
+  const reservationAverageNightly =
+    reservationNights > 0 && Number.isFinite(tripValues.estCash)
+      ? tripValues.estCash / reservationNights
+      : 0;
+  const formattedReservationTotal = Number.isFinite(tripValues.estCash)
+    ? new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(tripValues.estCash)
+    : "$0.00";
+  const formattedReservationAverage = Number.isFinite(reservationAverageNightly)
+    ? new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0,
+      }).format(reservationAverageNightly)
+    : "$0";
+
   return (
     <FormProvider {...form}>
       <div className="space-y-6">
-        <Card className="border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+        <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">{flowLabel}</p>
-              <h2 className="font-display text-3xl text-ink">
-                {displayedStep} / {displayedTotalSteps} — {stepLabel}
-              </h2>
+            <div className="space-y-1">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">{flowLabel}</p>
+              <h2 className="font-display text-3xl text-ink">{stepLabel}</h2>
             </div>
             {hideDepositBadge ? null : (
-              <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs uppercase tracking-[0.2em] text-slate-500 shadow-sm">
-                <span className="inline-flex h-2 w-2 rounded-full bg-brand" aria-hidden />
-                Deposit ${depositAmount}
+              <div className="rounded-full border border-slate-200/80 bg-white/90 px-4 py-2 text-xs font-medium tracking-[0.18em] text-slate-500 shadow-sm">
+                Refundable deposit ${depositAmount}
               </div>
             )}
           </div>
-          <div className="mt-4 h-1 rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-brand transition-all"
-              style={{ width: `${progressPercent}%` }}
-            />
+          <div className="rounded-3xl border border-slate-200/80 bg-white/92 px-5 py-5 shadow-[0_18px_44px_rgba(15,23,42,0.06)]">
+            <div className="grid gap-4 sm:grid-cols-3 sm:items-center">
+              {progressSteps.map((step, index) => {
+                const isComplete = index < currentProgressIndex;
+                const isCurrent = index === currentProgressIndex;
+
+                return (
+                  <div key={step.key} className="relative min-w-0">
+                    {index < progressSteps.length - 1 ? (
+                      <span
+                        aria-hidden
+                        className={`absolute left-9 right-[-1rem] top-4 hidden h-px sm:block ${
+                          index < currentProgressIndex ? "bg-[#5568d5]/40" : "bg-slate-200"
+                        }`}
+                      />
+                    ) : null}
+                    <div className="relative flex items-center gap-3">
+                      <span
+                        className={`inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border text-sm ${
+                          isCurrent
+                            ? "border-[#5568d5]/30 bg-[#eef2ff] text-[#4457c7]"
+                            : isComplete
+                              ? "border-[#5568d5]/20 bg-white text-[#4457c7]"
+                              : "border-slate-200 bg-white text-slate-400"
+                        }`}
+                      >
+                        {isComplete ? <CheckIcon className="h-4 w-4" /> : index + 1}
+                      </span>
+                      <span className={`text-sm font-medium ${isCurrent ? "text-ink" : isComplete ? "text-slate-700" : "text-slate-400"}`}>
+                        {step.label}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-4 h-[2px] rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full bg-[linear-gradient(to_right,#5568d5,#4457c7)] transition-all"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
           </div>
-        </Card>
+        </div>
 
         {error ? (
           <Card className="border border-[#dc2626] bg-[#fee2e2] text-[#7f1d1d]">
@@ -596,58 +715,148 @@ export function BookingFlow({
           </Card>
         ) : null}
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentStep}
-            variants={motionVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={{ duration: 0.35, ease: "easeOut" }}
-          >
-            {currentStep === "trip" ? (
-              <TripDetails
-                onNext={async () => {
-                  setError(null);
-                  form.clearErrors("trip");
-                  const ok = await validateStep("trip");
-                  if (!ok) return;
-                  nextStep();
-                }}
-                resorts={resorts}
-              />
-            ) : currentStep === "guest" ? (
-              <GuestInfo
-                onBack={prevStep}
-                onNext={async () => {
-                  setError(null);
-                  form.clearErrors("guest");
-                  const ok = await validateStep("guest");
-                  if (!ok) return;
-                  if (onGuestInfoSubmit) {
-                    await onGuestInfoSubmit(form.getValues("guest"));
-                    return;
-                  }
-                  if (onGuestInfoNext) {
-                    onGuestInfoNext();
-                    return;
-                  }
-                  nextStep();
-                }}
-                disableAddressAutocomplete={disableAddressAutocomplete}
-                signInHref={signInHref}
-                onSignInClick={onSignInClick}
-              />
-            ) : (
-              <AgreementAndPayment
-                onBack={prevStep}
-                onSubmit={handleComplete}
-                estimatedDeposit={depositAmount}
-                showCaptchaField={isReadyStaysFlow}
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.8fr)] lg:items-start">
+          <aside className="space-y-4">
+            <details className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_18px_44px_rgba(15,23,42,0.06)] lg:hidden" open>
+              <summary className="cursor-pointer list-none px-5 py-4 marker:hidden">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Your stay</div>
+                    <div className="mt-1 text-base font-semibold text-ink">{tripValues.resortName || "Disney villa stay"}</div>
+                  </div>
+                  <div className="text-sm text-slate-500">{formattedReservationTotal} USD</div>
+                </div>
+              </summary>
+              <div className="border-t border-slate-100 px-5 pb-5 pt-4">
+                <div className="overflow-hidden rounded-2xl bg-slate-100">
+                  <img src={reservationImage} alt={tripValues.resortName || "Disney villa stay"} className="h-40 w-full object-cover" />
+                </div>
+                <div className="mt-4 space-y-3 text-sm text-slate-600">
+                  <p className="font-medium text-ink">{tripValues.villaType} · {tripValues.viewType || "Villa view"}</p>
+                  <p>{reservationDateLabel} · {reservationNights} nights</p>
+                  <p>{reservationGuestCount} guests</p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="font-medium text-ink">{formattedReservationAverage} / night</span>
+                    <span className="h-1 w-1 rounded-full bg-slate-300" aria-hidden />
+                    <span>{tripValues.points} DVC points</span>
+                  </div>
+                  {tripValues.pricingTier ? (
+                    <div className="inline-flex rounded-full bg-[#eef2ff] px-3 py-1 text-xs font-medium text-[#4457c7]">
+                      {tripValues.pricingTier}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </details>
+
+            <div className="hidden lg:block lg:sticky lg:top-24">
+              <div className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_24px_54px_rgba(15,23,42,0.08)]">
+                <div className="relative h-48 overflow-hidden bg-slate-100">
+                  <img src={reservationImage} alt={tripValues.resortName || "Disney villa stay"} className="h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[rgba(11,22,45,0.38)] via-transparent to-transparent" />
+                </div>
+                <div className="space-y-5 px-6 py-6">
+                  <div className="space-y-2">
+                    <div className="text-xs uppercase tracking-[0.22em] text-slate-500">Reservation context</div>
+                    <h3 className="text-[1.6rem] font-semibold leading-tight text-ink">
+                      {tripValues.resortName || "Disney Deluxe Villa Stay"}
+                    </h3>
+                    <p className="text-sm text-slate-600">
+                      {tripValues.villaType} · {tripValues.viewType || "Villa view"}
+                    </p>
+                    <div className="text-sm text-slate-500">
+                      {reservationDateLabel} · {reservationNights} nights
+                    </div>
+                    <div className="text-sm text-slate-500">{reservationGuestCount} guests</div>
+                  </div>
+
+                  <div className="grid gap-3">
+                    <div className="rounded-2xl bg-slate-50 px-4 py-4">
+                      <div className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Estimated total</div>
+                      <div className="mt-2 text-2xl font-semibold text-ink">
+                        {formattedReservationTotal} <span className="text-sm font-medium text-slate-500">USD</span>
+                      </div>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                      <div className="rounded-2xl bg-slate-50 px-4 py-4">
+                        <div className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Nightly average</div>
+                        <div className="mt-2 text-lg font-semibold text-ink">
+                          {formattedReservationAverage} <span className="text-xs font-medium text-slate-500">USD</span>
+                        </div>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 px-4 py-4">
+                        <div className="text-[11px] uppercase tracking-[0.2em] text-slate-500">DVC points</div>
+                        <div className="mt-2 text-lg font-semibold text-ink">{tripValues.points}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {tripValues.pricingTier ? (
+                    <div className="inline-flex rounded-full bg-[#eef2ff] px-3 py-1.5 text-xs font-medium text-[#4457c7]">
+                      {tripValues.pricingTier}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <div className="min-w-0">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentStep}
+                variants={motionVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={{ duration: 0.28, ease: "easeOut" }}
+              >
+                {currentStep === "trip" ? (
+                  <TripDetails
+                    onNext={async () => {
+                      setError(null);
+                      form.clearErrors("trip");
+                      const ok = await validateStep("trip");
+                      if (!ok) return;
+                      nextStep();
+                    }}
+                    resorts={resorts}
+                  />
+                ) : currentStep === "guest" ? (
+                  <GuestInfo
+                    onBack={prevStep}
+                    onNext={async () => {
+                      setError(null);
+                      form.clearErrors("guest");
+                      const ok = await validateStep("guest");
+                      if (!ok) return;
+                      if (onGuestInfoSubmit) {
+                        await onGuestInfoSubmit(form.getValues("guest"));
+                        return;
+                      }
+                      if (onGuestInfoNext) {
+                        onGuestInfoNext();
+                        return;
+                      }
+                      nextStep();
+                    }}
+                    disableAddressAutocomplete={disableAddressAutocomplete}
+                    signInHref={signInHref}
+                    onSignInClick={onSignInClick}
+                    resorts={resorts}
+                  />
+                ) : (
+                  <AgreementAndPayment
+                    onBack={prevStep}
+                    onSubmit={handleComplete}
+                    estimatedDeposit={depositAmount}
+                    showCaptchaField={isReadyStaysFlow}
+                  />
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
 
         <div className="space-y-1">
           <div className="flex items-center justify-center gap-2 text-xs uppercase tracking-[0.24em] text-muted">

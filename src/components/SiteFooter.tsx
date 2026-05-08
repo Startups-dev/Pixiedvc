@@ -1,29 +1,43 @@
 import Link from "next/link";
 
-import { POLICY_LINKS } from "@/lib/policies";
-
 const DISCLAIMER =
   "PixieDVC is an independent vacation rental platform and is not affiliated with, sponsored by, or endorsed by The Walt Disney Company or Disney Vacation Club®. Disney trademarks and resort names are used for informational purposes only and remain the property of their respective owners.";
 
 const COMPANY_LINKS = [
-    { label: "Our Story", href: "/our-story" },
-  { label: "Contact", href: "/contact" },
+  { label: "Our Story", href: "/our-story" },
+  { label: "Our Approach", href: "/our-approach" },
+  { label: "About Us", href: "/about-us" },
+];
+
+const SUPPORT_LINKS = [
+  { label: "Contact Concierge", href: "/contact" },
   { label: "FAQ", href: "/faq" },
 ];
 
 const LEGAL_LINKS = [
-  { label: "Terms", href: "/terms" },
-  { label: "Privacy", href: "/privacy" },
-  { label: "Refund / Cancellation", href: "/policies" },
-  { label: "Guest Policies", href: "/guests/policies" },
+  { label: "Terms of Service", href: "/terms" },
+  { label: "Privacy Policy", href: "/privacy" },
 ];
 
 const EXPLORE_LINKS = [
   { label: "Resorts", href: "/resorts" },
-  { label: "How it works", href: "/how-it-works" },
+  { label: "How It Works", href: "/guides/how-renting-dvc-points-works" },
+  { label: "Ready Stays", href: "/ready-stays" },
   { label: "Guides", href: "/guides" },
-  { label: "Owners", href: "/owners" },
-  { label: "Guests", href: "/guests" },
+  { label: "For Owners", href: "/owners" },
+];
+
+const BOOKING_POLICY_LINKS = [
+  { label: "Cancellation Policy", href: "/guests/cancellation-policy" },
+  { label: "Deferred Cancellation Policy", href: "/policies/deferred-cancellation" },
+  { label: "Guest Policies", href: "/guests/policies" },
+];
+
+const PARTNER_LINKS = [
+  { label: "Partners", href: "/partners" },
+  { label: "Affiliate Program", href: "/partners/affiliate-program" },
+  { label: "Travel Advisors", href: "/partners#advisor" },
+  { label: "Service Providers", href: "/partners#service" },
 ];
 
 const linkClassName =
@@ -35,7 +49,7 @@ export default function SiteFooter() {
   return (
     <footer className="border-t border-white/10 bg-[#0F2148] text-white">
       <div className="mx-auto max-w-6xl px-6 py-12 sm:py-14">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-6">
           <div className="space-y-3">
             <p className="text-xl font-semibold tracking-tight">PixieDVC</p>
             <p className="text-sm text-white/70">Disney Vacation Club rentals reimagined.</p>
@@ -45,6 +59,19 @@ export default function SiteFooter() {
             <p className="text-xs uppercase tracking-[0.3em] text-white/60">Company</p>
             <ul className="space-y-2">
               {COMPANY_LINKS.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className={linkClassName}>
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.3em] text-white/60">Support</p>
+            <ul className="space-y-2">
+              {SUPPORT_LINKS.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className={linkClassName}>
                     {link.label}
@@ -68,9 +95,9 @@ export default function SiteFooter() {
           </div>
 
           <div className="space-y-3">
-            <p className="text-xs uppercase tracking-[0.3em] text-white/60">Policies</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-white/60">Booking Policies</p>
             <ul className="space-y-2">
-              {POLICY_LINKS.map((link) => (
+              {BOOKING_POLICY_LINKS.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className={linkClassName}>
                     {link.label}
@@ -84,6 +111,19 @@ export default function SiteFooter() {
             <p className="text-xs uppercase tracking-[0.3em] text-white/60">Explore</p>
             <ul className="space-y-2">
               {EXPLORE_LINKS.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className={linkClassName}>
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-[0.3em] text-white/60">Partners</p>
+            <ul className="space-y-2">
+              {PARTNER_LINKS.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className={linkClassName}>
                     {link.label}

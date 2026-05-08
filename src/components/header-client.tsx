@@ -7,12 +7,6 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   BookOpen,
   Calendar,
-  CheckCircle2,
-  FileText,
-  HelpCircle,
-  Mail,
-  MessageCircle,
-  Phone,
   ShieldCheck,
   Sparkles,
   Users,
@@ -22,16 +16,13 @@ import UserMenu from "@/components/user-menu";
 import { createClient } from "@/lib/supabase";
 import AffiliatePortalHeader from "@/components/layout/AffiliatePortalHeader";
 import { openIntercom } from "@/lib/intercom";
-import { POLICY_LINKS } from "@/lib/policies";
 
 const NAV_LINKS = [
   { href: "/resorts", label: "Resorts" },
-  { href: "/owners", label: "Owners" },
-  { href: "/guests", label: "Guests" },
+  { href: "/ready-stays", label: "Ready Stays" },
+  { href: "/guides/how-renting-dvc-points-works", label: "How It Works" },
+  { href: "/owners", label: "For Owners" },
   { href: "/guides", label: "Guides" },
-  { href: "/our-story", label: "Get to Know" },
-  { href: "/contact", label: "Contact" },
-  { href: "/partners", label: "Partners" },
 ];
 
 type HeaderClientProps = {
@@ -96,23 +87,30 @@ const DROPDOWN_PANEL_CLASS_BY_LAYOUT: Record<
 };
 
 const DROPDOWNS: Record<string, DropdownConfig> = {
-  Guests: {
+  Resorts: {
     columns: 2,
     sections: [
       {
-        title: "Renting",
+        title: "Browse Resorts",
         items: [
-          { label: "Rent DVC Points", href: "/guests", icon: Sparkles },
-          { label: "Disney Dining Plans", href: "/dining-plan", icon: FileText },
-          { label: "Ready Stays (Instant Booking)", href: "/ready-stays", icon: Calendar },
-          { label: "How Guest Renting Works", href: "/guides/how-renting-dvc-points-works", icon: BookOpen },
-        ],
-      },
-      {
-        title: "Support",
-        items: [
-          { label: "Guest FAQ", href: "/faq", icon: HelpCircle },
-          { label: "Cancellation Policy", href: "/guests/cancellation-policy", icon: FileText },
+          { label: "Browse All Resorts", href: "/resorts", icon: Sparkles },
+          { label: "Animal Kingdom Villas", href: "/resorts/animal-kingdom-villas", icon: Calendar },
+          { label: "Aulani", href: "/resorts/aulani", icon: Calendar },
+          { label: "Bay Lake Tower", href: "/resorts/bay-lake-tower", icon: Calendar },
+          { label: "Beach Club Villas", href: "/resorts/beach-club-villas", icon: Calendar },
+          { label: "BoardWalk Villas", href: "/resorts/boardwalk-villas", icon: Calendar },
+          { label: "Boulder Ridge Villas", href: "/resorts/boulder-ridge-villas", icon: Calendar },
+          { label: "Copper Creek Villas", href: "/resorts/copper-creek-villas", icon: Calendar },
+          { label: "Disneyland Hotel Villas", href: "/resorts/disneyland-hotel-villas", icon: Calendar },
+          { label: "Fort Wilderness Cabins", href: "/resorts/fort-wilderness-cabins", icon: Calendar },
+          { label: "Grand Californian Villas", href: "/resorts/grand-californian-villas", icon: Calendar },
+          { label: "Grand Floridian Villas", href: "/resorts/grand-floridian-villas", icon: Calendar },
+          { label: "Hilton Head Island", href: "/resorts/hilton-head-island", icon: Calendar },
+          { label: "Old Key West", href: "/resorts/old-key-west", icon: Calendar },
+          { label: "Polynesian Villas", href: "/resorts/polynesian-villas", icon: Calendar },
+          { label: "Riviera Resort", href: "/resorts/riviera-resort", icon: Calendar },
+          { label: "Saratoga Springs", href: "/resorts/saratoga-springs", icon: Calendar },
+          { label: "Vero Beach", href: "/resorts/vero-beach", icon: Calendar },
         ],
       },
     ],
@@ -121,79 +119,20 @@ const DROPDOWNS: Record<string, DropdownConfig> = {
     columns: 2,
     sections: [
       {
-        title: "DVC Basics",
+        title: "Featured Guides",
         items: [
           { label: "What Are DVC Points?", href: "/guides/what-is-dvc", icon: BookOpen },
-          { label: "Renting vs Owning", href: "/guides/renting-vs-owning", icon: BookOpen },
-          { label: "Point Charts Explained", href: "/guides/point-charts-explained", icon: BookOpen },
-        ],
-      },
-      {
-        title: "Planning",
-        items: [
-          { label: "Best Resorts by Travel Style", href: "/guides/best-dvc-resorts-for-first-timers", icon: Sparkles },
-          { label: "When to Rent (Booking Windows)", href: "/guides/how-renting-dvc-points-works", icon: Calendar },
-          { label: "How Far in Advance to Book", enabled: false, icon: Calendar },
-        ],
-      },
-      {
-        title: "Advanced",
-        items: [
-          { label: "Banking & Borrowing", enabled: false, icon: FileText },
-          { label: "Add-ons (Dining / Requests)", enabled: false, icon: FileText },
-          { label: "Travel Insurance Overview", enabled: false, icon: ShieldCheck },
-        ],
-      },
-    ],
-  },
-  "Get to Know": {
-    columns: 1,
-    sections: [
-      {
-        title: "About PixieDVC",
-        items: [
-          { label: "Our Approach", href: "/our-approach", icon: Sparkles },
-          { label: "About Us", href: "/about-us", icon: Users },
-        ],
-      },
-    ],
-  },
-  Contact: {
-    columns: 2,
-    sections: [
-      {
-        title: "Policies",
-        items: POLICY_LINKS.map((policy) => ({
-          label: policy.label,
-          href: policy.href,
-          icon: FileText,
-        })),
-      },
-      {
-        title: "General Help",
-        items: [
-          { label: "FAQ", href: "/faq", icon: HelpCircle },
-        ],
-      },
-      {
-        title: "Talk to a Concierge",
-        items: [
-          { label: "Chat with Concierge", action: "chat", icon: MessageCircle, note: "AI to human handoff" },
-          { label: "Email Support", href: "mailto:hello@pixiedvc.com", icon: Mail, note: "hello@pixiedvc.com" },
-          { label: "Contact Form", href: "/contact", icon: FileText },
-        ],
-      },
-    ],
-  },
-  Partners: {
-    columns: 1,
-    sections: [
-      {
-        title: "Partner with PixieDVC",
-        items: [
-          { label: "Affiliate Program", href: "/partners/affiliate-program", icon: Sparkles },
-          { label: "Travel Advisors", href: "/partners#advisor", icon: Users },
-          { label: "Service Providers", href: "/partners#service", icon: Sparkles },
+          {
+            label: "DVC Pricing vs Disney Direct",
+            href: "/guides/dvc-rental-pricing-vs-booking-disney-hotels-directly",
+            icon: Sparkles,
+          },
+          {
+            label: "How Much Can You Save?",
+            href: "/guides/how-much-can-you-save-by-renting-disney-vacation-club-points",
+            icon: Sparkles,
+          },
+          { label: "Best Resorts by Travel Style", href: "/guides/best-dvc-resorts-for-first-timers", icon: Calendar },
         ],
       },
     ],
@@ -302,6 +241,7 @@ export default function HeaderClient({
       router.push("/support");
     }
   }, [router]);
+
   const ownerJoinHref = "/owners";
   const ownerPortalHref = isAuthenticated
     ? "/owner/dashboard"
@@ -312,7 +252,7 @@ export default function HeaderClient({
       {
         title: "Owner Access",
         items: [
-          { label: "Join as an Owner", href: ownerJoinHref, icon: Users },
+          { label: "List a Ready Stay", href: ownerJoinHref, icon: Calendar },
           { label: "Owner Dashboard", href: ownerPortalHref, icon: ShieldCheck },
         ],
       },
@@ -352,18 +292,21 @@ export default function HeaderClient({
           <nav ref={navRef} className="hidden min-w-0 flex-1 items-center justify-center px-3 text-[15px] text-white/85 lg:flex">
             <div className="flex min-w-0 items-center gap-5 lg:gap-7">
               {NAV_LINKS.map((item) => {
-                const dropdown = item.label === "Owners" ? ownerDropdown : DROPDOWNS[item.label];
+                const dropdown = item.label === "For Owners" ? ownerDropdown : DROPDOWNS[item.label];
                 if (!dropdown) {
                   return (
-                    <Link key={item.href} href={item.href} className="transition hover:text-white">
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={item.label === "Guides" ? "text-white/65 transition hover:text-white" : "transition hover:text-white"}
+                    >
                       {item.label}
                     </Link>
                   );
                 }
                 const isOpen = openDropdown === item.label;
-                const alignRight =
-                  item.label === "Contact" || item.label === "Partners" || item.label === "Get to Know";
-                const isContactMenu = item.label === "Contact";
+                const alignRight = false;
+                const isContactMenu = false;
                 const effectiveColumns = Math.min(dropdown.columns ?? dropdown.sections.length, dropdown.sections.length);
                 const normalizedColumns: 1 | 2 | 3 =
                   effectiveColumns <= 1 ? 1 : effectiveColumns === 2 ? 2 : 3;
@@ -521,12 +464,20 @@ export default function HeaderClient({
                   hasAffiliateAccess={hasAffiliateAccess}
                 />
               ) : (
-                <Link
-                  href="/login"
-                  className="rounded-full border border-white/50 bg-white/6 px-4 py-1 text-sm text-white/92 transition hover:border-white/65 hover:bg-white/10 hover:text-white"
-                >
-                  Sign in
-                </Link>
+                <div className="flex items-center gap-3">
+                  <Link
+                    href="/plan"
+                    className="rounded-full bg-[linear-gradient(to_bottom,rgba(255,255,255,0.16),rgba(255,255,255,0.03)_46%,rgba(255,255,255,0)_52%),linear-gradient(to_right,#1f3567,#5b78ff)] px-4 py-1.5 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(18,35,74,0.42)] transition-[transform,box-shadow,filter] duration-300 hover:-translate-y-[1px] hover:brightness-105 hover:shadow-[0_18px_36px_rgba(18,35,74,0.5)]"
+                  >
+                    Find Your Stay
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="rounded-full border border-white/50 bg-white/6 px-4 py-1 text-sm text-white/92 transition hover:border-white/65 hover:bg-white/10 hover:text-white"
+                  >
+                    Sign in
+                  </Link>
+                </div>
               )}
             </div>
           </nav>
@@ -567,9 +518,19 @@ export default function HeaderClient({
         {mobileOpen && !isDesktop ? (
           <div className="border-t border-white/10 bg-[#0f2148] lg:hidden">
             <div className="mx-auto max-w-[1200px] space-y-4 px-4 py-4">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                <Link
+                  href="/plan"
+                  onClick={closeMobile}
+                  className="inline-flex w-full items-center justify-center rounded-full bg-[linear-gradient(to_bottom,rgba(255,255,255,0.16),rgba(255,255,255,0.03)_46%,rgba(255,255,255,0)_52%),linear-gradient(to_right,#1f3567,#5b78ff)] px-4 py-2.5 text-sm font-semibold !text-white shadow-[0_14px_32px_rgba(18,35,74,0.42)] transition-[transform,box-shadow,filter] duration-300 hover:!text-white hover:brightness-105 hover:shadow-[0_18px_36px_rgba(18,35,74,0.5)]"
+                >
+                  Find Your Stay
+                </Link>
+              </div>
+
               <div className="grid gap-2 text-sm text-white/85">
                 {NAV_LINKS.map((item) => {
-                  const dropdown = item.label === "Owners" ? ownerDropdown : DROPDOWNS[item.label];
+                  const dropdown = item.label === "For Owners" ? ownerDropdown : DROPDOWNS[item.label];
                   if (!dropdown) {
                     return (
                       <Link
@@ -674,6 +635,29 @@ export default function HeaderClient({
                     </div>
                   );
                 })}
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                <p className="text-xs uppercase tracking-[0.2em] text-white/60">Support</p>
+                <div className="mt-3 grid gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleChat();
+                      closeMobile();
+                    }}
+                    className="rounded-xl px-3 py-2 text-left text-white/85 transition hover:bg-white/10 hover:text-white"
+                  >
+                    Contact Concierge
+                  </button>
+                  <Link
+                    href="/faq"
+                    onClick={closeMobile}
+                    className="rounded-xl px-3 py-2 text-white/85 transition hover:bg-white/10 hover:text-white"
+                  >
+                    FAQ
+                  </Link>
+                </div>
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-white/5 p-3">

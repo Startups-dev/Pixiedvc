@@ -1,5 +1,6 @@
 import { getResortSummaries } from "@/lib/resorts";
 import ResortChoiceCard from "@/components/plan/ResortChoiceCard";
+import { buildTripIntentQuery, mergeTripIntent, parseTripIntentFromSearchParams } from "@/lib/trip-intent";
 
 const RESORT_PROS: Array<{ slug: string; name: string; pros: string[] }> = [
   {
@@ -180,7 +181,13 @@ const RESORT_PROS: Array<{ slug: string; name: string; pros: string[] }> = [
   },
 ];
 
-export default async function PlanResortsPage() {
+export default async function PlanResortsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const tripIntent = parseTripIntentFromSearchParams(resolvedSearchParams);
   const resorts = await getResortSummaries();
   const resortsBySlug = new Map(resorts.map((resort) => [resort.slug, resort]));
 
@@ -201,7 +208,15 @@ export default async function PlanResortsPage() {
             const resort = resortsBySlug.get(entry.slug);
             const displayName = resort?.name ?? entry.name;
             const image = resort?.cardImage ?? resort?.heroImage ?? "/images/castle-hero.png";
-            const isRelative = image.startsWith("/");
+            const selectedIntent = mergeTripIntent(tripIntent, { resort: entry.slug });
+            const calculatorQuery = buildTripIntentQuery(selectedIntent).toString();
+            const detailsQuery = buildTripIntentQuery(tripIntent).toString();
+            const pickHref = calculatorQuery
+              ? `/calculator?${calculatorQuery}`
+              : `/calculator?resort=${encodeURIComponent(entry.slug)}`;
+            const detailsHref = detailsQuery
+              ? `/resorts/${entry.slug}?from=plan-resorts&selected=${encodeURIComponent(entry.slug)}&${detailsQuery}`
+              : `/resorts/${entry.slug}?from=plan-resorts&selected=${encodeURIComponent(entry.slug)}`;
 
             return (
               <ResortChoiceCard
@@ -210,8 +225,8 @@ export default async function PlanResortsPage() {
                 slug={entry.slug}
                 image={image}
                 pros={entry.pros}
-                pickHref={`/calculator?resort=${encodeURIComponent(entry.slug)}`}
-                detailsHref={`/resorts/${entry.slug}?from=plan-resorts&selected=${encodeURIComponent(entry.slug)}`}
+                pickHref={pickHref}
+                detailsHref={detailsHref}
               />
             );
           })}

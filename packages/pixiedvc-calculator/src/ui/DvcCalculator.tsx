@@ -1,20 +1,50 @@
 // src/ui/DvcCalculator.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  BanknotesIcon,
-  BuildingOffice2Icon,
-  CalendarDaysIcon,
+  ChevronDownIcon,
   HomeIcon,
+  InformationCircleIcon,
   SparklesIcon,
-  UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import { Resorts } from "../engine/charts";
 import { quoteStay } from "../engine/calc";
 import type { RoomCode, ViewCode } from "../engine/types";
 import { ResultsTable } from "./ResultsTable";
+import { resolveResortImage } from "@/lib/resort-image";
 
 const DVC_CALC_DRAFT_KEY = "pixiedvc:dvcCalcDraft:v1";
 const QUOTE_KEY_PREFIX = "pixiedvc:quote:";
+const TRIP_INTENT_SESSION_KEY = "pixiedvc.trip-intent.v1";
+const MAX_PRICING_DATE = "2027-12-31";
+const LATEST_CHECK_IN_DATE = "2027-12-30";
+const INVALID_RANGE_MESSAGE = "Select dates between today and Dec 31, 2027.";
+const MAX_PRICING_MESSAGE = "Pricing is available through Dec 31, 2027.";
+const PRICING_TIER_DETAILS = [
+  {
+    name: "Premier Access",
+    rate: "$29/pt",
+    description:
+      "Highest-demand villa access when select resorts are secured further in advance.",
+  },
+  {
+    name: "Priority Access",
+    rate: "$26/pt",
+    description:
+      "Preferred pricing tier for premium resorts with stronger booking-window demand.",
+  },
+  {
+    name: "Select Access",
+    rate: "$24/pt",
+    description:
+      "Balanced pricing across many deluxe villa stays and shorter-window premium requests.",
+  },
+  {
+    name: "Value Access",
+    rate: "$22/pt",
+    description:
+      "Lower-priced access at select resorts that typically offer more flexible availability.",
+  },
+] as const;
 const RESORT_SLUG_TO_CODE: Record<string, string> = {
   "animal-kingdom-villas": "AKV",
   "animal-kingdom-jambo": "AKV",
@@ -46,6 +76,34 @@ const RESORT_SLUG_TO_CODE: Record<string, string> = {
   "disneys-hilton-head-island-resort": "HHI",
   "disneys-vero-beach-resort": "VB",
 };
+const RESORT_CODE_TO_SLUG: Record<string, string> = {
+  AKV: "animal-kingdom-villas",
+  AUL: "aulani",
+  BLT: "bay-lake-tower",
+  BCV: "beach-club-villas",
+  BWV: "boardwalk-villas",
+  BRV: "boulder-ridge-villas",
+  CCV: "copper-creek-villas-and-cabins",
+  VDH: "disneyland-hotel-villas",
+  VGC: "grand-californian-villas",
+  VGF: "grand-floridian-villas",
+  HHI: "hilton-head-island",
+  OKW: "old-key-west",
+  PVB: "polynesian-villas",
+  RVA: "riviera-resort",
+  SSR: "saratoga-springs",
+  VB: "vero-beach",
+};
+const SUMMARY_IMAGE_OVERRIDE_BY_CODE: Record<string, string> = {
+  CCV:
+    "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/Copper-creek-villas-and-cabins/CCV1.png",
+};
+
+const SUMMARY_IMAGE_FALLBACK_BY_CODE: Record<string, string> = {
+  CCV: "/images/Fort wilderness.png",
+};
+
+const DEFAULT_SUMMARY_IMAGE = resolveResortImage({ resortCode: "SSR", imageIndex: 1 }).url;
 
 function slugify(value: string) {
   return value
@@ -78,10 +136,6 @@ type DvcCalcDraft = {
   resort: string;
   room: RoomCode;
   view: ViewCode;
-  diningInterested: boolean;
-  diningPlan: "quick" | "standard";
-  diningAdults: number;
-  diningChildren: number;
   result?: {
     totalPoints: number;
     totalUSD: number;
@@ -90,6 +144,112 @@ type DvcCalcDraft = {
   };
   updatedAt: number;
 };
+
+type TripIntent = {
+  checkIn?: string;
+  checkOut?: string;
+  nights?: number;
+  resort?: string;
+  adults?: number;
+  children?: number;
+  room?: string;
+  view?: string;
+};
+
+function cleanString(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function cleanNumber(value: string | number | null | undefined) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (typeof value !== "string" || !value.trim()) return undefined;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function diffNights(checkIn?: string, checkOut?: string) {
+  if (!checkIn || !checkOut) return undefined;
+  const start = new Date(checkIn);
+  const end = new Date(checkOut);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return undefined;
+  const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  return diff > 0 ? diff : undefined;
+}
+
+function mergeTripIntent(existing: TripIntent, updates: TripIntent) {
+  const merged: TripIntent = { ...existing };
+
+  for (const [key, value] of Object.entries(updates) as Array<[keyof TripIntent, TripIntent[keyof TripIntent]]>) {
+    if (value === undefined || value === null || value === "") {
+      delete merged[key];
+      continue;
+    }
+    merged[key] = value as never;
+  }
+
+  if (!merged.nights) {
+    const derivedNights = diffNights(merged.checkIn, merged.checkOut);
+    if (derivedNights) merged.nights = derivedNights;
+  }
+
+  return merged;
+}
+
+function hasTripIntent(intent: TripIntent) {
+  return Boolean(
+    intent.checkIn ||
+      intent.checkOut ||
+      intent.nights ||
+      intent.resort ||
+      typeof intent.adults === "number" ||
+      typeof intent.children === "number" ||
+      intent.room ||
+      intent.view,
+  );
+}
+
+function parseTripIntentFromParams(params: URLSearchParams): TripIntent {
+  const checkIn = cleanString(params.get("checkIn"));
+  const checkOut = cleanString(params.get("checkOut"));
+
+  return {
+    checkIn,
+    checkOut,
+    nights: cleanNumber(params.get("nights")) ?? diffNights(checkIn, checkOut),
+    resort: cleanString(params.get("resort")),
+    adults: cleanNumber(params.get("adults")),
+    children: cleanNumber(params.get("children")),
+    room: cleanString(params.get("room")),
+    view: cleanString(params.get("view")),
+  };
+}
+
+function loadTripIntentFromSession(): TripIntent {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.sessionStorage.getItem(TRIP_INTENT_SESSION_KEY);
+    if (!raw) return {};
+    return mergeTripIntent({}, JSON.parse(raw) as TripIntent);
+  } catch {
+    return {};
+  }
+}
+
+function saveTripIntentToSession(intent: TripIntent) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(TRIP_INTENT_SESSION_KEY, JSON.stringify(intent));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function isValidYMD(value?: string) {
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
+}
 
 export function DvcCalculator() {
   function parseYMDToLocalDate(ymd: string) {
@@ -123,11 +283,54 @@ export function DvcCalculator() {
     return `${y}-${m}-${d}`;
   }
 
+  function clampYMD(value: string, min: string, max: string) {
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+  }
+
+  const todayYMD = getLocalTodayYMD();
+  const fallbackCheckIn = todayYMD > LATEST_CHECK_IN_DATE ? LATEST_CHECK_IN_DATE : todayYMD;
+
+  function sanitizeStayDates(rawCheckIn?: string, rawCheckOut?: string) {
+    let message: string | null = null;
+
+    let nextCheckIn = isValidYMD(rawCheckIn) ? rawCheckIn! : fallbackCheckIn;
+    if (nextCheckIn < todayYMD) {
+      nextCheckIn = fallbackCheckIn;
+      message = INVALID_RANGE_MESSAGE;
+    }
+    if (nextCheckIn > LATEST_CHECK_IN_DATE) {
+      nextCheckIn = LATEST_CHECK_IN_DATE;
+      message = MAX_PRICING_MESSAGE;
+    }
+
+    let nextCheckOut = isValidYMD(rawCheckOut) ? rawCheckOut! : addDays(nextCheckIn, 7);
+    if (nextCheckOut <= nextCheckIn) {
+      nextCheckOut = addDays(nextCheckIn, 7);
+      message = INVALID_RANGE_MESSAGE;
+    }
+    if (nextCheckOut > MAX_PRICING_DATE) {
+      nextCheckOut = MAX_PRICING_DATE;
+      message = MAX_PRICING_MESSAGE;
+    }
+    if (nextCheckOut <= nextCheckIn) {
+      nextCheckIn = clampYMD(nextCheckIn, fallbackCheckIn, LATEST_CHECK_IN_DATE);
+      nextCheckOut = MAX_PRICING_DATE;
+      message = MAX_PRICING_MESSAGE;
+    }
+
+    return { checkIn: nextCheckIn, checkOut: nextCheckOut, message };
+  }
+
   const [mode, setMode] = useState<"single" | "compare">("single");
 
   // shared inputs
-  const [checkIn, setCheckIn] = useState(getLocalTodayYMD());
-  const [nights, setNights] = useState(7);
+  const initialDates = sanitizeStayDates(fallbackCheckIn, addDays(fallbackCheckIn, 7));
+  const [checkIn, setCheckIn] = useState(initialDates.checkIn);
+  const [checkOut, setCheckOut] = useState(initialDates.checkOut);
+  const [dateError, setDateError] = useState<string | null>(null);
+  const nights = useMemo(() => diffNights(checkIn, checkOut) ?? 0, [checkIn, checkOut]);
 
   // single mode inputs
   const [resort, setResort] = useState(Resorts[0]?.code ?? "AKV");
@@ -137,35 +340,75 @@ export function DvcCalculator() {
   const [view, setView] = useState<ViewCode>((roomViews[0] || "S") as ViewCode);
   const [prefillRoom, setPrefillRoom] = useState<RoomCode | null>(null);
   const [prefillView, setPrefillView] = useState<ViewCode | null>(null);
+  const [tripIntentContext, setTripIntentContext] = useState<TripIntent>({});
+  const [hasHydratedTripIntent, setHasHydratedTripIntent] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const resortParam = params.get("resort");
-    const checkInParam = params.get("checkIn")?.trim();
-    const nightsParam = params.get("nights")?.trim();
-    const roomParam = params.get("room")?.trim() as RoomCode | null;
-    const viewParam = params.get("view")?.trim() as ViewCode | null;
-
-    if (checkInParam) {
-      setCheckIn(checkInParam);
+    const queryIntent = parseTripIntentFromParams(params);
+    const sessionIntent = loadTripIntentFromSession();
+    const incomingIntent = hasTripIntent(queryIntent) ? mergeTripIntent(sessionIntent, queryIntent) : sessionIntent;
+    const selectedCode = resolveResortCodeFromParam(incomingIntent.resort);
+    const incomingCheckOut =
+      incomingIntent.checkOut ??
+      (incomingIntent.checkIn && incomingIntent.nights ? addDays(incomingIntent.checkIn, incomingIntent.nights) : undefined);
+    const hydratedDates = sanitizeStayDates(incomingIntent.checkIn, incomingCheckOut);
+    setCheckIn(hydratedDates.checkIn);
+    setCheckOut(hydratedDates.checkOut);
+    setDateError(hydratedDates.message);
+    if (incomingIntent.room) {
+      setPrefillRoom(incomingIntent.room as RoomCode);
     }
-    if (nightsParam) {
-      const nightsValue = Number.parseInt(nightsParam, 10);
-      if (Number.isFinite(nightsValue) && nightsValue > 0) {
-        setNights(nightsValue);
-      }
+    if (incomingIntent.view) {
+      setPrefillView(incomingIntent.view as ViewCode);
     }
-    if (roomParam) {
-      setPrefillRoom(roomParam);
-    }
-    if (viewParam) {
-      setPrefillView(viewParam);
-    }
-
-    const selectedCode = resolveResortCodeFromParam(resortParam);
     if (selectedCode) {
       setResort(selectedCode);
     }
+    if (hasTripIntent(incomingIntent)) {
+      setTripIntentContext(
+        mergeTripIntent(incomingIntent, {
+          checkIn: hydratedDates.checkIn,
+          checkOut: hydratedDates.checkOut,
+          nights: diffNights(hydratedDates.checkIn, hydratedDates.checkOut),
+        }),
+      );
+      setHasHydratedTripIntent(true);
+      return;
+    }
+
+    try {
+      const raw = window.localStorage.getItem(DVC_CALC_DRAFT_KEY);
+      if (!raw) {
+        setHasHydratedTripIntent(true);
+        return;
+      }
+      const draft = JSON.parse(raw) as DvcCalcDraft;
+      if (!draft) {
+        setHasHydratedTripIntent(true);
+        return;
+      }
+      if (draft.mode) setMode(draft.mode);
+      const draftDates = sanitizeStayDates(
+        draft.checkIn,
+        draft.checkIn && typeof draft.nights === "number" && Number.isFinite(draft.nights)
+          ? addDays(draft.checkIn, draft.nights)
+          : undefined,
+      );
+      setCheckIn(draftDates.checkIn);
+      setCheckOut(draftDates.checkOut);
+      setDateError(draftDates.message);
+      if (draft.resort) setResort(draft.resort);
+      if (draft.room) setPrefillRoom(draft.room);
+      if (draft.view) setPrefillView(draft.view);
+      if (draft.result) {
+        setRes(draft.result);
+        setHasEstimatedOnce(true);
+      }
+    } catch {
+      // Ignore malformed drafts.
+    }
+    setHasHydratedTripIntent(true);
   }, []);
 
   // Reset room and view when resort changes
@@ -199,10 +442,31 @@ export function DvcCalculator() {
   const [loading, setLoading] = useState(false);
   const [res, setRes] = useState<any>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [diningInterested, setDiningInterested] = useState(false);
-  const [diningPlan, setDiningPlan] = useState<"quick" | "standard">("quick");
-  const [diningAdults, setDiningAdults] = useState(2);
-  const [diningChildren, setDiningChildren] = useState(0);
+  const [hasEstimatedOnce, setHasEstimatedOnce] = useState(false);
+  const [isEstimateDirty, setIsEstimateDirty] = useState(false);
+  const autoEstimateTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const previousEstimateKeyRef = useRef<string | null>(null);
+
+  function normalizeSelection(
+    resortCode: string,
+    nextRoom: RoomCode,
+    nextView: ViewCode,
+  ): { room: RoomCode; view: ViewCode } {
+    const selectedResort = Resorts.find((item) => item.code === resortCode);
+    if (!selectedResort) {
+      return { room: nextRoom, view: nextView };
+    }
+
+    const safeRoom = selectedResort.roomTypes.includes(nextRoom)
+      ? nextRoom
+      : selectedResort.roomTypes[0];
+    const safeViews = selectedResort.viewsByRoom[safeRoom] ?? [];
+    const safeView = safeViews.includes(nextView)
+      ? nextView
+      : ((safeViews[0] || "S") as ViewCode);
+
+    return { room: safeRoom, view: safeView };
+  }
 
   const persistDraft = () => {
     if (typeof window === "undefined") return;
@@ -213,10 +477,6 @@ export function DvcCalculator() {
       resort,
       room,
       view,
-      diningInterested,
-      diningPlan,
-      diningAdults,
-      diningChildren,
       result: res
         ? {
             totalPoints: Number(res.totalPoints ?? 0),
@@ -231,50 +491,108 @@ export function DvcCalculator() {
   };
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(DVC_CALC_DRAFT_KEY);
-      if (!raw) return;
-      const hasResortParam = new URLSearchParams(window.location.search).has("resort");
-      const draft = JSON.parse(raw) as DvcCalcDraft;
-      if (!draft) return;
-      if (draft.mode) setMode(draft.mode);
-      if (draft.checkIn) setCheckIn(draft.checkIn);
-      if (typeof draft.nights === "number" && Number.isFinite(draft.nights)) {
-        setNights(draft.nights);
-      }
-      if (!hasResortParam && draft.resort) setResort(draft.resort);
-      if (draft.room) setPrefillRoom(draft.room);
-      if (draft.view) setPrefillView(draft.view);
-      setDiningInterested(Boolean(draft.diningInterested));
-      if (draft.diningPlan === "quick" || draft.diningPlan === "standard") {
-        setDiningPlan(draft.diningPlan);
-      }
-      if (typeof draft.diningAdults === "number" && Number.isFinite(draft.diningAdults)) {
-        setDiningAdults(Math.max(0, draft.diningAdults));
-      }
-      if (typeof draft.diningChildren === "number" && Number.isFinite(draft.diningChildren)) {
-        setDiningChildren(Math.max(0, draft.diningChildren));
-      }
-      if (draft.result) {
-        setRes(draft.result);
-      }
-    } catch {
-      // Ignore malformed drafts.
-    }
-  }, []);
+    if (!hasHydratedTripIntent) return;
+    const nextIntent = mergeTripIntent(tripIntentContext, {
+      checkIn,
+      checkOut,
+      nights,
+      resort: RESORT_CODE_TO_SLUG[resort] ?? tripIntentContext.resort ?? resort,
+      room,
+      view,
+    });
+    saveTripIntentToSession(nextIntent);
+  }, [checkIn, checkOut, nights, resort, room, view, tripIntentContext, hasHydratedTripIntent]);
 
-  function runSingle() {
-    setLoading(true); setErr(null); setRes(null);
+  function handleCheckInChange(nextCheckIn: string) {
+    const sanitized = sanitizeStayDates(nextCheckIn, checkOut);
+    setCheckIn(sanitized.checkIn);
+    setCheckOut(sanitized.checkOut);
+    setDateError(sanitized.message);
+  }
+
+  function handleCheckOutChange(nextCheckOut: string) {
+    const sanitized = sanitizeStayDates(checkIn, nextCheckOut);
+    setCheckIn(sanitized.checkIn);
+    setCheckOut(sanitized.checkOut);
+    setDateError(sanitized.message);
+  }
+
+  function runSingle(options?: { preserveResult?: boolean }) {
+    setLoading(true);
+    setErr(null);
+    if (!options?.preserveResult) {
+      setRes(null);
+    }
     try {
-      const data = quoteStay({ resortCode: resort, room, view, checkIn, nights });
+      const normalized = normalizeSelection(resort, room, view);
+      previousEstimateKeyRef.current = [checkIn, checkOut, nights, resort, normalized.room, normalized.view].join("|");
+      if (normalized.room !== room) setRoom(normalized.room);
+      if (normalized.view !== view) setView(normalized.view);
+      const data = quoteStay({
+        resortCode: resort,
+        room: normalized.room,
+        view: normalized.view,
+        checkIn,
+        nights
+      });
       setRes(data);
-    } catch (e: any) { setErr(e.message || "Error"); }
+      setHasEstimatedOnce(true);
+      setIsEstimateDirty(false);
+    } catch (e: any) {
+      setErr(e.message || "Error");
+      setRes(null);
+      setIsEstimateDirty(false);
+    }
     finally { setLoading(false); }
   }
 
   // Compare view state
   const [tableRows, setTableRows] = useState<any[]>([]);
+
+  function handleResortChange(nextResortCode: string) {
+    const normalized = normalizeSelection(nextResortCode, room, view);
+    setResort(nextResortCode);
+    setRoom(normalized.room);
+    setView(normalized.view);
+  }
+
+  useEffect(() => {
+    if (!hasHydratedTripIntent || mode !== "single") return;
+
+    const nextKey = [checkIn, checkOut, nights, resort, room, view].join("|");
+    if (previousEstimateKeyRef.current === null) {
+      previousEstimateKeyRef.current = nextKey;
+      return;
+    }
+
+    if (previousEstimateKeyRef.current === nextKey) {
+      return;
+    }
+
+    previousEstimateKeyRef.current = nextKey;
+
+    if (!hasEstimatedOnce) {
+      return;
+    }
+
+    setIsEstimateDirty(true);
+
+    if (autoEstimateTimeoutRef.current !== null) {
+      window.clearTimeout(autoEstimateTimeoutRef.current);
+    }
+
+    autoEstimateTimeoutRef.current = window.setTimeout(() => {
+      autoEstimateTimeoutRef.current = null;
+      runSingle({ preserveResult: true });
+    }, 180);
+
+    return () => {
+      if (autoEstimateTimeoutRef.current !== null) {
+        window.clearTimeout(autoEstimateTimeoutRef.current);
+        autoEstimateTimeoutRef.current = null;
+      }
+    };
+  }, [checkIn, checkOut, nights, resort, room, view, mode, hasEstimatedOnce, hasHydratedTripIntent]);
 
   // Function to select a specific resort/room combo from compare mode
   function selectFromCompare(resortCode: string, roomType: RoomCode) {
@@ -288,11 +606,11 @@ export function DvcCalculator() {
     setResort(resortCode);
 
     // Set the room type
-    setRoom(roomType);
+    const normalized = normalizeSelection(resortCode, roomType, view);
+    setRoom(normalized.room);
 
     // Set the first available view for that room
-    const firstView = (selectedResort.viewsByRoom[roomType]?.[0] || "S") as ViewCode;
-    setView(firstView);
+    setView(normalized.view);
 
     // Auto-run the calculation
     setLoading(true);
@@ -300,12 +618,15 @@ export function DvcCalculator() {
     try {
       const data = quoteStay({
         resortCode,
-        room: roomType,
-        view: firstView,
+        room: normalized.room,
+        view: normalized.view,
         checkIn,
         nights
       });
       setRes(data);
+      setHasEstimatedOnce(true);
+      setIsEstimateDirty(false);
+      previousEstimateKeyRef.current = [checkIn, checkOut, nights, resortCode, normalized.room, normalized.view].join("|");
     } catch (e: any) {
       setErr(e.message || "Error");
     } finally {
@@ -348,12 +669,30 @@ export function DvcCalculator() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto bg-white rounded-2xl p-4">
+    <div className="max-w-6xl mx-auto rounded-[1.5rem] bg-white p-4 sm:p-5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-bold">PixieDVC Cost Calculator</h2>
-        <div className="flex gap-2">
-          <button onClick={() => setMode("single")} className={`px-3 py-1 rounded ${mode === "single" ? "bg-indigo-600 text-white" : "bg-slate-100"}`}>Single</button>
-          <button onClick={() => setMode("compare")} className={`px-3 py-1 rounded ${mode === "compare" ? "bg-indigo-600 text-white" : "bg-slate-100"}`}>Compare</button>
+        <h2 className="text-xl font-semibold text-[#0b1f44]">Your stay estimate</h2>
+        <div className="flex gap-1 rounded-xl border border-[#0F2148]/8 bg-[#f7f8fc] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+          <button
+            onClick={() => setMode("single")}
+            className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
+              mode === "single"
+                ? "bg-[linear-gradient(to_bottom,#5a6bd7,#4457c7)] text-white shadow-[0_10px_20px_rgba(44,59,122,0.22)]"
+                : "text-[#0F2148]/58 hover:text-[#0F2148]/82"
+            }`}
+          >
+            Single
+          </button>
+          <button
+            onClick={() => setMode("compare")}
+            className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition ${
+              mode === "compare"
+                ? "bg-[linear-gradient(to_bottom,#5a6bd7,#4457c7)] text-white shadow-[0_10px_20px_rgba(44,59,122,0.22)]"
+                : "text-[#0F2148]/58 hover:text-[#0F2148]/82"
+            }`}
+          >
+            Compare
+          </button>
         </div>
       </div>
       <div className="mt-2 text-sm text-slate-500">
@@ -361,15 +700,34 @@ export function DvcCalculator() {
       </div>
 
       {/* Shared inputs */}
-      <div className="grid md:grid-cols-4 gap-3 mt-4">
+      <div className="grid gap-3 mt-4 md:grid-cols-3">
         <div>
-          <label className="text-sm font-medium">Check-in</label>
-          <input type="date" className="w-full border rounded p-2" value={checkIn} onChange={e => setCheckIn(e.target.value)} />
+          <label className="mb-1.5 block text-[12px] font-medium uppercase tracking-[0.18em] text-[#0F2148]/58">Check-in</label>
+          <input
+            type="date"
+            className="w-full rounded-2xl border border-[#0F2148]/12 bg-[#fbfcff] px-4 py-3 text-[15px] text-[#0F2148] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] outline-none transition focus:border-[#4c5fd7]/30 focus:bg-white"
+            value={checkIn}
+            min={todayYMD}
+            max={LATEST_CHECK_IN_DATE}
+            onChange={e => handleCheckInChange(e.target.value)}
+          />
         </div>
-        <div className="md:col-span-3">
-          <label className="text-sm font-medium">Nights</label>
-          <input type="range" min={1} max={14} className="w-full" value={nights} onChange={e => setNights(Number(e.target.value))} />
-          <div className="text-xs text-slate-500">{nights} night(s)</div>
+        <div>
+          <label className="mb-1.5 block text-[12px] font-medium uppercase tracking-[0.18em] text-[#0F2148]/58">Check-out</label>
+          <input
+            type="date"
+            className="w-full rounded-2xl border border-[#0F2148]/12 bg-[#fbfcff] px-4 py-3 text-[15px] text-[#0F2148] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] outline-none transition focus:border-[#4c5fd7]/30 focus:bg-white"
+            value={checkOut}
+            min={addDays(checkIn, 1)}
+            max={MAX_PRICING_DATE}
+            onChange={e => handleCheckOutChange(e.target.value)}
+          />
+          {dateError ? <div className="mt-1 text-xs text-red-600">{dateError}</div> : null}
+        </div>
+        <div className="flex items-end">
+          <div className="w-full rounded-2xl border border-[#0F2148]/10 bg-[#f7f8fc] px-4 py-3 text-[15px] font-medium text-[#42506f]">
+            {nights} night(s)
+          </div>
         </div>
       </div>
 
@@ -377,268 +735,272 @@ export function DvcCalculator() {
         <>
           <div className="grid md:grid-cols-3 gap-3 mt-3">
             <div>
-              <label className="text-sm font-medium">Resort</label>
-              <select className="w-full border rounded p-2" value={resort} onChange={e => setResort(e.target.value)}>
+              <label className="mb-1.5 block text-[12px] font-medium uppercase tracking-[0.18em] text-[#0F2148]/58">Resort</label>
+              <select className="w-full rounded-2xl border border-[#0F2148]/12 bg-[#fbfcff] px-4 py-3 text-[15px] text-[#0F2148] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] outline-none transition focus:border-[#4c5fd7]/30 focus:bg-white" value={resort} onChange={e => handleResortChange(e.target.value)}>
                 {Resorts.map(r => <option key={r.code} value={r.code}>{r.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-sm font-medium">Room</label>
-              <select className="w-full border rounded p-2" value={room} onChange={e => setRoom(e.target.value as RoomCode)}>
+              <label className="mb-1.5 block text-[12px] font-medium uppercase tracking-[0.18em] text-[#0F2148]/58">Room</label>
+              <select className="w-full rounded-2xl border border-[#0F2148]/12 bg-[#fbfcff] px-4 py-3 text-[15px] text-[#0F2148] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] outline-none transition focus:border-[#4c5fd7]/30 focus:bg-white" value={room} onChange={e => setRoom(e.target.value as RoomCode)}>
                 {meta.roomTypes.map(rt => <option key={rt} value={rt}>{label(rt)}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-sm font-medium">View</label>
-              <select className="w-full border rounded p-2" value={view} onChange={e => setView(e.target.value as ViewCode)}>
+              <label className="mb-1.5 block text-[12px] font-medium uppercase tracking-[0.18em] text-[#0F2148]/58">View</label>
+              <select className="w-full rounded-2xl border border-[#0F2148]/12 bg-[#fbfcff] px-4 py-3 text-[15px] text-[#0F2148] shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] outline-none transition focus:border-[#4c5fd7]/30 focus:bg-white" value={view} onChange={e => setView(e.target.value as ViewCode)}>
                 {roomViews.map(v => <option key={v} value={v}>{meta.viewNames[v]}</option>)}
               </select>
             </div>
           </div>
 
-          <button onClick={runSingle} disabled={loading} className="mt-4 px-4 py-2 rounded bg-indigo-600 text-white">
-            {loading ? "Calculating…" : "Get Instant Price"}
+          <button
+            onClick={() => runSingle()}
+            disabled={loading || nights < 1}
+            className="mt-5 inline-flex min-h-[50px] items-center justify-center rounded-xl bg-[linear-gradient(to_bottom,#5a6bd7,#4457c7)] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(45,60,122,0.24)] transition-[transform,box-shadow,filter] duration-200 hover:-translate-y-[1px] hover:brightness-[1.02] hover:shadow-[0_18px_34px_rgba(45,60,122,0.28)] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? (hasEstimatedOnce ? "Updating estimate…" : "Calculating…") : "Get Instant Price"}
           </button>
 
           {err && <div className="mt-3 text-red-600">{err}</div>}
           {res && (
             <>
-              <div className="mt-6 grid md:grid-cols-2 gap-3">
-                <Stat label="Total Points" value={res.totalPoints} />
+              {(() => {
+                const summaryImage =
+                  SUMMARY_IMAGE_OVERRIDE_BY_CODE[resort] ??
+                  resolveResortImage({
+                    resortCode: resort,
+                    resortSlug: RESORT_CODE_TO_SLUG[resort],
+                    imageIndex: 1,
+                  }).url;
+                const averageNightly = nights > 0 ? res.totalUSD / nights : 0;
+                const estimatedCheckOut = addDays(checkIn, nights);
+                return (
+                  <>
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
                 <Stat
-                  label={`${res.pricingTier} @ ${formatPointRate(res.pppUSD)}/pt`}
-                  value={formatCurrency(res.totalUSD)}
+                  label="Total Points"
+                  value={isEstimateDirty ? <EstimateSkeleton className="h-8 w-24" /> : res.totalPoints}
+                />
+                <Stat
+                  label={isEstimateDirty ? "Updating estimate…" : `${res.pricingTier} • ${formatPointRate(res.pppUSD)}/pt`}
+                  value={isEstimateDirty ? <EstimateSkeleton className="h-8 w-28" /> : formatCurrency(res.totalUSD)}
                 />
               </div>
-
-              <div className="mt-6 rounded-2xl border bg-white p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Dining Plan (Optional)</div>
-                    <div className="text-sm text-slate-500">
-                      Would you be interested in adding a dining plan to your reservation?
-                    </div>
-                  </div>
-                  <a href="/dining-plan" className="text-sm text-slate-500 hover:underline">
-                    What is the Dining Plan?
-                  </a>
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setDiningInterested(false)}
-                    className={`px-3 py-1 rounded border text-sm ${
-                      diningInterested ? "border-slate-200 text-slate-500" : "border-slate-800 text-slate-800"
-                    }`}
-                  >
-                    No, not interested
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDiningInterested(true)}
-                    className={`px-3 py-1 rounded border text-sm ${
-                      diningInterested ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-200 text-slate-500"
-                    }`}
-                  >
-                    Yes, show dining plan options
-                  </button>
-                </div>
-
-                {diningInterested && (
-                  <div className="mt-4 grid gap-3 md:grid-cols-4">
-                    <div className="md:col-span-2">
-                      <label className="text-sm font-medium">Plan</label>
-                      <select
-                        className="w-full border rounded p-2 mt-1"
-                        value={diningPlan}
-                        onChange={(e) => setDiningPlan(e.target.value as "quick" | "standard")}
-                      >
-                        <option value="quick">Quick-Service Dining Plan</option>
-                        <option value="standard">Disney Dining Plan (includes table service)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Adults (10+)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full border rounded p-2 mt-1"
-                        value={diningAdults}
-                        onChange={(e) => setDiningAdults(Math.max(0, Number(e.target.value)))}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Children (3–9)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full border rounded p-2 mt-1"
-                        value={diningChildren}
-                        onChange={(e) => setDiningChildren(Math.max(0, Number(e.target.value)))}
-                      />
-                    </div>
-                    <div className="md:col-span-4 text-sm text-slate-500">
-                      <div>
-                        Estimated dining plan cost:{" "}
-                        <span className="font-semibold text-slate-900">
-                          {formatCurrency(
-                            nights *
-                              (diningPlan === "quick"
-                                ? diningAdults * 57.01 + diningChildren * 23.83
-                                : diningAdults * 94.28 + diningChildren * 29.69),
-                          )}
-                        </span>{" "}
-                        <span className="text-xs text-slate-500">(to be confirmed)</span>
-                      </div>
-                      <div className="mt-1">
-                        Estimated stay total:{" "}
-                        <span className="font-semibold text-slate-900">
-                          {formatCurrency(res.totalUSD)}
-                        </span>
-                      </div>
-                      <div className="mt-1">
-                        Estimated stay + dining total:{" "}
-                        <span className="font-semibold text-slate-900">
-                          {formatCurrency(
-                            res.totalUSD +
-                              nights *
-                                (diningPlan === "quick"
-                                  ? diningAdults * 57.01 + diningChildren * 23.83
-                                  : diningAdults * 94.28 + diningChildren * 29.69),
-                          )}
-                        </span>
-                      </div>
-                      <div className="text-xs text-slate-500 mt-2">
-                        Dining Plans are added after your reservation is secured; final pricing is set by Disney and may
-                        change.
-                      </div>
-                    </div>
-                  </div>
+              <div className="mt-2.5 text-sm text-[#0F2148]/62">
+                {isEstimateDirty ? (
+                  <span className="font-medium text-[#0F2148]/82">Updating estimate…</span>
+                ) : (
+                  <>
+                    Estimated using <span className="font-medium text-[#0F2148]/82">{res.pricingTier}</span> pricing.
+                  </>
                 )}
               </div>
 
-              {/* Floating Summary Card */}
-              <div className="mt-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6 border-2 border-indigo-200 shadow-lg">
-                <h3 className="text-lg font-bold text-indigo-900 mb-4">Your Stay Summary</h3>
-                <div className="space-y-4 text-sm">
-                  <div className="flex items-start gap-3">
-                    <BuildingOffice2Icon className="mt-0.5 h-6 w-6 flex-shrink-0 text-indigo-600" />
-                    <div>
-                      <div className="font-semibold text-gray-700">Resort</div>
-                      <div className="text-gray-900">{meta.name}</div>
-                    </div>
+              <div className="mt-5 overflow-hidden rounded-[1.75rem] border border-[#4c5fd7]/12 bg-white shadow-[0_24px_60px_rgba(27,42,89,0.10)]">
+                <div className="grid lg:grid-cols-[1.18fr_1fr]">
+                  <div className="relative min-h-[208px] overflow-hidden bg-slate-200 aspect-[5/4] lg:aspect-[1.18/1]">
+                    <img
+                      src={summaryImage}
+                      alt={meta.name}
+                      className="absolute inset-0 h-full w-full object-cover"
+                      onError={event => {
+                        const target = event.currentTarget;
+                        const fallback = SUMMARY_IMAGE_FALLBACK_BY_CODE[resort];
+
+                        if (fallback && target.getAttribute("src") !== fallback) {
+                          target.src = fallback;
+                          return;
+                        }
+
+                        if (target.getAttribute("src") !== DEFAULT_SUMMARY_IMAGE) {
+                          target.src = DEFAULT_SUMMARY_IMAGE;
+                        }
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-[rgba(10,20,40,0.14)] via-[rgba(10,20,40,0.04)] to-transparent" />
                   </div>
 
-                  <div className="flex items-start gap-3">
-                    <CalendarDaysIcon className="mt-0.5 h-6 w-6 flex-shrink-0 text-indigo-600" />
-                    <div>
-                      <div className="font-semibold text-gray-700">Dates</div>
-                      <div className="text-gray-900">{formatYMDForDisplay(checkIn)} — {nights} night{nights !== 1 ? 's' : ''}</div>
-                    </div>
-                  </div>
+                  <div className="flex flex-col justify-between p-6 sm:p-7">
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Reservation preview</p>
+                        <h3 className="text-[1.9rem] font-semibold leading-[1.08] text-[#15284f]">{meta.name}</h3>
+                        <p className="text-[15px] text-slate-600">
+                          {label(room)} · {meta.viewNames[view]}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
+                          <span>{formatYMDForDisplay(checkIn)}–{formatYMDForDisplay(estimatedCheckOut)}</span>
+                          <span className="h-1 w-1 rounded-full bg-slate-300" aria-hidden />
+                          <span>{nights} nights</span>
+                          {meta.occupancy?.[room] ? (
+                            <>
+                              <span className="h-1 w-1 rounded-full bg-slate-300" aria-hidden />
+                              <span>{meta.occupancy[room]} guests</span>
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
 
-                  <div className="flex items-start gap-3">
-                    <HomeIcon className="mt-0.5 h-6 w-6 flex-shrink-0 text-indigo-600" />
-                    <div className="flex-1">
-                      <div className="font-semibold text-gray-700">Accommodation</div>
-                      <div className="text-gray-900 flex items-center gap-2">
-                        <span>{label(room)}, {meta.viewNames[view]}</span>
-                        {meta.occupancy?.[room] && (
-                          <span className="inline-flex items-center gap-1 text-sm bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
-                            <UserGroupIcon className="h-4 w-4" />
-                            <span className="font-semibold">{meta.occupancy[room]}</span>
-                          </span>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-2xl bg-slate-50 px-4 py-3.5">
+                          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Average per night</p>
+                          {isEstimateDirty ? (
+                            <EstimateSkeleton className="mt-2 h-8 w-36" />
+                          ) : (
+                            <p className="mt-2 text-[1.85rem] font-semibold text-[#15284f]">
+                              {formatAverageNightly(averageNightly)}
+                              <span className="ml-1 text-sm font-medium text-slate-500">USD</span>
+                            </p>
+                          )}
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 px-4 py-3.5">
+                          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Estimated total (USD)</p>
+                          {isEstimateDirty ? (
+                            <EstimateSkeleton className="mt-2 h-8 w-40" />
+                          ) : (
+                            <p className="mt-2 text-[1.85rem] font-semibold text-[#15284f]">
+                              {formatCurrency(res.totalUSD)}
+                              <span className="ml-1 text-sm font-medium text-slate-500">USD</span>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="flex items-start gap-3 rounded-2xl bg-[#fafbff] px-4 py-3.5">
+                          <HomeIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#4c5fd7]" />
+                          <div>
+                            <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Stay details</div>
+                            <div className="mt-1 text-sm font-medium text-slate-900">
+                              {label(room)}, {meta.viewNames[view]}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3 rounded-2xl bg-[#fafbff] px-4 py-3.5">
+                          <SparklesIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#4c5fd7]" />
+                          <div>
+                            <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Pricing tier</div>
+                            {isEstimateDirty ? (
+                              <EstimateSkeleton className="mt-1 h-5 w-32" />
+                            ) : (
+                              <div className="mt-1 text-sm font-medium text-slate-900">{res.pricingTier}</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-600">
+                        {isEstimateDirty ? (
+                          <EstimateSkeleton className="h-5 w-32" />
+                        ) : (
+                          <span className="font-medium text-slate-900">{res.totalPoints} DVC points</span>
+                        )}
+                        <span className="h-1 w-1 rounded-full bg-slate-300" aria-hidden />
+                        {isEstimateDirty ? (
+                          <EstimateSkeleton className="h-5 w-28" />
+                        ) : (
+                          <span>{formatPointRate(res.pppUSD)} per point</span>
                         )}
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-start gap-3">
-                    <SparklesIcon className="mt-0.5 h-6 w-6 flex-shrink-0 text-indigo-600" />
-                    <div>
-                      <div className="font-semibold text-gray-700">Season</div>
-                      <div className="text-gray-900">{res.pricingTier}</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <BanknotesIcon className="mt-0.5 h-6 w-6 flex-shrink-0 text-indigo-600" />
-                    <div className="flex-1">
-                      <div className="font-semibold text-gray-700">Cost</div>
-                      <div className="text-gray-900">
-                        {res.totalPoints} points × {formatPointRate(res.pppUSD)} ={" "}
-                        <span className="font-bold text-indigo-600 text-lg">{formatCurrency(res.totalUSD)}</span>
-                      </div>
-                      {diningInterested ? (
-                        <div className="mt-1 text-sm text-gray-600">
-                          Stay + dining estimate (to be confirmed):{" "}
-                          <span className="font-semibold text-gray-900">
-                            {formatCurrency(
-                              res.totalUSD +
-                                nights *
-                                  (diningPlan === "quick"
-                                    ? diningAdults * 57.01 + diningChildren * 23.83
-                                    : diningAdults * 94.28 + diningChildren * 29.69),
-                            )}
-                          </span>
+                    {(resort === "AUL" || resort === "VDH") ? (
+                      <div className="mt-5 rounded-2xl border border-[#4c5fd7]/10 bg-[#f8faff] px-4 py-3.5 text-sm text-slate-600">
+                        <div className="font-medium text-[#22386e]">Taxes due at checkout</div>
+                        <div className="mt-1">
+                          {resort === "VDH"
+                            ? "Anaheim requires a nightly transient occupancy tax for DVC stays at The Villas at Disneyland Hotel. This tax is paid to the resort at checkout."
+                            : "Hawai‘i requires transient accommodations taxes for DVC stays at Aulani. This tax is paid to the resort at checkout."}
                         </div>
-                      ) : null}
-                    </div>
+                        <div className="mt-2 text-xs text-slate-500">Rates vary by year and are subject to change.</div>
+                      </div>
+                    ) : null}
+
+                    <button
+                      onClick={() => {
+                        const token = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                          ? crypto.randomUUID()
+                          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+                        const quoteBundle = {
+                          v: 1,
+                          savedAt: new Date().toISOString(),
+                          quote: {
+                            resortCode: resort,
+                            resortName: meta.name,
+                            checkIn,
+                            checkOut: estimatedCheckOut,
+                            nights,
+                            room,
+                            view,
+                            villaType: label(room) || "Villa",
+                            viewType: meta.viewNames[view] ?? view,
+                            points: Number(res.totalPoints ?? 0),
+                            totalUSD: Number(res.totalUSD ?? 0),
+                            pricingTier: String(res.pricingTier ?? ""),
+                          },
+                        };
+
+                        window.localStorage.setItem(`${QUOTE_KEY_PREFIX}${token}`, JSON.stringify(quoteBundle));
+                        persistDraft();
+                        window.location.href = `/book?quote=${encodeURIComponent(token)}`;
+                      }}
+                      disabled={loading || isEstimateDirty}
+                      className="mt-5 w-full rounded-xl bg-[linear-gradient(to_bottom,#5a6bd7,#4457c7)] px-6 py-3 text-white font-semibold shadow-[0_14px_28px_rgba(45,60,122,0.24)] transition-[transform,box-shadow,filter] duration-200 hover:-translate-y-[1px] hover:brightness-[1.02] hover:shadow-[0_18px_34px_rgba(45,60,122,0.28)] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Continue to guest details
+                    </button>
                   </div>
                 </div>
-
-                {(resort === "AUL" || resort === "VDH") ? (
-                  <div className="mt-5 rounded-xl border border-indigo-200 bg-white/70 p-4">
-                    <div className="font-semibold text-indigo-900">Taxes due at checkout</div>
-                    <div className="mt-1 text-sm text-gray-700">
-                      {resort === "VDH"
-                        ? "Anaheim requires a nightly transient occupancy tax for DVC stays at The Villas at Disneyland Hotel. This tax is not included in points or your PixieDVC estimate and is paid to the resort at checkout."
-                        : "Hawai‘i requires transient accommodations taxes for DVC stays at Aulani. This tax is not included in points or your PixieDVC estimate and is paid to the resort at checkout."}
-                    </div>
-                    <div className="mt-2 text-xs text-gray-500">Rates vary by year and are subject to change.</div>
-                  </div>
-                ) : null}
-
-                <button
-                  onClick={() => {
-                    const token = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-                      ? crypto.randomUUID()
-                      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-                    const checkOutDate = addDays(checkIn, nights);
-                    const quoteBundle = {
-                      v: 1,
-                      savedAt: new Date().toISOString(),
-                      quote: {
-                        resortCode: resort,
-                        resortName: meta.name,
-                        checkIn,
-                        checkOut: checkOutDate,
-                        nights,
-                        room,
-                        view,
-                        villaType: label(room) || "Villa",
-                        points: Number(res.totalPoints ?? 0),
-                        totalUSD: Number(res.totalUSD ?? 0),
-                        pricingTier: String(res.pricingTier ?? ""),
-                      },
-                    };
-
-                    window.localStorage.setItem(`${QUOTE_KEY_PREFIX}${token}`, JSON.stringify(quoteBundle));
-                    persistDraft();
-                    window.location.href = `/book?quote=${encodeURIComponent(token)}`;
-                  }}
-                  className="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md"
-                >
-                  Book Now
-                </button>
               </div>
+                  </>
+                );
+              })()}
+
+              <details className="mt-6 rounded-2xl border border-[#0F2148]/8 bg-white/80 px-5 py-4 shadow-[0_12px_30px_rgba(15,33,72,0.05)] [&_summary::-webkit-details-marker]:hidden">
+                <summary className="cursor-pointer list-none marker:hidden">
+                  <span className="flex items-center justify-between gap-4">
+                    <span className="inline-flex items-center gap-2.5 text-[15px] font-semibold text-[#0F2148]">
+                      <InformationCircleIcon className="h-5 w-5 text-[#4c5fd7]" />
+                      How PixieDVC pricing works
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[#4c5fd7]">
+                      <span>Expand</span>
+                      <ChevronDownIcon className="h-4 w-4" />
+                    </span>
+                  </span>
+                </summary>
+                <div className="mt-4 border-t border-[#0F2148]/6 pt-4">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {PRICING_TIER_DETAILS.map((tier) => (
+                      <div
+                        key={tier.name}
+                        className="rounded-2xl bg-[#f8faff] px-4 py-4 shadow-[0_8px_20px_rgba(15,33,72,0.04)]"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <h4 className="text-sm font-semibold text-[#0F2148]">{tier.name}</h4>
+                          <span className="text-sm font-medium text-[#4c5fd7]">{tier.rate}</span>
+                        </div>
+                        <p className="mt-2 text-sm leading-6 text-[#0F2148]/68">{tier.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-[#0F2148]/62">
+                    Your estimate reflects the access tier that matches your selected resort and booking window.
+                    Final availability is still confirmed before you move forward.
+                  </p>
+                </div>
+              </details>
             </>
           )}
         </>
       ) : (
         <>
-          <button onClick={runCompare} disabled={loading} className="mt-4 px-4 py-2 rounded bg-indigo-600 text-white">
+          <button
+            onClick={runCompare}
+            disabled={loading || nights < 1}
+            className="mt-4 rounded-xl bg-[linear-gradient(to_bottom,#5a6bd7,#4457c7)] px-4 py-2.5 text-white shadow-[0_12px_24px_rgba(45,60,122,0.2)] transition-[transform,box-shadow,filter] duration-200 hover:-translate-y-[1px] hover:brightness-[1.02] hover:shadow-[0_16px_30px_rgba(45,60,122,0.24)] disabled:cursor-not-allowed disabled:opacity-60"
+          >
             {loading ? "Calculating…" : "Compare All Resorts"}
           </button>
           {err && <div className="mt-3 text-red-600">{err}</div>}
@@ -660,11 +1022,15 @@ export function DvcCalculator() {
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="bg-indigo-50 rounded p-4">
+    <div className="rounded-xl bg-[#f3f6ff] p-4 shadow-[0_8px_18px_rgba(15,33,72,0.03)]">
       <div className="text-sm text-slate-500">{label}</div>
       <div className="text-xl font-bold">{value}</div>
     </div>
   );
+}
+
+function EstimateSkeleton({ className = "" }: { className?: string }) {
+  return <div className={`animate-pulse rounded-full bg-[#dfe6fb] ${className}`.trim()} />;
 }
 
 function formatCurrency(amount: number) {
@@ -681,6 +1047,14 @@ function formatPointRate(amount: number) {
     currency: "USD",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+function formatAverageNightly(amount: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
   }).format(amount);
 }
 
