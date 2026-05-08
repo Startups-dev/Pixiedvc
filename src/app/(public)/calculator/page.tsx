@@ -23,7 +23,9 @@ export default function CalculatorPage() {
     <main className="min-h-screen bg-[#f8f6f2] text-[#0F2148]">
       <section className="relative overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-[32rem]">
-          <CalculatorHeroImage />
+          <Suspense fallback={null}>
+            <CalculatorHeroImage />
+          </Suspense>
         </div>
 
         <div className="relative mx-auto max-w-6xl px-6 pt-20 pb-5 md:pt-28 md:pb-6">
