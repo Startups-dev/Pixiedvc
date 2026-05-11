@@ -37,9 +37,9 @@ describe("SupportPanel concierge handoff", () => {
   it("renders the initial concierge chat UI", () => {
     render(<SupportPanel />);
 
-    expect(screen.getByText("✨ Pixie Concierge")).toBeInTheDocument();
+    expect(screen.getByText("✨ PixieDVC Concierge")).toBeInTheDocument();
     expect(
-      screen.getByText("Hi 👋 I’m your Pixie Concierge. How can I help with your plans today?"),
+      screen.getByText("Hi. How can I help with your plans today?"),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
   });
@@ -60,7 +60,7 @@ describe("SupportPanel concierge handoff", () => {
     render(<SupportPanel />);
     scrollToMock.mockClear();
 
-    await user.click(screen.getByRole("button", { name: "💬 Talk to a Concierge Now" }));
+    await user.click(screen.getByRole("button", { name: "Talk to concierge" }));
 
     expect(screen.getByText("✨ Finding an available concierge...")).toBeInTheDocument();
     await waitFor(() =>

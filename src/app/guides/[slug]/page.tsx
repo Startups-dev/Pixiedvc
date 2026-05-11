@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 
 import { Card } from "@pixiedvc/design-system";
 import GuideHeader from "@/components/guides/GuideHeader";
@@ -13,6 +14,7 @@ import GuideImagePlaceholder from "@/app/guides/components/GuideImagePlaceholder
 
 const BAY_LAKE_TOWER_SLUG = "bay-lake-tower";
 const HOW_RENTING_DVC_POINTS_WORKS_SLUG = "how-renting-dvc-points-works";
+const WHAT_IS_DVC_SLUG = "what-is-dvc";
 const BAY_LAKE_HERO_IMAGE =
   "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Guides/Bay%20Lake/BayLake_dusk_shot";
 const BAY_LAKE_LOCATION_IMAGE =
@@ -25,6 +27,29 @@ const BAY_LAKE_WALKWAY_IMAGE =
   "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Guides/Bay%20Lake/walkway.png";
 const BAY_LAKE_ROOMVIEW_IMAGE =
   "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Guides/Bay%20Lake/roomview.png";
+const WHAT_IS_DVC_HERO_IMAGE =
+  "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/guides/howdvcrentalswork.png";
+const WHAT_IS_DVC_SUPPORT_IMAGE =
+  "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/Riviera/RR4.png";
+
+const WHAT_IS_DVC_CHIPS = [
+  "Deluxe Disney villas",
+  "Booked with owner points",
+  "Verified DVC owners",
+  "Disney confirmation issued",
+];
+
+const WHAT_IS_DVC_VALUE_POINTS = [
+  "Separate sleeping areas",
+  "Full or partial kitchens",
+  "More space for families",
+];
+
+const WHAT_IS_DVC_PIXIEDVC_POINTS = [
+  "Estimate points and pricing",
+  "Match with verified owners",
+  "Review details before committing",
+];
 
 const BAY_LAKE_INSIDER_GUIDE = {
   intro: [
@@ -867,6 +892,260 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
                 className="inline-flex items-center rounded-full border border-white/18 bg-white/8 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/12"
               >
                 Browse Ready Stays
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (slug === WHAT_IS_DVC_SLUG) {
+    return (
+      <main className="bg-[linear-gradient(180deg,#f7faff_0%,#ffffff_18%,#f9fbff_100%)] text-slate-900">
+        <section className="relative overflow-hidden">
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `url(${WHAT_IS_DVC_HERO_IMAGE}) center/cover`,
+              filter: "contrast(1.05) saturate(1.04) brightness(1.01)",
+            }}
+          />
+          <div className="relative mx-auto flex min-h-[760px] max-w-6xl items-end px-6 pb-20 pt-24 sm:min-h-[820px] sm:pt-32">
+            <div className="max-w-[44rem] rounded-[1.85rem] border border-white/14 bg-[linear-gradient(180deg,rgba(10,20,40,0.46),rgba(10,20,40,0.36))] px-7 py-9 shadow-[0_40px_80px_rgba(0,0,0,0.16)] backdrop-blur-[1px]">
+              <p className="text-sm font-medium uppercase tracking-[0.18em] text-white/72">PixieDVC Guide</p>
+              <h1 className="mt-4 max-w-[12ch] text-5xl font-semibold tracking-tight !text-white sm:text-6xl">
+                What is DVC?
+              </h1>
+              <p className="mt-5 max-w-[560px] text-base font-medium leading-8 text-white/82 sm:text-lg">
+                A calm guide to Disney Vacation Club rentals, how owner points work, and why many guests use them to
+                book deluxe Disney villa stays for less.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  href="/calculator"
+                  className="inline-flex items-center rounded-xl bg-[linear-gradient(180deg,#4c5fd7,#4457c7)] px-5 py-3 text-sm font-semibold !text-white shadow-[0_12px_28px_rgba(44,61,140,0.28)] transition hover:brightness-110 hover:shadow-[0_16px_34px_rgba(44,61,140,0.34)] hover:!text-white"
+                >
+                  Price your dates
+                </Link>
+                <Link
+                  href="/resorts"
+                  className="inline-flex items-center rounded-xl border border-white/18 bg-white/10 px-5 py-3 text-sm font-semibold !text-white backdrop-blur-sm transition hover:bg-white/14 hover:!text-white"
+                >
+                  Explore resorts
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-[linear-gradient(180deg,#fffdfa_0%,#ffffff_100%)]">
+          <div className="mx-auto max-w-6xl px-6 py-12">
+            <div className="flex flex-wrap justify-center gap-3">
+              {WHAT_IS_DVC_CHIPS.map((chip) => (
+                <span
+                  key={chip}
+                  className="inline-flex items-center rounded-full border border-[#d9e4f6] bg-white px-4 py-2 text-sm font-medium text-[#51678f] shadow-[0_8px_20px_rgba(15,33,72,0.04)]"
+                >
+                  {chip}
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-[linear-gradient(180deg,rgba(243,247,255,0.92),rgba(249,251,255,0.98))]">
+          <div className="mx-auto max-w-6xl px-6 py-16">
+            <article className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+              <div className="max-w-2xl">
+                <h2 className="text-[2.8rem] font-semibold tracking-tight text-[#10224b] sm:text-[3.2rem]">
+                  The short version
+                </h2>
+                <p className="mt-4 text-lg font-medium leading-8 text-[#51678f]">
+                  Disney Vacation Club is Disney&apos;s vacation ownership program, and renting points lets non-members
+                  book the same villas without becoming owners.
+                </p>
+                <div className="mt-7 space-y-4 text-[16px] leading-8 text-[#5a6d8f]">
+                  <p>
+                    Instead of paying Disney&apos;s standard hotel cash rates, members use points to reserve deluxe villas
+                    at participating Disney resorts.
+                  </p>
+                  <p>
+                    When owners cannot use those points, they may rent them out. That gives guests access to larger
+                    rooms, kitchens, and deluxe resort benefits through a different booking path.
+                  </p>
+                </div>
+              </div>
+              <div
+                className="min-h-[360px] rounded-[2rem] shadow-[0_18px_44px_rgba(15,33,72,0.08)]"
+                style={{
+                  background: `url(${WHAT_IS_DVC_SUPPORT_IMAGE}) center/cover`,
+                }}
+              />
+            </article>
+          </div>
+        </section>
+
+        <section className="bg-white">
+          <div className="mx-auto max-w-6xl px-6 py-16">
+            <article className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+              <div>
+                <h2 className="text-[2.8rem] font-semibold tracking-tight text-[#10224b] sm:text-[3.2rem]">
+                  Why guests use DVC rentals
+                </h2>
+                <p className="mt-4 text-lg font-medium leading-8 text-[#51678f]">
+                  The appeal is usually more space, better villa layouts, and a lower path into Disney deluxe resorts.
+                </p>
+              </div>
+              <div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {WHAT_IS_DVC_VALUE_POINTS.map((item) => (
+                    <div
+                      key={item}
+                      className="rounded-[1.4rem] border border-[#dbe4f4] bg-[#fbfdff] px-4 py-4 shadow-[0_10px_24px_rgba(15,33,72,0.04)]"
+                    >
+                      <p className="text-sm font-medium leading-6 text-[#314f98]">{item}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-7 space-y-4 text-[16px] leading-8 text-[#5a6d8f]">
+                  <p>
+                    Many DVC villas include the kind of layout families usually want for longer Disney trips: room to
+                    spread out, better storage, and in some cases full kitchens and laundry.
+                  </p>
+                  <p>
+                    For guests staying several nights, that combination often feels more comfortable than a standard
+                    hotel room while still keeping you inside Disney&apos;s resort system.
+                  </p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section className="bg-[linear-gradient(180deg,#fffdfa_0%,#ffffff_100%)]">
+          <div className="mx-auto max-w-6xl px-6 py-16">
+            <article className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+              <div className="max-w-2xl">
+                <h2 className="text-[2.8rem] font-semibold tracking-tight text-[#10224b] sm:text-[3.2rem]">
+                  How PixieDVC fits in
+                </h2>
+                <p className="mt-4 text-lg font-medium leading-8 text-[#51678f]">
+                  PixieDVC adds structure, verification, and concierge support to a process that can otherwise feel
+                  informal.
+                </p>
+                <div className="mt-7 grid gap-3 sm:grid-cols-3">
+                  {WHAT_IS_DVC_PIXIEDVC_POINTS.map((item) => (
+                    <div
+                      key={item}
+                      className="rounded-[1.4rem] border border-[#dbe4f4] bg-white px-4 py-4 shadow-[0_10px_24px_rgba(15,33,72,0.04)]"
+                    >
+                      <p className="text-sm font-medium leading-6 text-[#314f98]">{item}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-7 space-y-4 text-[16px] leading-8 text-[#5a6d8f]">
+                  <p>
+                    Renting points directly from an owner can work, but it usually requires more coordination, more
+                    trust, and more guesswork around availability and timing.
+                  </p>
+                  <p>
+                    PixieDVC helps estimate point needs, coordinates with verified owners, and keeps the path to a real
+                    Disney confirmation clear before you commit.
+                  </p>
+                </div>
+              </div>
+              <div
+                className="min-h-[360px] rounded-[2rem] shadow-[0_18px_44px_rgba(15,33,72,0.08)]"
+                style={{
+                  background:
+                    "url(https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/Polynesian-villas-and-bungalows/PVB1.png) center/cover",
+                }}
+              />
+            </article>
+          </div>
+        </section>
+
+        <section className="bg-[linear-gradient(180deg,rgba(243,247,255,0.96),rgba(249,251,255,0.99))]">
+          <div className="mx-auto max-w-6xl px-6 py-16">
+            <div className="mx-auto max-w-3xl text-center">
+              <h2 className="text-[2.8rem] font-semibold tracking-tight text-[#10224b] sm:text-[3.2rem]">
+                What to expect
+              </h2>
+              <p className="mt-4 text-lg font-medium leading-8 text-[#51678f]">
+                Renting DVC points is not a timeshare presentation and it does not create ownership. It is simply a
+                different way to book a Disney villa stay.
+              </p>
+            </div>
+            <div className="mt-10 grid gap-5 md:grid-cols-3">
+              {[
+                {
+                  title: "A real Disney reservation",
+                  body: "Once booked, your stay is confirmed in Disney's system like other resort reservations.",
+                },
+                {
+                  title: "A better fit for planners",
+                  body: "It works best when you can plan ahead or stay flexible around resort and room options.",
+                },
+                {
+                  title: "A calmer booking path",
+                  body: "PixieDVC helps guests understand pricing, fit, and next steps before moving forward.",
+                },
+              ].map((item) => (
+                <Card
+                  key={item.title}
+                  className="rounded-[1.6rem] border border-[#dbe4f4] bg-white p-7 shadow-[0_16px_36px_rgba(15,33,72,0.05)]"
+                >
+                  <h3 className="text-2xl font-semibold leading-tight text-[#10224b]">{item.title}</h3>
+                  <p className="mt-4 text-sm leading-7 text-[#5a6d8f]">{item.body}</p>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-[#11224b] py-14 text-white">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-center text-base font-medium text-white/90 sm:text-lg">
+              <span>Verified DVC owners</span>
+              <span aria-hidden="true" className="text-white/38">
+                •
+              </span>
+              <span>Disney system reservations</span>
+              <span aria-hidden="true" className="text-white/38">
+                •
+              </span>
+              <span>Clear agreement before payment</span>
+              <span aria-hidden="true" className="text-white/38">
+                •
+              </span>
+              <span>Concierge guidance throughout</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-16 md:py-20">
+          <div className="mx-auto max-w-4xl px-6 text-center">
+            <h2 className="text-4xl font-semibold tracking-tight text-[#10224b] sm:text-5xl">
+              Ready to see what your trip could cost?
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-[#5a6d8f] sm:text-lg">
+              Use the PixieDVC calculator to estimate pricing, compare resorts, and understand which booking path fits
+              your stay.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/calculator"
+                className="inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(180deg,#203b78,#152c5b)] px-5 py-3 text-sm font-semibold !text-white shadow-[0_10px_24px_rgba(15,33,72,0.18)] transition hover:brightness-110 hover:shadow-[0_14px_28px_rgba(15,33,72,0.22)] hover:!text-white"
+              >
+                Open the calculator
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+              <Link
+                href="/how-it-works"
+                className="inline-flex items-center rounded-xl border border-[#dbe4f4] bg-white px-5 py-3 text-sm font-semibold text-[#10224b] transition hover:border-[#c3d3ee] hover:bg-[#fbfdff]"
+              >
+                Learn how booking works
               </Link>
             </div>
           </div>

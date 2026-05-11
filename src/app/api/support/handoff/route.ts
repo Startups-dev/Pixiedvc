@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       sender_type: item.role === "assistant" ? "ai" : "guest",
       sender_display_name:
         item.role === "assistant"
-          ? "Pixie Concierge"
+          ? "PixieDVC Concierge"
           : name || body?.email || "Anonymous Visitor",
       message: String(item.content ?? ""),
       content: String(item.content ?? ""),

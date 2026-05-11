@@ -1,423 +1,283 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+
 import ReferralLink from "@/components/referral/ReferralLink";
 
-import { Button, Card, SectionHeader } from "@pixiedvc/design-system";
-import FaqAccordion from "@/components/FaqAccordion";
-import type { FaqItem } from "@/components/faqData";
-
-const trustHighlights = [
+const bookingPaths = [
   {
-    title: "Verified Owners",
-    description: "We work with vetted DVC members who have a history of successful bookings.",
-  },
-  {
-    title: "Transparent Pricing",
-    description: "Clear estimates up front, with totals explained before you submit a request.",
-  },
-  {
-    title: "Concierge Support",
-    description: "Real humans guide your request, confirm details, and suggest smart alternates.",
-  },
-  {
-    title: "Official Disney Reservation",
-    description: "When secured, you receive a Disney confirmation number for your stay.",
-  },
-];
-
-const processSteps = [
-  {
-    title: "Pick your dates and preferences",
+    label: "Custom Matching",
+    title: "Request your stay",
+    description:
+      "For guests who want PixieDVC to help secure a specific Disney villa stay.",
     bullets: [
-      "Share dates, resort priorities, room type, view, and guest count.",
-      "Let us know if you are flexible with resort or dates.",
-      "Use the calculator to estimate points and total cost.",
+      "Flexible dates and resort choices",
+      "Concierge matching with verified owners",
+      "Ideal for planning ahead",
     ],
-    badge: "Automation",
-    badgeTone: "bg-brand/10 text-brand",
-    link: { label: "Estimate with the calculator", href: "/calculator" },
+    href: "/plan",
+    cta: "Start a request",
+    imageSide: "left",
+    image:
+      "url(https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/Riviera/RR4.png)",
   },
   {
-    title: "Get an instant estimate",
+    label: "Pre-confirmed inventory",
+    title: "Browse Ready Stays",
+    description:
+      "For guests who want to choose from Disney villa reservations already secured by DVC owners.",
     bullets: [
-      "We provide a point estimate and price range based on your inputs.",
-      "If demand is high, we highlight alternates with better odds.",
-      "Estimates are fast so you can decide how to proceed.",
+      "Confirmed reservations already secured",
+      "Faster booking path",
+      "Great for last-minute opportunities",
     ],
-    badge: "Automation",
-    badgeTone: "bg-brand/10 text-brand",
-  },
-  {
-    title: "Submit your request + $99 deposit",
-    bullets: [
-      "A $99 request deposit secures your place in the queue.",
-      "The deposit applies to your total once confirmed.",
-      "If we cannot secure a reservation, the deposit is refunded.",
-    ],
-    badge: "Concierge",
-    badgeTone: "bg-slate-100 text-slate-700",
-  },
-  {
-    title: "Smart matching + concierge review",
-    bullets: [
-      "We match you to verified owners based on points and booking windows.",
-      "A concierge double-checks details and timing.",
-      "We may suggest alternates for better availability or value.",
-    ],
-    badge: "Automation + Concierge",
-    badgeTone: "bg-brand/5 text-brand",
-  },
-  {
-    title: "Human-assisted availability check + booking",
-    bullets: [
-      "Availability is confirmed through verified owner booking access.",
-      "We do not scrape or automate Disney systems.",
-      "Once secured, you receive a Disney confirmation number.",
-    ],
-    badge: "Concierge",
-    badgeTone: "bg-slate-100 text-slate-700",
-  },
-  {
-    title: "Confirmation, planning, and support",
-    bullets: [
-      "Link your reservation in Disney apps where available.",
-      "We support allowed updates and answer questions.",
-      "Review FAQs and policies for important details.",
-    ],
-    badge: "Concierge",
-    badgeTone: "bg-slate-100 text-slate-700",
-    links: [
-      { label: "Read the FAQ", href: "/faq" },
-      { label: "Contact concierge", href: "/contact" },
-    ],
-  },
-];
-
-const automations = [
-  {
-    title: "What we automate",
-    bullets: [
-      "Point estimates and price ranges.",
-      "Request routing and owner matching based on fit.",
-      "Queue tracking and updates as windows open.",
-    ],
-  },
-  {
-    title: "What is human-assisted",
-    bullets: [
-      "Availability checks through verified owner access.",
-      "Reservation submission and confirmation handling.",
-      "Personal guidance on alternates and timing.",
-    ],
-  },
-];
-
-const included = [
-  "Accommodations via DVC point rental",
-  "Standard Disney resort guest amenities (benefits offered by Disney to resort guests may vary)",
-];
-
-const notIncluded = [
-  "Park tickets",
-  "Flights or ground transportation beyond Disney options",
-  "Dining plans or add-ons",
-  "Travel insurance (strongly recommended)",
-];
-
-const whyDifferent = [
-  {
-    title: "Fast estimates, better guidance",
-    description: "Get clarity on points and pricing early, with concierge advice on the best path forward.",
-  },
-  {
-    title: "Verified owners, documented process",
-    description: "We use a repeatable flow so you know what happens next at every step.",
-  },
-  {
-    title: "Human support when it matters",
-    description: "We step in when timing is critical and keep you in the loop throughout.",
-  },
-];
-
-const faqItems: FaqItem[] = [
-  {
-    question: "Can I check DVC availability on Disney.com?",
-    answer:
-      "No. DVC availability is not listed on Disney.com. We confirm inventory through verified owner access and share the best options available.",
-  },
-  {
-    question: "How far in advance should I plan?",
-    answer:
-      "Owners can book their home resort up to 11 months out and other resorts at 7 months. Earlier planning gives the most flexibility.",
-  },
-  {
-    question: "Is my reservation official?",
-    answer:
-      "Yes. Once booked, you receive a Disney confirmation number and can link the reservation in Disney apps where available.",
-  },
-  {
-    question: "What if you cannot secure my request?",
-    answer:
-      "We review alternates with you first. If nothing can be secured, your request deposit is refunded.",
-  },
-  {
-    question: "Can I request multiple resorts or split stays?",
-    answer:
-      "Yes. We can submit a primary choice plus alternates or build a split stay to improve availability.",
+    href: "/ready-stays",
+    cta: "View Ready Stays",
+    imageSide: "right",
+    image:
+      "url(https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/Polynesian-villas-and-bungalows/PVB1.png)",
   },
 ];
 
 export default function HowItWorksPage() {
   return (
-    <div className="min-h-screen bg-surface text-ink">
-      <div className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 -z-10 opacity-70">
-          <div className="absolute left-[28%] top-[-12%] h-[380px] w-[380px] rounded-full bg-brand/20 blur-3xl" />
-          <div className="absolute right-[-18%] top-[32%] h-[320px] w-[320px] rounded-full bg-lavender/35 blur-3xl" />
+    <main className="bg-[linear-gradient(180deg,#f7faff_0%,#ffffff_18%,#f9fbff_100%)] text-slate-900">
+      <section className="relative overflow-hidden">
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "url(https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/HOW%20to/3dad7522-aa93-4ff1-a91a-52a4d1f1effc.png) center/cover",
+          }}
+        />
+        <div className="relative mx-auto flex min-h-[760px] max-w-6xl items-end px-6 pb-20 pt-24 sm:min-h-[820px] sm:pt-32">
+          <div className="max-w-[44rem] rounded-[1.85rem] border border-white/10 bg-[linear-gradient(180deg,rgba(10,20,40,0.54),rgba(10,20,40,0.42))] px-7 py-9 shadow-[0_40px_80px_rgba(0,0,0,0.16)] backdrop-blur-[1px]">
+            <h1 className="text-5xl font-semibold tracking-tight !text-white sm:text-6xl">
+              Two ways to plan your Disney villa stay
+            </h1>
+            <p className="mt-5 max-w-[560px] text-base font-medium leading-8 text-white/82 sm:text-lg">
+              Choose between custom trip matching or pre-confirmed Ready Stays already secured by verified DVC owners.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <ReferralLink
+                href="/plan"
+                className="inline-flex items-center rounded-xl bg-[linear-gradient(180deg,#4c5fd7,#4457c7)] px-5 py-3 text-sm font-semibold !text-white shadow-[0_12px_28px_rgba(44,61,140,0.28)] transition hover:brightness-110 hover:shadow-[0_16px_34px_rgba(44,61,140,0.34)] hover:!text-white"
+              >
+                Find your stay
+              </ReferralLink>
+              <Link
+                href="/ready-stays"
+                className="inline-flex items-center rounded-xl border border-white/18 bg-white/10 px-5 py-3 text-sm font-semibold !text-white backdrop-blur-sm transition hover:bg-white/14 hover:!text-white"
+              >
+                Browse Ready Stays
+              </Link>
+            </div>
+          </div>
         </div>
+      </section>
 
-        <main className="relative z-10 mx-auto max-w-6xl px-6 py-20">
-          <section className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-            <div className="space-y-6">
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted shadow-sm backdrop-blur">
-                How It Works
-              </span>
-              <h1 className="font-display text-4xl leading-tight text-ink sm:text-5xl lg:text-6xl">
-                How PixieDVC Works
-              </h1>
-              <p className="max-w-xl text-lg text-muted">
-                Plan with confidence. We combine smart automation with real concierge support to match your request
-                with verified DVC owners.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <div className="relative">
-                  <span className="dust-trail" aria-hidden="true" />
-                  <Button
-                    asChild
-                    className="bg-white/6 px-5 py-2 text-white !text-white shadow-[0_6px_16px_rgba(35,53,107,0.18)] transition duration-300 hover:bg-white/14"
-                  >
-                    <ReferralLink href="/calculator" className="text-white">
-                      Check Pricing
-                    </ReferralLink>
-                  </Button>
-                </div>
-                <Button asChild variant="ghost">
-                  <ReferralLink href="/plan">Submit a Request</ReferralLink>
-                </Button>
-              </div>
-              <p className="text-sm text-muted">
-                Availability checks are human-assisted through verified owner access. We do not scrape or automate
-                Disney systems.
-              </p>
-            </div>
-            <Card surface="light" className="space-y-5">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted">At a glance</p>
-              <div className="rounded-3xl border border-ink/10 bg-white/90 p-5">
-                <p className="text-sm text-muted">Sample stay estimate</p>
-                <p className="mt-2 text-2xl font-display text-ink">5 nights · 214 points</p>
-                <p className="mt-3 text-sm text-muted">
-                  Clear pricing plus concierge guidance before you commit.
-                </p>
-              </div>
-              <div className="grid gap-3 text-sm text-muted">
-                <div className="flex items-center justify-between rounded-2xl border border-ink/10 bg-white/80 px-4 py-3">
-                  <span>Request deposit</span>
-                  <span className="font-semibold text-ink">$99</span>
-                </div>
-                <div className="flex items-center justify-between rounded-2xl border border-ink/10 bg-white/80 px-4 py-3">
-                  <span>Support</span>
-                  <span className="font-semibold text-ink">Concierge + automation</span>
-                </div>
-                <div className="flex items-center justify-between rounded-2xl border border-ink/10 bg-white/80 px-4 py-3">
-                  <span>Reservation type</span>
-                  <span className="font-semibold text-ink">Official Disney booking</span>
-                </div>
-              </div>
-            </Card>
-          </section>
+      <section className="bg-[linear-gradient(180deg,#fffdfa_0%,#ffffff_100%)]">
+        <div className="mx-auto max-w-6xl px-6 pb-12 pt-10">
+        <div className="space-y-8">
+          {bookingPaths.map((path) => {
+            const imageBlock = (
+              <div
+                className="min-h-[320px] bg-cover bg-center lg:min-h-[420px]"
+                style={{ backgroundImage: path.image }}
+              />
+            );
 
-          <section className="mt-20">
-            <SectionHeader
-              eyebrow="Trust Highlights"
-              title="The confidence builders"
-              description="Premium stays anchored in verification, transparency, and real support."
-            />
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {trustHighlights.map((item) => (
-                <Card key={item.title} className="space-y-3">
-                  <h3 className="font-display text-xl text-ink">{item.title}</h3>
-                  <p className="text-sm text-muted">{item.description}</p>
-                </Card>
-              ))}
-            </div>
-          </section>
-
-          <section className="mt-20">
-            <SectionHeader
-              eyebrow="The Process"
-              title="A clear, semi-automated flow"
-              description="Automation keeps things fast. Concierge oversight keeps it accurate and personal."
-            />
-            <div className="mt-10 space-y-6 md:border-l md:border-slate-200 md:pl-10">
-              {processSteps.map((step, index) => (
-                <div key={step.title} className="relative">
-                  <span className="absolute -left-[18px] top-7 hidden h-4 w-4 rounded-full border-2 border-brand bg-white md:block" />
-                  <Card className="space-y-4">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand/10 text-sm font-semibold text-brand">
-                        {index + 1}
-                      </span>
-                      <h3 className="font-display text-2xl text-ink">{step.title}</h3>
-                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${step.badgeTone}`}>
-                        {step.badge}
-                      </span>
-                    </div>
-                    <ul className="space-y-2 text-sm text-muted">
-                      {step.bullets.map((bullet) => (
-                        <li key={bullet} className="flex items-start gap-3">
-                          <span className="mt-2 h-2 w-2 rounded-full bg-brand" aria-hidden="true" />
-                          <span>{bullet}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    {step.link ? (
-                      <Link href={step.link.href} className="text-sm font-semibold text-brand hover:text-brand/80">
-                        {step.link.label}
-                      </Link>
-                    ) : null}
-                    {step.links ? (
-                      <div className="flex flex-wrap gap-4">
-                        {step.links.map((link) => (
-                          <Link key={link.href} href={link.href} className="text-sm font-semibold text-brand hover:text-brand/80">
-                            {link.label}
-                          </Link>
-                        ))}
-                      </div>
-                    ) : null}
-                  </Card>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="mt-20">
-            <SectionHeader
-              eyebrow="Automation vs. Human Support"
-              title="Fast where it should be, human where it matters"
-              description="We combine the speed of smart systems with the care of a dedicated concierge team."
-            />
-            <div className="mt-8 grid gap-6 md:grid-cols-2">
-              {automations.map((item) => (
-                <Card key={item.title} className="space-y-3">
-                  <h3 className="font-display text-xl text-ink">{item.title}</h3>
-                  <ul className="space-y-2 text-sm text-muted">
-                    {item.bullets.map((bullet) => (
+            const contentBlock = (
+              <div className="flex min-h-[320px] items-center bg-white px-8 py-8 lg:min-h-[420px] lg:px-10">
+                <div className="max-w-xl">
+                  <p className="text-sm font-medium uppercase tracking-[0.18em] text-[#6a7ea3]">{path.label}</p>
+                  <h3 className="mt-3 text-[2.1rem] font-semibold tracking-tight text-[#10224b]">{path.title}</h3>
+                  <p className="mt-4 text-base leading-8 text-[#5a6d8f]">{path.description}</p>
+                  <ul className="mt-6 space-y-3 text-sm text-[#5a6d8f]">
+                    {path.bullets.map((bullet) => (
                       <li key={bullet} className="flex items-start gap-3">
-                        <span className="mt-2 h-2 w-2 rounded-full bg-brand" aria-hidden="true" />
+                        <span className="mt-2 h-2 w-2 rounded-full bg-[#4c5fd7]" aria-hidden="true" />
                         <span>{bullet}</span>
                       </li>
                     ))}
                   </ul>
-                </Card>
-              ))}
-            </div>
-          </section>
+                  <Link
+                    href={path.href}
+                    className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(180deg,#203b78,#152c5b)] px-5 py-3 text-sm font-semibold !text-white shadow-[0_10px_24px_rgba(15,33,72,0.18)] transition hover:brightness-110 hover:shadow-[0_14px_28px_rgba(15,33,72,0.22)] hover:!text-white"
+                  >
+                    {path.cta}
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                </div>
+              </div>
+            );
 
-          <section className="mt-20 grid gap-12 lg:grid-cols-2">
-            <div className="space-y-6">
-              <SectionHeader
-                eyebrow="What is included"
-                title="Resort accommodations and guest benefits"
-                description="PixieDVC focuses on lodging and the resort guest perks Disney offers."
-              />
-              <Card className="space-y-3">
-                <ul className="space-y-3 text-sm text-muted">
-                  {included.map((item) => (
-                    <li key={item} className="flex items-start gap-3">
-                      <span className="mt-2 h-2 w-2 rounded-full bg-brand" aria-hidden="true" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            </div>
-            <div className="space-y-6">
-              <SectionHeader
-                eyebrow="What is not included"
-                title="Items you will arrange separately"
-                description="Tickets, flights, and add-ons are handled outside the rental."
-              />
-              <Card className="space-y-3">
-                <ul className="space-y-3 text-sm text-muted">
-                  {notIncluded.map((item) => (
-                    <li key={item} className="flex items-start gap-3">
-                      <span className="mt-2 h-2 w-2 rounded-full bg-slate-300" aria-hidden="true" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            </div>
-          </section>
+            return (
+              <article
+                key={path.title}
+                className="overflow-hidden rounded-[2rem] border border-[#dbe4f4] shadow-[0_22px_56px_rgba(16,34,75,0.08)]"
+              >
+                <div className="grid lg:grid-cols-2">
+                  {path.imageSide === "left" ? (
+                    <>
+                      {imageBlock}
+                      {contentBlock}
+                    </>
+                  ) : (
+                    <>
+                      {contentBlock}
+                      {imageBlock}
+                    </>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+        </div>
+      </section>
 
-          <section className="mt-20">
-            <SectionHeader
-              eyebrow="Why this is different"
-              title="A more guided way to book DVC"
-              description="We blend automation with concierge-level care for a smoother journey."
-            />
-            <div className="mt-8 grid gap-6 md:grid-cols-3">
-              {whyDifferent.map((item) => (
-                <Card key={item.title} className="space-y-3">
-                  <h3 className="font-display text-xl text-ink">{item.title}</h3>
-                  <p className="text-sm text-muted">{item.description}</p>
-                </Card>
-              ))}
-            </div>
-          </section>
-
-          <section className="mt-20">
-            <SectionHeader
-              eyebrow="FAQ"
-              title="Quick answers"
-              description="Short responses to the questions we hear most."
-            />
-            <div className="mt-8">
-              <FaqAccordion categoryId="how-it-works" items={faqItems} />
-            </div>
-          </section>
-
-          <section className="mt-20">
-            <Card surface="light" className="flex flex-col items-start gap-6 border border-ink/10 bg-white/90 p-10 md:flex-row md:items-center md:justify-between">
-              <div className="space-y-3">
-                <p className="text-xs uppercase tracking-[0.25em] text-muted">Ready to plan?</p>
-                <h2 className="font-display text-3xl text-ink sm:text-4xl">Ready to plan your stay?</h2>
-                <p className="text-sm text-muted">
-                  Start with pricing or send us your request. We will take care of the rest.
+      <section className="bg-[linear-gradient(180deg,rgba(243,247,255,0.96),rgba(249,251,255,0.99))]">
+        <div className="mx-auto max-w-6xl space-y-16 px-6 py-16">
+          <div className="text-center">
+            <h2 className="text-5xl font-semibold tracking-tight text-[#10224b] sm:text-6xl">How it works</h2>
+          </div>
+          <article className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+            <div className="max-w-2xl">
+              <h3 className="text-[2.6rem] font-semibold tracking-tight text-[#10224b]">Custom Matching</h3>
+              <p className="mt-3 text-lg font-medium leading-8 text-[#51678f]">
+                Best when you already know the Disney villa experience you want.
+              </p>
+              <div className="mt-7 grid gap-3 sm:grid-cols-3">
+                {[
+                  { label: "Works through", value: "Verified DVC owners" },
+                  { label: "Requires", value: "DVC availability" },
+                  { label: "Before payment", value: "You review full details" },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-[1.4rem] border border-[#dbe4f4] bg-white/86 px-4 py-4 shadow-[0_10px_24px_rgba(15,33,72,0.04)]"
+                  >
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7a8fb3]">{item.label}</p>
+                    <p className="mt-2 text-sm font-medium leading-6 text-[#314f98]">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-7 space-y-4 text-[16px] leading-8 text-[#5a6d8f]">
+                <p>
+                  PixieDVC reviews your requested dates, resort, room type, and flexibility, then looks for verified
+                  owners with eligible DVC points that fit your stay.
+                </p>
+                <p>
+                  We search verified owner inventory that fits your requested stay. After that, you review the pricing,
+                  agreement, and payment terms before moving forward.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-3">
-                <div className="relative">
-                  <span className="dust-trail" aria-hidden="true" />
-                  <Button
-                    asChild
-                    className="bg-white/6 px-5 py-2 text-white !text-white shadow-[0_6px_16px_rgba(35,53,107,0.18)] transition duration-300 hover:bg-white/14"
+              <ul className="mt-7 space-y-3 text-sm text-[#5a6d8f]">
+                {[
+                  "Best for specific dates, resorts, or room types",
+                  "Works through verified DVC owners with eligible points",
+                  "Availability must be confirmed before the agreement is sent",
+                  "You review the details before committing",
+                ].map((bullet) => (
+                  <li key={bullet} className="flex items-start gap-3">
+                    <span className="mt-2 h-2 w-2 rounded-full bg-[#4c5fd7]" aria-hidden="true" />
+                    <span>{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+              <ReferralLink
+                href="/plan"
+                className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(180deg,#203b78,#152c5b)] px-5 py-3 text-sm font-semibold !text-white shadow-[0_10px_24px_rgba(15,33,72,0.18)] transition hover:brightness-110 hover:shadow-[0_14px_28px_rgba(15,33,72,0.22)] hover:!text-white"
+              >
+                Start a custom request
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </ReferralLink>
+            </div>
+            <div
+              className="min-h-[340px] rounded-[2rem] shadow-[0_18px_44px_rgba(15,33,72,0.08)]"
+              style={{
+                background:
+                  "linear-gradient(180deg, rgba(10,20,40,0.04) 0%, rgba(10,20,40,0.08) 22%, rgba(10,20,40,0.24) 74%, rgba(6,12,28,0.42) 100%), url(https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/HOW%20to/ee214afe-1021-4b3f-b45d-fc78f623dfef.png) center/cover",
+              }}
+            />
+          </article>
+
+          <article className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+            <div
+              className="order-2 min-h-[340px] rounded-[2rem] shadow-[0_18px_44px_rgba(15,33,72,0.08)] lg:order-1"
+              style={{
+                background:
+                  "linear-gradient(180deg, rgba(10,20,40,0.04) 0%, rgba(10,20,40,0.08) 20%, rgba(10,20,40,0.22) 72%, rgba(6,12,28,0.38) 100%), url(https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/Boardwalk/BDW1.png) center/cover",
+              }}
+            />
+            <div className="order-1 max-w-2xl lg:order-2 lg:justify-self-end">
+              <h3 className="text-[2.6rem] font-semibold tracking-tight text-[#10224b]">Ready Stays</h3>
+              <p className="mt-3 text-lg font-medium leading-8 text-[#51678f]">
+                Best when you are flexible and want the fastest path to a Disney villa.
+              </p>
+              <div className="mt-7 grid gap-3 sm:grid-cols-3">
+                {[
+                  { label: "Already secured", value: "Reservation in place" },
+                  { label: "Best for", value: "Faster booking" },
+                  { label: "Inventory", value: "Limited and fixed" },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-[1.4rem] border border-[#dbe4f4] bg-white/86 px-4 py-4 shadow-[0_10px_24px_rgba(15,33,72,0.04)]"
                   >
-                    <ReferralLink href="/calculator" className="text-white">
-                      Check Pricing
-                    </ReferralLink>
-                  </Button>
-                </div>
-                <Button asChild variant="ghost">
-                  <ReferralLink href="/plan">Submit a Request</ReferralLink>
-                </Button>
-                <Button asChild variant="outline">
-                  <Link href="/contact">Talk to Concierge</Link>
-                </Button>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7a8fb3]">{item.label}</p>
+                    <p className="mt-2 text-sm font-medium leading-6 text-[#314f98]">{item.value}</p>
+                  </div>
+                ))}
               </div>
-            </Card>
-          </section>
-        </main>
-      </div>
-    </div>
+              <div className="mt-7 space-y-4 text-[16px] leading-8 text-[#5a6d8f]">
+                <p>
+                  Ready Stays are pre-confirmed Disney villa reservations already secured by DVC owners, with fixed
+                  resort, room type, check-in, and check-out details.
+                </p>
+                <p>
+                  Because the reservation is already in place, this is usually the fastest path through PixieDVC.
+                  Inventory is limited and may disappear once booked.
+                </p>
+              </div>
+              <ul className="mt-7 space-y-3 text-sm text-[#5a6d8f]">
+                {[
+                  "Pre-confirmed Disney villa reservations",
+                  "Fixed resort, room type, and travel dates",
+                  "Faster booking path than custom matching",
+                  "Best for flexible travelers and limited-time deals",
+                ].map((bullet) => (
+                  <li key={bullet} className="flex items-start gap-3">
+                    <span className="mt-2 h-2 w-2 rounded-full bg-[#4c5fd7]" aria-hidden="true" />
+                    <span>{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/ready-stays"
+                className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(180deg,#203b78,#152c5b)] px-5 py-3 text-sm font-semibold !text-white shadow-[0_10px_24px_rgba(15,33,72,0.18)] transition hover:brightness-110 hover:shadow-[0_14px_28px_rgba(15,33,72,0.22)] hover:!text-white"
+              >
+                Browse Ready Stays
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-20">
+        <div className="rounded-[1.75rem] bg-[#10224b] px-8 py-7 text-center text-white shadow-[0_24px_60px_rgba(16,34,75,0.14)]">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[15px] font-medium text-white/86 sm:text-[16px]">
+            <span>Verified DVC owners</span>
+            <span className="text-white/34">•</span>
+            <span>Disney system reservations</span>
+            <span className="text-white/34">•</span>
+            <span>Clear agreement before payment</span>
+            <span className="text-white/34">•</span>
+            <span>Concierge guidance throughout the process</span>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }

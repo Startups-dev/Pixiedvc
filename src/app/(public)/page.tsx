@@ -56,9 +56,8 @@ export default async function Home() {
           source="hero_bar"
           headline="Get Disney deals before they’re gone"
           buttonLabel="Get Deals"
-          helperText="Real availability. Real pricing. Only meaningful updates."
           className="rounded-[28px] border border-[#d9e3fb] bg-[linear-gradient(135deg,rgba(244,247,255,0.96),rgba(255,255,255,0.92))] px-5 py-5 shadow-[0_18px_45px_rgba(15,33,72,0.08)] backdrop-blur sm:px-6"
-          innerClassName="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8"
+          innerClassName="mx-auto flex max-w-5xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-center lg:gap-10"
           compact
         />
       </section>

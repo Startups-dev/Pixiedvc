@@ -22,10 +22,10 @@ export default async function LiquidationOpportunitiesPage() {
       <main className="mx-auto max-w-6xl space-y-8 px-6 py-12">
         <header className="space-y-3">
           <p className="text-xs uppercase tracking-[0.3em] text-muted">Concierge-assisted opportunities</p>
-          <h1 className="text-3xl font-semibold text-ink">Last-Minute Liquidation Opportunities</h1>
+          <h1 className="text-3xl font-semibold text-ink">Limited-Time Disney Villa Deals</h1>
         </header>
         <div className="rounded-3xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
-          <h2 className="text-2xl font-semibold text-ink">No liquidation opportunities right now</h2>
+          <h2 className="text-2xl font-semibold text-ink">No limited-time Disney villa deals right now</h2>
           <p className="mt-3 text-sm text-muted">New curated opportunities are reviewed daily.</p>
         </div>
       </main>
@@ -67,15 +67,15 @@ export default async function LiquidationOpportunitiesPage() {
     <main className="mx-auto max-w-6xl space-y-8 px-6 py-12">
       <header className="space-y-3">
         <p className="text-xs uppercase tracking-[0.3em] text-muted">Concierge-assisted opportunities</p>
-        <h1 className="text-3xl font-semibold text-ink">Last-Minute Liquidation Opportunities</h1>
+        <h1 className="text-3xl font-semibold text-ink">Limited-Time Disney Villa Deals</h1>
         <p className="max-w-3xl text-sm text-muted">
-          Separate from Ready Stays instant booking. These are curated short-notice opportunities sourced from owner expiring points and concierge-supported matching.
+          Separate from Ready Stays instant booking. These are curated limited-time opportunities sourced from owner point availability and concierge-supported matching.
         </p>
       </header>
 
       {opportunities.length === 0 ? (
         <div className="rounded-3xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
-          <h2 className="text-2xl font-semibold text-ink">No liquidation opportunities right now</h2>
+          <h2 className="text-2xl font-semibold text-ink">No limited-time Disney villa deals right now</h2>
           <p className="mt-3 text-sm text-muted">New curated opportunities are reviewed daily.</p>
         </div>
       ) : (

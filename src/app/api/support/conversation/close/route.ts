@@ -98,11 +98,11 @@ export async function POST(request: Request) {
       const senderName =
         entry.sender_display_name ??
         (senderType === "guest"
-          ? "Guest"
-          : senderType === "agent"
-            ? "Concierge"
-            : senderType === "ai"
-              ? "Pixie Concierge"
+        ? "Guest"
+        : senderType === "agent"
+          ? "Concierge"
+          : senderType === "ai"
+              ? "PixieDVC Concierge"
               : "System");
       const text = (entry.message ?? entry.content ?? "").trim();
       if (!text) return null;

@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
 
-  let agentNickname = "Pixie Concierge";
+  let agentNickname = "PixieDVC Concierge";
   if (handoff.assigned_agent_user_id !== eligibility.user.id) {
     const { data: agent } = await supabase
       .from("support_agents")

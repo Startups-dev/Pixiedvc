@@ -1363,7 +1363,7 @@ export async function POST(request: Request) {
                   conversation_id: activeConversationId,
                   sender: "ai",
                   sender_type: "ai",
-                  sender_display_name: "Pixie Concierge",
+                  sender_display_name: "PixieDVC Concierge",
                   message: answer,
                   content: answer,
                   metadata: {

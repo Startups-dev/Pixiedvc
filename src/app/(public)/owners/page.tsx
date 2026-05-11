@@ -180,9 +180,7 @@ function ImageSlot({
     >
       {!imageUrl ? (
         <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(rgba(15,33,72,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(15,33,72,0.06)_1px,transparent_1px)] [background-size:26px_26px]" />
-      ) : (
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,33,72,0.12),rgba(15,33,72,0.2))]" />
-      )}
+      ) : null}
       {!imageUrl ? (
         <div className="relative flex h-full min-h-[260px] items-end p-6">
           <div className="border border-white/40 bg-white/70 px-5 py-4 backdrop-blur-sm">
@@ -234,7 +232,13 @@ export default function OwnersPage() {
   return (
     <main className="bg-[#f8f6f2] text-[#0F2148]">
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,16,36,0.48),rgba(7,16,36,0.62)),url('https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/vero-beach/VBR1.png')] bg-cover bg-center" />
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage:
+              "url('https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/vero-beach/VBR1.png')",
+          }}
+        />
         <div className="relative mx-auto max-w-6xl px-6 py-40 md:py-56" />
       </section>
 

@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     .update({ last_assigned_at: new Date().toISOString() })
     .eq("user_id", eligibility.user.id);
 
-  const agentNickname = agent?.nickname?.trim() || "Pixie Concierge";
+  const agentNickname = agent?.nickname?.trim() || "PixieDVC Concierge";
   const nowIso = new Date().toISOString();
   await supabase
     .from("support_conversations")

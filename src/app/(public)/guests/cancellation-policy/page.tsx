@@ -1,220 +1,168 @@
 import Link from "next/link";
+import { ArrowRight, CalendarDays, CreditCard, RefreshCcw } from "lucide-react";
 
-import { Card } from "@pixiedvc/design-system";
+import FaqAccordion from "@/components/FaqAccordion";
 
 const beforeConfirmation = [
-  "You can cancel your request at any time",
-  "Any request deposit is handled according to the terms shown at checkout",
-  "No booking is made until availability is confirmed and you approve the details",
+  {
+    question: "When is my request deposit refundable?",
+    answer:
+      "Your request deposit remains refundable while PixieDVC is still working to match your stay and confirm availability. The specific booking terms shown before checkout always control how that deposit is handled.",
+  },
+  {
+    question: "What happens before availability is confirmed?",
+    answer:
+      "No reservation is booked until availability is confirmed and you approve the stay details. Before that point, our concierge team is still working through owner availability, resort timing, and match options for your request.",
+  },
 ];
 
 const afterConfirmation = [
-  "Confirmed reservations are typically non-refundable",
-  "Changes depend on availability and owner limitations",
-  "Date changes are not guaranteed",
+  {
+    question: "Are confirmed reservations refundable?",
+    answer:
+      "Confirmed Disney villa reservations are typically much more restrictive than standard hotel bookings. Once owner points are committed to your stay, refund and cancellation flexibility depends on the specific terms shown before you complete payment.",
+  },
+  {
+    question: "Can I change dates after confirmation?",
+    answer:
+      "Changes may be possible, but availability becomes more limited closer to arrival and depends on owner point restrictions, resort demand, and room type availability.",
+  },
+  {
+    question: "What flexibility options may be available?",
+    answer:
+      "Depending on timing and booking terms, eligible flexibility may include rebooking support, travel credit options, or other approved adjustment paths described with your reservation terms before you commit.",
+  },
 ];
 
-const flexibilityOptions = [
-  "Deferred travel credit",
-  "Partial recovery options depending on timing",
-  "Assistance rebooking your stay",
-];
-
-const flexibilityDependsOn = [
-  "how far in advance you cancel",
-  "resort and room type",
-  "owner flexibility",
-];
-
-const noSurprises = [
-  "Full price",
-  "Payment terms",
-  "Cancellation terms specific to your booking",
-  "Any available flexibility options",
-];
-
-const conciergeSupport = [
-  "We will help explore rebooking options",
-  "We will check availability for alternatives",
-  "We will guide you through available credit or adjustment options",
+const travelCredits = [
+  {
+    question: "What is the Deferred Cancellation Policy?",
+    answer:
+      "Some bookings may include eligibility for a Deferred Cancellation Credit rather than a cash refund. When available, this is explained in the reservation-specific terms shown before payment is completed.",
+  },
+  {
+    question: "How are travel credits determined?",
+    answer:
+      "Travel credit eligibility depends on factors such as how far in advance you cancel, the resort and room type booked, owner flexibility, and the specific terms attached to your reservation.",
+  },
+  {
+    question: "What affects cancellation flexibility?",
+    answer:
+      "Cancellation flexibility is influenced by booking timing, resort demand, owner point restrictions, and any reservation-specific options offered before checkout. Earlier notice generally creates more room for alternatives.",
+  },
 ];
 
 export default function GuestCancellationPolicyPage() {
   return (
-    <main className="bg-[#f8f6f2] text-[#0F2148]">
-      <section className="mx-auto max-w-5xl px-6 py-16 md:py-20">
-        <div className="space-y-4">
-          <p className="text-xs uppercase tracking-[0.24em] text-[#6f7683]">Guest Policy</p>
-          <h1 className="text-[38px] font-semibold leading-tight text-[#06080d] sm:text-[52px]">
+    <main className="bg-[linear-gradient(180deg,#f8faff_0%,#ffffff_18%,#f9fbff_100%)] text-slate-900">
+      <section className="mx-auto max-w-6xl px-6 pb-12 pt-16 sm:pt-20">
+        <div className="max-w-3xl">
+          <h1 className="text-4xl font-semibold tracking-tight text-[#10224b] sm:text-5xl">
             Cancellation &amp; Changes Policy
           </h1>
-          <div className="max-w-3xl space-y-4 text-[16px] leading-7 text-[#5f6673]">
-            <p className="font-medium text-[#30405f]">DVC reservations are different from standard hotel bookings.</p>
-            <p className="font-semibold text-[#0F2148]">
-              DVC reservations are typically non-refundable once confirmed.
-            </p>
-            <p>
-              Because reservations are made using owner points, cancellation and change options are more limited.
-              However, PixieDVC is structured to provide as much clarity and flexibility as possible before and after
-              booking.
-            </p>
-            <p>
-              PixieDVC bookings use owner points, which limits refunds but allows structured flexibility through
-              credits and rebooking options.
-            </p>
-            <p>
-              You may qualify for a travel credit under our{" "}
-              <Link href="/policies/deferred-cancellation" className="font-semibold text-[#0F2148] underline underline-offset-4">
-                Deferred Cancellation Policy
-              </Link>
-              .
-            </p>
+          <p className="mt-5 text-base leading-8 text-[#546887] sm:text-lg">
+            Important information about booking flexibility, reservation changes, and travel credit options for Disney
+            villa stays.
+          </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-10">
+        <div
+          className="overflow-hidden rounded-[2.25rem] border border-[#dbe5f5] shadow-[0_22px_56px_rgba(16,34,75,0.08)]"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(7,15,34,0.08) 0%, rgba(7,15,34,0.22) 100%), url(https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/Riviera/RR4.png) center/cover",
+          }}
+        >
+          <div className="bg-[linear-gradient(90deg,rgba(7,15,34,0.72)_0%,rgba(7,15,34,0.34)_52%,rgba(7,15,34,0.16)_100%)] px-8 py-10 sm:px-12 sm:py-12">
+            <div className="max-w-2xl">
+              <h2 className="text-3xl font-semibold tracking-tight !text-white sm:text-[2.2rem]">
+                Booking flexibility, explained clearly.
+              </h2>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl space-y-8 px-6 pb-20">
-        <Card className="rounded-xl border border-[#0F2148]/8 bg-white p-8 shadow-[0_18px_44px_rgba(15,33,72,0.08)]">
-          <p className="text-xs uppercase tracking-[0.22em] text-[#5b78ff]">Before Confirmation</p>
-          <h2 className="mt-3 text-[30px] font-semibold leading-tight text-[#06080d]">Before your stay is confirmed</h2>
-          <ul className="mt-5 space-y-3 text-[16px] leading-7 text-[#5f6673]">
-            {beforeConfirmation.map((item) => (
-              <li key={item} className="flex gap-3">
-                <span aria-hidden="true" className="text-[#5b78ff]">
-                  •
-                </span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-
-        <Card className="rounded-xl border border-[#0F2148]/8 bg-[linear-gradient(180deg,#ffffff_0%,#f4f7fb_100%)] p-8 shadow-[0_18px_44px_rgba(15,33,72,0.08)]">
-          <p className="text-xs uppercase tracking-[0.22em] text-[#6f7683]">After Confirmation</p>
-          <h2 className="mt-3 text-[30px] font-semibold leading-tight text-[#06080d]">After your reservation is confirmed</h2>
-          <p className="mt-5 max-w-3xl text-[16px] leading-7 text-[#5f6673]">
-            Once a stay is secured with a DVC owner, it becomes subject to the owner&apos;s points and booking rules.
-          </p>
-          <ul className="mt-5 space-y-3 text-[16px] leading-7 text-[#5f6673]">
-            {afterConfirmation.map((item) => (
-              <li key={item} className="flex gap-3">
-                <span aria-hidden="true" className="text-[#0F2148]/55">
-                  •
-                </span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-
-        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <Card className="rounded-xl border border-[#0F2148]/8 bg-white p-8 shadow-[0_18px_44px_rgba(15,33,72,0.08)]">
-            <p className="text-xs uppercase tracking-[0.22em] text-[#5b78ff]">Flexibility Options</p>
-            <h2 className="mt-3 text-[30px] font-semibold leading-tight text-[#06080d]">
-              Flexible cancellation options
-            </h2>
-            <p className="mt-5 text-[16px] leading-7 text-[#5f6673]">
-              PixieDVC may offer:
+      <section className="mx-auto max-w-6xl space-y-10 px-6 pb-20">
+        <section className="scroll-mt-28 rounded-[2rem] bg-white px-6 py-8 sm:px-8 sm:py-10">
+          <div className="max-w-3xl">
+            <div className="flex items-center gap-5">
+              <div className="flex h-14 w-14 items-center justify-center rounded-[1.15rem] bg-[linear-gradient(180deg,#eef3ff,#f8faff)] text-[#3a57a5] shadow-[0_12px_30px_rgba(16,34,75,0.08)]">
+                <CalendarDays className="h-6 w-6" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 className="text-[2rem] font-semibold tracking-tight text-[#10224b]">Before confirmation</h2>
+                <div className="mt-3 h-px w-24 bg-[linear-gradient(90deg,rgba(49,79,152,0.34),rgba(49,79,152,0.06))]" />
+              </div>
+            </div>
+            <p className="mt-5 max-w-2xl text-[17px] leading-8 text-[#5a6d8f]">
+              What happens while your request is still being worked, before a Disney villa stay is secured and ready
+              for approval.
             </p>
-            <ul className="mt-5 space-y-3 text-[16px] leading-7 text-[#5f6673]">
-              {flexibilityOptions.map((item) => (
-                <li key={item} className="flex gap-3">
-                  <span aria-hidden="true" className="text-[#5b78ff]">
-                    •
-                  </span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-
-          <Card className="rounded-xl border border-[#0F2148]/8 bg-[#163264] p-8 text-white shadow-[0_20px_50px_rgba(15,33,72,0.12)]">
-            <p className="text-xs uppercase tracking-[0.22em] text-white/58">What It Depends On</p>
-            <p className="mt-5 text-[16px] leading-7 text-white/76">These options depend on:</p>
-            <ul className="mt-5 space-y-3 text-[16px] leading-7 text-white/78">
-              {flexibilityDependsOn.map((item) => (
-                <li key={item} className="flex gap-3">
-                  <span aria-hidden="true" className="text-white/78">
-                    •
-                  </span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </div>
-
-        <Card className="rounded-xl border border-[#0F2148]/8 bg-[#f7f9fc] p-8 shadow-[0_18px_44px_rgba(15,33,72,0.08)]">
-          <p className="text-xs uppercase tracking-[0.22em] text-[#6f7683]">Timing Guidelines</p>
-          <h2 className="mt-3 text-[30px] font-semibold leading-tight text-[#06080d]">
-            General cancellation timing expectations
-          </h2>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <div className="rounded-xl border border-[#0F2148]/8 bg-white px-5 py-5">
-              <p className="text-sm font-semibold text-[#0F2148]">More than 90 days before check-in</p>
-              <p className="mt-2 text-sm text-[#0F2148]/72">Highest flexibility</p>
-            </div>
-            <div className="rounded-xl border border-[#0F2148]/8 bg-white px-5 py-5">
-              <p className="text-sm font-semibold text-[#0F2148]">60-90 days</p>
-              <p className="mt-2 text-sm text-[#0F2148]/72">Limited flexibility</p>
-            </div>
-            <div className="rounded-xl border border-[#0F2148]/8 bg-white px-5 py-5">
-              <p className="text-sm font-semibold text-[#0F2148]">Less than 60 days</p>
-              <p className="mt-2 text-sm text-[#0F2148]/72">Changes and refunds are unlikely</p>
-            </div>
           </div>
-          <p className="mt-6 text-[16px] leading-7 text-[#5f6673]">
-            Exact terms are always shown before you confirm your booking.
-          </p>
-        </Card>
-
-        <Card className="rounded-xl border border-[#0F2148]/8 bg-white p-8 shadow-[0_18px_44px_rgba(15,33,72,0.08)]">
-          <p className="text-xs uppercase tracking-[0.22em] text-[#5b78ff]">No Surprises</p>
-          <h2 className="mt-3 text-[30px] font-semibold leading-tight text-[#06080d]">What you will always see</h2>
-          <ul className="mt-5 grid gap-3 text-[16px] leading-7 text-[#5f6673] md:grid-cols-2">
-            {noSurprises.map((item) => (
-              <li key={item} className="flex gap-3 rounded-xl border border-[#0F2148]/8 bg-[#f6f8fc] px-4 py-4">
-                <span aria-hidden="true" className="text-[#5b78ff]">
-                  •
-                </span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-6 text-[16px] leading-7 text-[#5f6673]">You approve everything before committing.</p>
-        </Card>
-
-        <Card className="rounded-xl border border-[#0F2148]/8 bg-[linear-gradient(180deg,#ffffff_0%,#f4f7fb_100%)] p-8 shadow-[0_18px_44px_rgba(15,33,72,0.08)]">
-          <p className="text-xs uppercase tracking-[0.22em] text-[#6f7683]">Concierge Support</p>
-          <h2 className="mt-3 text-[30px] font-semibold leading-tight text-[#06080d]">We help you navigate changes</h2>
-          <p className="mt-5 text-[16px] leading-7 text-[#5f6673]">If your plans change:</p>
-          <ul className="mt-5 space-y-3 text-[16px] leading-7 text-[#5f6673]">
-            {conciergeSupport.map((item) => (
-              <li key={item} className="flex gap-3">
-                <span aria-hidden="true" className="text-[#0F2148]/55">
-                  •
-                </span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-6 text-[16px] leading-7 text-[#5f6673]">We don&apos;t leave you to figure it out alone.</p>
-        </Card>
-
-        <section className="rounded-[28px] bg-[linear-gradient(180deg,#152753_0%,#0c1631_100%)] px-8 py-10 text-center text-white shadow-[0_20px_50px_rgba(15,33,72,0.12)]">
-          <h2 className="text-[34px] font-semibold leading-tight text-white sm:text-[42px]">Questions before booking?</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-[16px] leading-7 text-white/76">
-            Talk to a concierge before you commit - we&apos;ll walk you through exactly what applies to your trip.
-          </p>
-          <div className="mt-8">
-            <Link
-              href="/contact"
-              className="inline-flex items-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-[#0F2148] transition hover:bg-white/90"
-            >
-              Contact Concierge
-            </Link>
+          <div className="mt-7">
+            <FaqAccordion categoryId="cancellation-before-confirmation" items={beforeConfirmation} />
           </div>
         </section>
+
+        <section className="scroll-mt-28 rounded-[2rem] bg-[linear-gradient(180deg,rgba(243,247,255,0.96),rgba(249,251,255,0.99))] px-6 py-8 sm:px-8 sm:py-10">
+          <div className="max-w-3xl">
+            <div className="flex items-center gap-5">
+              <div className="flex h-14 w-14 items-center justify-center rounded-[1.15rem] bg-[linear-gradient(180deg,#eef3ff,#f8faff)] text-[#3a57a5] shadow-[0_12px_30px_rgba(16,34,75,0.08)]">
+                <CreditCard className="h-6 w-6" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 className="text-[2rem] font-semibold tracking-tight text-[#10224b]">After confirmation</h2>
+                <div className="mt-3 h-px w-24 bg-[linear-gradient(90deg,rgba(49,79,152,0.34),rgba(49,79,152,0.06))]" />
+              </div>
+            </div>
+            <p className="mt-5 max-w-2xl text-[17px] leading-8 text-[#5a6d8f]">
+              What to expect once a matching owner is secured, availability is confirmed, and your reservation terms
+              are ready for approval.
+            </p>
+          </div>
+          <div className="mt-7">
+            <FaqAccordion categoryId="cancellation-after-confirmation" items={afterConfirmation} />
+          </div>
+        </section>
+
+        <section className="scroll-mt-28 rounded-[2rem] bg-white px-6 py-8 sm:px-8 sm:py-10">
+          <div className="max-w-3xl">
+            <div className="flex items-center gap-5">
+              <div className="flex h-14 w-14 items-center justify-center rounded-[1.15rem] bg-[linear-gradient(180deg,#eef3ff,#f8faff)] text-[#3a57a5] shadow-[0_12px_30px_rgba(16,34,75,0.08)]">
+                <RefreshCcw className="h-6 w-6" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 className="text-[2rem] font-semibold tracking-tight text-[#10224b]">Travel credits &amp; rebooking</h2>
+                <div className="mt-3 h-px w-24 bg-[linear-gradient(90deg,rgba(49,79,152,0.34),rgba(49,79,152,0.06))]" />
+              </div>
+            </div>
+            <p className="mt-5 max-w-2xl text-[17px] leading-8 text-[#5a6d8f]">
+              How Deferred Cancellation terms, travel credits, and alternate options may apply if plans change.
+            </p>
+          </div>
+          <div className="mt-7">
+            <FaqAccordion categoryId="cancellation-travel-credits" items={travelCredits} />
+          </div>
+        </section>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-20">
+        <div className="rounded-[2rem] border border-[#dde6f5] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,255,0.98))] px-8 py-9 text-center shadow-[0_18px_44px_rgba(15,33,72,0.06)]">
+          <h2 className="text-2xl font-semibold tracking-tight text-[#10224b]">Still have questions?</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-[#5a6d8f]">
+            Our concierge team can help clarify booking and cancellation questions before you commit.
+          </p>
+          <Link
+            href="/contact"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(180deg,#203b78,#152c5b)] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(15,33,72,0.18)] transition hover:brightness-110 hover:shadow-[0_14px_28px_rgba(15,33,72,0.22)]"
+          >
+            Talk to concierge
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </div>
       </section>
     </main>
   );

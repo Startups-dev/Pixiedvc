@@ -20,7 +20,7 @@ import { openIntercom } from "@/lib/intercom";
 const NAV_LINKS = [
   { href: "/resorts", label: "Resorts" },
   { href: "/ready-stays", label: "Ready Stays" },
-  { href: "/guides/how-renting-dvc-points-works", label: "How It Works" },
+  { href: "/how-it-works", label: "For Guests" },
   { href: "/owners", label: "For Owners" },
   { href: "/guides", label: "Guides" },
 ];
@@ -111,6 +111,21 @@ const DROPDOWNS: Record<string, DropdownConfig> = {
           { label: "Riviera Resort", href: "/resorts/riviera-resort", icon: Calendar },
           { label: "Saratoga Springs", href: "/resorts/saratoga-springs", icon: Calendar },
           { label: "Vero Beach", href: "/resorts/vero-beach", icon: Calendar },
+        ],
+      },
+    ],
+  },
+  "For Guests": {
+    columns: 1,
+    sections: [
+      {
+        title: "Guest Planning",
+        items: [
+          { label: "How Renting Works", href: "/how-it-works", icon: BookOpen },
+          { label: "Guest FAQ", href: "/faq", icon: Users },
+          { label: "Cancellation Policy", href: "/guests/cancellation-policy", icon: ShieldCheck },
+          { label: "Guest Policies", href: "/guests/policies", icon: ShieldCheck },
+          { label: "Cost Calculator", href: "/calculator", icon: Sparkles },
         ],
       },
     ],

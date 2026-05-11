@@ -106,7 +106,7 @@ export default function LiquidationOpportunitiesClient({ opportunities }: { oppo
                   onClick={() => setModalOpen(true)}
                   className="inline-flex rounded-full border border-blue-300/50 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800"
                 >
-                  Unlock this opportunity
+                  Unlock this deal
                 </button>
               )}
             </div>
@@ -117,7 +117,7 @@ export default function LiquidationOpportunitiesClient({ opportunities }: { oppo
       {modalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
           <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
-            <h3 className="text-xl font-semibold text-ink">Get access to liquidation opportunities</h3>
+            <h3 className="text-xl font-semibold text-ink">Get access to limited-time Disney villa deals</h3>
             <form className="mt-4 space-y-4" onSubmit={unlock}>
               <label className="block">
                 <span className="text-sm text-slate-700">Email</span>
@@ -140,7 +140,7 @@ export default function LiquidationOpportunitiesClient({ opportunities }: { oppo
                   Close
                 </button>
                 <Button type="submit" disabled={saving}>
-                  {saving ? "Unlocking..." : "Unlock opportunities"}
+                  {saving ? "Unlocking..." : "Unlock deals"}
                 </Button>
               </div>
             </form>

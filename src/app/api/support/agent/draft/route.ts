@@ -56,7 +56,7 @@ function normalizeSender(row: MessageRow) {
         : senderType === "agent"
           ? "Agent"
           : senderType === "ai"
-            ? "Pixie Concierge"
+            ? "PixieDVC Concierge"
             : "System";
   const content =
     (typeof row.message === "string" && row.message.trim()) ||

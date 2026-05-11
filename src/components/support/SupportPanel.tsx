@@ -56,8 +56,8 @@ type SupportChatStreamEvent = {
 
 const initialMessage: SupportMessage = {
   role: "assistant",
-  content: "Hi 👋 I’m your Pixie Concierge. How can I help with your plans today?",
-  senderLabel: "Pixie Concierge",
+  content: "Hi. How can I help with your plans today?",
+  senderLabel: "PixieDVC Concierge",
 };
 
 export default function SupportPanel({
@@ -78,7 +78,7 @@ export default function SupportPanel({
   const [pathname, setPathname] = useState("");
   const [conciergeConnectionState, setConciergeConnectionState] =
     useState<ConciergeConnectionState>("idle");
-  const [connectedAgentNickname, setConnectedAgentNickname] = useState("Pixie Concierge");
+  const [connectedAgentNickname, setConnectedAgentNickname] = useState("PixieDVC Concierge");
   const [contactSubmitStatus, setContactSubmitStatus] = useState<"idle" | "sending" | "sent">(
     "idle",
   );
@@ -121,8 +121,9 @@ export default function SupportPanel({
           "border-slate-700 bg-slate-800 text-slate-100 placeholder:text-slate-400",
         muted: "text-slate-300",
         chip: "bg-slate-800 border-slate-700 text-slate-200",
+        composerShell: "border border-slate-700/80 bg-slate-950/30",
         button:
-          "bg-slate-100 text-slate-900 hover:bg-white focus-visible:ring-slate-300",
+          "h-11 rounded-xl bg-[linear-gradient(180deg,#203b78,#152c5b)] px-4 text-white shadow-[0_10px_24px_rgba(15,33,72,0.28)] hover:shadow-[0_14px_30px_rgba(15,33,72,0.34)] hover:brightness-110 focus-visible:ring-slate-300",
       };
     }
     return {
@@ -134,40 +135,11 @@ export default function SupportPanel({
         "border-slate-200 bg-white text-slate-900 placeholder:text-slate-400",
       muted: "text-slate-500",
       chip: "bg-slate-50 border-slate-200 text-slate-500",
+      composerShell: "border border-slate-200 bg-slate-50/80",
       button:
-        "bg-slate-900 text-white hover:bg-slate-800 focus-visible:ring-slate-400",
+        "h-11 rounded-xl bg-[linear-gradient(180deg,#203b78,#152c5b)] px-4 text-white shadow-[0_10px_24px_rgba(15,33,72,0.18)] hover:shadow-[0_14px_28px_rgba(15,33,72,0.22)] hover:brightness-110 focus-visible:ring-slate-400",
     };
   }, [variant]);
-
-  const suggestionChips = useMemo(() => {
-    if (pathname.startsWith("/resorts/")) {
-      return [
-        "Compare rooms",
-        "How far is this from Magic Kingdom?",
-        "What villas are available here?",
-      ];
-    }
-    if (pathname.startsWith("/calculator")) {
-      return [
-        "How are points calculated?",
-        "What happens after I submit?",
-        "How does booking work?",
-      ];
-    }
-    if (pathname.startsWith("/owner")) {
-      return [
-        "How do I rent my points?",
-        "How does owner verification work?",
-        "Owner onboarding steps",
-      ];
-    }
-    return [
-      "What is DVC point rental?",
-      "What are Ready Stays?",
-      "How does booking work?",
-      "Compare resorts",
-    ];
-  }, [pathname]);
 
   useEffect(() => {
     const container = listRef.current;
@@ -201,7 +173,7 @@ export default function SupportPanel({
     setHandoffConnected(false);
     setConversationId(null);
     setGuestLiveToken(null);
-    setConnectedAgentNickname("Pixie Concierge");
+    setConnectedAgentNickname("PixieDVC Concierge");
     setConciergeConnectionState((prev) => (prev === "fallback" ? prev : "idle"));
   }, []);
 
@@ -446,7 +418,7 @@ export default function SupportPanel({
                     ? connectedAgentNickname
                     : message.sender === "system"
                       ? "System"
-                      : "Pixie Concierge"),
+                      : "PixieDVC Concierge"),
               };
           },
         );
@@ -635,7 +607,7 @@ export default function SupportPanel({
             role: "assistant",
             content:
               "All concierge are currently assisting other guests. We can follow up quickly — just leave your details.",
-            senderLabel: "Pixie Concierge",
+            senderLabel: "PixieDVC Concierge",
           },
         ]);
         openConciergeFallbackForm();
@@ -656,7 +628,7 @@ export default function SupportPanel({
         id: pendingId,
         role: "assistant",
         content: "",
-        senderLabel: "Pixie Concierge",
+        senderLabel: "PixieDVC Concierge",
       },
     ];
     setMessages(nextMessages);
@@ -791,7 +763,7 @@ export default function SupportPanel({
           role: "assistant",
           content: buildClientFallbackAnswer(trimmed, previousUserMessage),
           handoffSuggested: false,
-          senderLabel: "Pixie Concierge",
+          senderLabel: "PixieDVC Concierge",
         },
       ]);
     } finally {
@@ -847,7 +819,7 @@ export default function SupportPanel({
       setGuestLiveToken(data?.guestLiveToken ? String(data.guestLiveToken) : null);
       setHandoffConnected(Boolean(data?.assigned));
       if (data?.assigned) {
-        const nickname = String(data?.agentNickname || "Pixie Concierge");
+        const nickname = String(data?.agentNickname || "PixieDVC Concierge");
         setConnectedAgentNickname(nickname);
         setConciergeConnectionState("connecting");
         playConnectingSignal();
@@ -934,7 +906,7 @@ export default function SupportPanel({
         {
           role: "assistant",
           content: "This conversation has been closed. Start a new message anytime.",
-          senderLabel: "Pixie Concierge",
+          senderLabel: "PixieDVC Concierge",
         },
       ]);
       setTimeout(() => scrollToBottom("smooth"), 0);
@@ -985,7 +957,7 @@ export default function SupportPanel({
           role: "assistant",
           content:
             "Your concierge request has been received. We’ll follow up soon.",
-          senderLabel: "Pixie Concierge",
+          senderLabel: "PixieDVC Concierge",
         },
       ]);
     } catch {
@@ -1018,8 +990,8 @@ export default function SupportPanel({
         className={`flex items-center justify-between border-b px-5 py-4 ${theme.header}`}
       >
         <div>
-          <p className="text-sm font-semibold">✨ Pixie Concierge</p>
-          <p className={`text-xs ${theme.muted}`}>Turning dreams into plans</p>
+          <p className="text-sm font-semibold">✨ PixieDVC Concierge</p>
+          <p className={`text-xs ${theme.muted}`}>Questions about DVC rentals, resorts, or availability?</p>
         </div>
         {categories.length > 0 && (
           <select
@@ -1079,10 +1051,10 @@ export default function SupportPanel({
                     onClick={() => {
                       void requestConcierge();
                     }}
-                    className="rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-900 hover:bg-white"
+                    className="rounded-full border border-slate-600 bg-slate-800/72 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-slate-800"
                     disabled={conciergeRequestInFlightRef.current}
                   >
-                    💬 Talk to a Concierge Now
+                    Talk to concierge
                   </button>
                 </div>
               )}
@@ -1111,7 +1083,7 @@ export default function SupportPanel({
                   {
                     role: "assistant",
                     content: "No problem. I’m here if you need anything else.",
-                    senderLabel: "Pixie Concierge",
+                    senderLabel: "PixieDVC Concierge",
                   },
                 ]);
               }}
@@ -1123,7 +1095,7 @@ export default function SupportPanel({
         )}
         {loading && (
           <div className={`text-xs ${theme.muted}`}>
-            Pixie Concierge is typing...
+            PixieDVC Concierge is typing...
           </div>
         )}
       </div>
@@ -1146,49 +1118,34 @@ export default function SupportPanel({
             className="absolute inset-0 transition-[opacity,transform] duration-140 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] data-[active=true]:opacity-100 data-[active=true]:translate-y-0 data-[active=true]:pointer-events-auto data-[active=false]:opacity-0 data-[active=false]:translate-y-1 data-[active=false]:pointer-events-none"
           >
             <div className="flex h-full flex-col justify-end gap-2 pb-1">
-              <div className="flex flex-wrap gap-2">
-                {suggestionChips.map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    onClick={() => setInput(chip)}
-                    className={`rounded-full border px-3 py-1 text-[11px] font-medium transition ${theme.chip}`}
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-1.5 rounded-2xl p-1 ${theme.composerShell}`}>
                 <textarea
                   rows={1}
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Ask anything DVC..."
-                  className={`no-scrollbar h-10 min-w-0 flex-1 resize-none overflow-hidden rounded-xl border px-3 py-2 text-sm leading-5 ${theme.input}`}
+                  className={`no-scrollbar h-11 min-w-0 flex-1 resize-none overflow-hidden rounded-xl border px-3 py-2.5 text-sm leading-5 ${theme.input}`}
                 />
                 <button
                   type="button"
                   onClick={sendMessage}
                   disabled={loading}
-                  className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition ${theme.button}`}
+                  className={`shrink-0 text-sm font-semibold transition ${theme.button}`}
                 >
                   Send
                 </button>
               </div>
-              <div className="flex items-center justify-start">
-                <span className={`text-xs ${theme.muted} mr-2`}>
-                  Prefer a human?
-                </span>
+              <div className="flex justify-center">
                 <button
                   type="button"
                   onClick={() => {
                     void requestConcierge();
                   }}
-                  className="rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-900 hover:bg-white"
+                  className="rounded-full border border-slate-600 bg-slate-800/72 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-slate-800"
                   disabled={conciergeRequestInFlightRef.current}
                 >
-                  💬 Talk to a Concierge Now
+                  Talk to concierge
                 </button>
                 {(handoffConnected || liveChatActive) ? (
                   <button

@@ -341,7 +341,7 @@ export async function POST(request: Request) {
       .select("nickname")
       .eq("user_id", assignedAgentUserId)
       .maybeSingle();
-    assignedAgentNickname = assignedAgent?.nickname?.trim() || "Pixie Concierge";
+    assignedAgentNickname = assignedAgent?.nickname?.trim() || "PixieDVC Concierge";
 
     await supabase
       .from("support_conversations")
@@ -399,7 +399,7 @@ export async function POST(request: Request) {
     conversationId: conversation,
     assigned: Boolean(assignedAgentUserId),
     agentUserId: assignedAgentUserId,
-    agentNickname: assignedAgentNickname ?? "Pixie Concierge",
+    agentNickname: assignedAgentNickname ?? "PixieDVC Concierge",
     noAgentAvailable: !assignedAgentUserId,
     noAgentReason,
     liveEnabled,

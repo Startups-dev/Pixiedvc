@@ -88,7 +88,9 @@ export default function EmailLeadCapture({
         <form
           onSubmit={handleSubmit}
           className={cn(
-            compact ? "mt-4 flex flex-col gap-3 sm:flex-row sm:items-start lg:mt-0 lg:min-w-[420px]" : "mx-auto mt-5 flex max-w-2xl flex-col gap-3 sm:flex-row",
+            compact
+              ? "mt-4 flex flex-col gap-3 sm:flex-row sm:items-center lg:mt-0 lg:min-w-[420px] lg:self-center"
+              : "mx-auto mt-5 flex max-w-2xl flex-col gap-3 sm:flex-row",
           )}
         >
           <label htmlFor={emailId} className="sr-only">
