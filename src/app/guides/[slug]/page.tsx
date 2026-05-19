@@ -39,6 +39,12 @@ const WHAT_IS_DVC_CHIPS = [
   "Disney confirmation issued",
 ];
 
+const WHAT_IS_DVC_HERO_TRUST = [
+  "Verified DVC owners",
+  "Disney reservation confirmation",
+  "Concierge guidance",
+];
+
 const WHAT_IS_DVC_VALUE_POINTS = [
   "Separate sleeping areas",
   "Full or partial kitchens",
@@ -49,6 +55,21 @@ const WHAT_IS_DVC_PIXIEDVC_POINTS = [
   "Estimate points and pricing",
   "Match with verified owners",
   "Review details before committing",
+];
+
+const WHAT_IS_DVC_REASSURANCE = [
+  {
+    title: "A real Disney reservation",
+    body: "Once booked, your stay is confirmed in Disney's system like other resort reservations.",
+  },
+  {
+    title: "A better fit for planners",
+    body: "It works best when you can plan ahead or stay flexible around resort and room options.",
+  },
+  {
+    title: "A calmer booking path",
+    body: "PixieDVC helps guests understand pricing, fit, and next steps before moving forward.",
+  },
 ];
 
 const BAY_LAKE_INSIDER_GUIDE = {
@@ -908,16 +929,16 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
             className="absolute inset-0"
             style={{
               background: `url(${WHAT_IS_DVC_HERO_IMAGE}) center/cover`,
-              filter: "contrast(1.05) saturate(1.04) brightness(1.01)",
+              filter: "contrast(1.08) saturate(1.07) brightness(1.015)",
             }}
           />
           <div className="relative mx-auto flex min-h-[760px] max-w-6xl items-end px-6 pb-20 pt-24 sm:min-h-[820px] sm:pt-32">
-            <div className="max-w-[44rem] rounded-[1.85rem] border border-white/14 bg-[linear-gradient(180deg,rgba(10,20,40,0.46),rgba(10,20,40,0.36))] px-7 py-9 shadow-[0_40px_80px_rgba(0,0,0,0.16)] backdrop-blur-[1px]">
+            <div className="max-w-[46rem] rounded-[1.9rem] border border-white/16 bg-[linear-gradient(180deg,rgba(10,20,40,0.34),rgba(10,20,40,0.26))] px-7 py-8 shadow-[0_34px_74px_rgba(0,0,0,0.14)] backdrop-blur-[8px] sm:px-8 sm:py-9">
               <p className="text-sm font-medium uppercase tracking-[0.18em] text-white/72">PixieDVC Guide</p>
-              <h1 className="mt-4 max-w-[12ch] text-5xl font-semibold tracking-tight !text-white sm:text-6xl">
+              <h1 className="mt-4 max-w-[12ch] text-[3.45rem] font-semibold tracking-tight !text-white sm:text-[4.55rem] sm:leading-[0.98]">
                 What is DVC?
               </h1>
-              <p className="mt-5 max-w-[560px] text-base font-medium leading-8 text-white/82 sm:text-lg">
+              <p className="mt-5 max-w-[560px] text-[1.03rem] font-normal leading-[1.95] text-white/80 sm:text-[1.12rem]">
                 A calm guide to Disney Vacation Club rentals, how owner points work, and why many guests use them to
                 book deluxe Disney villa stays for less.
               </p>
@@ -934,6 +955,16 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
                 >
                   Explore resorts
                 </Link>
+              </div>
+              <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/78">
+                {WHAT_IS_DVC_HERO_TRUST.map((item) => (
+                  <span key={item} className="inline-flex items-center gap-2">
+                    <span className="text-white/72" aria-hidden="true">
+                      ✓
+                    </span>
+                    <span>{item}</span>
+                  </span>
+                ))}
               </div>
             </div>
           </div>
@@ -955,17 +986,17 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
         </section>
 
         <section className="bg-[linear-gradient(180deg,rgba(243,247,255,0.92),rgba(249,251,255,0.98))]">
-          <div className="mx-auto max-w-6xl px-6 py-16">
+          <div className="mx-auto max-w-6xl px-6 py-20">
             <article className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
               <div className="max-w-2xl">
-                <h2 className="text-[2.8rem] font-semibold tracking-tight text-[#10224b] sm:text-[3.2rem]">
+                <h2 className="text-[2.8rem] font-medium tracking-tight text-[#10224b] sm:text-[3.2rem]">
                   The short version
                 </h2>
-                <p className="mt-4 text-lg font-medium leading-8 text-[#51678f]">
+                <p className="mt-4 text-[1.08rem] font-normal leading-[1.9] text-[#51678f] sm:text-[1.14rem]">
                   Disney Vacation Club is Disney&apos;s vacation ownership program, and renting points lets non-members
                   book the same villas without becoming owners.
                 </p>
-                <div className="mt-7 space-y-4 text-[16px] leading-8 text-[#5a6d8f]">
+                <div className="mt-8 space-y-5 text-[1.03rem] leading-[1.95] text-[#5a6d8f]">
                   <p>
                     Instead of paying Disney&apos;s standard hotel cash rates, members use points to reserve deluxe villas
                     at participating Disney resorts.
@@ -987,13 +1018,13 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
         </section>
 
         <section className="bg-white">
-          <div className="mx-auto max-w-6xl px-6 py-16">
+          <div className="mx-auto max-w-6xl px-6 py-20">
             <article className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
               <div>
-                <h2 className="text-[2.8rem] font-semibold tracking-tight text-[#10224b] sm:text-[3.2rem]">
+                <h2 className="text-[2.8rem] font-medium tracking-tight text-[#10224b] sm:text-[3.2rem]">
                   Why guests use DVC rentals
                 </h2>
-                <p className="mt-4 text-lg font-medium leading-8 text-[#51678f]">
+                <p className="mt-4 text-[1.08rem] font-normal leading-[1.9] text-[#51678f] sm:text-[1.14rem]">
                   The appeal is usually more space, better villa layouts, and a lower path into Disney deluxe resorts.
                 </p>
               </div>
@@ -1008,7 +1039,7 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
                     </div>
                   ))}
                 </div>
-                <div className="mt-7 space-y-4 text-[16px] leading-8 text-[#5a6d8f]">
+                <div className="mt-8 space-y-5 text-[1.03rem] leading-[1.95] text-[#5a6d8f]">
                   <p>
                     Many DVC villas include the kind of layout families usually want for longer Disney trips: room to
                     spread out, better storage, and in some cases full kitchens and laundry.
@@ -1024,13 +1055,13 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
         </section>
 
         <section className="bg-[linear-gradient(180deg,#fffdfa_0%,#ffffff_100%)]">
-          <div className="mx-auto max-w-6xl px-6 py-16">
+          <div className="mx-auto max-w-6xl px-6 py-20">
             <article className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
               <div className="max-w-2xl">
-                <h2 className="text-[2.8rem] font-semibold tracking-tight text-[#10224b] sm:text-[3.2rem]">
+                <h2 className="text-[2.8rem] font-medium tracking-tight text-[#10224b] sm:text-[3.2rem]">
                   How PixieDVC fits in
                 </h2>
-                <p className="mt-4 text-lg font-medium leading-8 text-[#51678f]">
+                <p className="mt-4 text-[1.08rem] font-normal leading-[1.9] text-[#51678f] sm:text-[1.14rem]">
                   PixieDVC adds structure, verification, and concierge support to a process that can otherwise feel
                   informal.
                 </p>
@@ -1044,7 +1075,7 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
                     </div>
                   ))}
                 </div>
-                <div className="mt-7 space-y-4 text-[16px] leading-8 text-[#5a6d8f]">
+                <div className="mt-8 space-y-5 text-[1.03rem] leading-[1.95] text-[#5a6d8f]">
                   <p>
                     Renting points directly from an owner can work, but it usually requires more coordination, more
                     trust, and more guesswork around availability and timing.
@@ -1066,39 +1097,47 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
           </div>
         </section>
 
+        <section className="bg-[linear-gradient(180deg,#fffdfa_0%,rgba(246,249,255,0.95)_100%)]">
+          <div className="mx-auto max-w-6xl px-6 py-20">
+            <div
+              className="overflow-hidden rounded-[2.2rem] shadow-[0_24px_56px_rgba(15,33,72,0.10)]"
+              style={{
+                background:
+                  "linear-gradient(90deg, rgba(7,16,36,0.70) 0%, rgba(7,16,36,0.58) 28%, rgba(7,16,36,0.34) 52%, rgba(7,16,36,0.10) 76%, rgba(7,16,36,0.02) 100%), linear-gradient(180deg, rgba(7,16,36,0.08) 0%, rgba(7,16,36,0.16) 100%), url(https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/Boardwalk/BDW1.png) center/cover",
+              }}
+            >
+              <div className="max-w-3xl px-8 py-16 sm:px-12 sm:py-20">
+                <p className="text-sm font-medium uppercase tracking-[0.18em] text-white/68">Why it feels different</p>
+                <h2 className="mt-4 text-[2.8rem] font-medium tracking-tight !text-white sm:text-[3.45rem] sm:leading-[1.02]">
+                  A Disney villa stay gives families more room to slow down.
+                </h2>
+                <p className="mt-5 max-w-2xl text-[1.06rem] leading-[1.95] text-white/82 sm:text-[1.12rem]">
+                  More space, a calmer in-room rhythm, and better separation between rest and park time are often what
+                  make DVC stays feel meaningfully different from a standard hotel booking.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="bg-[linear-gradient(180deg,rgba(243,247,255,0.96),rgba(249,251,255,0.99))]">
-          <div className="mx-auto max-w-6xl px-6 py-16">
-            <div className="mx-auto max-w-3xl text-center">
-              <h2 className="text-[2.8rem] font-semibold tracking-tight text-[#10224b] sm:text-[3.2rem]">
+          <div className="mx-auto max-w-6xl px-6 py-20">
+            <div className="mx-auto max-w-4xl text-center">
+              <h2 className="text-[2.65rem] font-medium tracking-tight text-[#10224b] sm:text-[3rem]">
                 What to expect
               </h2>
-              <p className="mt-4 text-lg font-medium leading-8 text-[#51678f]">
+              <p className="mt-4 text-[1.08rem] font-normal leading-[1.9] text-[#51678f] sm:text-[1.14rem]">
                 Renting DVC points is not a timeshare presentation and it does not create ownership. It is simply a
                 different way to book a Disney villa stay.
               </p>
             </div>
-            <div className="mt-10 grid gap-5 md:grid-cols-3">
-              {[
-                {
-                  title: "A real Disney reservation",
-                  body: "Once booked, your stay is confirmed in Disney's system like other resort reservations.",
-                },
-                {
-                  title: "A better fit for planners",
-                  body: "It works best when you can plan ahead or stay flexible around resort and room options.",
-                },
-                {
-                  title: "A calmer booking path",
-                  body: "PixieDVC helps guests understand pricing, fit, and next steps before moving forward.",
-                },
-              ].map((item) => (
-                <Card
-                  key={item.title}
-                  className="rounded-[1.6rem] border border-[#dbe4f4] bg-white p-7 shadow-[0_16px_36px_rgba(15,33,72,0.05)]"
-                >
-                  <h3 className="text-2xl font-semibold leading-tight text-[#10224b]">{item.title}</h3>
-                  <p className="mt-4 text-sm leading-7 text-[#5a6d8f]">{item.body}</p>
-                </Card>
+            <div className="mt-12 grid gap-8 md:grid-cols-3">
+              {WHAT_IS_DVC_REASSURANCE.map((item) => (
+                <div key={item.title} className="space-y-4 border-t border-[#d7e2f3] pt-6 text-center md:text-left">
+                  <div className="mx-auto h-1.5 w-14 rounded-full bg-[linear-gradient(90deg,#4c5fd7,#7486eb)] md:mx-0" />
+                  <h3 className="text-[1.55rem] font-medium leading-tight text-[#10224b]">{item.title}</h3>
+                  <p className="text-[1.01rem] leading-[1.9] text-[#5a6d8f]">{item.body}</p>
+                </div>
               ))}
             </div>
           </div>
@@ -1106,7 +1145,7 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
 
         <section className="bg-[#11224b] py-14 text-white">
           <div className="mx-auto max-w-6xl px-6">
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-center text-base font-medium text-white/90 sm:text-lg">
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-center text-[1.03rem] font-medium text-white/90 sm:text-[1.14rem]">
               <span>Verified DVC owners</span>
               <span aria-hidden="true" className="text-white/38">
                 •
@@ -1124,12 +1163,16 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
           </div>
         </section>
 
-        <section className="py-16 md:py-20">
+        <section className="bg-[linear-gradient(180deg,#11224b_0%,rgba(17,34,75,0.05)_0.1%,#f9fbff_34%,#ffffff_100%)] py-20 md:py-24">
           <div className="mx-auto max-w-4xl px-6 text-center">
-            <h2 className="text-4xl font-semibold tracking-tight text-[#10224b] sm:text-5xl">
+            <p className="mx-auto max-w-2xl text-[1.02rem] leading-[1.9] text-[#5a6d8f] sm:text-[1.08rem]">
+              The goal is not to make Disney planning more complicated. It is to make deluxe villa stays feel clearer,
+              more approachable, and easier to trust.
+            </p>
+            <h2 className="mt-8 text-4xl font-medium tracking-tight text-[#10224b] sm:text-5xl">
               Ready to see what your trip could cost?
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-[#5a6d8f] sm:text-lg">
+            <p className="mx-auto mt-4 max-w-2xl text-[1.03rem] leading-[1.95] text-[#5a6d8f] sm:text-[1.12rem]">
               Use the PixieDVC calculator to estimate pricing, compare resorts, and understand which booking path fits
               your stay.
             </p>
