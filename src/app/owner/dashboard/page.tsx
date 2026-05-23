@@ -1,5 +1,4 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
@@ -7,7 +6,6 @@ import {
   ensureApprovalNotifications,
   ensurePointsExpiringNotification,
   ensureResaleRestrictionNotification,
-  getDisplayName,
   getNextExpiringMembership,
   hasRestrictedResaleMembership,
   getOwnerMemberships,
@@ -23,6 +21,7 @@ import { formatCurrency, normalizeMilestones, getMilestoneStatus } from "@/lib/o
 import { getMembershipExpirationDate, getMembershipNudge } from "@/lib/owner-nudges";
 import { getOwnerPreferredBonusCents, getOwnerPreferredTier } from "@/lib/owner-rewards";
 import { getPromotionsSetting } from "@/lib/promotions-settings";
+import { requireOwnerAccess } from "@/lib/owner/requireOwnerAccess";
 import OwnerDashboardClient from "./OwnerDashboardClient";
 
 export const dynamic = "force-dynamic";
@@ -93,19 +92,14 @@ function buildDisplayMilestones(rental: any) {
 }
 
 type OwnerDashboardPageProps = {
-  searchParams?: { tab?: string; mode?: string };
+  searchParams?: Promise<{ tab?: string; mode?: string }> | { tab?: string; mode?: string };
 };
 
 export default async function OwnerDashboardPage({ searchParams }: OwnerDashboardPageProps) {
+  const resolvedSearchParams = searchParams instanceof Promise ? await searchParams : searchParams;
   const cookieStore = await cookies();
+  const { user } = await requireOwnerAccess("/owner/dashboard", cookieStore);
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login?redirect=/owner/dashboard");
-  }
 
   const onboardingMessage = cookieStore.get("onboarding_completed_message");
   const showOnboardingMessage = Boolean(onboardingMessage);
@@ -333,8 +327,8 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
       }
     : null;
 
-  const tabParam = searchParams?.tab ?? "overview";
-  const listingsMode = searchParams?.mode === "add" ? "add" : "hub";
+  const tabParam = resolvedSearchParams?.tab ?? "overview";
+  const listingsMode = resolvedSearchParams?.mode === "add" ? "add" : "hub";
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "matches", label: "Matches" },

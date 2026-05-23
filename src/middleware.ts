@@ -81,7 +81,7 @@ export async function middleware(req: NextRequest) {
   if (!onboardingComplete) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('onboarding_completed, role')
+      .select('onboarding_completed, onboarding_completed_at, role')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -90,7 +90,7 @@ export async function middleware(req: NextRequest) {
       role = profileRole;
     }
 
-    if (profile?.onboarding_completed) {
+    if (profile?.onboarding_completed || profile?.onboarding_completed_at) {
       onboardingComplete = true;
       await supabase.auth.updateUser({
         data: {
@@ -101,8 +101,11 @@ export async function middleware(req: NextRequest) {
       });
     }
 
-    if ((!profile || !profile.onboarding_completed) && !url.pathname.startsWith('/onboarding')) {
-      url.pathname = '/onboarding';
+    if (
+      (!profile || (!profile.onboarding_completed && !profile.onboarding_completed_at)) &&
+      !url.pathname.startsWith('/onboarding')
+    ) {
+      url.pathname = isOwnerRoute ? '/owner/onboarding' : '/onboarding';
       return NextResponse.redirect(url);
     }
   }

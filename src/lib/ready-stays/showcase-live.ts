@@ -30,6 +30,7 @@ type ReadyStayShowcaseRow = {
   sleeps: number | null;
   expires_at: string | null;
   locked_until: string | null;
+  verification_status: string | null;
   resorts:
     | {
         name?: string | null;
@@ -127,7 +128,9 @@ function sortShowcaseRows(rows: ReadyStayShowcaseRow[]) {
   });
 }
 
-function isRowPubliclyAvailable(row: Pick<ReadyStayShowcaseRow, "check_out" | "expires_at" | "locked_until">) {
+function isRowPubliclyAvailable(
+  row: Pick<ReadyStayShowcaseRow, "check_out" | "expires_at" | "locked_until" | "verification_status">,
+) {
   const today = new Date().toISOString().slice(0, 10);
   const now = Date.now();
 
@@ -145,6 +148,10 @@ function isRowPubliclyAvailable(row: Pick<ReadyStayShowcaseRow, "check_out" | "e
     if (!Number.isNaN(lockedUntil.getTime()) && lockedUntil.getTime() >= now) {
       return false;
     }
+  }
+
+  if (row.verification_status === "proof_uploaded" || row.verification_status === "rejected") {
+    return false;
   }
 
   return true;
@@ -165,8 +172,8 @@ async function fetchPublicShowcaseRows(placementColumn?: "placement_home" | "pla
   const supabase = await createSupabaseServerClient();
 
   const selectClause = resortSlug
-    ? "id, slug, title, short_description, created_at, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, expires_at, locked_until, resorts!inner(name, slug)"
-    : "id, slug, title, short_description, created_at, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, expires_at, locked_until, resorts(name, slug)";
+    ? "id, slug, title, short_description, created_at, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, expires_at, locked_until, verification_status, resorts!inner(name, slug)"
+    : "id, slug, title, short_description, created_at, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, expires_at, locked_until, verification_status, resorts(name, slug)";
 
   let query = supabase
     .from("ready_stays")

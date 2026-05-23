@@ -21,20 +21,32 @@ function formatCurrencyFromCents(value: number | null) {
   }).format(value / 100);
 }
 
-function getLifecycleLabel(status: string) {
+function getLifecycleLabel(status: string, verificationStatus: string | null) {
   if (status === "sold") return "Sold";
   if (status === "active") return "Live";
-  return "Paused";
+  if (verificationStatus === "rejected") return "Needs Info";
+  if (verificationStatus === "submitted" || status === "draft" || status === "paused") return "Submitted";
+  if (status === "expired") return "Expired";
+  if (status === "removed") return "Removed";
+  return "Submitted";
 }
 
 function getStatusPillClasses(status: string) {
   const base = "rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]";
   if (status === "sold") return `${base} bg-emerald-100 text-emerald-700`;
   if (status === "active") return `${base} bg-indigo-100 text-indigo-700`;
+  if (status === "expired" || status === "removed") return `${base} bg-slate-100 text-slate-700`;
   return `${base} bg-amber-100 text-amber-700`;
 }
 
-export default async function OwnerReadyStayDetailPage({ params }: { params: { id: string } }) {
+export default async function OwnerReadyStayDetailPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams?: Promise<{ notice?: string }> | { notice?: string };
+}) {
+  const resolvedSearchParams = searchParams instanceof Promise ? await searchParams : searchParams;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -47,7 +59,7 @@ export default async function OwnerReadyStayDetailPage({ params }: { params: { i
   const { data: readyStay } = await supabase
     .from("ready_stays")
     .select(
-      "id, rental_id, status, check_in, check_out, room_type, points, owner_price_per_point_cents, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, created_at, updated_at, resorts(name)",
+      "id, rental_id, status, verification_status, verification_review_notes, check_in, check_out, room_type, points, owner_price_per_point_cents, created_at, updated_at, resorts(name)",
     )
     .eq("id", params.id)
     .eq("owner_id", user.id)
@@ -70,38 +82,56 @@ export default async function OwnerReadyStayDetailPage({ params }: { params: { i
 
   const points = Number(readyStay.points ?? 0);
   const ownerPrice = Number(readyStay.owner_price_per_point_cents ?? 0);
-  const guestPrice = Number(readyStay.guest_price_per_point_cents ?? 0);
-  const totalGuest = points * guestPrice;
-  const originalGuestPrice = Number(
-    readyStay.original_guest_price_per_point_cents ?? readyStay.guest_price_per_point_cents ?? 0,
-  );
-  const originalTotalGuest =
-    originalGuestPrice > guestPrice && originalGuestPrice > 0 ? originalGuestPrice * points : null;
-  const lifecycle = getLifecycleLabel(readyStay.status);
+  const estimatedOwnerPayout = points * ownerPrice;
+  const displayStatus = getLifecycleLabel(readyStay.status, readyStay.verification_status ?? null);
+  const confirmationCopy =
+    resolvedSearchParams?.notice === "submitted"
+      ? {
+          title: "Your Ready Stay has been submitted.",
+          body: "Listings may take up to 10 minutes to appear.",
+        }
+      : readyStay.status === "active"
+      ? {
+          title: "Your Ready Stay is live.",
+          body: "Guests can now view this listing and move forward with booking.",
+        }
+      : readyStay.status === "sold"
+        ? {
+            title: "This Ready Stay has been booked.",
+            body: "You can review the listing details here anytime.",
+          }
+        : readyStay.verification_status === "rejected"
+          ? {
+              title: "We need a little more information before this listing can appear.",
+              body: readyStay.verification_review_notes?.trim() || "Please update the reservation proof and try again.",
+            }
+        : {
+            title: "Your Ready Stay has been submitted.",
+            body: "Listings may take up to 10 minutes to appear.",
+          };
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-6 py-12">
-      <header className="space-y-3">
+      <header className="space-y-2">
         <Link href="/owner/ready-stays" className="text-xs uppercase tracking-[0.3em] text-muted">
           ← Back to Ready Stays
         </Link>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.3em] text-muted">Ready stays</p>
+          <div className="space-y-1.5">
             <h1 className="text-3xl font-semibold text-ink">{readyStay.resorts?.name ?? "Ready Stay listing"}</h1>
             <p className="text-sm text-muted">
               {formatDate(readyStay.check_in)} - {formatDate(readyStay.check_out)}
             </p>
           </div>
-          <span className={getStatusPillClasses(readyStay.status)}>{readyStay.status}</span>
+          <span className={getStatusPillClasses(readyStay.status)}>{displayStatus}</span>
         </div>
       </header>
 
       <Card className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Listing Status</h2>
-        <p className="text-sm text-muted">
-          Lifecycle: <span className="font-semibold text-ink">{lifecycle}</span>
-        </p>
+        <div className="space-y-1">
+          <h2 className="text-xl font-semibold text-ink">{confirmationCopy.title}</h2>
+          <p className="text-sm text-muted">{confirmationCopy.body}</p>
+        </div>
       </Card>
 
       <Card className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -126,50 +156,28 @@ export default async function OwnerReadyStayDetailPage({ params }: { params: { i
             <p className="mt-1 text-sm text-ink">{points.toLocaleString("en-US")}</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Owner Price / Point</p>
-            <p className="mt-1 text-sm text-ink">{formatCurrencyFromCents(ownerPrice)}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Owner Payout / Point</p>
+            <ReadyStayMarkdownForm
+              readyStayId={readyStay.id}
+              initialOwnerPricePerPointCents={ownerPrice}
+              points={points}
+            />
           </div>
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Guest Price / Point</p>
-            <p className="mt-1 text-sm text-ink">{formatCurrencyFromCents(guestPrice)}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Estimated Owner Payout</p>
+            <p className="mt-1 text-sm text-ink">{formatCurrencyFromCents(estimatedOwnerPayout)}</p>
           </div>
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Total Price</p>
-            <p className="mt-1 text-sm text-ink">{formatCurrencyFromCents(totalGuest)}</p>
-          </div>
-          {originalTotalGuest ? (
-            <>
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Original Guest Price / Point</p>
-                <p className="mt-1 text-sm text-slate-500 line-through">
-                  {formatCurrencyFromCents(originalGuestPrice)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Original Total</p>
-                <p className="mt-1 text-sm text-slate-500 line-through">
-                  {formatCurrencyFromCents(originalTotalGuest)}
-                </p>
-              </div>
-            </>
-          ) : null}
         </div>
       </Card>
 
-      <Card className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Actions</h2>
-        <ReadyStayMarkdownForm
-          readyStayId={readyStay.id}
-          initialOwnerPricePerPointCents={ownerPrice}
-          originalGuestPricePerPointCents={readyStay.original_guest_price_per_point_cents ?? null}
-          currentGuestPricePerPointCents={guestPrice}
-        />
-        <div className="pt-2">
-          <Button asChild variant="ghost">
-            <Link href={`/owner/rentals/${readyStay.rental_id}`}>Back to reservation details</Link>
-          </Button>
-        </div>
-      </Card>
+      <div className="flex flex-wrap gap-3">
+        <Button asChild>
+          <Link href="/owner/ready-stays">View inventory</Link>
+        </Button>
+        <Button asChild variant="ghost">
+          <Link href="/owner/dashboard">Return to dashboard</Link>
+        </Button>
+      </div>
     </div>
   );
 }

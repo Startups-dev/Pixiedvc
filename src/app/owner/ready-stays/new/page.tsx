@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { Card, Button } from "@pixiedvc/design-system";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { requireOwnerAccess } from "@/lib/owner/requireOwnerAccess";
 import OwnerReadyStayPublishForm from "@/components/owner/OwnerReadyStayPublishForm";
 
 export default async function ReadyStayNewPage({
@@ -12,14 +13,8 @@ export default async function ReadyStayNewPage({
   searchParams: { rentalId?: string };
 }) {
   const cookieStore = await cookies();
+  const { user } = await requireOwnerAccess("/owner/ready-stays/new", cookieStore);
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login?redirect=/owner/ready-stays/new");
-  }
 
   const rentalId = searchParams.rentalId ?? null;
 
@@ -73,6 +68,14 @@ export default async function ReadyStayNewPage({
     .from("rental_milestones")
     .select("code, status")
     .eq("rental_id", rental.id);
+
+  const { data: reservationProof } = await supabase
+    .from("rental_documents")
+    .select("id")
+    .eq("rental_id", rental.id)
+    .eq("type", "disney_confirmation_email")
+    .limit(1)
+    .maybeSingle();
 
   const confirmationReady = (milestones ?? []).some(
     (item) => item.code === "disney_confirmation_uploaded" && item.status === "completed",
@@ -141,6 +144,7 @@ export default async function ReadyStayNewPage({
             room_type: rental.room_type ?? null,
           }}
           confirmationReady={confirmationReady}
+          hasExistingReservationProof={Boolean(reservationProof?.id)}
         />
       )}
 

@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { redirect } from 'next/navigation';
 import { sendPlainEmail } from '@/lib/email';
+import { getAppUrl } from '@/lib/app-url';
 
 async function notifyGuestReadyToLink({
   adminClient,
@@ -49,6 +50,7 @@ async function notifyGuestReadyToLink({
   }
 
   const tripLink = `/my-trip/${bookingId}`;
+  const tripLinkAbsolute = getAppUrl(tripLink, 'ready stay guest trip link');
 
   try {
     if (booking.renter_id) {
@@ -83,7 +85,7 @@ async function notifyGuestReadyToLink({
         '2) My Plans -> Link a Reservation',
         '3) Paste your confirmation number',
         '',
-        `Open your trip: ${tripLink}`,
+        `Open your trip: ${tripLinkAbsolute ?? tripLink}`,
       ].join('\n'),
       context: 'ready stay transfer link-ready email',
     });

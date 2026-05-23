@@ -5,6 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { getPaidNowPercent } from '@/lib/payments/schedule';
 import { sendPlainEmail } from '@/lib/email';
+import { getAppUrl } from '@/lib/app-url';
 import { randomBytes } from 'crypto';
 import { generateAcceptToken } from '@/lib/tokens';
 import { renderPixieAgreementHTML } from '@/lib/agreements/renderPixieAgreement';
@@ -323,9 +324,12 @@ export async function sendContractEmail(params: { contractId: number; sendToOwne
     contract = updated;
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-  const ownerUrl = contract.owner_accept_token ? `${baseUrl}/contracts/${contract.owner_accept_token}` : null;
-  const guestUrl = contract.guest_accept_token ? `${baseUrl}/contracts/${contract.guest_accept_token}` : null;
+  const ownerUrl = contract.owner_accept_token
+    ? getAppUrl(`/contracts/${contract.owner_accept_token}`, 'contract owner accept link')
+    : null;
+  const guestUrl = contract.guest_accept_token
+    ? getAppUrl(`/contracts/${contract.guest_accept_token}`, 'contract guest accept link')
+    : null;
   const summary = buildEmailSummary(snapshot);
   const contractHtml = renderPixieAgreementHTML(snapshot, {
     guestAcceptedAt: contract.guest_accepted_at ?? null,

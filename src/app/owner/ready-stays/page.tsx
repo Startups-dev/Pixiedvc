@@ -23,11 +23,61 @@ function formatCurrencyFromCents(value: number | null) {
   }).format(value / 100);
 }
 
+function getOwnerListingStage(stay: {
+  status: string | null;
+  verification_status?: string | null;
+}) {
+  if (stay.status === "sold") return { label: "Sold", className: "border-emerald-200 bg-emerald-50 text-emerald-800" };
+  if (stay.verification_status === "proof_uploaded") {
+    return { label: "Pending Review", className: "border-amber-200 bg-amber-50 text-amber-800" };
+  }
+  if (stay.status === "active") return { label: "Active", className: "border-sky-200 bg-sky-50 text-sky-800" };
+  if (stay.verification_status === "rejected") {
+    return { label: "Needs Info", className: "border-rose-200 bg-rose-50 text-rose-700" };
+  }
+  if (stay.status === "draft" || stay.status === "paused") {
+    return { label: "Pending Review", className: "border-amber-200 bg-amber-50 text-amber-800" };
+  }
+  return { label: "Draft", className: "border-slate-200 bg-slate-50 text-slate-700" };
+}
+
+function EmptyState({
+  title,
+  body,
+}: {
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-5 py-6 text-center">
+      <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400">
+        <svg
+          aria-hidden="true"
+          className="h-5 w-5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M4 7h16" />
+          <path d="M7 3h10l1 4H6l1-4Z" />
+          <path d="M6 11h12v7a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-7Z" />
+        </svg>
+      </div>
+      <p className="text-sm font-semibold text-slate-900">{title}</p>
+      <p className="mt-2 text-sm text-slate-500">{body}</p>
+    </div>
+  );
+}
+
 export default async function ReadyStaysPage({
   searchParams,
 }: {
-  searchParams?: { notice?: string };
+  searchParams?: Promise<{ notice?: string }> | { notice?: string };
 }) {
+  const resolvedSearchParams = searchParams instanceof Promise ? await searchParams : searchParams;
   const { user, owner } = await requireOwnerAccess("/owner/ready-stays");
   await createSupabaseServerClient();
 
@@ -47,37 +97,24 @@ export default async function ReadyStaysPage({
   const { data: readyStays } = await adminClient
     .from("ready_stays")
     .select(
-      "id, rental_id, status, sold_booking_request_id, booking_request_id, check_in, check_out, room_type, points, owner_price_per_point_cents, guest_price_per_point_cents, created_at, updated_at, resorts(name)",
+      "id, rental_id, status, verification_status, sold_booking_request_id, booking_request_id, check_in, check_out, room_type, points, owner_price_per_point_cents, guest_price_per_point_cents, created_at, updated_at, reservation_proof_uploaded_at, resorts(name)",
     )
     .in("owner_id", ownerIds)
     .order("created_at", { ascending: false });
 
-  const currentYear = new Date().getFullYear();
-  const soldListings = (readyStays ?? []).filter((stay) => stay.status === "sold");
-  const soldThisYear = soldListings.filter((stay) => {
-    const value = stay.updated_at ? new Date(stay.updated_at) : null;
-    return value ? value.getFullYear() === currentYear : false;
-  }).length;
-  const totalRevenueCents = soldListings.reduce((total, stay) => {
-    const ownerPrice = Number(stay.owner_price_per_point_cents ?? 0);
-    const points = Number(stay.points ?? 0);
-    return total + ownerPrice * points;
-  }, 0);
-  const avgDaysToSell = (() => {
-    if (soldListings.length === 0) return 0;
-    const totalDays = soldListings.reduce((sum, stay) => {
-      if (!stay.created_at || !stay.updated_at) return sum;
-      const start = new Date(stay.created_at).getTime();
-      const end = new Date(stay.updated_at).getTime();
-      if (Number.isNaN(start) || Number.isNaN(end)) return sum;
-      return sum + Math.max(0, Math.round((end - start) / (1000 * 60 * 60 * 24)));
-    }, 0);
-    return Math.round(totalDays / soldListings.length);
-  })();
+  const normalizedReadyStays = (readyStays ?? []).map((stay) => ({
+    ...stay,
+    status:
+      stay.status === "active" && stay.verification_status === "proof_uploaded"
+        ? ("draft" as typeof stay.status)
+        : stay.status,
+  }));
+
+  const soldListings = normalizedReadyStays.filter((stay) => stay.status === "sold");
 
   const soldBookingIds = Array.from(
     new Set(
-      (readyStays ?? [])
+      normalizedReadyStays
         .map((stay) => stay.sold_booking_request_id ?? stay.booking_request_id ?? null)
         .filter((value): value is string => typeof value === "string" && value.length > 0),
     ),
@@ -94,7 +131,7 @@ export default async function ReadyStaysPage({
     (soldBookingRequests ?? []).map((booking) => [booking.id, booking]),
   );
 
-  const pendingTransfers = (readyStays ?? [])
+  const pendingTransfers = normalizedReadyStays
     .map((stay) => {
       const linkedBookingId = stay.sold_booking_request_id ?? stay.booking_request_id ?? null;
       const booking =
@@ -126,26 +163,47 @@ export default async function ReadyStaysPage({
   }));
   const pendingTransferStayIds = new Set(pendingTransfers.map((stay) => stay.id));
 
-  const activeListings = (readyStays ?? []).filter(
-    (stay) => stay.status === "active" && !pendingTransferStayIds.has(stay.id),
+  const activeListings = normalizedReadyStays.filter(
+    (stay) =>
+      stay.status === "active" &&
+      stay.verification_status !== "proof_uploaded" &&
+      !pendingTransferStayIds.has(stay.id),
+  );
+  const reviewListings = normalizedReadyStays.filter(
+    (stay) =>
+      (["draft", "paused"].includes(stay.status ?? "") || stay.verification_status === "proof_uploaded") &&
+      !pendingTransferStayIds.has(stay.id),
+  );
+  const dashboardListings = normalizedReadyStays.filter(
+    (stay) => !["sold", "expired", "removed"].includes(stay.status ?? "") && !pendingTransferStayIds.has(stay.id),
   );
   const activeCount = activeListings.length;
+  const pendingReviewCount = reviewListings.length;
+  const confirmedSalesCount = soldListings.length;
+  const estimatedPayoutCents = dashboardListings.reduce((total, stay) => {
+    return total + Number(stay.owner_price_per_point_cents ?? 0) * Number(stay.points ?? 0);
+  }, 0);
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-6 py-12">
-      {searchParams?.notice === "select" ? (
+      {resolvedSearchParams?.notice === "select" ? (
         <Card className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           Choose a reservation to list.
         </Card>
       ) : null}
-      {searchParams?.notice === "transferred" ? (
+      {resolvedSearchParams?.notice === "transferred" ? (
         <Card className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
           Transfer confirmed. Guest has been notified.
         </Card>
       ) : null}
-      {searchParams?.notice === "already_transferred" ? (
+      {resolvedSearchParams?.notice === "already_transferred" ? (
         <Card className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
           This reservation was already marked as transferred.
+        </Card>
+      ) : null}
+      {resolvedSearchParams?.notice === "submitted" ? (
+        <Card className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          Your Ready Stay has been submitted. Listings may take up to 10 minutes to appear.
         </Card>
       ) : null}
 
@@ -161,29 +219,28 @@ export default async function ReadyStaysPage({
         <div className="relative flex flex-wrap items-start justify-between gap-8">
           <div className="max-w-2xl space-y-4">
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-white/60">Ready Stays</p>
-            <h1 className="text-4xl font-semibold tracking-tight !text-white">Instant Booking Inventory</h1>
-            <p className="text-sm text-white/85">
-              List a confirmed reservation and let guests book instantly.
+            <h1 className="text-4xl font-semibold tracking-tight !text-white">Ready Stays Dashboard</h1>
+            <p className="max-w-xl text-sm text-white/85">
+              List confirmed reservations, monitor activity, and manage payouts in one place.
             </p>
           </div>
-          <div className="min-w-[220px] rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-white/70">
+          <div className="min-w-[280px] rounded-3xl border border-white/10 bg-white/5 p-5 text-xs text-white/70 backdrop-blur-sm">
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-white/50">Active Listings</p>
-                <p className="mt-1 text-lg font-semibold text-white">{activeCount}</p>
-              </div>
-              <div>
-                <p className="text-white/50">Sold This Year</p>
-                <p className="mt-1 text-lg font-semibold text-white">{soldThisYear}</p>
-              </div>
-              <div>
-                <p className="text-white/50">Total Revenue</p>
-                <p className="mt-1 text-lg font-semibold text-white">{formatCurrencyFromCents(totalRevenueCents)}</p>
-              </div>
-              <div>
-                <p className="text-white/50">Avg Time to Sell</p>
-                <p className="mt-1 text-lg font-semibold text-white">{avgDaysToSell} days</p>
-              </div>
+              {[
+                { label: "Active Listings", value: String(activeCount), muted: activeCount === 0 },
+                { label: "Pending Review", value: String(pendingReviewCount), muted: pendingReviewCount === 0 },
+                { label: "Confirmed Sales", value: String(confirmedSalesCount), muted: confirmedSalesCount === 0 },
+                {
+                  label: "Estimated Payouts",
+                  value: estimatedPayoutCents > 0 ? formatCurrencyFromCents(estimatedPayoutCents) : "—",
+                  muted: estimatedPayoutCents === 0,
+                },
+              ].map((metric) => (
+                <div key={metric.label} className="space-y-1">
+                  <p className="text-white/50">{metric.label}</p>
+                  <p className={`text-lg font-semibold ${metric.muted ? "text-white/45" : "text-white"}`}>{metric.value}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -213,29 +270,58 @@ export default async function ReadyStaysPage({
       </section>
 
       <section id="post-ready-stay" className="space-y-4">
-        <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Add a Ready Stay</h2>
-          <p className="mt-2 text-sm text-muted">
-            Have a confirmed reservation? Verify your private reservation, then list it as a public Ready Stay for guest booking.
-          </p>
-          <div className="mt-5">
-            <Button asChild className="!text-white hover:!text-white">
-              <Link href="/owner/dashboard?tab=listings" className="!text-white hover:!text-white" style={{ color: "#fff" }}>
-                Add Ready Stay
-              </Link>
-            </Button>
+        <Card className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-6">
+            <div className="max-w-2xl space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0B1B3A] text-white shadow-sm">
+                  <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 12h16" />
+                    <path d="M12 4v16" />
+                  </svg>
+                </div>
+                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Submit a Ready Stay</h2>
+              </div>
+              <p className="text-base font-medium text-ink">
+                Have a confirmed Disney Vacation Club reservation? Submit it for review and turn it into a public Ready Stay guests can instantly book.
+              </p>
+              <div className="grid gap-2 text-sm text-slate-500 md:grid-cols-2">
+                <p>• Reservation proof verified before publishing</p>
+                <p>• You stay in control of payout details</p>
+                <p>• Guests can book instantly once live</p>
+                <p>• Payouts are confirmed before booking closes</p>
+              </div>
+            </div>
+            <div className="flex min-w-[220px] flex-col items-start gap-3">
+              <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                Fastest path to guest booking
+              </div>
+              <Button asChild className="!text-white hover:!text-white">
+                <Link href="/owner/dashboard?tab=listings&mode=add" className="!text-white hover:!text-white" style={{ color: "#fff" }}>
+                  Submit Ready Stay
+                </Link>
+              </Button>
+            </div>
           </div>
         </Card>
-        <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Would you like to liquidate expiring points?</h2>
+        <Card className="rounded-3xl border border-amber-200/80 bg-white p-6 shadow-sm">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Need to move expiring points fast?</h2>
           <p className="mt-2 text-sm text-muted">
-            For expiring points submit a last-minute liquidation request using this link.
+            Submit expiring points for concierge-assisted last-minute placement.
           </p>
           <div className="mt-5">
             <Button asChild variant="ghost">
-              <Link href="/owner/liquidation-opportunities">Submit expiring points</Link>
+              <Link href="/owner/liquidation-opportunities">Submit Expiring Points</Link>
             </Button>
           </div>
+        </Card>
+      </section>
+
+      <section id="trust" className="space-y-4">
+        <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium text-slate-700">
+            You stay in control. PixieDVC reviews every Ready Stay before it goes public, and payout details are confirmed before guest booking.
+          </p>
         </Card>
       </section>
 
@@ -243,12 +329,13 @@ export default async function ReadyStaysPage({
         <Card className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="space-y-1 border-b border-slate-200 pb-2">
             <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Your Ready Stays</h2>
-            <p className="text-sm text-muted">Manage and monitor your live listings.</p>
+            <p className="text-sm text-muted">Monitor listing stage, proof status, and projected payout totals.</p>
           </div>
-          {activeListings.length === 0 ? (
-            <p className="rounded-2xl bg-slate-50 p-4 text-sm text-muted">
-              No live listings yet.
-            </p>
+          {dashboardListings.length === 0 ? (
+            <EmptyState
+              title="No Ready Stays yet."
+              body="Submit a confirmed reservation to start building your public Ready Stay inventory."
+            />
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-slate-200">
               <table className="min-w-full divide-y divide-slate-200 text-sm">
@@ -256,19 +343,36 @@ export default async function ReadyStaysPage({
                   <tr className="text-left text-xs uppercase tracking-[0.2em] text-slate-500">
                     <th className="px-4 py-3 font-semibold">Resort</th>
                     <th className="px-4 py-3 font-semibold">Dates</th>
+                    <th className="px-4 py-3 font-semibold">Approval</th>
+                    <th className="px-4 py-3 font-semibold">Proof</th>
                     <th className="px-4 py-3 font-semibold">Points</th>
                     <th className="px-4 py-3 font-semibold">Your Payout/PT</th>
                     <th className="px-4 py-3 font-semibold">Your Payout</th>
-                    <th className="px-4 py-3 font-semibold">Status</th>
+                    <th className="px-4 py-3 font-semibold">Listing Status</th>
                     <th className="px-4 py-3 font-semibold">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
-                  {activeListings.map((stay) => (
-                    <tr key={stay.id}>
-                      <td className="px-4 py-3 text-ink">{stay.resorts?.name ?? "Listing"}</td>
+                  {dashboardListings.map((stay) => {
+                    const stage = getOwnerListingStage(stay);
+                    return (
+                    <tr key={stay.id} className="transition hover:bg-slate-50/70">
+                      <td className="px-4 py-4">
+                        <div className="space-y-1">
+                          <p className="font-semibold text-ink">{stay.resorts?.name ?? "Listing"}</p>
+                          <p className="text-xs text-slate-500">{stay.room_type}</p>
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-slate-500">
                         {formatDate(stay.check_in)} - {formatDate(stay.check_out)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${stage.className}`}>
+                          {stage.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-500">
+                        {stay.reservation_proof_uploaded_at ? "Received" : "Missing"}
                       </td>
                       <td className="px-4 py-3 text-slate-500">
                         {stay.points ?? 0}
@@ -276,17 +380,23 @@ export default async function ReadyStaysPage({
                       <td className="px-4 py-3 text-slate-500">
                         {formatCurrencyFromCents(stay.owner_price_per_point_cents)}
                       </td>
-                      <td className="px-4 py-3 text-slate-500">
+                      <td className="px-4 py-3 font-semibold text-ink">
                         {formatCurrencyFromCents((stay.owner_price_per_point_cents ?? 0) * (stay.points ?? 0))}
                       </td>
-                      <td className="px-4 py-3 text-slate-500">Active</td>
+                      <td className="px-4 py-3 text-slate-500">
+                        {stay.verification_status === "proof_uploaded"
+                          ? "Submitted for review"
+                          : stay.status === "active"
+                            ? "Visible to guests"
+                            : "Preparing to publish"}
+                      </td>
                       <td className="px-4 py-3">
                         <Link href={`/owner/ready-stays/${stay.id}`} className="text-xs font-semibold text-brand hover:underline">
                           View/Edit
                         </Link>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
@@ -308,21 +418,29 @@ export default async function ReadyStaysPage({
             <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Pending Transfers</h2>
           </div>
           {/* TODO: Expand this to include contract-linked transfers once transfer completion fields are available. */}
-          <PendingTransfersCard initialRows={pendingTransferRows} />
+          {pendingTransferRows.length === 0 ? (
+            <EmptyState
+              title="No pending transfers right now."
+              body="Once a guest completes payment and a transfer is needed, those reservations will appear here."
+            />
+          ) : (
+            <PendingTransfersCard initialRows={pendingTransferRows} />
+          )}
         </Card>
       </section>
 
       <section id="completed-sales" className="space-y-4">
         <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <details>
+          <details open>
             <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.2em] text-ink">
               Completed Sales
             </summary>
             <div className="mt-4">
               {soldListings.length === 0 ? (
-                <p className="rounded-2xl bg-slate-50 p-4 text-sm text-muted">
-                  No completed sales yet.
-                </p>
+                <EmptyState
+                  title="No completed Ready Stay sales yet."
+                  body="Approved listings will appear here once booked."
+                />
               ) : (
                 <div className="overflow-x-auto rounded-2xl border border-slate-200">
                   <table className="min-w-full divide-y divide-slate-200 text-sm">

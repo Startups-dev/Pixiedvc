@@ -52,6 +52,7 @@ type ConciergeHandoffEmailPayload = {
 };
 
 const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL ?? 'hello@pixiedvc.com';
+const LOCALHOST_EMAIL_URL_RE = /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?/i;
 
 async function sendResendEmail({
   to,
@@ -68,6 +69,10 @@ async function sendResendEmail({
   if (!apiKey) {
     console.warn(`[email] RESEND_API_KEY missing, skipping ${context}`);
     return;
+  }
+
+  if (process.env.NODE_ENV === 'production' && LOCALHOST_EMAIL_URL_RE.test(body)) {
+    console.warn(`[email] localhost URL detected in outgoing production email (${context})`);
   }
 
   const response = await fetch('https://api.resend.com/emails', {

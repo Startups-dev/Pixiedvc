@@ -15,6 +15,15 @@ type ReadyStayRow = {
   title: string | null;
   short_description: string | null;
   status: 'draft' | 'active' | 'sold' | 'expired' | 'paused' | 'removed';
+  verification_status: 'not_submitted' | 'proof_uploaded' | 'submitted' | 'approved' | 'rejected' | null;
+  verification_submitted_at: string | null;
+  verification_approved_at: string | null;
+  verification_rejected_at: string | null;
+  verification_review_notes: string | null;
+  reservation_proof_path: string | null;
+  reservation_proof_name: string | null;
+  reservation_proof_uploaded_at: string | null;
+  reservation_proof_public_url?: string | null;
   featured: boolean;
   priority: number;
   sort_override: number | null;
@@ -89,7 +98,7 @@ function toEditor(row: ReadyStayRow): RowEditor {
     placement_home: Boolean(row.placement_home),
     placement_resort: Boolean(row.placement_resort),
     placement_search: Boolean(row.placement_search),
-    image_url: row.image_url ?? '',
+    image_url: row.image_url ?? row.reservation_proof_public_url ?? '',
     badge: row.badge ?? '',
     cta_label: row.cta_label ?? '',
     href: row.href ?? '',
@@ -107,6 +116,30 @@ function toEditor(row: ReadyStayRow): RowEditor {
 function isoOrNull(value: string) {
   const trimmed = value.trim();
   return trimmed ? new Date(trimmed).toISOString() : null;
+}
+
+function formatDateRange(checkIn: string, checkOut: string) {
+  return `${checkIn} → ${checkOut}`;
+}
+
+function formatCurrencyFromCents(value: number) {
+  return `$${(value / 100).toFixed(2)}`;
+}
+
+function formatDollars(value: number) {
+  return `$${value.toFixed(2)}`;
+}
+
+function rowNeedsReview(row: ReadyStayRow) {
+  return row.status === 'draft' || row.verification_status === 'proof_uploaded';
+}
+
+function getAdminStatusLabel(row: ReadyStayRow) {
+  if (rowNeedsReview(row)) return 'submitted';
+  if (row.status === 'active') return 'live';
+  if (row.status === 'sold') return 'sold';
+  if (row.verification_status === 'rejected') return 'needs info';
+  return row.status;
 }
 
 export default function AdminReadyStaysManager({ rows, resorts }: Props) {
@@ -157,7 +190,6 @@ export default function AdminReadyStaysManager({ rows, resorts }: Props) {
   const sortedRows = useMemo(() => {
     return [...rows].sort((a, b) => b.created_at.localeCompare(a.created_at));
   }, [rows]);
-
   function setRowEditor(id: string, patch: Partial<RowEditor>) {
     setEditors((prev) => ({
       ...prev,
@@ -168,81 +200,12 @@ export default function AdminReadyStaysManager({ rows, resorts }: Props) {
     }));
   }
 
-  function updateRowOwnerPrice(id: string, nextOwnerPrice: number) {
-    const owner = Number.isFinite(nextOwnerPrice) ? Math.max(0, Math.round(nextOwnerPrice)) : 0;
+function updateRowOwnerPrice(id: string, nextOwnerPrice: number) {
+    const owner = Number.isFinite(nextOwnerPrice) ? Math.max(0, Math.round(nextOwnerPrice * 100)) : 0;
     setRowEditor(id, {
       owner_price_per_point_cents: owner,
       guest_price_per_point_cents: owner + 700,
     });
-  }
-
-  async function saveRow(id: string) {
-    const row = editors[id];
-    if (!row) return;
-
-    setBusyId(id);
-    setError(null);
-    setNotice(null);
-
-    const response = await fetch('/api/admin/ready-stays', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id,
-        title: row.title,
-        slug: row.slug,
-        status: row.status,
-        featured: row.featured,
-        priority: row.priority,
-        sort_override: row.sort_override === '' ? null : Number(row.sort_override),
-        placement_home: row.placement_home,
-        placement_resort: row.placement_resort,
-        placement_search: row.placement_search,
-        image_url: row.image_url,
-        badge: row.badge,
-        cta_label: row.cta_label,
-        href: row.href,
-        sleeps: row.sleeps,
-        expires_at: row.expires_at ? isoOrNull(row.expires_at) : null,
-        owner_price_per_point_cents: row.owner_price_per_point_cents,
-      }),
-    });
-
-    const payload = (await response.json().catch(() => ({}))) as { error?: string };
-    if (!response.ok) {
-      setError(payload.error ?? 'Unable to save row.');
-      setBusyId(null);
-      return;
-    }
-
-    setBusyId(null);
-    setNotice('Ready Stay updated.');
-    router.refresh();
-  }
-
-  async function archiveRow(id: string) {
-    if (!window.confirm('Archive this Ready Stay? It will be removed from public placements.')) return;
-
-    setBusyId(id);
-    setError(null);
-    setNotice(null);
-
-    const response = await fetch('/api/admin/ready-stays', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    });
-
-    const payload = (await response.json().catch(() => ({}))) as { error?: string };
-    if (!response.ok) {
-      setError(payload.error ?? 'Unable to archive row.');
-      setBusyId(null);
-      return;
-    }
-
-    setBusyId(null);
-    setNotice('Ready Stay archived.');
-    router.refresh();
   }
 
   async function createRow() {
@@ -279,6 +242,105 @@ export default function AdminReadyStaysManager({ rows, resorts }: Props) {
     setCreateLoading(false);
     setShowCreate(false);
     setNotice('Ready Stay created.');
+    router.refresh();
+  }
+
+  async function deleteListing(id: string) {
+    if (!window.confirm('Are you sure you want to delete this listing?')) return;
+
+    setBusyId(id);
+    setError(null);
+    setNotice(null);
+
+    const response = await fetch('/api/admin/ready-stays', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+
+    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    if (!response.ok) {
+      setError(payload.error ?? 'Unable to delete this listing.');
+      setBusyId(null);
+      return;
+    }
+
+    setBusyId(null);
+    setNotice('Listing deleted.');
+    router.refresh();
+  }
+
+  async function purgeListing(id: string) {
+    if (!window.confirm('Do you want to purge this listing from the admin list?')) return;
+
+    setBusyId(id);
+    setError(null);
+    setNotice(null);
+
+    const response = await fetch('/api/admin/ready-stays', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, purge: true }),
+    });
+
+    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    if (!response.ok) {
+      setError(payload.error ?? 'Unable to purge this listing.');
+      setBusyId(null);
+      return;
+    }
+
+    setBusyId(null);
+    setNotice('Listing purged from admin list.');
+    router.refresh();
+  }
+
+  async function approveSubmission(id: string) {
+    setBusyId(id);
+    setError(null);
+    setNotice(null);
+
+    const response = await fetch(`/api/admin/ready-stays/${id}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+
+    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    if (!response.ok) {
+      setError(payload.error ?? 'Unable to approve this Ready Stay.');
+      setBusyId(null);
+      return;
+    }
+
+    setBusyId(null);
+    setNotice('Ready Stay approved and published.');
+    router.refresh();
+  }
+
+  async function rejectSubmission(id: string) {
+    const reason = window.prompt('Reason for denial');
+    if (!reason || !reason.trim()) return;
+
+    setBusyId(id);
+    setError(null);
+    setNotice(null);
+
+    const response = await fetch(`/api/admin/ready-stays/${id}/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: reason.trim() }),
+    });
+
+    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    if (!response.ok) {
+      setError(payload.error ?? 'Unable to deny this Ready Stay.');
+      setBusyId(null);
+      return;
+    }
+
+    setBusyId(null);
+    setNotice('Owner notified and Ready Stay returned for more information.');
     router.refresh();
   }
 
@@ -342,89 +404,219 @@ export default function AdminReadyStaysManager({ rows, resorts }: Props) {
         </section>
       ) : null}
 
-      <div className="overflow-x-auto rounded-2xl border border-[#3a3a3a] bg-[#2f2f2f]">
-        <table className="min-w-full text-left text-xs text-[#b4b4b4]">
-          <thead className="border-b border-[#3a3a3a] bg-[#212121] uppercase tracking-[0.2em] text-[#8e8ea0]">
-            <tr>
-              <th className="px-3 py-2">Stay</th>
-              <th className="px-3 py-2">Status</th>
-              <th className="px-3 py-2">Placements</th>
-              <th className="px-3 py-2">Priority</th>
-              <th className="px-3 py-2">Media/CTA</th>
-              <th className="px-3 py-2">Pricing</th>
-              <th className="px-3 py-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedRows.map((row) => {
-              const editor = editors[row.id] ?? toEditor(row);
-              const rowBusy = busyId === row.id;
-              return (
-                <tr key={row.id} className="border-b border-[#3a3a3a] align-top">
-                  <td className="space-y-2 px-3 py-3">
-                    <p className="font-semibold text-[#ececec]">{row.resorts?.name ?? row.resort_id}</p>
-                    <input className="w-full rounded border border-[#3a3a3a] bg-[#212121] px-2 py-1" value={editor.title} onChange={(e) => setRowEditor(row.id, { title: e.target.value })} placeholder="title" />
-                    <input className="w-full rounded border border-[#3a3a3a] bg-[#212121] px-2 py-1" value={editor.slug} onChange={(e) => setRowEditor(row.id, { slug: e.target.value })} placeholder="slug" />
-                    <p className="text-[11px] text-[#8e8ea0]">{row.check_in} → {row.check_out}</p>
-                  </td>
-                  <td className="space-y-2 px-3 py-3">
-                    <select className="w-full rounded border border-[#3a3a3a] bg-[#212121] px-2 py-1" value={editor.status} onChange={(e) => setRowEditor(row.id, { status: e.target.value as ReadyStayRow['status'] })}>
-                      {STATUS_OPTIONS.map((status) => (<option key={status} value={status}>{status}</option>))}
-                    </select>
-                    <label className="inline-flex items-center gap-2"><input type="checkbox" checked={editor.featured} onChange={(e) => setRowEditor(row.id, { featured: e.target.checked })} /> Featured</label>
-                  </td>
-                  <td className="space-y-1 px-3 py-3">
-                    <label className="inline-flex items-center gap-2"><input type="checkbox" checked={editor.placement_home} onChange={(e) => setRowEditor(row.id, { placement_home: e.target.checked })} /> Home</label>
-                    <label className="inline-flex items-center gap-2"><input type="checkbox" checked={editor.placement_resort} onChange={(e) => setRowEditor(row.id, { placement_resort: e.target.checked })} /> Resort</label>
-                    <label className="inline-flex items-center gap-2"><input type="checkbox" checked={editor.placement_search} onChange={(e) => setRowEditor(row.id, { placement_search: e.target.checked })} /> Search</label>
-                  </td>
-                  <td className="space-y-2 px-3 py-3">
-                    <input type="number" className="w-full rounded border border-[#3a3a3a] bg-[#212121] px-2 py-1" value={editor.priority} onChange={(e) => setRowEditor(row.id, { priority: Number(e.target.value) })} placeholder="priority" />
-                    <input className="w-full rounded border border-[#3a3a3a] bg-[#212121] px-2 py-1" value={editor.sort_override} onChange={(e) => setRowEditor(row.id, { sort_override: e.target.value })} placeholder="sort override" />
-                  </td>
-                  <td className="space-y-2 px-3 py-3">
-                    <input className="w-full rounded border border-[#3a3a3a] bg-[#212121] px-2 py-1" value={editor.image_url} onChange={(e) => setRowEditor(row.id, { image_url: e.target.value })} placeholder="image url" />
-                    <input className="w-full rounded border border-[#3a3a3a] bg-[#212121] px-2 py-1" value={editor.href} onChange={(e) => setRowEditor(row.id, { href: e.target.value })} placeholder="href" />
-                    <input className="w-full rounded border border-[#3a3a3a] bg-[#212121] px-2 py-1" value={editor.badge} onChange={(e) => setRowEditor(row.id, { badge: e.target.value })} placeholder="badge" />
-                    <input className="w-full rounded border border-[#3a3a3a] bg-[#212121] px-2 py-1" value={editor.cta_label} onChange={(e) => setRowEditor(row.id, { cta_label: e.target.value })} placeholder="cta label" />
-                  </td>
-                  <td className="space-y-2 px-3 py-3">
-                    <label className="block text-[11px] text-[#8e8ea0]">Owner payout / pt</label>
+      <div className="grid gap-4">
+        {sortedRows.map((row) => {
+          const editor = editors[row.id] ?? toEditor(row);
+          const rowBusy = busyId === row.id;
+          const requiresApproval = rowNeedsReview(row);
+          const totalReservationCents = editor.guest_price_per_point_cents * row.points;
+          const ownerPayoutPerPoint = editor.owner_price_per_point_cents / 100;
+          const totalOwnerPayoutCents = editor.owner_price_per_point_cents * row.points;
+          const platformEarningsPerPointCents =
+            Math.max(0, editor.guest_price_per_point_cents - editor.owner_price_per_point_cents);
+          const totalPlatformEarningsCents = platformEarningsPerPointCents * row.points;
+          const isDeclined = row.verification_status === 'rejected';
+          const isAccepted = row.status === 'active';
+
+          return (
+            <article key={row.id} className="rounded-2xl border border-[#3a3a3a] bg-[#2f2f2f] p-5">
+              <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr_1fr]">
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-lg font-semibold text-[#ececec]">{row.resorts?.name ?? row.resort_id}</p>
+                      <p className="text-sm text-[#8e8ea0]">{formatDateRange(row.check_in, row.check_out)}</p>
+                    </div>
+                    <span className="rounded-full bg-[#212121] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8e8ea0]">
+                      {getAdminStatusLabel(row)}
+                    </span>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Reservation Proof</p>
+                      {row.reservation_proof_public_url ? (
+                        <a
+                          href={row.reservation_proof_public_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-2 inline-flex text-sm font-semibold text-[#ececec] underline underline-offset-4"
+                        >
+                          View uploaded confirmation
+                        </a>
+                      ) : (
+                        <p className="mt-2 text-sm text-rose-300">Preview unavailable</p>
+                      )}
+                    </div>
+                    <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Room Type</p>
+                      <p className="mt-2 text-sm text-[#ececec]">{row.room_type}</p>
+                    </div>
+                    <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Points Needed</p>
+                      <p className="mt-2 text-sm text-[#ececec]">{row.points} points</p>
+                    </div>
+                  <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Cost Per Point</p>
+                    <p className="mt-2 text-sm text-[#ececec]">{formatCurrencyFromCents(editor.guest_price_per_point_cents)}</p>
+                  </div>
+                  <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Owner Payout / Point</p>
+                    <p className="mt-2 text-sm text-[#ececec]">{formatDollars(ownerPayoutPerPoint)}</p>
+                  </div>
+                  <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Platform Take / Point</p>
+                    <p className="mt-2 text-sm text-[#ececec]">{formatCurrencyFromCents(platformEarningsPerPointCents)}</p>
+                  </div>
+                  <div className="sm:col-span-2 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Total Reservation Cost</p>
+                      <p className="mt-2 text-sm text-[#ececec]">{formatCurrencyFromCents(totalReservationCents)}</p>
+                    </div>
+                    <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Total Owner Payout</p>
+                      <p className="mt-2 text-sm text-[#ececec]">{formatCurrencyFromCents(totalOwnerPayoutCents)}</p>
+                    </div>
+                    <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Total Platform Earnings</p>
+                      <p className="mt-2 text-sm text-[#ececec]">{formatCurrencyFromCents(totalPlatformEarningsCents)}</p>
+                    </div>
+                    <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Owner Payout / Point</p>
+                      <p className="mt-2 text-sm text-[#ececec]">{formatDollars(ownerPayoutPerPoint)}</p>
+                    </div>
+                  </div>
+                </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Adjust Owner Payout / Point</p>
                     <input
                       type="number"
-                      className="w-full rounded border border-[#3a3a3a] bg-[#212121] px-2 py-1"
-                      value={editor.owner_price_per_point_cents}
+                      step="0.01"
+                      className="mt-3 w-full rounded border border-[#3a3a3a] bg-[#2f2f2f] px-2 py-1 text-sm text-[#ececec]"
+                      value={ownerPayoutPerPoint}
                       onChange={(e) => updateRowOwnerPrice(row.id, Number(e.target.value))}
                       placeholder="owner payout / pt"
                     />
-                    <p className="text-[11px] text-[#b4b4b4]">
-                      Guest listing: ${(editor.guest_price_per_point_cents / 100).toFixed(2)}/pt
-                    </p>
-                    <p className="text-[11px] text-[#8e8ea0]">
-                      Original guest: ${(editor.original_guest_price_per_point_cents / 100).toFixed(2)}/pt
-                    </p>
-                    {editor.guest_price_per_point_cents < editor.original_guest_price_per_point_cents ? (
-                      <p className="text-[11px] font-semibold text-[#86efac]">
-                        Price reduced
-                        {editor.price_reduced_at ? ` • ${new Date(editor.price_reduced_at).toLocaleDateString()}` : ""}
-                      </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    {requiresApproval ? (
+                      <>
+                        <button
+                          type="button"
+                          disabled={rowBusy}
+                          onClick={() => approveSubmission(row.id)}
+                          className="rounded-full bg-[#10a37f] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                        >
+                          {rowBusy ? 'Saving…' : 'Accept'}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={rowBusy}
+                          onClick={() => rejectSubmission(row.id)}
+                          className="rounded-full border border-[#7f1d1d] bg-[#450a0a] px-4 py-2 text-xs font-semibold text-[#fecaca] disabled:opacity-50"
+                        >
+                          Decline
+                        </button>
+                        <button
+                          type="button"
+                          disabled={rowBusy}
+                          onClick={() => deleteListing(row.id)}
+                          className="rounded-full border border-slate-700 bg-transparent px-4 py-2 text-xs font-semibold text-[#b4b4b4] disabled:opacity-50"
+                        >
+                          Delete Listing
+                        </button>
+                        <button
+                          type="button"
+                          disabled={rowBusy}
+                          onClick={() => purgeListing(row.id)}
+                          className="px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8e8ea0] underline underline-offset-4 disabled:opacity-50"
+                        >
+                          Purge
+                        </button>
+                      </>
+                    ) : isAccepted ? (
+                      <>
+                        <div className="rounded-xl border border-emerald-800/60 bg-emerald-950/40 px-4 py-3 text-sm text-emerald-200">
+                          Listing accepted.
+                        </div>
+                        <button
+                          type="button"
+                          disabled={rowBusy}
+                          onClick={() => deleteListing(row.id)}
+                          className="rounded-full border border-slate-700 bg-transparent px-4 py-2 text-xs font-semibold text-[#b4b4b4] disabled:opacity-50"
+                        >
+                          Delete Listing
+                        </button>
+                        <button
+                          type="button"
+                          disabled={rowBusy}
+                          onClick={() => purgeListing(row.id)}
+                          className="px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8e8ea0] underline underline-offset-4 disabled:opacity-50"
+                        >
+                          Purge
+                        </button>
+                      </>
+                    ) : isDeclined ? (
+                      <>
+                        <div className="space-y-3 rounded-xl border border-rose-800/60 bg-rose-950/30 px-4 py-3 text-sm text-rose-200">
+                          <p>Listing declined.</p>
+                          {row.verification_review_notes ? (
+                            <div className="rounded-lg border border-rose-900/60 bg-black/10 px-3 py-2 text-rose-100">
+                              <p className="text-[11px] uppercase tracking-[0.2em] text-rose-300">Notes</p>
+                              <p className="mt-2 text-sm">{row.verification_review_notes}</p>
+                            </div>
+                          ) : null}
+                        </div>
+                        <button
+                          type="button"
+                          disabled={rowBusy}
+                          onClick={() => deleteListing(row.id)}
+                          className="rounded-full border border-slate-700 bg-transparent px-4 py-2 text-xs font-semibold text-[#b4b4b4] disabled:opacity-50"
+                        >
+                          Delete Listing
+                        </button>
+                        <button
+                          type="button"
+                          disabled={rowBusy}
+                          onClick={() => purgeListing(row.id)}
+                          className="px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8e8ea0] underline underline-offset-4 disabled:opacity-50"
+                        >
+                          Purge
+                        </button>
+                      </>
                     ) : (
-                      <p className="text-[11px] text-[#8e8ea0]">No active markdown</p>
+                      <>
+                        <div className="rounded-xl border border-slate-700 bg-[#212121] px-4 py-3 text-sm text-[#b4b4b4]">
+                          Listing status saved.
+                        </div>
+                        <button
+                          type="button"
+                          disabled={rowBusy}
+                          onClick={() => deleteListing(row.id)}
+                          className="rounded-full border border-slate-700 bg-transparent px-4 py-2 text-xs font-semibold text-[#b4b4b4] disabled:opacity-50"
+                        >
+                          Delete Listing
+                        </button>
+                        <button
+                          type="button"
+                          disabled={rowBusy}
+                          onClick={() => purgeListing(row.id)}
+                          className="px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8e8ea0] underline underline-offset-4 disabled:opacity-50"
+                        >
+                          Purge
+                        </button>
+                      </>
                     )}
-                  </td>
-                  <td className="space-y-2 px-3 py-3">
-                    <button type="button" disabled={rowBusy} onClick={() => saveRow(row.id)} className="w-full rounded bg-[#10a37f] px-3 py-1 font-semibold text-white disabled:opacity-50">
-                      {rowBusy ? 'Saving…' : 'Save'}
-                    </button>
-                    <button type="button" disabled={rowBusy} onClick={() => archiveRow(row.id)} className="w-full rounded border border-[#7f1d1d] bg-[#450a0a] px-3 py-1 font-semibold text-[#fecaca] disabled:opacity-50">
-                      Archive
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  </div>
+                </div>
+              </div>
+            </article>
+          );
+        })}
       </div>
     </div>
   );

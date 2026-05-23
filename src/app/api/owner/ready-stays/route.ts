@@ -5,6 +5,11 @@ import { computeCapsForStay, FEE_PER_POINT_CENTS } from "@/lib/ready-stays/prici
 
 const GLOBAL_MIN_OWNER_CENTS = 1400;
 
+function friendlyReadyStayInsertError(message: string | null | undefined) {
+  if (!message) return "We saved your reservation, but couldn’t finish preparing the listing. Please try again or contact concierge.";
+  return message;
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createSupabaseServerClient();
   const {
@@ -46,7 +51,7 @@ export async function POST(request: NextRequest) {
 
   const { data: resort, error: resortError } = await supabase
     .from("resorts")
-    .select("calculator_code")
+    .select("name, slug, calculator_code")
     .eq("id", rental.resort_id)
     .maybeSingle();
   if (resortError) {
@@ -58,12 +63,28 @@ export async function POST(request: NextRequest) {
     .select("code, status")
     .eq("rental_id", rental.id);
 
+  const { data: reservationProof } = await supabase
+    .from("rental_documents")
+    .select("id, storage_path, meta")
+    .eq("rental_id", rental.id)
+    .eq("type", "disney_confirmation_email")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const confirmationReady = (milestones ?? []).some(
     (item) => item.code === "disney_confirmation_uploaded" && item.status === "completed",
   );
 
   if (!confirmationReady) {
     return NextResponse.json({ error: "Disney confirmation is required before publishing." }, { status: 400 });
+  }
+
+  if (!reservationProof?.id) {
+    return NextResponse.json(
+      { error: "Upload reservation proof before listing this Ready Stay." },
+      { status: 400 },
+    );
   }
 
   const caps = computeCapsForStay({
@@ -96,6 +117,8 @@ export async function POST(request: NextRequest) {
 
   const guestPrice = ownerPrice + FEE_PER_POINT_CENTS;
 
+  const proofUploadedAt = new Date().toISOString();
+
   const { data: createdReadyStay, error: insertError } = await supabase
     .from("ready_stays")
     .insert({
@@ -109,9 +132,15 @@ export async function POST(request: NextRequest) {
       season_type: caps.strictestSeasonType,
       owner_price_per_point_cents: ownerPrice,
       guest_price_per_point_cents: guestPrice,
-      status: "active",
+      status: "draft",
+      reservation_proof_path: reservationProof.storage_path ?? null,
+      reservation_proof_name:
+        typeof reservationProof.meta?.original_name === "string" ? reservationProof.meta.original_name : null,
+      reservation_proof_uploaded_at: proofUploadedAt,
+      verification_status: "proof_uploaded",
+      verification_submitted_at: proofUploadedAt,
     })
-    .select("id")
+    .select("id, status, verification_status")
     .single();
 
   if (insertError) {
@@ -129,10 +158,15 @@ export async function POST(request: NextRequest) {
         alreadyListed: true,
       });
     }
-    return NextResponse.json({ error: insertError.message }, { status: 400 });
+    return NextResponse.json({ error: friendlyReadyStayInsertError(insertError.message) }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true, id: createdReadyStay.id, alreadyListed: false });
+  return NextResponse.json({
+    ok: true,
+    id: createdReadyStay.id,
+    alreadyListed: false,
+    status: "draft",
+  });
 }
 
 export async function PATCH(request: NextRequest) {

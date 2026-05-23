@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@pixiedvc/design-system";
 import { getReadyStayPricingBand, getReadyStaySeason } from "@/lib/ready-stays/pricing";
-import { FEE_PER_POINT_CENTS, getMaxOwnerPayout, getStayGuestPriceCap } from "@/lib/ready-stays/ownerPricing";
+import { getMaxOwnerPayout, getStayGuestPriceCap } from "@/lib/ready-stays/ownerPricing";
 
 type ReadyStayRental = {
   id: string;
@@ -20,6 +20,7 @@ type ReadyStayRental = {
 type OwnerReadyStayPublishFormProps = {
   rental: ReadyStayRental;
   confirmationReady: boolean;
+  hasExistingReservationProof: boolean;
 };
 
 
@@ -44,9 +45,23 @@ function seasonLabel(season: ReturnType<typeof getReadyStaySeason>) {
   }
 }
 
+function getReservationProofMimeType(file: File) {
+  const normalizedType = file.type.toLowerCase();
+  if (normalizedType === "application/pdf" || normalizedType === "image/jpeg" || normalizedType === "image/png") {
+    return normalizedType;
+  }
+
+  const lowerName = file.name.toLowerCase();
+  if (lowerName.endsWith(".pdf")) return "application/pdf";
+  if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg")) return "image/jpeg";
+  if (lowerName.endsWith(".png")) return "image/png";
+  return null;
+}
+
 export default function OwnerReadyStayPublishForm({
   rental,
   confirmationReady,
+  hasExistingReservationProof,
 }: OwnerReadyStayPublishFormProps) {
   const router = useRouter();
   const band = useMemo(
@@ -66,9 +81,65 @@ export default function OwnerReadyStayPublishForm({
   const [ownerPrice, setOwnerPrice] = useState(Math.min(band.suggestedOwnerCents, maxOwnerCents));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [proofFile, setProofFile] = useState<File | null>(null);
 
-  const guestPrice = ownerPrice + FEE_PER_POINT_CENTS;
-  const totalGuestCents = guestPrice * rental.points_required;
+  const estimatedOwnerPayout = ownerPrice * rental.points_required;
+
+  const uploadReservationProof = async () => {
+    if (!proofFile) return;
+
+    const mimeType = getReservationProofMimeType(proofFile);
+    if (!mimeType) {
+      throw new Error("Reservation proof must be a JPG, JPEG, PNG, or PDF file.");
+    }
+
+    const startResponse = await fetch("/api/rental-docs/start-upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        rental_id: rental.id,
+        doc_type: "disney_confirmation_email",
+        mime_type: mimeType,
+        size_bytes: proofFile.size,
+      }),
+    });
+
+    if (!startResponse.ok) {
+      const payload = (await startResponse.json().catch(() => ({}))) as { error?: string };
+      throw new Error(payload.error || "Unable to start the reservation proof upload.");
+    }
+
+    const startPayload = (await startResponse.json()) as { signed_url: string; object_path: string };
+    const uploadResponse = await fetch(startPayload.signed_url, {
+      method: "PUT",
+      headers: {
+        "Content-Type": mimeType,
+        "x-upsert": "false",
+      },
+      body: proofFile,
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error("Unable to upload the reservation proof.");
+    }
+
+    const finalizeResponse = await fetch("/api/rental-docs/finalize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rental_id: rental.id,
+        object_path: startPayload.object_path,
+        original_name: proofFile.name,
+        doc_type: "disney_confirmation_email",
+        size_bytes: proofFile.size,
+      }),
+    });
+
+    if (!finalizeResponse.ok) {
+      throw new Error("We uploaded the reservation proof, but could not save it.");
+    }
+  };
 
   const handlePublish = async () => {
     setError(null);
@@ -76,9 +147,17 @@ export default function OwnerReadyStayPublishForm({
       setError("Upload the Disney confirmation before listing.");
       return;
     }
+    if (!hasExistingReservationProof && !proofFile) {
+      setError("Upload reservation proof before listing this Ready Stay.");
+      return;
+    }
 
     setSubmitting(true);
     try {
+      if (!hasExistingReservationProof) {
+        await uploadReservationProof();
+      }
+
       const response = await fetch("/api/owner/ready-stays", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -104,7 +183,11 @@ export default function OwnerReadyStayPublishForm({
         router.refresh();
         return;
       }
-      router.push("/owner/ready-stays?notice=published");
+      if (payload.id) {
+        router.push(`/owner/ready-stays/${payload.id}`);
+      } else {
+        router.push("/owner/ready-stays");
+      }
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to list a Ready Stay.");
@@ -128,7 +211,7 @@ export default function OwnerReadyStayPublishForm({
         <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-sm">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Cap</p>
           <p className="mt-2 text-lg font-semibold text-ink">{formatDollars(stayCap.capDollars * 100)}/pt</p>
-          <p className="text-xs text-slate-500">Guest price cap</p>
+          <p className="text-xs text-slate-500">Market ceiling</p>
         </div>
         <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-sm">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Suggested</p>
@@ -136,9 +219,9 @@ export default function OwnerReadyStayPublishForm({
           <p className="text-xs text-slate-500">Owner price per point</p>
         </div>
         <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-sm">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Pixie fee</p>
-          <p className="mt-2 text-lg font-semibold text-ink">{formatDollars(FEE_PER_POINT_CENTS)}/pt</p>
-          <p className="text-xs text-slate-500">Fixed</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Estimated payout</p>
+          <p className="mt-2 text-lg font-semibold text-ink">{formatDollars(estimatedOwnerPayout)}</p>
+          <p className="text-xs text-slate-500">Based on your selected payout</p>
         </div>
       </div>
 
@@ -161,24 +244,28 @@ export default function OwnerReadyStayPublishForm({
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-sm">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Guest price</p>
-          <p className="mt-2 text-lg font-semibold text-ink">{formatDollars(guestPrice)}/pt</p>
-        </div>
-        <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-sm">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Guest total</p>
-          <p className="mt-2 text-lg font-semibold text-ink">{formatDollars(totalGuestCents)}</p>
-        </div>
-      </div>
-
-      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm">
-        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Live breakdown</p>
-        <div className="mt-2 space-y-1 text-slate-700">
-          <p>Owner receives: {formatDollars(ownerPrice)}/pt</p>
-          <p>Pixie fee: {formatDollars(FEE_PER_POINT_CENTS)}/pt</p>
-          <p>Guest pays: {formatDollars(guestPrice)}/pt</p>
-          <p>Total guest price: {formatDollars(totalGuestCents)}</p>
+      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm">
+        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Reservation proof</p>
+        <div className="mt-2 space-y-3">
+          <p className="text-sm font-semibold text-ink">Reservation proof</p>
+          <p className="text-xs text-slate-500">
+            Upload a screenshot, PDF, or photo of your Disney confirmation email showing this reservation is already secured.
+          </p>
+          {hasExistingReservationProof ? (
+            <p className="rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
+              Reservation proof already on file.
+            </p>
+          ) : (
+            <>
+              <input
+                type="file"
+                accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                className="text-xs text-muted"
+                onChange={(event) => setProofFile(event.target.files?.[0] ?? null)}
+              />
+              <p className="text-[11px] text-slate-500">Accepted file types: JPG, JPEG, PNG, PDF.</p>
+            </>
+          )}
         </div>
       </div>
 
@@ -186,7 +273,7 @@ export default function OwnerReadyStayPublishForm({
 
       <div className="mt-6 flex flex-wrap gap-3">
         <Button onClick={handlePublish} disabled={submitting || !confirmationReady}>
-          {submitting ? "Listing..." : "List a Ready Stay"}
+          {submitting ? "Submitting..." : "Submit Ready Stay"}
         </Button>
         {!confirmationReady ? (
           <p className="text-xs text-slate-500">

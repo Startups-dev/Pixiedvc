@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 
 import { sendReadyStayBookingPackageToOwner } from "@/lib/email";
+import { getAppUrl } from "@/lib/app-url";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
 type StripeEvent = {
@@ -367,11 +368,6 @@ export async function POST(request: Request) {
                     .eq("booking_id", bookingId)
                     .order("created_at", { ascending: true });
 
-                  const baseUrl =
-                    process.env.NEXT_PUBLIC_SITE_URL ??
-                    process.env.NEXT_PUBLIC_APP_URL ??
-                    "http://localhost:3005";
-
                   await sendReadyStayBookingPackageToOwner({
                     to: ownerEmail,
                     ownerName:
@@ -397,7 +393,7 @@ export async function POST(request: Request) {
                         email: guest.email ?? null,
                         phone: guest.phone ?? null,
                       })) ?? [],
-                    transferUrl: `${baseUrl.replace(/\/$/, "")}/owner/ready-stays`,
+                    transferUrl: getAppUrl("/owner/ready-stays", "ready stay transfer link"),
                   });
 
                   await supabase

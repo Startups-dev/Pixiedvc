@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { computeOwnerPayout } from '@/lib/pricing';
 import { sendOwnerMatchEmail } from '@/lib/email';
+import { getAppUrl } from '@/lib/app-url';
 
 function addYearsISO(dateStr: string, years: number) {
   const date = new Date(dateStr);
@@ -862,7 +863,7 @@ export async function evaluateMatchBookings(options: {
 
 export async function runMatchBookings(options: {
   client: SupabaseClient;
-  origin: string;
+  origin?: string;
   dryRun?: boolean;
   bookingId?: string | null;
   limit?: number;
@@ -871,7 +872,6 @@ export async function runMatchBookings(options: {
 }): Promise<MatchRunResult> {
   const {
     client,
-    origin,
     dryRun = false,
     bookingId = null,
     limit = DEFAULT_LIMIT,
@@ -966,8 +966,8 @@ export async function runMatchBookings(options: {
         });
         continue;
       }
-      const acceptUrl = `${origin}/api/matches/owner/accept?matchId=${matchId}`;
-      const declineUrl = `${origin}/api/matches/owner/decline?matchId=${matchId}`;
+      const acceptUrl = getAppUrl(`/api/matches/owner/accept?matchId=${matchId}`, 'owner match accept link');
+      const declineUrl = getAppUrl(`/api/matches/owner/decline?matchId=${matchId}`, 'owner match decline link');
 
       try {
         await sendOwnerMatchEmail({
@@ -976,9 +976,8 @@ export async function runMatchBookings(options: {
           resortName: plan.booking.primary_resort?.name ?? 'your DVC resort',
           checkIn: plan.booking.check_in,
           checkOut: plan.booking.check_out,
-          totalPoints: plan.booking.total_points,
-          leadGuestName: plan.booking.lead_guest_name,
-          leadGuestEmail: plan.booking.lead_guest_email,
+          points: plan.booking.total_points,
+          guestName: plan.booking.lead_guest_name,
           acceptUrl,
           declineUrl,
         });

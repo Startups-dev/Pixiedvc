@@ -8,6 +8,7 @@ import type { ContractSnapshot } from '@/lib/contracts/contractSnapshot';
 import { sendGuestAgreementSignedEmail, sendOwnerAgreementSignedEmail } from '@/lib/email';
 import { isReadyStayBookingRequest } from '@/lib/ready-stays/flow';
 import { ensureGuestAgreementForBooking, logContractEvent } from '@/server/contracts';
+import { getAppUrl } from '@/lib/app-url';
 
 export async function acceptContractAction(_: { error?: string | null }, formData: FormData) {
   const token = formData.get('token');
@@ -132,11 +133,9 @@ export async function acceptContractAction(_: { error?: string | null }, formDat
     const snapshot = (freshContract?.snapshot ?? contract.snapshot ?? {}) as ContractSnapshot;
 
     if (snapshot.ownerEmail) {
-      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? '';
-      const rentalUrl =
-        snapshot.rentalId && baseUrl
-          ? baseUrl.replace(/\/$/, '') + '/owner/rentals/' + snapshot.rentalId
-          : null;
+      const rentalUrl = snapshot.rentalId
+        ? getAppUrl(`/owner/rentals/${snapshot.rentalId}`, 'owner signed agreement rental link')
+        : null;
       await sendOwnerAgreementSignedEmail({
         to: snapshot.ownerEmail,
         ownerName: snapshot.ownerName,
@@ -154,9 +153,10 @@ export async function acceptContractAction(_: { error?: string | null }, formDat
       const guestEmail = snapshot.parties?.guest?.email ?? snapshot.guestEmail ?? null;
       if (guestEmail) {
         try {
-          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? '';
           const tokenToUse = freshContract?.guest_accept_token ?? contract.guest_accept_token;
-          const agreementUrl = baseUrl && tokenToUse ? `${baseUrl.replace(/\/$/, '')}/contracts/${tokenToUse}` : null;
+          const agreementUrl = tokenToUse
+            ? getAppUrl(`/contracts/${tokenToUse}`, 'guest signed agreement link')
+            : null;
           await sendGuestAgreementSignedEmail({
             to: guestEmail,
             guestName: snapshot.renterName ?? null,

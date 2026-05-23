@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { resortsData } from "../../../packages/pixiedvc-calculator/src/data/resorts";
 import {
   FEE_PER_POINT,
   getMaxOwnerPayout,
@@ -20,14 +21,28 @@ type OwnerReservationFormProps = {
   resorts: ResortOption[];
 };
 
-const ROOM_TYPE_OPTIONS = [
-  "Studio",
-  "1 Bedroom",
-  "2 Bedroom",
-  "3 Bedroom",
-  "Grand Villa",
-  "Cabin",
-];
+const ROOM_TYPE_LABELS: Record<string, string> = {
+  STUDIO: "Studio",
+  RESORTSTUDIO: "Resort Studio",
+  TOWERSTUDIO: "Tower Studio",
+  DUOSTUDIO: "Duo Studio",
+  DELUXESTUDIO: "Deluxe Studio",
+  GARDENDUOSTUDIO: "Garden Duo Studio",
+  GARDENDELUXESTUDIO: "Garden Deluxe Studio",
+  INNROOM: "Inn Room",
+  ONEBR: "1 Bedroom",
+  TWOBR: "2 Bedroom",
+  GRANDVILLA: "Grand Villa",
+  TWOBRBUNGALOW: "2 Bedroom Bungalow",
+  PENTHOUSE: "Penthouse",
+  TREEHOUSE: "Treehouse Villa",
+  COTTAGE: "Cottage",
+  CABIN: "Cabin",
+};
+
+function formatRoomType(code: string) {
+  return ROOM_TYPE_LABELS[code] ?? code;
+}
 
 function formatDollars(value: number) {
   return `$${value.toFixed(2)}`;
@@ -50,6 +65,19 @@ function seasonLabel(season: string) {
   }
 }
 
+function getReservationProofMimeType(file: File) {
+  const normalizedType = file.type.toLowerCase();
+  if (normalizedType === "application/pdf" || normalizedType === "image/jpeg" || normalizedType === "image/png") {
+    return normalizedType;
+  }
+
+  const lowerName = file.name.toLowerCase();
+  if (lowerName.endsWith(".pdf")) return "application/pdf";
+  if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg")) return "image/jpeg";
+  if (lowerName.endsWith(".png")) return "image/png";
+  return null;
+}
+
 export default function OwnerReservationForm({ resorts }: OwnerReservationFormProps) {
   const router = useRouter();
   const [resortId, setResortId] = useState("");
@@ -64,14 +92,28 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
   const pointsValueRef = useRef(points);
   const pointsManuallyEditedRef = useRef(pointsManuallyEdited);
   const [confirmationNumber, setConfirmationNumber] = useState("");
+  const [reservationProofFile, setReservationProofFile] = useState<File | null>(null);
   const [ownerPayoutPerPoint, setOwnerPayoutPerPoint] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const sortedResorts = useMemo(
     () => [...resorts].sort((a, b) => a.name.localeCompare(b.name)),
     [resorts],
   );
+  const selectedResort = useMemo(
+    () => sortedResorts.find((resort) => resort.id === resortId) ?? null,
+    [sortedResorts, resortId],
+  );
+  const roomTypeOptions = useMemo(() => {
+    const calculatorCode = selectedResort?.calculator_code?.toUpperCase() ?? null;
+    if (!calculatorCode) return [];
+    const resortMeta = resortsData.find((resort) => resort.code === calculatorCode);
+    if (!resortMeta) return [];
+    return resortMeta.roomTypes.map((code) => ({
+      code,
+      label: formatRoomType(code),
+    }));
+  }, [selectedResort]);
 
   const pricing = useMemo(() => {
     if (!checkIn) return null;
@@ -176,6 +218,78 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
     setOwnerPayoutPerPoint("");
   }, [resortId, roomType, checkIn, checkOut]);
 
+  useEffect(() => {
+    if (!roomTypeOptions.length) {
+      if (roomType) {
+        setRoomType("");
+      }
+      return;
+    }
+
+    const currentStillValid = roomTypeOptions.some((option) => option.label === roomType);
+    if (!currentStillValid) {
+      setRoomType(roomTypeOptions[0]?.label ?? "");
+    }
+  }, [roomTypeOptions, roomType]);
+
+  async function uploadReservationProof(rentalId: string) {
+    if (!reservationProofFile) {
+      throw new Error("Upload reservation proof before submitting this Ready Stay.");
+    }
+
+    const mimeType = getReservationProofMimeType(reservationProofFile);
+    if (!mimeType) {
+      throw new Error("Reservation proof must be a JPG, JPEG, PNG, or PDF file.");
+    }
+
+    const startResponse = await fetch("/api/rental-docs/start-upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        rental_id: rentalId,
+        doc_type: "disney_confirmation_email",
+        mime_type: mimeType,
+        size_bytes: reservationProofFile.size,
+      }),
+    });
+
+    if (!startResponse.ok) {
+      const payload = (await startResponse.json().catch(() => ({}))) as { error?: string };
+      throw new Error(payload.error || "Unable to start the reservation proof upload.");
+    }
+
+    const startPayload = (await startResponse.json()) as { signed_url: string; object_path: string };
+    const uploadResponse = await fetch(startPayload.signed_url, {
+      method: "PUT",
+      headers: {
+        "Content-Type": mimeType,
+        "x-upsert": "false",
+      },
+      body: reservationProofFile,
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error("Unable to upload the reservation proof.");
+    }
+
+    const finalizeResponse = await fetch("/api/rental-docs/finalize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rental_id: rentalId,
+        object_path: startPayload.object_path,
+        original_name: reservationProofFile.name,
+        doc_type: "disney_confirmation_email",
+        size_bytes: reservationProofFile.size,
+      }),
+    });
+
+    if (!finalizeResponse.ok) {
+      throw new Error("We uploaded the reservation proof, but could not save it.");
+    }
+  }
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
@@ -187,6 +301,11 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
 
     if (pricing && ownerPayout > pricing.maxOwnerPayout) {
       setError(`Too high - the maximum allowed is ${formatDollars(pricing.maxOwnerPayout)}/pt for these dates.`);
+      return;
+    }
+
+    if (hasConfirmationNumber && !reservationProofFile) {
+      setError("Upload reservation proof before submitting this Ready Stay.");
       return;
     }
 
@@ -216,6 +335,8 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
       createdRentalId = payload.rentalId as string;
 
       if (hasConfirmationNumber) {
+        await uploadReservationProof(createdRentalId);
+
         const listingResponse = await fetch("/api/owner/ready-stays", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -230,6 +351,7 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
           error?: string;
           id?: string | null;
           alreadyListed?: boolean;
+          status?: string | null;
         };
 
         if (!listingResponse.ok) {
@@ -246,7 +368,13 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
           return;
         }
 
-        router.push("/owner/ready-stays?notice=published");
+        if (listingPayload.id) {
+          router.push(`/owner/ready-stays/${listingPayload.id}?notice=submitted`);
+          router.refresh();
+          return;
+        }
+
+        router.push("/owner/ready-stays?notice=submitted");
         router.refresh();
         return;
       }
@@ -255,11 +383,7 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
       router.refresh();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to save reservation.";
-      if (createdRentalId) {
-        setError(`${message} Reservation was created; you can finish listing from that reservation page.`);
-      } else {
-        setError(message);
-      }
+      setError(message);
       setSubmitting(false);
     }
   };
@@ -272,7 +396,10 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
           <select
             className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
             value={resortId}
-            onChange={(event) => setResortId(event.target.value)}
+            onChange={(event) => {
+              setResortId(event.target.value);
+              setRoomType("");
+            }}
             required
           >
             <option value="">Select resort</option>
@@ -292,11 +419,12 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
             value={roomType}
             onChange={(event) => setRoomType(event.target.value)}
             required
+            disabled={!roomTypeOptions.length}
           >
-            <option value="">Select room type</option>
-            {ROOM_TYPE_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option}
+            <option value="">{selectedResort ? "Select room type" : "Choose a resort first"}</option>
+            {roomTypeOptions.map((option) => (
+              <option key={option.code} value={option.label}>
+                {option.label}
               </option>
             ))}
           </select>
@@ -460,14 +588,31 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
         />
       </label>
 
-      {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+        Reservation proof
+        <input
+          type="file"
+          accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+          className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+          onChange={(event) => setReservationProofFile(event.target.files?.[0] ?? null)}
+        />
+        <p className="mt-2 text-xs normal-case tracking-normal text-slate-500">
+          Upload a screenshot, PDF, or photo of your Disney confirmation email showing this reservation is already secured.
+        </p>
+      </label>
+
+      {error ? (
+        <div className="space-y-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
+          <p className="text-sm text-rose-700">{error}</p>
+        </div>
+      ) : null}
 
       <button
         type="submit"
         disabled={submitting}
         className="mt-3 inline-flex items-center rounded-full bg-[#0B1B3A] px-6 py-3 text-xs font-semibold uppercase tracking-[0.25em] text-white disabled:opacity-60"
       >
-        {submitting ? "Saving…" : hasConfirmationNumber ? "Save & List Ready Stay" : "Save Reservation"}
+        {submitting ? "Saving…" : hasConfirmationNumber ? "Submit Ready Stay" : "Save Reservation"}
       </button>
     </form>
   );

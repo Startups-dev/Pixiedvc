@@ -283,15 +283,19 @@ export async function DELETE(request: Request) {
   const guard = await assertAdmin();
   if (!guard.ok) return guard.response;
 
-  const payload = (await request.json().catch(() => ({}))) as { id?: string };
+  const payload = (await request.json().catch(() => ({}))) as { id?: string; purge?: boolean };
   if (!payload.id) {
     return NextResponse.json({ error: "id is required." }, { status: 400 });
   }
 
-  const { error } = await guard.adminClient
-    .from("ready_stays")
-    .update({ status: "removed", placement_home: false, placement_resort: false, placement_search: false })
-    .eq("id", payload.id);
+  const operation = payload.purge
+    ? guard.adminClient.from("ready_stays").delete().eq("id", payload.id)
+    : guard.adminClient
+        .from("ready_stays")
+        .update({ status: "removed", placement_home: false, placement_resort: false, placement_search: false })
+        .eq("id", payload.id);
+
+  const { error } = await operation;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

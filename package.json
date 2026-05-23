@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "cross-env-shell \"next dev -p ${PORT:-3000}\"",
+    "dev:clean": "rm -rf .next && cross-env-shell \"next dev -p ${PORT:-3000}\"",
     "build": "next build --turbopack",
     "start": "next start",
     "deploy:staging": "bash ./scripts/gcp/deploy-staging.sh \"$PROJECT_ID\" \"$REGION\"",

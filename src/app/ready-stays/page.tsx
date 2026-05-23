@@ -19,17 +19,29 @@ const READY_STAY_GUIDE_LINKS = [
 export default async function ReadyStaysPublicPage({
   searchParams,
 }: {
-  searchParams?: {
-    resort?: string;
-    month?: string;
-    holiday?: string;
-    price_min?: string;
-    price_max?: string;
-    points_min?: string;
-    points_max?: string;
-    sort?: string;
-  };
+  searchParams?:
+    | Promise<{
+        resort?: string;
+        month?: string;
+        holiday?: string;
+        price_min?: string;
+        price_max?: string;
+        points_min?: string;
+        points_max?: string;
+        sort?: string;
+      }>
+    | {
+        resort?: string;
+        month?: string;
+        holiday?: string;
+        price_min?: string;
+        price_max?: string;
+        points_min?: string;
+        points_max?: string;
+        sort?: string;
+      };
 }) {
+  const resolvedSearchParams = searchParams instanceof Promise ? await searchParams : searchParams;
   const searchReadyStays = await getSearchReadyStaysShowcase(3);
   const supabase = await createSupabaseServerClient();
   const today = new Date().toISOString().slice(0, 10);
@@ -44,31 +56,33 @@ export default async function ReadyStaysPublicPage({
     .from("ready_stays")
     .select(
       "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, expires_at, locked_until, resorts(name, slug, calculator_code)",
+      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, expires_at, locked_until, verification_status, resorts(name, slug, calculator_code)",
     )
     .eq("status", "active")
     .gte("check_out", today)
     .order("price_reduced_at", { ascending: false, nullsFirst: false })
     .order("check_in", { ascending: true });
 
-  if (searchParams?.resort) {
-    query = query.eq("resort_id", searchParams.resort);
+  if (resolvedSearchParams?.resort) {
+    query = query.eq("resort_id", resolvedSearchParams.resort);
   }
 
-  if (searchParams?.holiday) {
-    query = query.eq("season_type", searchParams.holiday);
+  if (resolvedSearchParams?.holiday) {
+    query = query.eq("season_type", resolvedSearchParams.holiday);
   }
 
-  if (searchParams?.month) {
-    const [year, month] = searchParams.month.split("-").map((part) => Number(part));
+  if (resolvedSearchParams?.month) {
+    const [year, month] = resolvedSearchParams.month.split("-").map((part) => Number(part));
     if (year && month) {
       const start = new Date(Date.UTC(year, month - 1, 1)).toISOString().slice(0, 10);
       const end = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
-      query = query.gte("check_in", start).lte("check_in", end);
+      // Include any stay that overlaps the selected month, not only stays that begin in it.
+      query = query.lte("check_in", end).gte("check_out", start);
     }
   }
 
-  const priceMin = Number(searchParams?.price_min);
-  const priceMax = Number(searchParams?.price_max);
+  const priceMin = Number(resolvedSearchParams?.price_min);
+  const priceMax = Number(resolvedSearchParams?.price_max);
   if (Number.isFinite(priceMin)) {
     query = query.gte("guest_price_per_point_cents", priceMin);
   }
@@ -76,8 +90,8 @@ export default async function ReadyStaysPublicPage({
     query = query.lte("guest_price_per_point_cents", priceMax);
   }
 
-  const pointsMin = Number(searchParams?.points_min);
-  const pointsMax = Number(searchParams?.points_max);
+  const pointsMin = Number(resolvedSearchParams?.points_min);
+  const pointsMax = Number(resolvedSearchParams?.points_max);
   if (Number.isFinite(pointsMin)) {
     query = query.gte("points", pointsMin);
   }
@@ -101,23 +115,57 @@ export default async function ReadyStaysPublicPage({
       }
     }
 
+    if (stay.verification_status === "proof_uploaded" || stay.verification_status === "rejected") {
+      return false;
+    }
+
+    return true;
+  }).filter((stay) => {
+    if (resolvedSearchParams?.resort && stay.resort_id !== resolvedSearchParams.resort) return false;
+    if (resolvedSearchParams?.holiday && stay.season_type !== resolvedSearchParams.holiday) return false;
+
+    if (resolvedSearchParams?.month) {
+      const [year, month] = resolvedSearchParams.month.split("-").map((part) => Number(part));
+      if (year && month) {
+        const monthStart = new Date(Date.UTC(year, month - 1, 1));
+        const monthEnd = new Date(Date.UTC(year, month, 0));
+        const checkIn = new Date(`${stay.check_in}T00:00:00Z`);
+        const checkOut = new Date(`${stay.check_out}T00:00:00Z`);
+        if (Number.isNaN(checkIn.getTime()) || Number.isNaN(checkOut.getTime())) return false;
+        if (checkIn > monthEnd || checkOut < monthStart) return false;
+      }
+    }
+
+    if (Number.isFinite(priceMin) && stay.guest_price_per_point_cents < priceMin) return false;
+    if (Number.isFinite(priceMax) && stay.guest_price_per_point_cents > priceMax) return false;
+    if (Number.isFinite(pointsMin) && stay.points < pointsMin) return false;
+    if (Number.isFinite(pointsMax) && stay.points > pointsMax) return false;
+
     return true;
   });
 
   return (
     <main className="mx-auto max-w-6xl space-y-10 px-6 py-12">
-      <header className="space-y-3">
-        <p className="text-xs uppercase tracking-[0.3em] text-muted">Pixie Ready Stays</p>
-        <h1 className="text-3xl font-semibold text-ink">Instant-Book DVC Stays</h1>
-        <p className="text-sm text-muted">
-          Premium inventory curated from confirmed owner reservations.
+      <section className="max-w-4xl space-y-3">
+        <div className="space-y-2.5">
+          <p className="text-xs uppercase tracking-[0.3em] text-muted">PIXIE READY STAYS</p>
+          <h1 className="text-[2rem] font-semibold leading-tight text-ink sm:text-[2.45rem]">
+            Instant-Book Disney Villa Stays
+          </h1>
+          <p className="max-w-[560px] text-sm leading-7 text-muted sm:text-[15px]">
+            Browse Disney villa reservations already secured through verified DVC owners.
+          </p>
+        </div>
+
+        <p className="text-sm leading-7 text-slate-500">
+          Pre-confirmed stays • Fixed travel dates • Faster than custom matching
         </p>
-      </header>
+      </section>
 
       <ReadyStaysMarketplaceClient
         readyStays={visibleReadyStays}
         resorts={(resorts ?? []) as { id: string; name: string }[]}
-        searchParams={searchParams ?? {}}
+        searchParams={resolvedSearchParams ?? {}}
       />
       {READY_STAYS_SHOWCASE_FLAGS.enableSearchReadyStays ? (
         <ReadyStaysSection

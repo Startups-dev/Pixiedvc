@@ -304,9 +304,9 @@ export default function ReadyStaysMarketplaceClient({
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm text-muted">
-              {sortedReadyStays.length} Ready Stays available
-            </p>
+            {sortedReadyStays.length > 0 ? (
+              <p className="text-sm text-muted">{sortedReadyStays.length} Ready Stays currently available</p>
+            ) : null}
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -336,12 +336,7 @@ export default function ReadyStaysMarketplaceClient({
         {sortedReadyStays.length === 0 ? (
           <Card className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
             <p className="text-lg font-semibold text-ink">
-              {hasActiveFilters ? "No Ready Stays match your filters" : "No Ready Stays available right now"}
-            </p>
-            <p className="mt-2 text-sm text-muted">
-              {hasActiveFilters
-                ? "Try clearing filters or selecting a different month."
-                : "Please check back soon for new inventory."}
+              {hasActiveFilters ? "No Ready Stays match your filters" : "No Ready Stays available right now."}
             </p>
             {hasActiveFilters ? (
               <Button asChild className="mt-6">
