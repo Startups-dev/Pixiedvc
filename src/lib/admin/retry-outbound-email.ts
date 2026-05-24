@@ -4,7 +4,9 @@ import {
   sendBookingConfirmationEmail,
   sendConciergeHandoffNotification,
   sendContractGuestAgreementEmail,
+  sendContractGuestAgreementReminderEmail,
   sendContractOwnerAgreementEmail,
+  sendContractOwnerAgreementReminderEmail,
   sendGuestAgreementSignedEmail,
   sendOwnerAgreementSignedEmail,
   sendOwnerMatchEmail,
@@ -538,6 +540,52 @@ async function retryContractOwnerAgreement(row: OutboundEmailRow) {
   });
 }
 
+async function retryContractOwnerAgreementReminder(row: OutboundEmailRow) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) throw new Error("service_role_missing");
+  const metadata = coerceMetadata(row);
+  const contractId = readNumber(metadata.contractId);
+  if (!contractId) throw new Error("missing_contract_id");
+
+  const { data: contract } = await admin
+    .from("contracts")
+    .select("id, owner_id, status, owner_accept_token, owner_accepted_at, snapshot")
+    .eq("id", contractId)
+    .maybeSingle();
+
+  if (!contract || contract.status !== "sent" || contract.owner_accepted_at || !contract.owner_accept_token) {
+    throw new Error("contract_not_recoverable");
+  }
+
+  const snapshot = (contract.snapshot ?? {}) as Record<string, unknown>;
+  const summary = (snapshot.summary ?? {}) as Record<string, unknown>;
+  const parties = (snapshot.parties ?? {}) as Record<string, unknown>;
+  const guest = (parties.guest ?? {}) as Record<string, unknown>;
+  const owner = (parties.owner ?? {}) as Record<string, unknown>;
+
+  await sendContractOwnerAgreementReminderEmail({
+    to: row.recipient_email,
+    ownerName: readString(owner.fullName) ?? readString(snapshot.ownerName) ?? undefined,
+    guestName: readString(guest.fullName) ?? undefined,
+    resortName: readString(summary.resortName) ?? undefined,
+    roomType: readString(summary.accommodationType) ?? undefined,
+    checkIn: readString(summary.checkIn) ?? undefined,
+    checkOut: readString(summary.checkOut) ?? undefined,
+    points: readNumber(summary.pointsRented) ?? undefined,
+    totalUsd: formatCurrency(readNumber(summary.totalPayableByGuestCents)),
+    agreementUrl: getAppUrl(`/contracts/${contract.owner_accept_token}`, "contract owner reminder link"),
+    templateKey: row.template_key,
+    relatedEntityType: "contract",
+    metadata: {
+      contractId,
+      bookingId: readString(metadata.bookingId),
+      ownerId: readString(metadata.ownerId),
+      recipientRole: "owner",
+    },
+    outboundEmailLogId: row.id,
+  });
+}
+
 async function retryContractGuestAgreement(row: OutboundEmailRow) {
   const admin = getSupabaseAdminClient();
   if (!admin) throw new Error("service_role_missing");
@@ -578,6 +626,53 @@ async function retryContractGuestAgreement(row: OutboundEmailRow) {
       contractId,
       bookingId: readString(metadata.bookingId),
       ownerId: readString(metadata.ownerId),
+    },
+    outboundEmailLogId: row.id,
+  });
+}
+
+async function retryContractGuestAgreementReminder(row: OutboundEmailRow) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) throw new Error("service_role_missing");
+  const metadata = coerceMetadata(row);
+  const contractId = readNumber(metadata.contractId);
+  if (!contractId) throw new Error("missing_contract_id");
+
+  const { data: contract } = await admin
+    .from("contracts")
+    .select("id, status, guest_accept_token, guest_accepted_at, snapshot")
+    .eq("id", contractId)
+    .maybeSingle();
+
+  if (!contract || contract.status !== "sent" || contract.guest_accepted_at || !contract.guest_accept_token) {
+    throw new Error("contract_not_recoverable");
+  }
+
+  const snapshot = (contract.snapshot ?? {}) as Record<string, unknown>;
+  const summary = (snapshot.summary ?? {}) as Record<string, unknown>;
+  const parties = (snapshot.parties ?? {}) as Record<string, unknown>;
+  const guest = (parties.guest ?? {}) as Record<string, unknown>;
+  const guestEmail = readString(guest.email) ?? readString(snapshot.guestEmail) ?? readString(snapshot.renterEmail);
+  if (!guestEmail) throw new Error("guest_email_missing");
+
+  await sendContractGuestAgreementReminderEmail({
+    to: row.recipient_email,
+    guestName: readString(guest.fullName) ?? readString(snapshot.renterName) ?? undefined,
+    resortName: readString(summary.resortName) ?? undefined,
+    roomType: readString(summary.accommodationType) ?? undefined,
+    checkIn: readString(summary.checkIn) ?? undefined,
+    checkOut: readString(summary.checkOut) ?? undefined,
+    points: readNumber(summary.pointsRented) ?? undefined,
+    totalUsd: formatCurrency(readNumber(summary.totalPayableByGuestCents)),
+    paidNowUsd: formatCurrency(readNumber(summary.paidNowCents)),
+    agreementUrl: getAppUrl(`/contracts/${contract.guest_accept_token}`, "contract guest reminder link"),
+    templateKey: row.template_key,
+    relatedEntityType: "contract",
+    metadata: {
+      contractId,
+      bookingId: readString(metadata.bookingId),
+      ownerId: readString(metadata.ownerId),
+      recipientRole: "guest",
     },
     outboundEmailLogId: row.id,
   });
@@ -631,8 +726,12 @@ async function dispatchRetry(row: OutboundEmailRow) {
       return retryOwnerMatchWaitingReminder(row);
     case "contract_owner_agreement":
       return retryContractOwnerAgreement(row);
+    case "contract_owner_agreement_reminder":
+      return retryContractOwnerAgreementReminder(row);
     case "contract_guest_agreement":
       return retryContractGuestAgreement(row);
+    case "contract_guest_agreement_reminder":
+      return retryContractGuestAgreementReminder(row);
     case "owner_agreement_signed":
       return retryOwnerAgreementSigned(row);
     case "guest_agreement_signed":

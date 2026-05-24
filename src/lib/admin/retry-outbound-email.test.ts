@@ -60,6 +60,22 @@ const retryState = vi.hoisted(() => {
       retryState.row.provider_message_id = "re_retry_125";
       retryState.lastPayload = payload;
     }),
+    sendContractOwnerAgreementReminderEmail: vi.fn(async (payload: Record<string, unknown>) => {
+      retryState.row.status = "sent";
+      retryState.row.sent_at = new Date().toISOString();
+      retryState.row.failed_at = null;
+      retryState.row.error_message = null;
+      retryState.row.provider_message_id = "re_retry_126";
+      retryState.lastPayload = payload;
+    }),
+    sendContractGuestAgreementReminderEmail: vi.fn(async (payload: Record<string, unknown>) => {
+      retryState.row.status = "sent";
+      retryState.row.sent_at = new Date().toISOString();
+      retryState.row.failed_at = null;
+      retryState.row.error_message = null;
+      retryState.row.provider_message_id = "re_retry_127";
+      retryState.lastPayload = payload;
+    }),
     lastPayload: null as Record<string, unknown> | null,
     getSupabaseAdminClient: vi.fn(() => ({
       from: (table: string) => {
@@ -130,6 +146,45 @@ const retryState = vi.hoisted(() => {
           };
         }
 
+        if (table === "contracts") {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: {
+                    id: 123,
+                    owner_id: "owner-1",
+                    status: "sent",
+                    owner_accept_token: "owner-token",
+                    owner_accepted_at: null,
+                    guest_accept_token: "guest-token",
+                    guest_accepted_at: null,
+                    snapshot: {
+                      ownerName: "Owner",
+                      renterName: "Guest",
+                      guestEmail: "guest@example.com",
+                      summary: {
+                        resortName: "Riviera Resort",
+                        accommodationType: "Deluxe Studio",
+                        checkIn: "2026-06-01",
+                        checkOut: "2026-06-05",
+                        pointsRented: 72,
+                        totalPayableByGuestCents: 180000,
+                        paidNowCents: 126000,
+                      },
+                      parties: {
+                        owner: { fullName: "Owner" },
+                        guest: { fullName: "Guest", email: "guest@example.com" },
+                      },
+                    },
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+
         throw new Error(`Unexpected table: ${table}`);
       },
     })),
@@ -146,6 +201,8 @@ vi.mock("@/lib/email", () => ({
   sendConciergeHandoffNotification: vi.fn(),
   sendContractGuestAgreementEmail: vi.fn(),
   sendContractOwnerAgreementEmail: vi.fn(),
+  sendContractGuestAgreementReminderEmail: retryState.sendContractGuestAgreementReminderEmail,
+  sendContractOwnerAgreementReminderEmail: retryState.sendContractOwnerAgreementReminderEmail,
   sendGuestAgreementSignedEmail: vi.fn(),
   sendOwnerAgreementSignedEmail: vi.fn(),
   sendOwnerMatchEmail: vi.fn(),
@@ -176,6 +233,8 @@ describe("retryOutboundEmail", () => {
     retryState.sendBookingConfirmationEmail.mockClear();
     retryState.sendAbandonedGuestBookingRequestEmail.mockClear();
     retryState.sendOwnerMatchReminderEmail.mockClear();
+    retryState.sendContractOwnerAgreementReminderEmail.mockClear();
+    retryState.sendContractGuestAgreementReminderEmail.mockClear();
     retryState.getSupabaseAdminClient.mockClear();
     retryState.lastPayload = null;
   });
@@ -259,6 +318,48 @@ describe("retryOutboundEmail", () => {
       outboundEmailLogId: retryState.row.id,
       relatedEntityId: "33333333-3333-3333-3333-333333333333",
       guestName: "Guest",
+    });
+  });
+
+  it("retries a failed owner agreement reminder email", async () => {
+    retryState.row.template_key = "contract_owner_agreement_reminder";
+    retryState.row.subject = "Reminder: your PixieDVC owner agreement is ready";
+    retryState.row.related_entity_id = null;
+    retryState.row.metadata = {
+      contractId: 123,
+      bookingId: retryState.booking.id,
+      ownerId: "owner-1",
+      recipientRole: "owner",
+    };
+
+    const result = await retryOutboundEmail(retryState.row.id);
+
+    expect(result.ok).toBe(true);
+    expect(retryState.sendContractOwnerAgreementReminderEmail).toHaveBeenCalledTimes(1);
+    expect(retryState.lastPayload).toMatchObject({
+      templateKey: "contract_owner_agreement_reminder",
+      outboundEmailLogId: retryState.row.id,
+    });
+  });
+
+  it("retries a failed guest agreement reminder email", async () => {
+    retryState.row.template_key = "contract_guest_agreement_reminder";
+    retryState.row.subject = "Reminder: your PixieDVC rental agreement is ready";
+    retryState.row.related_entity_id = null;
+    retryState.row.metadata = {
+      contractId: 123,
+      bookingId: retryState.booking.id,
+      ownerId: "owner-1",
+      recipientRole: "guest",
+    };
+
+    const result = await retryOutboundEmail(retryState.row.id);
+
+    expect(result.ok).toBe(true);
+    expect(retryState.sendContractGuestAgreementReminderEmail).toHaveBeenCalledTimes(1);
+    expect(retryState.lastPayload).toMatchObject({
+      templateKey: "contract_guest_agreement_reminder",
+      outboundEmailLogId: retryState.row.id,
     });
   });
 });

@@ -2,7 +2,9 @@ import { buildAbandonedGuestBookingRequestTemplate } from '@/lib/email/templates
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { buildConciergeHandoffTemplate } from '@/lib/email/templates/concierge-handoff';
 import { buildContractGuestAgreementTemplate } from '@/lib/email/templates/contract-guest-agreement';
+import { buildContractGuestAgreementReminderTemplate } from '@/lib/email/templates/contract-guest-agreement-reminder';
 import { buildContractOwnerAgreementTemplate } from '@/lib/email/templates/contract-owner-agreement';
+import { buildContractOwnerAgreementReminderTemplate } from '@/lib/email/templates/contract-owner-agreement-reminder';
 import { buildGuestBookingConfirmationTemplate } from '@/lib/email/templates/guest-booking-confirmation';
 import { buildGuestAgreementSignedTemplate } from '@/lib/email/templates/guest-agreement-signed';
 import { buildOwnerMatchWaitingTemplate } from '@/lib/email/templates/owner-match-waiting';
@@ -444,6 +446,34 @@ export async function sendContractOwnerAgreementEmail(payload: ContractOwnerAgre
   });
 }
 
+export async function sendContractOwnerAgreementReminderEmail(payload: ContractOwnerAgreementEmailPayload) {
+  const template = buildContractOwnerAgreementReminderTemplate({
+    ownerName: payload.ownerName,
+    guestName: payload.guestName,
+    resortName: payload.resortName,
+    roomType: payload.roomType,
+    checkIn: payload.checkIn,
+    checkOut: payload.checkOut,
+    points: payload.points,
+    totalUsd: payload.totalUsd,
+    agreementUrl: payload.agreementUrl,
+  });
+
+  await sendResendEmail({
+    to: payload.to,
+    subject: template.subject,
+    text: template.text,
+    html: template.html,
+    context: 'contract owner reminder email',
+    templateKey: payload.templateKey,
+    recipientUserId: payload.recipientUserId,
+    relatedEntityType: payload.relatedEntityType,
+    relatedEntityId: payload.relatedEntityId,
+    metadata: payload.metadata,
+    outboundEmailLogId: payload.outboundEmailLogId,
+  });
+}
+
 export async function sendContractGuestAgreementEmail(payload: ContractGuestAgreementEmailPayload) {
   const template = buildContractGuestAgreementTemplate({
     guestName: payload.guestName,
@@ -463,6 +493,34 @@ export async function sendContractGuestAgreementEmail(payload: ContractGuestAgre
     text: template.text,
     html: template.html,
     context: 'contract guest email',
+    templateKey: payload.templateKey,
+    recipientUserId: payload.recipientUserId,
+    relatedEntityType: payload.relatedEntityType,
+    relatedEntityId: payload.relatedEntityId,
+    metadata: payload.metadata,
+    outboundEmailLogId: payload.outboundEmailLogId,
+  });
+}
+
+export async function sendContractGuestAgreementReminderEmail(payload: ContractGuestAgreementEmailPayload) {
+  const template = buildContractGuestAgreementReminderTemplate({
+    guestName: payload.guestName,
+    resortName: payload.resortName,
+    roomType: payload.roomType,
+    checkIn: payload.checkIn,
+    checkOut: payload.checkOut,
+    points: payload.points,
+    totalUsd: payload.totalUsd,
+    paidNowUsd: payload.paidNowUsd,
+    agreementUrl: payload.agreementUrl,
+  });
+
+  await sendResendEmail({
+    to: payload.to,
+    subject: template.subject,
+    text: template.text,
+    html: template.html,
+    context: 'contract guest reminder email',
     templateKey: payload.templateKey,
     recipientUserId: payload.recipientUserId,
     relatedEntityType: payload.relatedEntityType,

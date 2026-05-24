@@ -39,7 +39,9 @@ import {
   sendAbandonedGuestBookingRequestEmail,
   sendConciergeHandoffNotification,
   sendContractGuestAgreementEmail,
+  sendContractGuestAgreementReminderEmail,
   sendContractOwnerAgreementEmail,
+  sendContractOwnerAgreementReminderEmail,
   sendBookingConfirmationEmail,
   sendGuestAgreementSignedEmail,
   sendOwnerMatchEmail,
@@ -396,6 +398,65 @@ describe('email outbound logging', () => {
     expect(firstPayload.html).not.toContain('localhost');
     expect(secondPayload.text).toContain('Our concierge team will follow up');
     expect(secondPayload.html).toContain('View Agreement');
+  });
+
+  it('sends contract reminder templates with html', async () => {
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 're_9041' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 're_9042' }),
+      }) as typeof fetch;
+
+    await sendContractOwnerAgreementReminderEmail({
+      to: 'owner@example.com',
+      ownerName: 'Owner',
+      guestName: 'Guest',
+      resortName: 'Riviera Resort',
+      roomType: 'Deluxe Studio',
+      checkIn: '2026-06-01',
+      checkOut: '2026-06-05',
+      points: 72,
+      totalUsd: '$1,800.00',
+      agreementUrl: 'https://pixiedvc.com/contracts/owner-token',
+      templateKey: 'contract_owner_agreement_reminder',
+      relatedEntityType: 'contract',
+      metadata: { contractId: 123, recipientRole: 'owner' },
+    });
+
+    await sendContractGuestAgreementReminderEmail({
+      to: 'guest@example.com',
+      guestName: 'Guest',
+      resortName: 'Beach Club Villas',
+      roomType: '1 Bedroom',
+      checkIn: '2026-08-10',
+      checkOut: '2026-08-15',
+      points: 130,
+      totalUsd: '$2,400.00',
+      paidNowUsd: '$1,680.00',
+      agreementUrl: 'https://pixiedvc.com/contracts/guest-token',
+      templateKey: 'contract_guest_agreement_reminder',
+      relatedEntityType: 'contract',
+      metadata: { contractId: 124, recipientRole: 'guest' },
+    });
+
+    const ownerPayload = JSON.parse(
+      String(((fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit).body),
+    ) as { subject: string; text: string; html?: string };
+    const guestPayload = JSON.parse(
+      String(((fetch as ReturnType<typeof vi.fn>).mock.calls[1]?.[1] as RequestInit).body),
+    ) as { subject: string; text: string; html?: string };
+
+    expect(ownerPayload.subject).toBe('Reminder: your PixieDVC owner agreement is ready');
+    expect(ownerPayload.text).toContain('Just a quick reminder');
+    expect(ownerPayload.html).toContain('Review &amp; Sign');
+    expect(guestPayload.subject).toBe('Reminder: your PixieDVC rental agreement is ready');
+    expect(guestPayload.text).toContain('Completing the agreement helps keep your reservation moving forward.');
+    expect(guestPayload.html).not.toContain('localhost');
   });
 
   it('sends ready stay operational emails with html', async () => {
