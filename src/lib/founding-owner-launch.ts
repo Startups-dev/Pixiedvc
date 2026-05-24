@@ -11,8 +11,16 @@ export const FOUNDING_OWNER_LAUNCH_FLAGS = {
   enabled: envFlag("FOUNDING_OWNER_LAUNCH_ENABLED", true),
 } as const;
 
+function normalizePromotionName(value: string | null | undefined) {
+  return (value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
 export function isFoundingOwnerLaunchPromotion(promotion: PricingPromotion | null | undefined) {
-  const normalizedName = promotion?.name?.trim().toLowerCase() ?? "";
+  const normalizedName = normalizePromotionName(promotion?.name);
   return normalizedName === "founders launch" || normalizedName === "founding owner launch";
 }
 

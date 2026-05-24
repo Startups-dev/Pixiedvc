@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_noStore as noStore } from "next/cache";
 
 import { Hero } from "@/components/hero";
 import EmailLeadCapture from "@/components/EmailLeadCapture";
@@ -16,6 +17,8 @@ import {
 } from "@/lib/ready-stays/showcase-mock";
 import { getHomeReadyStaysShowcase } from "@/lib/ready-stays/showcase-live";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+
+export const dynamic = "force-dynamic";
 
 const resortShowcase = [
   {
@@ -48,6 +51,7 @@ const resortShowcase = [
 ];
 
 export default async function Home() {
+  noStore();
   const adminClient = getSupabaseAdminClient();
   const { data: activePromotion } = adminClient
     ? await getActivePromotion({ adminClient })
