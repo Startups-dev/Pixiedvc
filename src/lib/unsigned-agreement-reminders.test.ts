@@ -93,7 +93,6 @@ describe('runUnsignedAgreementReminders', () => {
             paidNowCents: 126000,
           },
         },
-        signed_copy_emailed_at: null,
       },
     ];
     reminderState.emailLogs = [
@@ -148,7 +147,6 @@ describe('runUnsignedAgreementReminders', () => {
             paidNowCents: 168000,
           },
         },
-        signed_copy_emailed_at: null,
       },
     ];
     reminderState.emailLogs = [
@@ -190,7 +188,6 @@ describe('runUnsignedAgreementReminders', () => {
         owner_accepted_at: '2026-05-20T08:00:00.000Z',
         guest_accepted_at: '2026-05-20T09:00:00.000Z',
         snapshot: {},
-        signed_copy_emailed_at: '2026-05-20T09:05:00.000Z',
       },
       {
         id: 104,
@@ -206,7 +203,6 @@ describe('runUnsignedAgreementReminders', () => {
           ownerEmail: 'owner@example.com',
           renterEmail: 'guest@example.com',
         },
-        signed_copy_emailed_at: null,
       },
     ];
     reminderState.emailLogs = [
@@ -274,7 +270,6 @@ describe('runUnsignedAgreementReminders', () => {
           ownerEmail: 'owner@example.com',
           renterEmail: null,
         },
-        signed_copy_emailed_at: null,
       },
     ];
     reminderState.emailLogs = [
@@ -306,5 +301,52 @@ describe('runUnsignedAgreementReminders', () => {
     expect(result.sent).toBe(0);
     expect(result.skipped).toContainEqual({ contractId: 105, role: 'owner', reason: 'signing_url_missing' });
     expect(result.skipped).toContainEqual({ contractId: 105, role: 'guest', reason: 'recipient_email_missing' });
+  });
+
+  it('does not require signed_copy_emailed_at to send a reminder', async () => {
+    reminderState.contracts = [
+      {
+        id: 106,
+        owner_id: 'owner-1',
+        booking_request_id: 'booking-6',
+        status: 'sent',
+        sent_at: '2026-05-20T00:00:00.000Z',
+        owner_accept_token: 'owner-token',
+        guest_accept_token: 'guest-token',
+        owner_accepted_at: null,
+        guest_accepted_at: '2026-05-20T12:00:00.000Z',
+        snapshot: {
+          ownerEmail: 'owner@example.com',
+          ownerName: 'Owner Name',
+          summary: {
+            resortName: 'Riviera Resort',
+            accommodationType: 'Deluxe Studio',
+            checkIn: '2026-06-01',
+            checkOut: '2026-06-05',
+            pointsRented: 72,
+            totalPayableByGuestCents: 180000,
+          },
+        },
+      },
+    ];
+    reminderState.emailLogs = [
+      {
+        id: 'log-9',
+        template_key: 'contract_owner_agreement',
+        status: 'sent',
+        related_entity_id: null,
+        created_at: '2026-05-20T00:10:00.000Z',
+        sent_at: '2026-05-20T00:10:00.000Z',
+        metadata: { contractId: 106 },
+      },
+    ];
+
+    const result = await runUnsignedAgreementReminders({
+      now: new Date('2026-05-21T10:30:00.000Z'),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.sent).toBe(1);
+    expect(reminderState.ownerPayloads).toHaveLength(1);
   });
 });

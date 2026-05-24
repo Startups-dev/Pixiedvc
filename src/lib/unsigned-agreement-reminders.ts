@@ -27,7 +27,6 @@ type ContractRow = {
   owner_accepted_at: string | null;
   guest_accepted_at: string | null;
   snapshot: ContractSnapshot | null;
-  signed_copy_emailed_at: string | null;
 };
 
 type OutboundEmailRow = {
@@ -189,7 +188,7 @@ export async function runUnsignedAgreementReminders(params?: {
   const { data: contracts, error: contractsError } = await client
     .from('contracts')
     .select(
-      'id, owner_id, booking_request_id, status, sent_at, owner_accept_token, guest_accept_token, owner_accepted_at, guest_accepted_at, snapshot, signed_copy_emailed_at',
+      'id, owner_id, booking_request_id, status, sent_at, owner_accept_token, guest_accept_token, owner_accepted_at, guest_accepted_at, snapshot',
     )
     .eq('status', 'sent')
     .order('sent_at', { ascending: true, nullsFirst: false })
