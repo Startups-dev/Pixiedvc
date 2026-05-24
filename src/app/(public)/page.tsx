@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
 
 import { Hero } from "@/components/hero";
 import EmailLeadCapture from "@/components/EmailLeadCapture";
@@ -10,10 +9,13 @@ import ContextualGuides from "@/components/guides/ContextualGuides";
 import ReadyStaysEmptyState from "@/components/ready-stays-showcase/ReadyStaysEmptyState";
 import ReadyStaysSection from "@/components/ready-stays-showcase/ReadyStaysSection";
 import { STORIES } from "@/content/stories";
+import { shouldShowFoundingOwnerLaunch } from "@/lib/founding-owner-launch";
+import { getActivePromotion } from "@/lib/pricing-promotions";
 import {
   READY_STAYS_SHOWCASE_FLAGS,
 } from "@/lib/ready-stays/showcase-mock";
 import { getHomeReadyStaysShowcase } from "@/lib/ready-stays/showcase-live";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
 const resortShowcase = [
   {
@@ -46,11 +48,108 @@ const resortShowcase = [
 ];
 
 export default async function Home() {
+  const adminClient = getSupabaseAdminClient();
+  const { data: activePromotion } = adminClient
+    ? await getActivePromotion({ adminClient })
+    : { data: null };
+  const showFoundingOwnerLaunch = shouldShowFoundingOwnerLaunch(activePromotion);
   const homeReadyStays = await getHomeReadyStaysShowcase(3);
 
   return (
     <>
+      {showFoundingOwnerLaunch ? (
+        <section className="bg-[#08152f] text-white">
+          <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+            <p className="text-sm leading-6 text-white/86">
+              <span className="font-semibold text-white">Founding Owner Launch</span>
+              {" — "}
+              Join during June and receive +$2/pt above standard payout rates for your first 2 years.
+            </p>
+            <Link
+              href="/owners"
+              className="inline-flex w-full items-center justify-center rounded-full border border-white/18 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-white/16 lg:w-auto"
+            >
+              Become a Founding Owner
+            </Link>
+          </div>
+        </section>
+      ) : null}
       <Hero />
+      {showFoundingOwnerLaunch ? (
+        <section className="border-b border-[#dce6f7] bg-[linear-gradient(180deg,#f6f9ff_0%,#ffffff_100%)]">
+          <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+            <div className="order-2 lg:order-1">
+              <div className="relative overflow-hidden rounded-[34px] border border-[#d8e3f8] bg-[radial-gradient(circle_at_top_left,rgba(91,120,255,0.2),transparent_38%),linear-gradient(155deg,#11244b_0%,#17325f_58%,#1d457e_100%)] p-7 shadow-[0_28px_70px_rgba(15,33,72,0.16)] sm:p-8">
+                <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-[26px] border border-white/10 bg-white/[0.06] p-5 backdrop-blur-sm">
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/58">Boosted launch payout</p>
+                    <p className="mt-3 text-3xl font-semibold text-white">+$2/pt</p>
+                    <p className="mt-2 text-sm leading-6 text-white/72">Above standard payout rates for your first 2 years.</p>
+                  </div>
+                  <div className="rounded-[26px] border border-white/10 bg-white/[0.06] p-5 backdrop-blur-sm">
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/58">Founder access</p>
+                    <p className="mt-3 text-lg font-semibold text-white">Ready Stay priority</p>
+                    <p className="mt-2 text-sm leading-6 text-white/72">Earlier access to high-intent listing opportunities.</p>
+                  </div>
+                </div>
+                <div className="mt-4 rounded-[28px] border border-white/10 bg-white/[0.05] p-5 backdrop-blur-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.22em] text-white/58">Founder positioning</p>
+                      <p className="mt-2 text-xl font-semibold text-white">Concierge-supported from application through first bookings</p>
+                    </div>
+                    <div className="rounded-full border border-white/14 bg-white/[0.08] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/78">
+                      June only
+                    </div>
+                  </div>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                    {[
+                      "Priority owner visibility",
+                      "Founding Owner status",
+                      "Human concierge support",
+                    ].map((item) => (
+                      <div key={item} className="rounded-2xl border border-white/10 bg-[#0b1d3f]/55 px-4 py-3 text-sm text-white/76">
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="order-1 lg:order-2">
+              <p className="text-xs uppercase tracking-[0.28em] text-[#5c6f98]">Founding Owner Launch</p>
+              <h2 className="mt-4 max-w-[15ch] text-4xl font-semibold leading-[1.04] text-[#0F2148] sm:text-5xl">
+                Join PixieDVC during our June launch and lock in boosted payout rates for your first 2 years.
+              </h2>
+              <p className="mt-5 max-w-[58ch] text-[16px] leading-8 text-[#53627e]">
+                Built for owners who want a calmer, more premium way to place points and confirmed reservations with concierge support and stronger launch visibility.
+              </p>
+
+              <ul className="mt-8 space-y-3 text-[15px] leading-7 text-[#24334f]">
+                <li>• +$2/pt above standard payout rates</li>
+                <li>• Priority owner visibility</li>
+                <li>• Founding Owner status</li>
+                <li>• Early access to Ready Stay opportunities</li>
+                <li>• Concierge-supported matching</li>
+              </ul>
+
+              <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+                <Link
+                  href="/owners"
+                  className="inline-flex items-center justify-center rounded-full bg-[#0F2148] px-6 py-3 text-sm font-semibold !text-white shadow-[0_16px_34px_rgba(15,33,72,0.22)] transition hover:-translate-y-[1px] hover:bg-[#173465]"
+                >
+                  Apply as an Owner
+                </Link>
+                <p className="text-sm text-[#6a7891]">
+                  Available to approved owners joining during June only.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
       <section className="mx-auto max-w-7xl px-6 pt-6">
         <EmailLeadCapture
           source="hero_bar"
