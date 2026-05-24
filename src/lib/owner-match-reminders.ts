@@ -30,7 +30,6 @@ type PendingOwnerMatchRow = {
   owner?: {
     id: string;
     payout_email: string | null;
-    display_name: string | null;
     profiles?:
       | {
           id: string | null;
@@ -98,6 +97,20 @@ function resolveOwnerEmail(match: PendingOwnerMatchRow) {
   );
 }
 
+function resolveOwnerDisplayName(match: PendingOwnerMatchRow) {
+  const profile = normalizeOwnerProfile(match);
+  const profileName = profile?.display_name?.trim();
+  if (profileName) return profileName;
+
+  const ownerEmail = resolveOwnerEmail(match);
+  if (ownerEmail && ownerEmail.includes('@')) {
+    const localPart = ownerEmail.split('@')[0]?.trim();
+    if (localPart) return localPart;
+  }
+
+  return 'PixieDVC Owner';
+}
+
 function isStillPending(match: PendingOwnerMatchRow) {
   if (match.status !== 'pending_owner') return false;
   if (match.responded_at) return false;
@@ -152,7 +165,7 @@ export async function runOwnerMatchReminders(params?: {
   const { data: matches, error: matchesError } = await client
     .from('booking_matches')
     .select(
-      'id, booking_id, owner_id, status, created_at, responded_at, booking:booking_requests!booking_matches_booking_id_fkey(id, status, availability_status, total_points, check_in, check_out, lead_guest_name, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)), owner:owners!booking_matches_owner_id_fkey(id, payout_email, display_name, profiles:profiles!owners_user_id_fkey(id, email, payout_email, display_name))',
+      'id, booking_id, owner_id, status, created_at, responded_at, booking:booking_requests!booking_matches_booking_id_fkey(id, status, availability_status, total_points, check_in, check_out, lead_guest_name, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)), owner:owners!booking_matches_owner_id_fkey(id, payout_email, profiles:profiles!owners_user_id_fkey(id, email, payout_email, display_name))',
     )
     .eq('status', 'pending_owner')
     .order('created_at', { ascending: true })
@@ -259,7 +272,7 @@ export async function runOwnerMatchReminders(params?: {
 
       await sendOwnerMatchReminderEmail({
         to: ownerEmail ?? '',
-        ownerName: normalizeOwnerProfile(match)?.display_name ?? match.owner?.display_name ?? undefined,
+        ownerName: resolveOwnerDisplayName(match),
         guestName: match.booking?.lead_guest_name ?? undefined,
         resortName: match.booking?.primary_resort?.name ?? undefined,
         checkIn: match.booking?.check_in ?? undefined,

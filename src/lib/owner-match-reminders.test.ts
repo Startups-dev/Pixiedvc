@@ -83,7 +83,6 @@ describe('runOwnerMatchReminders', () => {
         },
         owner: {
           id: 'owner-1',
-          display_name: 'Owner Name',
           payout_email: null,
           profiles: {
             id: 'profile-1',
@@ -142,7 +141,6 @@ describe('runOwnerMatchReminders', () => {
         },
         owner: {
           id: 'owner-1',
-          display_name: 'Owner Name',
           payout_email: null,
           profiles: {
             id: 'profile-1',
@@ -194,7 +192,6 @@ describe('runOwnerMatchReminders', () => {
         },
         owner: {
           id: 'owner-1',
-          display_name: 'Owner Name',
           payout_email: null,
           profiles: {
             id: 'profile-1',
@@ -254,7 +251,6 @@ describe('runOwnerMatchReminders', () => {
         },
         owner: {
           id: 'owner-1',
-          display_name: 'Owner Name',
           payout_email: null,
           profiles: {
             id: 'profile-1',
@@ -306,7 +302,6 @@ describe('runOwnerMatchReminders', () => {
         },
         owner: {
           id: 'owner-1',
-          display_name: 'Owner Name',
           payout_email: null,
           profiles: {
             id: 'profile-1',
@@ -336,5 +331,59 @@ describe('runOwnerMatchReminders', () => {
     expect(result.sent).toBe(0);
     expect(result.skipped).toContainEqual({ matchId: 'match-1', reason: 'owner_email_missing' });
     expect(reminderState.sendOwnerMatchReminderEmail).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the email local-part when profile display_name is missing', async () => {
+    reminderState.matches = [
+      {
+        id: 'match-1',
+        booking_id: 'booking-1',
+        owner_id: 'owner-1',
+        status: 'pending_owner',
+        created_at: '2026-02-01T00:00:00.000Z',
+        responded_at: null,
+        booking: {
+          id: 'booking-1',
+          status: 'pending_owner',
+          availability_status: 'confirmed',
+          total_points: 120,
+          check_in: '2026-11-10',
+          check_out: '2026-11-14',
+          lead_guest_name: 'Helena Aranha',
+          primary_resort: { name: 'Grand Floridian Villas' },
+        },
+        owner: {
+          id: 'owner-1',
+          payout_email: null,
+          profiles: {
+            id: 'profile-1',
+            email: 'owner.alias@example.com',
+            payout_email: null,
+            display_name: null,
+          },
+        },
+      },
+    ];
+    reminderState.emailLogs = [
+      {
+        id: 'email-1',
+        template_key: 'owner_match_waiting',
+        status: 'sent',
+        related_entity_id: 'match-1',
+        created_at: '2026-02-01T00:10:00.000Z',
+        sent_at: '2026-02-01T00:10:00.000Z',
+      },
+    ];
+
+    const result = await runOwnerMatchReminders({
+      now: new Date('2026-02-02T12:00:00.000Z'),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.sent).toBe(1);
+    expect(reminderState.lastPayload).toMatchObject({
+      ownerName: 'owner.alias',
+      to: 'owner.alias@example.com',
+    });
   });
 });
