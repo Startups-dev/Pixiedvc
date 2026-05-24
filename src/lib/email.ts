@@ -1,3 +1,4 @@
+import { buildAbandonedGuestBookingRequestTemplate } from '@/lib/email/templates/abandoned-guest-booking-request';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { buildConciergeHandoffTemplate } from '@/lib/email/templates/concierge-handoff';
 import { buildContractGuestAgreementTemplate } from '@/lib/email/templates/contract-guest-agreement';
@@ -29,6 +30,15 @@ type BookingEmailPayload = {
   checkIn?: string | null;
   checkOut?: string | null;
   tripUrl?: string | null;
+} & EmailLogContext;
+
+type AbandonedGuestBookingRequestEmailPayload = {
+  to: string;
+  guestName?: string | null;
+  resortName?: string | null;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  resumeUrl?: string | null;
 } & EmailLogContext;
 
 type SendPlainEmailPayload = {
@@ -476,6 +486,30 @@ export async function sendBookingConfirmationEmail(payload: BookingEmailPayload)
     text: template.text,
     html: template.html,
     context: 'confirmation email',
+    templateKey: payload.templateKey,
+    recipientUserId: payload.recipientUserId,
+    relatedEntityType: payload.relatedEntityType,
+    relatedEntityId: payload.relatedEntityId,
+    metadata: payload.metadata,
+    outboundEmailLogId: payload.outboundEmailLogId,
+  });
+}
+
+export async function sendAbandonedGuestBookingRequestEmail(payload: AbandonedGuestBookingRequestEmailPayload) {
+  const template = buildAbandonedGuestBookingRequestTemplate({
+    guestName: payload.guestName,
+    resortName: payload.resortName,
+    checkIn: payload.checkIn,
+    checkOut: payload.checkOut,
+    resumeUrl: payload.resumeUrl,
+  });
+
+  await sendResendEmail({
+    to: payload.to,
+    subject: template.subject,
+    text: template.text,
+    html: template.html,
+    context: 'abandoned guest booking request email',
     templateKey: payload.templateKey,
     recipientUserId: payload.recipientUserId,
     relatedEntityType: payload.relatedEntityType,

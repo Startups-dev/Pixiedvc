@@ -1,5 +1,6 @@
 import { getAppUrl } from "@/lib/app-url";
 import {
+  sendAbandonedGuestBookingRequestEmail,
   sendBookingConfirmationEmail,
   sendConciergeHandoffNotification,
   sendContractGuestAgreementEmail,
@@ -123,6 +124,41 @@ async function retryGuestBookingConfirmation(row: OutboundEmailRow) {
     resortName: booking.primary_resort?.name ?? undefined,
     checkIn: booking.check_in ?? undefined,
     checkOut: booking.check_out ?? undefined,
+    templateKey: row.template_key,
+    recipientUserId: booking.renter_id ?? row.recipient_user_id,
+    relatedEntityType: "booking_request",
+    relatedEntityId: bookingId,
+    metadata: { bookingId },
+    outboundEmailLogId: row.id,
+  });
+}
+
+async function retryAbandonedGuestBookingRequest(row: OutboundEmailRow) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) throw new Error("service_role_missing");
+  const metadata = coerceMetadata(row);
+  const bookingId = readString(metadata.bookingId) ?? row.related_entity_id;
+  if (!bookingId) throw new Error("missing_booking_id");
+
+  const { data: booking } = await admin
+    .from("booking_requests")
+    .select(
+      "id, renter_id, status, lead_guest_name, lead_guest_email, check_in, check_out, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)",
+    )
+    .eq("id", bookingId)
+    .maybeSingle();
+
+  if (!booking?.lead_guest_email || booking.status !== "draft") {
+    throw new Error("booking_not_recoverable");
+  }
+
+  await sendAbandonedGuestBookingRequestEmail({
+    to: row.recipient_email,
+    guestName: booking.lead_guest_name ?? undefined,
+    resortName: booking.primary_resort?.name ?? undefined,
+    checkIn: booking.check_in ?? undefined,
+    checkOut: booking.check_out ?? undefined,
+    resumeUrl: getAppUrl("/stay-builder", "abandoned booking request recovery link"),
     templateKey: row.template_key,
     recipientUserId: booking.renter_id ?? row.recipient_user_id,
     relatedEntityType: "booking_request",
@@ -524,6 +560,8 @@ async function retryConciergeNotification(row: OutboundEmailRow) {
 
 async function dispatchRetry(row: OutboundEmailRow) {
   switch (row.template_key) {
+    case "abandoned_guest_booking_request":
+      return retryAbandonedGuestBookingRequest(row);
     case "guest_booking_confirmation":
       return retryGuestBookingConfirmation(row);
     case "owner_match_waiting":

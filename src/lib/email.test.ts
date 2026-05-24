@@ -36,6 +36,7 @@ vi.mock('@/lib/supabase-admin', () => ({
 }));
 
 import {
+  sendAbandonedGuestBookingRequestEmail,
   sendConciergeHandoffNotification,
   sendContractGuestAgreementEmail,
   sendContractOwnerAgreementEmail,
@@ -106,6 +107,38 @@ describe('email outbound logging', () => {
         provider_message_id: 're_123',
         error_message: null,
       },
+    });
+  });
+
+  it('sends abandoned booking recovery emails with html and text', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 're_1201' }),
+    }) as typeof fetch;
+
+    await sendAbandonedGuestBookingRequestEmail({
+      to: 'guest@example.com',
+      guestName: 'Guest',
+      resortName: 'Riviera Resort',
+      checkIn: '2026-06-01',
+      checkOut: '2026-06-05',
+      resumeUrl: 'https://pixiedvc.com/stay-builder',
+      templateKey: 'abandoned_guest_booking_request',
+      recipientUserId: '11111111-1111-1111-1111-111111111111',
+      relatedEntityType: 'booking_request',
+      relatedEntityId: '22222222-2222-2222-2222-222222222222',
+      metadata: { bookingId: '22222222-2222-2222-2222-222222222222' },
+    });
+
+    const request = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
+    const payload = JSON.parse(String(request.body)) as { subject: string; text: string; html?: string };
+    expect(payload.subject).toBe('Still planning your Disney villa stay?');
+    expect(payload.text).toContain('No payment is required to submit a request.');
+    expect(payload.html).toContain('Continue Your Request');
+    expect(payload.html).not.toContain('localhost');
+    expect(emailTestState.insertRecords[0]).toMatchObject({
+      template_key: 'abandoned_guest_booking_request',
+      recipient_email: 'guest@example.com',
     });
   });
 

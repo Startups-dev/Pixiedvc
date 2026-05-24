@@ -24,6 +24,7 @@ const retryState = vi.hoisted(() => {
   const booking = {
     id: "22222222-2222-2222-2222-222222222222",
     renter_id: "11111111-1111-1111-1111-111111111111",
+    status: "draft",
     lead_guest_email: "guest@example.com",
     lead_guest_name: "Guest",
     check_in: "2026-06-01",
@@ -40,6 +41,14 @@ const retryState = vi.hoisted(() => {
       retryState.row.failed_at = null;
       retryState.row.error_message = null;
       retryState.row.provider_message_id = "re_retry_123";
+      retryState.lastPayload = payload;
+    }),
+    sendAbandonedGuestBookingRequestEmail: vi.fn(async (payload: Record<string, unknown>) => {
+      retryState.row.status = "sent";
+      retryState.row.sent_at = new Date().toISOString();
+      retryState.row.failed_at = null;
+      retryState.row.error_message = null;
+      retryState.row.provider_message_id = "re_retry_124";
       retryState.lastPayload = payload;
     }),
     lastPayload: null as Record<string, unknown> | null,
@@ -92,6 +101,7 @@ vi.mock("@/lib/supabase-admin", () => ({
 
 vi.mock("@/lib/email", () => ({
   sendBookingConfirmationEmail: retryState.sendBookingConfirmationEmail,
+  sendAbandonedGuestBookingRequestEmail: retryState.sendAbandonedGuestBookingRequestEmail,
   sendConciergeHandoffNotification: vi.fn(),
   sendContractGuestAgreementEmail: vi.fn(),
   sendContractOwnerAgreementEmail: vi.fn(),
@@ -116,6 +126,7 @@ describe("retryOutboundEmail", () => {
     retryState.row.retry_count = 0;
     retryState.row.last_retry_at = null;
     retryState.sendBookingConfirmationEmail.mockClear();
+    retryState.sendAbandonedGuestBookingRequestEmail.mockClear();
     retryState.getSupabaseAdminClient.mockClear();
     retryState.lastPayload = null;
   });
@@ -130,6 +141,23 @@ describe("retryOutboundEmail", () => {
     expect(retryState.row.status).toBe("sent");
     expect(retryState.lastPayload).toMatchObject({
       templateKey: "guest_booking_confirmation",
+      outboundEmailLogId: retryState.row.id,
+      relatedEntityId: retryState.booking.id,
+    });
+  });
+
+  it("retries a failed abandoned guest booking request email", async () => {
+    retryState.row.template_key = "abandoned_guest_booking_request";
+    retryState.row.subject = "Still planning your Disney villa stay?";
+    retryState.row.related_entity_id = retryState.booking.id;
+    retryState.row.metadata = { bookingId: retryState.booking.id };
+
+    const result = await retryOutboundEmail(retryState.row.id);
+
+    expect(result.ok).toBe(true);
+    expect(retryState.sendAbandonedGuestBookingRequestEmail).toHaveBeenCalledTimes(1);
+    expect(retryState.lastPayload).toMatchObject({
+      templateKey: "abandoned_guest_booking_request",
       outboundEmailLogId: retryState.row.id,
       relatedEntityId: retryState.booking.id,
     });
