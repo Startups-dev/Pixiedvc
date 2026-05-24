@@ -27,8 +27,26 @@ type OutboundEmailRow = {
   last_retry_at: string | null;
 };
 
-export default async function AdminEmailsPage() {
+export default async function AdminEmailsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await requireAdminUser("/admin/emails");
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const statusParam = Array.isArray(resolvedSearchParams.status)
+    ? resolvedSearchParams.status[0]
+    : resolvedSearchParams.status;
+  const templateParam = Array.isArray(resolvedSearchParams.template)
+    ? resolvedSearchParams.template[0]
+    : resolvedSearchParams.template;
+  const recipientParam = Array.isArray(resolvedSearchParams.recipient)
+    ? resolvedSearchParams.recipient[0]
+    : resolvedSearchParams.recipient;
+  const initialStatusFilter =
+    statusParam === "sent" || statusParam === "failed" || statusParam === "pending" ? statusParam : "all";
+  const initialTemplateFilter = templateParam?.trim() || "all";
+  const initialSearch = recipientParam?.trim() || "";
 
   const adminClient = getSupabaseAdminClient();
   if (!adminClient) {
@@ -101,7 +119,12 @@ export default async function AdminEmailsPage() {
           </div>
         </header>
 
-        <AdminEmailsClient rows={rows} />
+        <AdminEmailsClient
+          rows={rows}
+          initialStatusFilter={initialStatusFilter}
+          initialTemplateFilter={initialTemplateFilter}
+          initialSearch={initialSearch}
+        />
       </div>
     </div>
   );

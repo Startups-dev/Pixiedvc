@@ -48,11 +48,21 @@ function StatusBadge({ status }: { status: OutboundEmailRow["status"] }) {
   );
 }
 
-export default function AdminEmailsClient({ rows }: { rows: OutboundEmailRow[] }) {
+export default function AdminEmailsClient({
+  rows,
+  initialStatusFilter = "all",
+  initialTemplateFilter = "all",
+  initialSearch = "",
+}: {
+  rows: OutboundEmailRow[];
+  initialStatusFilter?: "all" | OutboundEmailRow["status"];
+  initialTemplateFilter?: string;
+  initialSearch?: string;
+}) {
   const router = useRouter();
-  const [statusFilter, setStatusFilter] = useState<"all" | OutboundEmailRow["status"]>("all");
-  const [templateFilter, setTemplateFilter] = useState("all");
-  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | OutboundEmailRow["status"]>(initialStatusFilter);
+  const [templateFilter, setTemplateFilter] = useState(initialTemplateFilter);
+  const [search, setSearch] = useState(initialSearch);
   const [feedback, setFeedback] = useState<Record<string, { type: "success" | "error"; message: string }>>({});
   const [activeRetryId, setActiveRetryId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
