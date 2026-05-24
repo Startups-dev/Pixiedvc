@@ -3,7 +3,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { redirect } from 'next/navigation';
-import { sendPlainEmail } from '@/lib/email';
+import { sendReadyStayLinkReadyEmail } from '@/lib/email';
 import { getAppUrl } from '@/lib/app-url';
 
 async function notifyGuestReadyToLink({
@@ -71,23 +71,11 @@ async function notifyGuestReadyToLink({
   }
 
   try {
-    await sendPlainEmail({
+    await sendReadyStayLinkReadyEmail({
       to: booking.lead_guest_email,
-      subject: 'Your Disney reservation is ready to link',
-      body: [
-        `Hi ${booking.lead_guest_name ?? 'there'},`,
-        '',
-        'Your confirmation number is now available:',
-        `${booking.disney_confirmation_number}`,
-        '',
-        'To link it in My Disney Experience:',
-        '1) Open My Disney Experience',
-        '2) My Plans -> Link a Reservation',
-        '3) Paste your confirmation number',
-        '',
-        `Open your trip: ${tripLinkAbsolute ?? tripLink}`,
-      ].join('\n'),
-      context: 'ready stay transfer link-ready email',
+      guestName: booking.lead_guest_name ?? null,
+      confirmationNumber: booking.disney_confirmation_number,
+      tripUrl: tripLinkAbsolute ?? tripLink,
       templateKey: 'ready_stay_link_ready',
       recipientUserId: booking.renter_id,
       relatedEntityType: 'booking_request',

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { isUserAdmin } from "@/lib/admin";
-import { sendPlainEmail } from "@/lib/email";
+import { sendReadyStayRejectedEmail } from "@/lib/email";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -104,26 +104,13 @@ export async function POST(
         ? `${new Date(row.check_in).toLocaleDateString()} - ${new Date(row.check_out).toLocaleDateString()}`
         : "your submitted dates";
 
-    await sendPlainEmail({
+    await sendReadyStayRejectedEmail({
       to: ownerEmail,
-      subject: "PixieDVC - More information needed for your Ready Stay",
-      body: [
-        `Hi ${ownerName},`,
-        "",
-        `We need a little more information before your Ready Stay at ${resortName} can appear to guests.`,
-        row.room_type ? `Room type: ${row.room_type}` : null,
-        `Dates: ${dates}`,
-        "",
-        "Reason:",
-        reason,
-        "",
-        "You can return to your Ready Stay details to update the listing and resubmit when ready.",
-        "",
-        "PixieDVC Concierge",
-      ]
-        .filter(Boolean)
-        .join("\n"),
-      context: "ready stay rejection email",
+      ownerName,
+      resortName,
+      roomType: row.room_type ?? null,
+      dates,
+      reason,
       templateKey: 'ready_stay_rejected',
       recipientUserId: row.owner_id,
       relatedEntityType: 'ready_stay',

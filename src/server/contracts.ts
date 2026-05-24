@@ -4,11 +4,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { getPaidNowPercent } from '@/lib/payments/schedule';
-import { sendPlainEmail } from '@/lib/email';
+import { sendContractGuestAgreementEmail, sendContractOwnerAgreementEmail } from '@/lib/email';
 import { getAppUrl } from '@/lib/app-url';
 import { randomBytes } from 'crypto';
 import { generateAcceptToken } from '@/lib/tokens';
-import { renderPixieAgreementHTML } from '@/lib/agreements/renderPixieAgreement';
 import type { ContractSnapshot } from '@/lib/contracts/contractSnapshot';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 
@@ -330,21 +329,6 @@ export async function sendContractEmail(params: { contractId: number; sendToOwne
   const guestUrl = contract.guest_accept_token
     ? getAppUrl(`/contracts/${contract.guest_accept_token}`, 'contract guest accept link')
     : null;
-  const summary = buildEmailSummary(snapshot);
-  const contractHtml = renderPixieAgreementHTML(snapshot, {
-    guestAcceptedAt: contract.guest_accepted_at ?? null,
-    acceptanceId: contract.id ?? null,
-  });
-
-  const emailsToSend: {
-    to: string;
-    subject: string;
-    body: string;
-    context: string;
-    templateKey: string;
-    relatedEntityType: string;
-    metadata: Record<string, string | number | boolean | null | undefined>;
-  }[] = [];
   const skipped: { owner?: string; guest?: string } = {};
   let sentToOwner = false;
   let sentToGuest = false;
@@ -353,30 +337,20 @@ export async function sendContractEmail(params: { contractId: number; sendToOwne
     if (!ownerEmail) {
       throw new Error('Owner email unavailable');
     }
-    const subject = 'PixieDVC – DVC Owner Agreement';
-    const body = [
-      `Hi ${ownerProfile?.display_name ?? 'PixieDVC owner'},`,
-      '',
-      'Here is your owner agreement for this request. Please review the summary below and accept online.',
-      summary,
-      '',
-      contractHtml,
-      '',
-      ownerUrl
-        ? [`To review and accept online, click: ${ownerUrl}`, 'If the link does not work, copy and paste it into your browser.'].join('\n')
-        : 'To accept, contact hello@pixiedvc.com.',
-      '',
-      'Need help? Email hello@pixiedvc.com.',
-    ]
-      .filter(Boolean)
-      .join('\n');
-    emailsToSend.push({
+    await sendContractOwnerAgreementEmail({
       to: ownerEmail,
-      subject,
-      body,
-      context: 'contract owner email',
       templateKey: 'contract_owner_agreement',
+      ownerName: ownerProfile?.display_name ?? 'PixieDVC owner',
+      guestName: snapshot.parties?.guest?.fullName ?? null,
+      resortName: snapshot.summary?.resortName ?? null,
+      roomType: snapshot.summary?.accommodationType ?? null,
+      checkIn: snapshot.summary?.checkIn ?? null,
+      checkOut: snapshot.summary?.checkOut ?? null,
+      points: snapshot.summary?.pointsRented ?? null,
+      totalUsd: formatCurrency(snapshot.summary?.totalPayableByGuestCents ?? null),
+      agreementUrl: ownerUrl,
       relatedEntityType: 'contract',
+      relatedEntityId: String(contract.id),
       metadata: {
         contractId: contract.id,
         bookingId: contract.booking_request_id ?? null,
@@ -390,46 +364,32 @@ export async function sendContractEmail(params: { contractId: number; sendToOwne
     if (!guestEmailCandidate) {
       skipped.guest = 'guest_email_unavailable';
     } else {
-    const subject = 'PixieDVC – Please review and accept your rental agreement';
-    const body = [
-      `Hi ${snapshot.renterName || booking?.lead_guest_name || 'PixieDVC guest'},`,
-      '',
-      'Your Disney confirmation is secured. Please review the agreement below and accept online to finalize your stay.',
-      summary,
-      '',
-      contractHtml,
-      '',
-      guestUrl
-        ? [`To review and accept online, click: ${guestUrl}`, 'If the link does not work, copy and paste it into your browser.'].join('\n')
-        : 'To accept, contact hello@pixiedvc.com.',
-      '',
-      'Need assistance? Email hello@pixiedvc.com.',
-    ]
-      .filter(Boolean)
-      .join('\n');
-    emailsToSend.push({
-      to: guestEmailCandidate,
-      subject,
-      body,
-      context: 'contract guest email',
-      templateKey: 'contract_guest_agreement',
-      relatedEntityType: 'contract',
-      metadata: {
-        contractId: contract.id,
-        bookingId: contract.booking_request_id ?? null,
-        ownerId: contract.owner_id ?? null,
-      },
-    });
-    sentToGuest = true;
+      await sendContractGuestAgreementEmail({
+        to: guestEmailCandidate,
+        templateKey: 'contract_guest_agreement',
+        guestName: snapshot.parties?.guest?.fullName ?? booking?.lead_guest_name ?? null,
+        resortName: snapshot.summary?.resortName ?? null,
+        roomType: snapshot.summary?.accommodationType ?? null,
+        checkIn: snapshot.summary?.checkIn ?? null,
+        checkOut: snapshot.summary?.checkOut ?? null,
+        points: snapshot.summary?.pointsRented ?? null,
+        totalUsd: formatCurrency(snapshot.summary?.totalPayableByGuestCents ?? null),
+        paidNowUsd: formatCurrency(snapshot.summary?.paidNowCents ?? null),
+        agreementUrl: guestUrl,
+        relatedEntityType: 'contract',
+        relatedEntityId: String(contract.id),
+        metadata: {
+          contractId: contract.id,
+          bookingId: contract.booking_request_id ?? null,
+          ownerId: contract.owner_id ?? null,
+        },
+      });
+      sentToGuest = true;
     }
   }
 
-  for (const message of emailsToSend) {
-    await sendPlainEmail(message);
-  }
-
   const updates: Record<string, unknown> = {};
-  if (emailsToSend.length > 0) {
+  if (sentToOwner || sentToGuest) {
     if (contract.status === 'draft') {
       updates.status = 'sent';
     }
@@ -563,12 +523,6 @@ async function buildSnapshot({
   const bookingPackage = (rentalRow?.booking_package ?? null) as Record<string, unknown> | null;
   const packageRoom = typeof bookingPackage?.room_type === 'string' ? bookingPackage.room_type : null;
   const packageResortName = typeof bookingPackage?.resort_name === 'string' ? bookingPackage.resort_name : null;
-  const packageResortCode =
-    typeof bookingPackage?.resort_code === 'string'
-      ? bookingPackage.resort_code
-      : typeof bookingPackage?.resortCode === 'string'
-        ? bookingPackage.resortCode
-        : null;
   const packageCheckIn =
     typeof bookingPackage?.check_in === 'string'
       ? bookingPackage.check_in
@@ -717,25 +671,7 @@ async function buildSnapshot({
   };
 }
 
-function buildEmailSummary(snapshot: ContractSnapshot) {
-  const lines: string[] = [];
-  if (snapshot.resortName) {
-    lines.push(`• Resort: ${snapshot.resortName}`);
-  }
-  if (snapshot.accommodationType) {
-    lines.push(`• Room: ${snapshot.accommodationType}`);
-  }
-  if (snapshot.checkIn && snapshot.checkOut) {
-    lines.push(`• Dates: ${snapshot.checkIn} → ${snapshot.checkOut}`);
-  }
-  if (snapshot.pointsRented) {
-    lines.push(`• Points: ${snapshot.pointsRented}`);
-  }
-  if (snapshot.pricePerPoint) {
-    lines.push(`• Price per point: $${snapshot.pricePerPoint}`);
-  }
-  if (snapshot.totalUsd) {
-    lines.push(`• Total: $${snapshot.totalUsd}`);
-  }
-  return lines.length ? lines.join('\n') : '';
+function formatCurrency(value: number | null | undefined) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value / 100);
 }

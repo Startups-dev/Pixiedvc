@@ -1,7 +1,15 @@
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
+import { buildConciergeHandoffTemplate } from '@/lib/email/templates/concierge-handoff';
+import { buildContractGuestAgreementTemplate } from '@/lib/email/templates/contract-guest-agreement';
+import { buildContractOwnerAgreementTemplate } from '@/lib/email/templates/contract-owner-agreement';
 import { buildGuestBookingConfirmationTemplate } from '@/lib/email/templates/guest-booking-confirmation';
+import { buildGuestAgreementSignedTemplate } from '@/lib/email/templates/guest-agreement-signed';
 import { buildOwnerMatchWaitingTemplate } from '@/lib/email/templates/owner-match-waiting';
+import { buildOwnerAgreementSignedTemplate } from '@/lib/email/templates/owner-agreement-signed';
 import { buildReadyStayBookingPackageTemplate } from '@/lib/email/templates/ready-stay-booking-package';
+import { buildReadyStayLinkReadyTemplate } from '@/lib/email/templates/ready-stay-link-ready';
+import { buildReadyStayRejectedTemplate } from '@/lib/email/templates/ready-stay-rejected';
+import { buildSupportEscalationTemplate } from '@/lib/email/templates/support-escalation';
 
 type EmailLogMetadata = Record<string, string | number | boolean | null | undefined>;
 
@@ -93,6 +101,48 @@ type GuestAgreementSignedEmailPayload = {
   checkIn?: string | null;
   checkOut?: string | null;
   agreementUrl?: string | null;
+} & EmailLogContext;
+
+type ContractOwnerAgreementEmailPayload = {
+  to: string;
+  ownerName?: string | null;
+  guestName?: string | null;
+  resortName?: string | null;
+  roomType?: string | null;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  points?: number | null;
+  totalUsd?: string | null;
+  agreementUrl?: string | null;
+} & EmailLogContext;
+
+type ContractGuestAgreementEmailPayload = {
+  to: string;
+  guestName?: string | null;
+  resortName?: string | null;
+  roomType?: string | null;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  points?: number | null;
+  totalUsd?: string | null;
+  paidNowUsd?: string | null;
+  agreementUrl?: string | null;
+} & EmailLogContext;
+
+type ReadyStayLinkReadyEmailPayload = {
+  to: string;
+  guestName?: string | null;
+  confirmationNumber?: string | null;
+  tripUrl?: string | null;
+} & EmailLogContext;
+
+type ReadyStayRejectedEmailPayload = {
+  to: string;
+  ownerName?: string | null;
+  resortName?: string | null;
+  roomType?: string | null;
+  dates?: string | null;
+  reason?: string | null;
 } & EmailLogContext;
 
 const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL ?? 'hello@pixiedvc.com';
@@ -320,25 +370,28 @@ export async function sendPlainEmail({
 
 export async function sendConciergeHandoffNotification(payload: ConciergeHandoffEmailPayload) {
   const to = process.env.CONCIERGE_HANDOFF_EMAIL ?? process.env.RESEND_FROM_EMAIL ?? 'hello@pixiedvc.com';
-  const subject = 'New Concierge Request';
-  const body = [
-    'A guest requested concierge support.',
-    '',
-    `Conversation ID: ${payload.conversationId}`,
-    `Source: ${payload.source ?? 'handoff'}`,
-    `Timestamp: ${new Date().toISOString()}`,
-    `Name: ${payload.name?.trim() || '—'}`,
-    `Email: ${payload.email?.trim() || '—'}`,
-    `Page: ${payload.pageUrl?.trim() || '—'}`,
-    '',
-    'Message:',
-    payload.message?.trim() || '—',
-  ].join('\n');
+  const template =
+    payload.source === 'escalate'
+      ? buildSupportEscalationTemplate({
+          conversationId: payload.conversationId,
+          name: payload.name,
+          email: payload.email,
+          message: payload.message,
+          pageUrl: payload.pageUrl,
+        })
+      : buildConciergeHandoffTemplate({
+          conversationId: payload.conversationId,
+          name: payload.name,
+          email: payload.email,
+          message: payload.message,
+          pageUrl: payload.pageUrl,
+        });
 
   await sendResendEmail({
     to,
-    subject,
-    text: body,
+    subject: template.subject,
+    text: template.text,
+    html: template.html,
     context: 'concierge handoff notification',
     templateKey: payload.source === 'escalate' ? 'support_escalation' : 'concierge_handoff',
     recipientUserId: payload.recipientUserId,
@@ -348,6 +401,62 @@ export async function sendConciergeHandoffNotification(payload: ConciergeHandoff
       ...(payload.metadata ?? {}),
       source: payload.source ?? 'handoff',
     },
+    outboundEmailLogId: payload.outboundEmailLogId,
+  });
+}
+
+export async function sendContractOwnerAgreementEmail(payload: ContractOwnerAgreementEmailPayload) {
+  const template = buildContractOwnerAgreementTemplate({
+    ownerName: payload.ownerName,
+    guestName: payload.guestName,
+    resortName: payload.resortName,
+    roomType: payload.roomType,
+    checkIn: payload.checkIn,
+    checkOut: payload.checkOut,
+    points: payload.points,
+    totalUsd: payload.totalUsd,
+    agreementUrl: payload.agreementUrl,
+  });
+
+  await sendResendEmail({
+    to: payload.to,
+    subject: template.subject,
+    text: template.text,
+    html: template.html,
+    context: 'contract owner email',
+    templateKey: payload.templateKey,
+    recipientUserId: payload.recipientUserId,
+    relatedEntityType: payload.relatedEntityType,
+    relatedEntityId: payload.relatedEntityId,
+    metadata: payload.metadata,
+    outboundEmailLogId: payload.outboundEmailLogId,
+  });
+}
+
+export async function sendContractGuestAgreementEmail(payload: ContractGuestAgreementEmailPayload) {
+  const template = buildContractGuestAgreementTemplate({
+    guestName: payload.guestName,
+    resortName: payload.resortName,
+    roomType: payload.roomType,
+    checkIn: payload.checkIn,
+    checkOut: payload.checkOut,
+    points: payload.points,
+    totalUsd: payload.totalUsd,
+    paidNowUsd: payload.paidNowUsd,
+    agreementUrl: payload.agreementUrl,
+  });
+
+  await sendResendEmail({
+    to: payload.to,
+    subject: template.subject,
+    text: template.text,
+    html: template.html,
+    context: 'contract guest email',
+    templateKey: payload.templateKey,
+    recipientUserId: payload.recipientUserId,
+    relatedEntityType: payload.relatedEntityType,
+    relatedEntityId: payload.relatedEntityId,
+    metadata: payload.metadata,
     outboundEmailLogId: payload.outboundEmailLogId,
   });
 }
@@ -405,31 +514,20 @@ export async function sendOwnerMatchEmail(payload: OwnerMatchEmailPayload) {
 }
 
 export async function sendOwnerAgreementSignedEmail(payload: OwnerAgreementSignedEmailPayload) {
-  const subject = 'PixieDVC – Guest signed the rental agreement';
-  const ownerName = payload.ownerName ?? 'PixieDVC owner';
-  const guestName = payload.guestName ?? 'the guest';
-  const resort = payload.resortName ?? 'your resort';
-  const dates = payload.checkIn && payload.checkOut ? `${payload.checkIn} → ${payload.checkOut}` : 'the requested dates';
-  const actionLine = payload.rentalUrl
-    ? `View agreement: ${payload.rentalUrl}`
-    : 'View the agreement in your PixieDVC owner dashboard.';
-
-  const body = [
-    `Hi ${ownerName},`,
-    '',
-    `${guestName} has signed the rental agreement for ${resort} (${dates}).`,
-    '',
-    actionLine,
-    '',
-    'No signature is required from you. We will keep you updated on next steps.',
-    '',
-    'PixieDVC Concierge',
-  ].join('\n');
+  const template = buildOwnerAgreementSignedTemplate({
+    ownerName: payload.ownerName,
+    guestName: payload.guestName,
+    resortName: payload.resortName,
+    checkIn: payload.checkIn,
+    checkOut: payload.checkOut,
+    rentalUrl: payload.rentalUrl,
+  });
 
   await sendResendEmail({
     to: payload.to,
-    subject,
-    text: body,
+    subject: template.subject,
+    text: template.text,
+    html: template.html,
     context: 'owner agreement signed email',
     templateKey: payload.templateKey,
     recipientUserId: payload.recipientUserId,
@@ -441,32 +539,66 @@ export async function sendOwnerAgreementSignedEmail(payload: OwnerAgreementSigne
 }
 
 export async function sendGuestAgreementSignedEmail(payload: GuestAgreementSignedEmailPayload) {
-  const subject = 'PixieDVC – Your signed rental agreement';
-  const guestName = payload.guestName ?? 'there';
-  const agreementLine = payload.agreementUrl
-    ? payload.agreementUrl
-    : 'A copy of your signed agreement is available in your PixieDVC trip details.';
-
-  const body = [
-    `Hi ${guestName},`,
-    '',
-    'Your PixieDVC rental agreement has been successfully signed and finalized.',
-    '',
-    'For your records, you can view or download a copy of your signed agreement using the link below:',
-    agreementLine,
-    '',
-    'If you have any questions about your reservation or need assistance at any point, our concierge team is here to help.',
-    '',
-    'Warm regards,',
-    'PixieDVC Concierge',
-    'hello@pixiedvc.com',
-  ].join('\n');
+  const template = buildGuestAgreementSignedTemplate({
+    guestName: payload.guestName,
+    resortName: payload.resortName,
+    checkIn: payload.checkIn,
+    checkOut: payload.checkOut,
+    agreementUrl: payload.agreementUrl,
+  });
 
   await sendResendEmail({
     to: payload.to,
-    subject,
-    text: body,
+    subject: template.subject,
+    text: template.text,
+    html: template.html,
     context: 'guest agreement signed email',
+    templateKey: payload.templateKey,
+    recipientUserId: payload.recipientUserId,
+    relatedEntityType: payload.relatedEntityType,
+    relatedEntityId: payload.relatedEntityId,
+    metadata: payload.metadata,
+    outboundEmailLogId: payload.outboundEmailLogId,
+  });
+}
+
+export async function sendReadyStayLinkReadyEmail(payload: ReadyStayLinkReadyEmailPayload) {
+  const template = buildReadyStayLinkReadyTemplate({
+    guestName: payload.guestName,
+    confirmationNumber: payload.confirmationNumber,
+    tripUrl: payload.tripUrl,
+  });
+
+  await sendResendEmail({
+    to: payload.to,
+    subject: template.subject,
+    text: template.text,
+    html: template.html,
+    context: 'ready stay transfer link-ready email',
+    templateKey: payload.templateKey,
+    recipientUserId: payload.recipientUserId,
+    relatedEntityType: payload.relatedEntityType,
+    relatedEntityId: payload.relatedEntityId,
+    metadata: payload.metadata,
+    outboundEmailLogId: payload.outboundEmailLogId,
+  });
+}
+
+export async function sendReadyStayRejectedEmail(payload: ReadyStayRejectedEmailPayload) {
+  const template = buildReadyStayRejectedTemplate({
+    ownerName: payload.ownerName,
+    resortName: payload.resortName,
+    roomType: payload.roomType,
+    dates: payload.dates,
+    reason: payload.reason,
+  });
+
+  await sendResendEmail({
+    to: payload.to,
+    subject: template.subject,
+    text: template.text,
+    html: template.html,
+    context: 'ready stay rejection email',
     templateKey: payload.templateKey,
     recipientUserId: payload.recipientUserId,
     relatedEntityType: payload.relatedEntityType,

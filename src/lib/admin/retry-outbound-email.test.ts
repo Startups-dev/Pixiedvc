@@ -93,11 +93,15 @@ vi.mock("@/lib/supabase-admin", () => ({
 vi.mock("@/lib/email", () => ({
   sendBookingConfirmationEmail: retryState.sendBookingConfirmationEmail,
   sendConciergeHandoffNotification: vi.fn(),
+  sendContractGuestAgreementEmail: vi.fn(),
+  sendContractOwnerAgreementEmail: vi.fn(),
   sendGuestAgreementSignedEmail: vi.fn(),
   sendOwnerAgreementSignedEmail: vi.fn(),
   sendOwnerMatchEmail: vi.fn(),
   sendPlainEmail: vi.fn(),
+  sendReadyStayLinkReadyEmail: vi.fn(),
   sendReadyStayBookingPackageToOwner: vi.fn(),
+  sendReadyStayRejectedEmail: vi.fn(),
 }));
 
 import { retryOutboundEmail } from "@/lib/admin/retry-outbound-email";

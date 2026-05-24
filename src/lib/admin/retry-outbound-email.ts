@@ -2,11 +2,14 @@ import { getAppUrl } from "@/lib/app-url";
 import {
   sendBookingConfirmationEmail,
   sendConciergeHandoffNotification,
+  sendContractGuestAgreementEmail,
+  sendContractOwnerAgreementEmail,
   sendGuestAgreementSignedEmail,
   sendOwnerAgreementSignedEmail,
   sendOwnerMatchEmail,
-  sendPlainEmail,
+  sendReadyStayLinkReadyEmail,
   sendReadyStayBookingPackageToOwner,
+  sendReadyStayRejectedEmail,
 } from "@/lib/email";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
@@ -337,23 +340,11 @@ async function retryReadyStayLinkReady(row: OutboundEmailRow) {
   const tripLink = `/my-trip/${bookingId}`;
   const tripLinkAbsolute = getAppUrl(tripLink, "ready stay guest trip link");
 
-  await sendPlainEmail({
+  await sendReadyStayLinkReadyEmail({
     to: row.recipient_email,
-    subject: row.subject,
-    body: [
-      `Hi ${booking.lead_guest_name ?? "there"},`,
-      "",
-      "Your confirmation number is now available:",
-      `${booking.disney_confirmation_number}`,
-      "",
-      "To link it in My Disney Experience:",
-      "1) Open My Disney Experience",
-      "2) My Plans -> Link a Reservation",
-      "3) Paste your confirmation number",
-      "",
-      `Open your trip: ${tripLinkAbsolute ?? tripLink}`,
-    ].join("\n"),
-    context: "ready stay transfer link-ready email",
+    guestName: booking.lead_guest_name ?? null,
+    confirmationNumber: booking.disney_confirmation_number,
+    tripUrl: tripLinkAbsolute ?? tripLink,
     templateKey: row.template_key,
     recipientUserId: booking.renter_id,
     relatedEntityType: "booking_request",
@@ -388,31 +379,109 @@ async function retryReadyStayRejected(row: OutboundEmailRow) {
   const reason = readyStay.verification_review_notes?.trim();
   if (!reason) throw new Error("missing_rejection_reason");
 
-  await sendPlainEmail({
+  await sendReadyStayRejectedEmail({
     to: row.recipient_email,
-    subject: row.subject,
-    body: [
-      `Hi ${ownerProfile?.display_name ?? "PixieDVC owner"},`,
-      "",
-      `We need a little more information before your Ready Stay at ${resortName} can appear to guests.`,
-      readyStay.room_type ? `Room type: ${readyStay.room_type}` : null,
-      `Dates: ${dates}`,
-      "",
-      "Reason:",
-      reason,
-      "",
-      "You can return to your Ready Stay details to update the listing and resubmit when ready.",
-      "",
-      "PixieDVC Concierge",
-    ]
-      .filter(Boolean)
-      .join("\n"),
-    context: "ready stay rejection email",
+    ownerName: ownerProfile?.display_name ?? "PixieDVC owner",
+    resortName,
+    roomType: readyStay.room_type ?? null,
+    dates,
+    reason,
     templateKey: row.template_key,
     recipientUserId: readyStay.owner_id,
     relatedEntityType: "ready_stay",
     relatedEntityId: readyStay.id,
     metadata: { readyStayId: readyStay.id },
+    outboundEmailLogId: row.id,
+  });
+}
+
+async function retryContractOwnerAgreement(row: OutboundEmailRow) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) throw new Error("service_role_missing");
+  const metadata = coerceMetadata(row);
+  const contractId = readNumber(metadata.contractId);
+  if (!contractId) throw new Error("missing_contract_id");
+
+  const { data: contract } = await admin
+    .from("contracts")
+    .select("id, owner_id, owner_accept_token, snapshot")
+    .eq("id", contractId)
+    .maybeSingle();
+
+  const snapshot = (contract?.snapshot ?? {}) as Record<string, unknown>;
+  if (!contract) throw new Error("contract_not_found");
+
+  const summary = (snapshot.summary ?? {}) as Record<string, unknown>;
+  const parties = (snapshot.parties ?? {}) as Record<string, unknown>;
+  const guest = (parties.guest ?? {}) as Record<string, unknown>;
+  const owner = (parties.owner ?? {}) as Record<string, unknown>;
+
+  await sendContractOwnerAgreementEmail({
+    to: row.recipient_email,
+    ownerName: readString(owner.fullName) ?? undefined,
+    guestName: readString(guest.fullName) ?? undefined,
+    resortName: readString(summary.resortName) ?? undefined,
+    roomType: readString(summary.accommodationType) ?? undefined,
+    checkIn: readString(summary.checkIn) ?? undefined,
+    checkOut: readString(summary.checkOut) ?? undefined,
+    points: readNumber(summary.pointsRented) ?? undefined,
+    totalUsd: formatCurrency(readNumber(summary.totalPayableByGuestCents)),
+    agreementUrl: contract.owner_accept_token
+      ? getAppUrl(`/contracts/${contract.owner_accept_token}`, "contract owner accept link")
+      : null,
+    templateKey: row.template_key,
+    relatedEntityType: "contract",
+    relatedEntityId: String(contractId),
+    metadata: {
+      contractId,
+      bookingId: readString(metadata.bookingId),
+      ownerId: readString(metadata.ownerId),
+    },
+    outboundEmailLogId: row.id,
+  });
+}
+
+async function retryContractGuestAgreement(row: OutboundEmailRow) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) throw new Error("service_role_missing");
+  const metadata = coerceMetadata(row);
+  const contractId = readNumber(metadata.contractId);
+  if (!contractId) throw new Error("missing_contract_id");
+
+  const { data: contract } = await admin
+    .from("contracts")
+    .select("id, guest_accept_token, snapshot")
+    .eq("id", contractId)
+    .maybeSingle();
+
+  const snapshot = (contract?.snapshot ?? {}) as Record<string, unknown>;
+  if (!contract) throw new Error("contract_not_found");
+
+  const summary = (snapshot.summary ?? {}) as Record<string, unknown>;
+  const parties = (snapshot.parties ?? {}) as Record<string, unknown>;
+  const guest = (parties.guest ?? {}) as Record<string, unknown>;
+
+  await sendContractGuestAgreementEmail({
+    to: row.recipient_email,
+    guestName: readString(guest.fullName) ?? undefined,
+    resortName: readString(summary.resortName) ?? undefined,
+    roomType: readString(summary.accommodationType) ?? undefined,
+    checkIn: readString(summary.checkIn) ?? undefined,
+    checkOut: readString(summary.checkOut) ?? undefined,
+    points: readNumber(summary.pointsRented) ?? undefined,
+    totalUsd: formatCurrency(readNumber(summary.totalPayableByGuestCents)),
+    paidNowUsd: formatCurrency(readNumber(summary.paidNowCents)),
+    agreementUrl: contract.guest_accept_token
+      ? getAppUrl(`/contracts/${contract.guest_accept_token}`, "contract guest accept link")
+      : null,
+    templateKey: row.template_key,
+    relatedEntityType: "contract",
+    relatedEntityId: String(contractId),
+    metadata: {
+      contractId,
+      bookingId: readString(metadata.bookingId),
+      ownerId: readString(metadata.ownerId),
+    },
     outboundEmailLogId: row.id,
   });
 }
@@ -459,6 +528,10 @@ async function dispatchRetry(row: OutboundEmailRow) {
       return retryGuestBookingConfirmation(row);
     case "owner_match_waiting":
       return retryOwnerMatchWaiting(row);
+    case "contract_owner_agreement":
+      return retryContractOwnerAgreement(row);
+    case "contract_guest_agreement":
+      return retryContractGuestAgreement(row);
     case "owner_agreement_signed":
       return retryOwnerAgreementSigned(row);
     case "guest_agreement_signed":
@@ -475,6 +548,11 @@ async function dispatchRetry(row: OutboundEmailRow) {
     default:
       throw new Error(`unsupported_template:${row.template_key}`);
   }
+}
+
+function formatCurrency(value: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value / 100);
 }
 
 export async function retryOutboundEmail(id: string): Promise<RetryResult> {
@@ -532,4 +610,3 @@ export async function retryOutboundEmail(id: string): Promise<RetryResult> {
 
   return { ok: true, row: refreshed };
 }
-

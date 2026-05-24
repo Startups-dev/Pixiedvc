@@ -36,9 +36,16 @@ vi.mock('@/lib/supabase-admin', () => ({
 }));
 
 import {
+  sendConciergeHandoffNotification,
+  sendContractGuestAgreementEmail,
+  sendContractOwnerAgreementEmail,
   sendBookingConfirmationEmail,
+  sendGuestAgreementSignedEmail,
   sendOwnerMatchEmail,
+  sendOwnerAgreementSignedEmail,
+  sendReadyStayLinkReadyEmail,
   sendReadyStayBookingPackageToOwner,
+  sendReadyStayRejectedEmail,
 } from '@/lib/email';
 
 describe('email outbound logging', () => {
@@ -219,5 +226,203 @@ describe('email outbound logging', () => {
     const payload = JSON.parse(String(request.body)) as { text: string; html?: string };
     expect(payload.text).toBe('Fallback text body');
     expect(payload.html).toBe('<p>HTML body</p>');
+  });
+
+  it('sends branded owner contract agreement emails with html and logs the subject', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 're_901' }),
+    }) as typeof fetch;
+
+    await sendContractOwnerAgreementEmail({
+      to: 'owner@example.com',
+      ownerName: 'Owner',
+      guestName: 'Guest',
+      resortName: 'Riviera Resort',
+      roomType: 'Deluxe Studio',
+      checkIn: '2026-06-01',
+      checkOut: '2026-06-05',
+      points: 72,
+      totalUsd: '$1,800.00',
+      agreementUrl: 'https://pixiedvc.com/contracts/owner-token',
+      templateKey: 'contract_owner_agreement',
+      relatedEntityType: 'contract',
+      relatedEntityId: '123',
+      metadata: { contractId: 123 },
+    });
+
+    const request = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
+    const payload = JSON.parse(String(request.body)) as { subject: string; text: string; html?: string };
+    expect(payload.subject).toBe('PixieDVC - Owner agreement ready for review');
+    expect(payload.text).toContain('Review and sign: https://pixiedvc.com/contracts/owner-token');
+    expect(payload.html).toContain('Review &amp; Sign');
+    expect(emailTestState.insertRecords[0]).toMatchObject({
+      subject: 'PixieDVC - Owner agreement ready for review',
+      template_key: 'contract_owner_agreement',
+    });
+  });
+
+  it('sends guest agreement and signed follow-up templates with html', async () => {
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 're_902' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 're_903' }),
+      }) as typeof fetch;
+
+    await sendContractGuestAgreementEmail({
+      to: 'guest@example.com',
+      guestName: 'Guest',
+      resortName: 'Beach Club Villas',
+      roomType: '1 Bedroom',
+      checkIn: '2026-08-10',
+      checkOut: '2026-08-15',
+      points: 130,
+      totalUsd: '$2,400.00',
+      paidNowUsd: '$1,680.00',
+      agreementUrl: 'https://pixiedvc.com/contracts/guest-token',
+      templateKey: 'contract_guest_agreement',
+      relatedEntityType: 'contract',
+      relatedEntityId: '124',
+      metadata: { contractId: 124 },
+    });
+
+    await sendGuestAgreementSignedEmail({
+      to: 'guest@example.com',
+      guestName: 'Guest',
+      resortName: 'Beach Club Villas',
+      checkIn: '2026-08-10',
+      checkOut: '2026-08-15',
+      agreementUrl: 'https://pixiedvc.com/contracts/guest-token',
+      templateKey: 'guest_agreement_signed',
+      relatedEntityType: 'contract',
+      relatedEntityId: '124',
+      metadata: { contractId: 124 },
+    });
+
+    const firstPayload = JSON.parse(
+      String(((fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit).body),
+    ) as { text: string; html?: string };
+    const secondPayload = JSON.parse(
+      String(((fetch as ReturnType<typeof vi.fn>).mock.calls[1]?.[1] as RequestInit).body),
+    ) as { text: string; html?: string };
+
+    expect(firstPayload.text).toContain('Due now: $1,680.00');
+    expect(firstPayload.html).not.toContain('localhost');
+    expect(secondPayload.text).toContain('Our concierge team will follow up');
+    expect(secondPayload.html).toContain('View Agreement');
+  });
+
+  it('sends ready stay operational emails with html', async () => {
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 're_904' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 're_905' }) }) as typeof fetch;
+
+    await sendReadyStayLinkReadyEmail({
+      to: 'guest@example.com',
+      guestName: 'Guest',
+      confirmationNumber: 'ABC123',
+      tripUrl: 'https://pixiedvc.com/my-trip/booking-1',
+      templateKey: 'ready_stay_link_ready',
+      recipientUserId: 'guest-1',
+      relatedEntityType: 'booking_request',
+      relatedEntityId: 'booking-1',
+      metadata: { bookingId: 'booking-1' },
+    });
+
+    await sendReadyStayRejectedEmail({
+      to: 'owner@example.com',
+      ownerName: 'Owner',
+      resortName: 'Animal Kingdom Villas',
+      roomType: 'Savanna View',
+      dates: '6/1/2026 - 6/5/2026',
+      reason: 'Please clarify the reservation details.',
+      templateKey: 'ready_stay_rejected',
+      recipientUserId: 'owner-1',
+      relatedEntityType: 'ready_stay',
+      relatedEntityId: 'stay-1',
+      metadata: { readyStayId: 'stay-1' },
+    });
+
+    const firstPayload = JSON.parse(
+      String(((fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit).body),
+    ) as { subject: string; html?: string };
+    const secondPayload = JSON.parse(
+      String(((fetch as ReturnType<typeof vi.fn>).mock.calls[1]?.[1] as RequestInit).body),
+    ) as { html?: string };
+
+    expect(firstPayload.subject).toBe('Your Disney reservation is ready to link');
+    expect(firstPayload.html).toContain('Open Trip');
+    expect(secondPayload.html).toContain('More information needed');
+    expect(secondPayload.html).toContain('Please clarify the reservation details.');
+  });
+
+  it('sends concierge handoff and escalation emails with branded html', async () => {
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 're_906' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 're_907' }) }) as typeof fetch;
+
+    await sendConciergeHandoffNotification({
+      conversationId: 'conv-1',
+      name: 'Guest',
+      email: 'guest@example.com',
+      message: 'Need help with Riviera availability.',
+      pageUrl: 'https://pixiedvc.com/guides/riviera',
+      source: 'handoff',
+    });
+
+    await sendConciergeHandoffNotification({
+      conversationId: 'conv-2',
+      email: 'guest@example.com',
+      message: 'Escalating issue',
+      pageUrl: 'https://pixiedvc.com/support',
+      source: 'escalate',
+    });
+
+    const handoffPayload = JSON.parse(
+      String(((fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit).body),
+    ) as { subject: string; html?: string };
+    const escalationPayload = JSON.parse(
+      String(((fetch as ReturnType<typeof vi.fn>).mock.calls[1]?.[1] as RequestInit).body),
+    ) as { subject: string; html?: string };
+
+    expect(handoffPayload.subject).toBe('New concierge follow-up request');
+    expect(handoffPayload.html).toContain('Concierge follow-up requested');
+    expect(escalationPayload.subject).toBe('Support case escalated for concierge follow-up');
+    expect(escalationPayload.html).toContain('Support case escalated');
+  });
+
+  it('sends owner agreement signed notifications with html', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 're_908' }),
+    }) as typeof fetch;
+
+    await sendOwnerAgreementSignedEmail({
+      to: 'owner@example.com',
+      ownerName: 'Owner',
+      guestName: 'Guest',
+      resortName: 'Copper Creek',
+      checkIn: '2026-09-01',
+      checkOut: '2026-09-06',
+      rentalUrl: 'https://pixiedvc.com/owner/rentals/1',
+      templateKey: 'owner_agreement_signed',
+      relatedEntityType: 'contract',
+      relatedEntityId: '125',
+      metadata: { contractId: 125 },
+    });
+
+    const payload = JSON.parse(String(((fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit).body)) as {
+      subject: string;
+      html?: string;
+    };
+    expect(payload.subject).toBe('PixieDVC - Guest agreement completed');
+    expect(payload.html).toContain('View Reservation');
   });
 });
