@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { completeAutomationRun, startAutomationRun } from '@/lib/automation-runs';
 import { runUnsignedAgreementReminders } from '@/lib/unsigned-agreement-reminders';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
+const AUTOMATION_KEY = 'unsigned_agreement_reminders';
 
 function getProvidedSecret(headers: Headers) {
   const headerSecret = headers.get('x-cron-secret');
@@ -75,13 +77,55 @@ async function handleReminders(request: NextRequest) {
     if (!lock.ok) return lock.response;
   }
 
-  const result = await runUnsignedAgreementReminders({
+  const run = await startAutomationRun({
     client,
-    now,
-    dryRun,
+    automationKey: AUTOMATION_KEY,
+    startedAt: now,
+    metadata: { dryRun },
   });
 
-  return NextResponse.json(result, { status: result.ok ? 200 : 500 });
+  try {
+    const result = await runUnsignedAgreementReminders({
+      client,
+      now,
+      dryRun,
+    });
+
+    await completeAutomationRun({
+      client,
+      runId: run?.id ?? null,
+      automationKey: AUTOMATION_KEY,
+      startedAt: run?.startedAt ?? now,
+      ok: result.ok,
+      candidates: result.candidates,
+      sent: result.sent,
+      skipped: result.skipped.length,
+      errors: result.errors.length,
+      lastError: result.errors.at(-1)?.message ?? null,
+      metadata: {
+        dryRun,
+        reminderHours: result.reminderHours,
+        now: result.now,
+      },
+    });
+
+    return NextResponse.json(result, { status: result.ok ? 200 : 500 });
+  } catch (error) {
+    await completeAutomationRun({
+      client,
+      runId: run?.id ?? null,
+      automationKey: AUTOMATION_KEY,
+      startedAt: run?.startedAt ?? now,
+      ok: false,
+      candidates: 0,
+      sent: 0,
+      skipped: 0,
+      errors: 1,
+      lastError: error instanceof Error ? error.message : 'unknown_automation_error',
+      metadata: { dryRun },
+    });
+    throw error;
+  }
 }
 
 export async function GET(request: NextRequest) {
