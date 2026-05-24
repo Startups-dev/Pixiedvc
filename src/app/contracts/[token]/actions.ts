@@ -144,6 +144,13 @@ export async function acceptContractAction(_: { error?: string | null }, formDat
         checkIn: snapshot.checkIn,
         checkOut: snapshot.checkOut,
         rentalUrl,
+        templateKey: 'owner_agreement_signed',
+        relatedEntityType: 'contract',
+        metadata: {
+          contractId: contract.id,
+          bookingId: contract.booking_request_id,
+          rentalId: snapshot.rentalId ?? null,
+        },
       });
     }
 
@@ -164,6 +171,12 @@ export async function acceptContractAction(_: { error?: string | null }, formDat
             checkIn: snapshot.checkIn ?? null,
             checkOut: snapshot.checkOut ?? null,
             agreementUrl,
+            templateKey: 'guest_agreement_signed',
+            relatedEntityType: 'contract',
+            metadata: {
+              contractId: contract.id,
+              bookingId: contract.booking_request_id,
+            },
           });
           await supabase
             .from('contracts')

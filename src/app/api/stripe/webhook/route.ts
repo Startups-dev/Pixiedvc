@@ -394,6 +394,14 @@ export async function POST(request: Request) {
                         phone: guest.phone ?? null,
                       })) ?? [],
                     transferUrl: getAppUrl("/owner/ready-stays", "ready stay transfer link"),
+                    templateKey: 'ready_stay_booking_package',
+                    recipientUserId: ownerRecord?.user_id ?? null,
+                    relatedEntityType: 'ready_stay',
+                    relatedEntityId: readyStayForEmail.id,
+                    metadata: {
+                      bookingId,
+                      readyStayId: readyStayForEmail.id,
+                    },
                   });
 
                   await supabase

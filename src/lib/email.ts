@@ -1,10 +1,29 @@
+import { getSupabaseAdminClient } from '@/lib/supabase-admin';
+
+type EmailLogMetadata = Record<string, string | number | boolean | null | undefined>;
+
+type EmailLogContext = {
+  templateKey: string;
+  recipientUserId?: string | null;
+  relatedEntityType?: string | null;
+  relatedEntityId?: string | null;
+  metadata?: EmailLogMetadata | null;
+};
+
 type BookingEmailPayload = {
   to: string;
   name?: string | null;
   resortName?: string | null;
   checkIn?: string | null;
   checkOut?: string | null;
-};
+} & EmailLogContext;
+
+type SendPlainEmailPayload = {
+  to: string;
+  subject: string;
+  body: string;
+  context: string;
+} & EmailLogContext;
 
 type OwnerMatchEmailPayload = {
   to: string;
@@ -17,7 +36,7 @@ type OwnerMatchEmailPayload = {
   manageUrl?: string | null;
   acceptUrl?: string | null;
   declineUrl?: string | null;
-};
+} & EmailLogContext;
 
 type ReadyStayBookingPackageEmailPayload = {
   to: string;
@@ -40,7 +59,7 @@ type ReadyStayBookingPackageEmailPayload = {
     phone?: string | null;
   }>;
   transferUrl?: string | null;
-};
+} & EmailLogContext;
 
 type ConciergeHandoffEmailPayload = {
   conversationId: string;
@@ -49,24 +68,158 @@ type ConciergeHandoffEmailPayload = {
   message?: string | null;
   pageUrl?: string | null;
   source?: 'escalate' | 'handoff';
-};
+} & Partial<EmailLogContext>;
+
+type OwnerAgreementSignedEmailPayload = {
+  to: string;
+  ownerName?: string | null;
+  guestName?: string | null;
+  resortName?: string | null;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  rentalUrl?: string | null;
+} & EmailLogContext;
+
+type GuestAgreementSignedEmailPayload = {
+  to: string;
+  guestName?: string | null;
+  resortName?: string | null;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  agreementUrl?: string | null;
+} & EmailLogContext;
 
 const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL ?? 'hello@pixiedvc.com';
 const LOCALHOST_EMAIL_URL_RE = /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?/i;
+
+function sanitizeMetadata(metadata?: EmailLogMetadata | null) {
+  const entries = Object.entries(metadata ?? {}).filter(([, value]) => value !== undefined);
+  return Object.fromEntries(entries);
+}
+
+async function insertOutboundEmailLog({
+  templateKey,
+  to,
+  recipientUserId,
+  relatedEntityType,
+  relatedEntityId,
+  subject,
+  metadata,
+}: {
+  templateKey: string;
+  to: string;
+  recipientUserId?: string | null;
+  relatedEntityType?: string | null;
+  relatedEntityId?: string | null;
+  subject: string;
+  metadata?: EmailLogMetadata | null;
+}) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return null;
+
+  const { data, error } = await admin
+    .from('outbound_emails')
+    .insert({
+      template_key: templateKey,
+      recipient_email: to,
+      recipient_user_id: recipientUserId ?? null,
+      related_entity_type: relatedEntityType ?? null,
+      related_entity_id: relatedEntityId ?? null,
+      subject,
+      status: 'pending',
+      provider: 'resend',
+      metadata: sanitizeMetadata(metadata),
+    })
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    console.warn('[email] Failed to create outbound email log', {
+      templateKey,
+      to,
+      error: error.message,
+    });
+    return null;
+  }
+
+  return data?.id ?? null;
+}
+
+async function updateOutboundEmailLog(
+  id: string | null,
+  updates: {
+    status: 'sent' | 'failed';
+    providerMessageId?: string | null;
+    errorMessage?: string | null;
+  },
+) {
+  if (!id) return;
+
+  const admin = getSupabaseAdminClient();
+  if (!admin) return;
+
+  const nowIso = new Date().toISOString();
+  const payload =
+    updates.status === 'sent'
+      ? {
+          status: 'sent',
+          sent_at: nowIso,
+          provider_message_id: updates.providerMessageId ?? null,
+          error_message: null,
+        }
+      : {
+          status: 'failed',
+          failed_at: nowIso,
+          error_message: updates.errorMessage ?? 'Unknown email delivery error',
+        };
+
+  const { error } = await admin.from('outbound_emails').update(payload).eq('id', id);
+  if (error) {
+    console.warn('[email] Failed to update outbound email log', {
+      id,
+      status: updates.status,
+      error: error.message,
+    });
+  }
+}
 
 async function sendResendEmail({
   to,
   subject,
   body,
   context,
+  templateKey,
+  recipientUserId,
+  relatedEntityType,
+  relatedEntityId,
+  metadata,
 }: {
   to: string;
   subject: string;
   body: string;
   context: string;
+  templateKey: string;
+  recipientUserId?: string | null;
+  relatedEntityType?: string | null;
+  relatedEntityId?: string | null;
+  metadata?: EmailLogMetadata | null;
 }) {
+  const logId = await insertOutboundEmailLog({
+    templateKey,
+    to,
+    recipientUserId,
+    relatedEntityType,
+    relatedEntityId,
+    subject,
+    metadata,
+  });
+
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
+    await updateOutboundEmailLog(logId, {
+      status: 'failed',
+      errorMessage: 'RESEND_API_KEY missing',
+    });
     console.warn(`[email] RESEND_API_KEY missing, skipping ${context}`);
     return;
   }
@@ -75,28 +228,64 @@ async function sendResendEmail({
     console.warn(`[email] localhost URL detected in outgoing production email (${context})`);
   }
 
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: DEFAULT_FROM,
-      to,
-      subject,
-      text: body,
-    }),
-  });
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: DEFAULT_FROM,
+        to,
+        subject,
+        text: body,
+      }),
+    });
 
-  if (!response.ok) {
-    const text = await response.text();
-    console.warn(`[email] Failed to send ${context}`, text);
+    if (!response.ok) {
+      const text = await response.text();
+      await updateOutboundEmailLog(logId, {
+        status: 'failed',
+        errorMessage: text,
+      });
+      console.warn(`[email] Failed to send ${context}`, text);
+      return;
+    }
+
+    let providerMessageId: string | null = null;
+    try {
+      const json = (await response.json()) as { id?: unknown };
+      providerMessageId = typeof json?.id === 'string' ? json.id : null;
+    } catch {
+      providerMessageId = null;
+    }
+
+    await updateOutboundEmailLog(logId, {
+      status: 'sent',
+      providerMessageId,
+    });
+  } catch (error) {
+    await updateOutboundEmailLog(logId, {
+      status: 'failed',
+      errorMessage: error instanceof Error ? error.message : 'Unknown email delivery error',
+    });
+    throw error;
   }
 }
 
-export async function sendPlainEmail({ to, subject, body, context }: { to: string; subject: string; body: string; context: string }) {
-  await sendResendEmail({ to, subject, body, context });
+export async function sendPlainEmail({ to, subject, body, context, templateKey, recipientUserId, relatedEntityType, relatedEntityId, metadata }: SendPlainEmailPayload) {
+  await sendResendEmail({
+    to,
+    subject,
+    body,
+    context,
+    templateKey,
+    recipientUserId,
+    relatedEntityType,
+    relatedEntityId,
+    metadata,
+  });
 }
 
 export async function sendConciergeHandoffNotification(payload: ConciergeHandoffEmailPayload) {
@@ -121,6 +310,14 @@ export async function sendConciergeHandoffNotification(payload: ConciergeHandoff
     subject,
     body,
     context: 'concierge handoff notification',
+    templateKey: payload.source === 'escalate' ? 'support_escalation' : 'concierge_handoff',
+    recipientUserId: payload.recipientUserId,
+    relatedEntityType: payload.relatedEntityType ?? 'support_conversation',
+    relatedEntityId: payload.relatedEntityId ?? payload.conversationId,
+    metadata: {
+      ...(payload.metadata ?? {}),
+      source: payload.source ?? 'handoff',
+    },
   });
 }
 
@@ -148,6 +345,11 @@ export async function sendBookingConfirmationEmail(payload: BookingEmailPayload)
     subject,
     body,
     context: 'confirmation email',
+    templateKey: payload.templateKey,
+    recipientUserId: payload.recipientUserId,
+    relatedEntityType: payload.relatedEntityType,
+    relatedEntityId: payload.relatedEntityId,
+    metadata: payload.metadata,
   });
 }
 
@@ -195,18 +397,15 @@ export async function sendOwnerMatchEmail(payload: OwnerMatchEmailPayload) {
     subject,
     body,
     context: 'owner match email',
+    templateKey: payload.templateKey,
+    recipientUserId: payload.recipientUserId,
+    relatedEntityType: payload.relatedEntityType,
+    relatedEntityId: payload.relatedEntityId,
+    metadata: payload.metadata,
   });
 }
 
-export async function sendOwnerAgreementSignedEmail(payload: {
-  to: string;
-  ownerName?: string | null;
-  guestName?: string | null;
-  resortName?: string | null;
-  checkIn?: string | null;
-  checkOut?: string | null;
-  rentalUrl?: string | null;
-}) {
+export async function sendOwnerAgreementSignedEmail(payload: OwnerAgreementSignedEmailPayload) {
   const subject = 'PixieDVC – Guest signed the rental agreement';
   const ownerName = payload.ownerName ?? 'PixieDVC owner';
   const guestName = payload.guestName ?? 'the guest';
@@ -233,17 +432,15 @@ export async function sendOwnerAgreementSignedEmail(payload: {
     subject,
     body,
     context: 'owner agreement signed email',
+    templateKey: payload.templateKey,
+    recipientUserId: payload.recipientUserId,
+    relatedEntityType: payload.relatedEntityType,
+    relatedEntityId: payload.relatedEntityId,
+    metadata: payload.metadata,
   });
 }
 
-export async function sendGuestAgreementSignedEmail(payload: {
-  to: string;
-  guestName?: string | null;
-  resortName?: string | null;
-  checkIn?: string | null;
-  checkOut?: string | null;
-  agreementUrl?: string | null;
-}) {
+export async function sendGuestAgreementSignedEmail(payload: GuestAgreementSignedEmailPayload) {
   const subject = 'PixieDVC – Your signed rental agreement';
   const guestName = payload.guestName ?? 'there';
   const agreementLine = payload.agreementUrl
@@ -270,6 +467,11 @@ export async function sendGuestAgreementSignedEmail(payload: {
     subject,
     body,
     context: 'guest agreement signed email',
+    templateKey: payload.templateKey,
+    recipientUserId: payload.recipientUserId,
+    relatedEntityType: payload.relatedEntityType,
+    relatedEntityId: payload.relatedEntityId,
+    metadata: payload.metadata,
   });
 }
 
@@ -326,5 +528,10 @@ export async function sendReadyStayBookingPackageToOwner(payload: ReadyStayBooki
     subject,
     body,
     context: 'ready stay booking package email',
+    templateKey: payload.templateKey,
+    recipientUserId: payload.recipientUserId,
+    relatedEntityType: payload.relatedEntityType,
+    relatedEntityId: payload.relatedEntityId,
+    metadata: payload.metadata,
   });
 }

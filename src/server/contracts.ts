@@ -336,7 +336,15 @@ export async function sendContractEmail(params: { contractId: number; sendToOwne
     acceptanceId: contract.id ?? null,
   });
 
-  const emailsToSend: { to: string; subject: string; body: string; context: string }[] = [];
+  const emailsToSend: {
+    to: string;
+    subject: string;
+    body: string;
+    context: string;
+    templateKey: string;
+    relatedEntityType: string;
+    metadata: Record<string, string | number | boolean | null | undefined>;
+  }[] = [];
   const skipped: { owner?: string; guest?: string } = {};
   let sentToOwner = false;
   let sentToGuest = false;
@@ -362,7 +370,19 @@ export async function sendContractEmail(params: { contractId: number; sendToOwne
     ]
       .filter(Boolean)
       .join('\n');
-    emailsToSend.push({ to: ownerEmail, subject, body, context: 'contract owner email' });
+    emailsToSend.push({
+      to: ownerEmail,
+      subject,
+      body,
+      context: 'contract owner email',
+      templateKey: 'contract_owner_agreement',
+      relatedEntityType: 'contract',
+      metadata: {
+        contractId: contract.id,
+        bookingId: contract.booking_request_id ?? null,
+        ownerId: contract.owner_id ?? null,
+      },
+    });
     sentToOwner = true;
   }
 
@@ -387,7 +407,19 @@ export async function sendContractEmail(params: { contractId: number; sendToOwne
     ]
       .filter(Boolean)
       .join('\n');
-    emailsToSend.push({ to: guestEmailCandidate, subject, body, context: 'contract guest email' });
+    emailsToSend.push({
+      to: guestEmailCandidate,
+      subject,
+      body,
+      context: 'contract guest email',
+      templateKey: 'contract_guest_agreement',
+      relatedEntityType: 'contract',
+      metadata: {
+        contractId: contract.id,
+        bookingId: contract.booking_request_id ?? null,
+        ownerId: contract.owner_id ?? null,
+      },
+    });
     sentToGuest = true;
     }
   }

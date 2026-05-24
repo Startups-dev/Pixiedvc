@@ -980,6 +980,14 @@ export async function runMatchBookings(options: {
           guestName: plan.booking.lead_guest_name,
           acceptUrl,
           declineUrl,
+          templateKey: 'owner_match_waiting',
+          relatedEntityType: 'booking_match',
+          relatedEntityId: matchId,
+          metadata: {
+            bookingId: plan.bookingId,
+            matchId,
+            ownerId: plan.ownerId,
+          },
         });
       } catch (emailError) {
         console.error('Failed to send owner match email', emailError);

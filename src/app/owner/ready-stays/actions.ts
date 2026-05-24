@@ -88,6 +88,13 @@ async function notifyGuestReadyToLink({
         `Open your trip: ${tripLinkAbsolute ?? tripLink}`,
       ].join('\n'),
       context: 'ready stay transfer link-ready email',
+      templateKey: 'ready_stay_link_ready',
+      recipientUserId: booking.renter_id,
+      relatedEntityType: 'booking_request',
+      relatedEntityId: bookingId,
+      metadata: {
+        bookingId,
+      },
     });
   } catch (error) {
     console.error('[ready-stays] notifyGuestReadyToLink email failed', { bookingId, error });

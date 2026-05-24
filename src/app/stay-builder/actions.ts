@@ -277,6 +277,13 @@ export async function submitStayRequest(input: { bookingId: string; acceptTerms:
       resortName: booking.primary_resort?.name ?? undefined,
       checkIn: booking.check_in ?? undefined,
       checkOut: booking.check_out ?? undefined,
+      templateKey: 'guest_booking_confirmation',
+      recipientUserId: user.id,
+      relatedEntityType: 'booking_request',
+      relatedEntityId: input.bookingId,
+      metadata: {
+        bookingId: input.bookingId,
+      },
     });
   }
 

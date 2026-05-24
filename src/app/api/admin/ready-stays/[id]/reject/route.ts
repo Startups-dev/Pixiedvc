@@ -124,6 +124,13 @@ export async function POST(
         .filter(Boolean)
         .join("\n"),
       context: "ready stay rejection email",
+      templateKey: 'ready_stay_rejected',
+      recipientUserId: row.owner_id,
+      relatedEntityType: 'ready_stay',
+      relatedEntityId: row.id,
+      metadata: {
+        readyStayId,
+      },
     });
   }
 
