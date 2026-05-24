@@ -29,8 +29,22 @@ type PendingOwnerMatchRow = {
   } | null;
   owner?: {
     id: string;
-    email: string | null;
+    payout_email: string | null;
     display_name: string | null;
+    profiles?:
+      | {
+          id: string | null;
+          email: string | null;
+          payout_email?: string | null;
+          display_name: string | null;
+        }
+      | Array<{
+          id: string | null;
+          email: string | null;
+          payout_email?: string | null;
+          display_name: string | null;
+        }>
+      | null;
   } | null;
 };
 
@@ -67,6 +81,21 @@ function parseIso(value: string | null | undefined) {
 
 function hasValidOwnerEmail(email: string | null | undefined) {
   return VALID_EMAIL_RE.test(email?.trim() ?? '');
+}
+
+function normalizeOwnerProfile(match: PendingOwnerMatchRow) {
+  const profiles = match.owner?.profiles;
+  return Array.isArray(profiles) ? profiles[0] ?? null : profiles ?? null;
+}
+
+function resolveOwnerEmail(match: PendingOwnerMatchRow) {
+  const profile = normalizeOwnerProfile(match);
+  return (
+    profile?.payout_email?.trim() ||
+    profile?.email?.trim() ||
+    match.owner?.payout_email?.trim() ||
+    null
+  );
 }
 
 function isStillPending(match: PendingOwnerMatchRow) {
@@ -123,7 +152,7 @@ export async function runOwnerMatchReminders(params?: {
   const { data: matches, error: matchesError } = await client
     .from('booking_matches')
     .select(
-      'id, booking_id, owner_id, status, created_at, responded_at, booking:booking_requests!booking_matches_booking_id_fkey(id, status, availability_status, total_points, check_in, check_out, lead_guest_name, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)), owner:owners!booking_matches_owner_id_fkey(id, email, display_name)',
+      'id, booking_id, owner_id, status, created_at, responded_at, booking:booking_requests!booking_matches_booking_id_fkey(id, status, availability_status, total_points, check_in, check_out, lead_guest_name, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)), owner:owners!booking_matches_owner_id_fkey(id, payout_email, display_name, profiles:profiles!owners_user_id_fkey(id, email, payout_email, display_name))',
     )
     .eq('status', 'pending_owner')
     .order('created_at', { ascending: true })
@@ -195,7 +224,8 @@ export async function runOwnerMatchReminders(params?: {
         continue;
       }
 
-      if (!hasValidOwnerEmail(match.owner?.email)) {
+      const ownerEmail = resolveOwnerEmail(match);
+      if (!hasValidOwnerEmail(ownerEmail)) {
         skipped.push({ matchId: match.id, reason: 'owner_email_missing' });
         continue;
       }
@@ -228,8 +258,8 @@ export async function runOwnerMatchReminders(params?: {
       }
 
       await sendOwnerMatchReminderEmail({
-        to: match.owner?.email ?? '',
-        ownerName: match.owner?.display_name ?? undefined,
+        to: ownerEmail ?? '',
+        ownerName: normalizeOwnerProfile(match)?.display_name ?? match.owner?.display_name ?? undefined,
         guestName: match.booking?.lead_guest_name ?? undefined,
         resortName: match.booking?.primary_resort?.name ?? undefined,
         checkIn: match.booking?.check_in ?? undefined,
@@ -238,7 +268,7 @@ export async function runOwnerMatchReminders(params?: {
         acceptUrl: getAppUrl(`/api/matches/owner/accept?matchId=${match.id}`, 'owner match reminder accept link'),
         declineUrl: getAppUrl(`/api/matches/owner/decline?matchId=${match.id}`, 'owner match reminder decline link'),
         templateKey: TEMPLATE_KEY,
-        recipientUserId: match.owner?.id ?? null,
+        recipientUserId: normalizeOwnerProfile(match)?.id ?? null,
         relatedEntityType: 'booking_match',
         relatedEntityId: match.id,
         metadata: {
