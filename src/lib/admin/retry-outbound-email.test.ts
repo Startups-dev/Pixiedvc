@@ -25,6 +25,7 @@ const retryState = vi.hoisted(() => {
     id: "22222222-2222-2222-2222-222222222222",
     renter_id: "11111111-1111-1111-1111-111111111111",
     status: "draft",
+    availability_status: "confirmed",
     lead_guest_email: "guest@example.com",
     lead_guest_name: "Guest",
     check_in: "2026-06-01",
@@ -49,6 +50,14 @@ const retryState = vi.hoisted(() => {
       retryState.row.failed_at = null;
       retryState.row.error_message = null;
       retryState.row.provider_message_id = "re_retry_124";
+      retryState.lastPayload = payload;
+    }),
+    sendOwnerMatchReminderEmail: vi.fn(async (payload: Record<string, unknown>) => {
+      retryState.row.status = "sent";
+      retryState.row.sent_at = new Date().toISOString();
+      retryState.row.failed_at = null;
+      retryState.row.error_message = null;
+      retryState.row.provider_message_id = "re_retry_125";
       retryState.lastPayload = payload;
     }),
     lastPayload: null as Record<string, unknown> | null,
@@ -89,6 +98,38 @@ const retryState = vi.hoisted(() => {
           };
         }
 
+        if (table === "booking_matches") {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: {
+                    id: "33333333-3333-3333-3333-333333333333",
+                    status: "pending_owner",
+                    responded_at: null,
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+
+        if (table === "owners") {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: {
+                    display_name: "Owner",
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+
         throw new Error(`Unexpected table: ${table}`);
       },
     })),
@@ -108,6 +149,7 @@ vi.mock("@/lib/email", () => ({
   sendGuestAgreementSignedEmail: vi.fn(),
   sendOwnerAgreementSignedEmail: vi.fn(),
   sendOwnerMatchEmail: vi.fn(),
+  sendOwnerMatchReminderEmail: retryState.sendOwnerMatchReminderEmail,
   sendPlainEmail: vi.fn(),
   sendReadyStayLinkReadyEmail: vi.fn(),
   sendReadyStayBookingPackageToOwner: vi.fn(),
@@ -125,8 +167,15 @@ describe("retryOutboundEmail", () => {
     retryState.row.failed_at = new Date().toISOString();
     retryState.row.retry_count = 0;
     retryState.row.last_retry_at = null;
+    retryState.row.template_key = "guest_booking_confirmation";
+    retryState.row.subject = "We received your PixieDVC stay request";
+    retryState.row.related_entity_id = retryState.booking.id;
+    retryState.row.metadata = { bookingId: retryState.booking.id };
+    retryState.booking.status = "draft";
+    retryState.booking.availability_status = "confirmed";
     retryState.sendBookingConfirmationEmail.mockClear();
     retryState.sendAbandonedGuestBookingRequestEmail.mockClear();
+    retryState.sendOwnerMatchReminderEmail.mockClear();
     retryState.getSupabaseAdminClient.mockClear();
     retryState.lastPayload = null;
   });
@@ -187,5 +236,29 @@ describe("retryOutboundEmail", () => {
       expect(result.error).toBe("Retry limit reached for this email.");
     }
     expect(retryState.sendBookingConfirmationEmail).not.toHaveBeenCalled();
+  });
+
+  it("retries a failed owner match reminder email", async () => {
+    retryState.row.template_key = "owner_match_waiting_reminder";
+    retryState.row.subject = "Reminder: guest request waiting at Riviera Resort";
+    retryState.row.related_entity_id = "33333333-3333-3333-3333-333333333333";
+    retryState.row.metadata = {
+      bookingId: retryState.booking.id,
+      matchId: "33333333-3333-3333-3333-333333333333",
+      ownerId: "44444444-4444-4444-4444-444444444444",
+      reminderHours: 18,
+    };
+    retryState.booking.status = "pending_owner";
+
+    const result = await retryOutboundEmail(retryState.row.id);
+
+    expect(result.ok).toBe(true);
+    expect(retryState.sendOwnerMatchReminderEmail).toHaveBeenCalledTimes(1);
+    expect(retryState.lastPayload).toMatchObject({
+      templateKey: "owner_match_waiting_reminder",
+      outboundEmailLogId: retryState.row.id,
+      relatedEntityId: "33333333-3333-3333-3333-333333333333",
+      guestName: "Guest",
+    });
   });
 });

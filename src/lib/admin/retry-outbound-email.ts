@@ -8,6 +8,7 @@ import {
   sendGuestAgreementSignedEmail,
   sendOwnerAgreementSignedEmail,
   sendOwnerMatchEmail,
+  sendOwnerMatchReminderEmail,
   sendReadyStayLinkReadyEmail,
   sendReadyStayBookingPackageToOwner,
   sendReadyStayRejectedEmail,
@@ -210,6 +211,66 @@ async function retryOwnerMatchWaiting(row: OutboundEmailRow) {
       bookingId,
       matchId,
       ownerId,
+    },
+    outboundEmailLogId: row.id,
+  });
+}
+
+async function retryOwnerMatchWaitingReminder(row: OutboundEmailRow) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) throw new Error("service_role_missing");
+  const metadata = coerceMetadata(row);
+  const bookingId = readString(metadata.bookingId);
+  const matchId = readString(metadata.matchId) ?? row.related_entity_id;
+  const ownerId = readString(metadata.ownerId);
+  if (!bookingId || !matchId) throw new Error("missing_match_metadata");
+
+  const { data: match } = await admin
+    .from("booking_matches")
+    .select("id, status, responded_at")
+    .eq("id", matchId)
+    .maybeSingle();
+
+  if (!match || match.status !== "pending_owner" || match.responded_at) {
+    throw new Error("match_not_recoverable");
+  }
+
+  const { data: booking } = await admin
+    .from("booking_requests")
+    .select(
+      "id, status, availability_status, total_points, check_in, check_out, lead_guest_name, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)",
+    )
+    .eq("id", bookingId)
+    .maybeSingle();
+
+  if (!booking || booking.status !== "pending_owner" || (booking.availability_status && booking.availability_status !== "confirmed")) {
+    throw new Error("booking_not_recoverable");
+  }
+
+  let ownerName: string | null = null;
+  if (ownerId) {
+    const { data: owner } = await admin.from("owners").select("display_name").eq("id", ownerId).maybeSingle();
+    ownerName = owner?.display_name ?? null;
+  }
+
+  await sendOwnerMatchReminderEmail({
+    to: row.recipient_email,
+    ownerName: ownerName ?? undefined,
+    guestName: booking.lead_guest_name ?? undefined,
+    resortName: booking.primary_resort?.name ?? undefined,
+    checkIn: booking.check_in ?? undefined,
+    checkOut: booking.check_out ?? undefined,
+    points: booking.total_points ?? undefined,
+    acceptUrl: getAppUrl(`/api/matches/owner/accept?matchId=${matchId}`, "owner match reminder accept link"),
+    declineUrl: getAppUrl(`/api/matches/owner/decline?matchId=${matchId}`, "owner match reminder decline link"),
+    templateKey: row.template_key,
+    relatedEntityType: "booking_match",
+    relatedEntityId: matchId,
+    metadata: {
+      bookingId,
+      matchId,
+      ownerId,
+      reminderHours: readNumber(metadata.reminderHours),
     },
     outboundEmailLogId: row.id,
   });
@@ -566,6 +627,8 @@ async function dispatchRetry(row: OutboundEmailRow) {
       return retryGuestBookingConfirmation(row);
     case "owner_match_waiting":
       return retryOwnerMatchWaiting(row);
+    case "owner_match_waiting_reminder":
+      return retryOwnerMatchWaitingReminder(row);
     case "contract_owner_agreement":
       return retryContractOwnerAgreement(row);
     case "contract_guest_agreement":

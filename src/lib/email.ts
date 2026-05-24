@@ -6,6 +6,7 @@ import { buildContractOwnerAgreementTemplate } from '@/lib/email/templates/contr
 import { buildGuestBookingConfirmationTemplate } from '@/lib/email/templates/guest-booking-confirmation';
 import { buildGuestAgreementSignedTemplate } from '@/lib/email/templates/guest-agreement-signed';
 import { buildOwnerMatchWaitingTemplate } from '@/lib/email/templates/owner-match-waiting';
+import { buildOwnerMatchWaitingReminderTemplate } from '@/lib/email/templates/owner-match-waiting-reminder';
 import { buildOwnerAgreementSignedTemplate } from '@/lib/email/templates/owner-agreement-signed';
 import { buildReadyStayBookingPackageTemplate } from '@/lib/email/templates/ready-stay-booking-package';
 import { buildReadyStayLinkReadyTemplate } from '@/lib/email/templates/ready-stay-link-ready';
@@ -538,6 +539,34 @@ export async function sendOwnerMatchEmail(payload: OwnerMatchEmailPayload) {
     text: template.text,
     html: template.html,
     context: 'owner match email',
+    templateKey: payload.templateKey,
+    recipientUserId: payload.recipientUserId,
+    relatedEntityType: payload.relatedEntityType,
+    relatedEntityId: payload.relatedEntityId,
+    metadata: payload.metadata,
+    outboundEmailLogId: payload.outboundEmailLogId,
+  });
+}
+
+export async function sendOwnerMatchReminderEmail(payload: OwnerMatchEmailPayload) {
+  const template = buildOwnerMatchWaitingReminderTemplate({
+    ownerName: payload.ownerName,
+    guestName: payload.guestName,
+    resortName: payload.resortName,
+    checkIn: payload.checkIn,
+    checkOut: payload.checkOut,
+    points: payload.points,
+    manageUrl: payload.manageUrl,
+    acceptUrl: payload.acceptUrl,
+    declineUrl: payload.declineUrl,
+  });
+
+  await sendResendEmail({
+    to: payload.to,
+    subject: template.subject,
+    text: template.text,
+    html: template.html,
+    context: 'owner match reminder email',
     templateKey: payload.templateKey,
     recipientUserId: payload.recipientUserId,
     relatedEntityType: payload.relatedEntityType,

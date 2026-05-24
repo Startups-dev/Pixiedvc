@@ -43,6 +43,7 @@ import {
   sendBookingConfirmationEmail,
   sendGuestAgreementSignedEmail,
   sendOwnerMatchEmail,
+  sendOwnerMatchReminderEmail,
   sendOwnerAgreementSignedEmail,
   sendReadyStayLinkReadyEmail,
   sendReadyStayBookingPackageToOwner,
@@ -188,6 +189,53 @@ describe('email outbound logging', () => {
       payload: {
         status: 'failed',
         error_message: 'provider rejected request',
+      },
+    });
+  });
+
+  it('logs owner match reminder emails with html and text', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 're_1240' }),
+    }) as typeof fetch;
+
+    await sendOwnerMatchReminderEmail({
+      to: 'owner@example.com',
+      ownerName: 'Owner',
+      guestName: 'Guest',
+      resortName: 'BoardWalk Villas',
+      checkIn: '2026-05-30',
+      checkOut: '2026-06-02',
+      points: 40,
+      acceptUrl: 'https://pixiedvc.com/api/matches/owner/accept?matchId=33333333-3333-3333-3333-333333333333',
+      declineUrl: 'https://pixiedvc.com/api/matches/owner/decline?matchId=33333333-3333-3333-3333-333333333333',
+      templateKey: 'owner_match_waiting_reminder',
+      relatedEntityType: 'booking_match',
+      relatedEntityId: '33333333-3333-3333-3333-333333333333',
+      metadata: {
+        bookingId: '44444444-4444-4444-4444-444444444444',
+        matchId: '33333333-3333-3333-3333-333333333333',
+      },
+    });
+
+    const request = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
+    const payload = JSON.parse(String(request.body)) as { subject: string; text: string; html?: string };
+    expect(payload.subject).toBe('Reminder: guest request waiting at BoardWalk Villas');
+    expect(payload.text).toContain('Just a quick reminder');
+    expect(payload.text).toContain('Points needed: 40 pts');
+    expect(payload.html).toContain('Respond to Request');
+    expect(emailTestState.insertRecords[0]).toMatchObject({
+      template_key: 'owner_match_waiting_reminder',
+      recipient_email: 'owner@example.com',
+      related_entity_type: 'booking_match',
+      related_entity_id: '33333333-3333-3333-3333-333333333333',
+    });
+    expect(emailTestState.updateRecords[0]).toMatchObject({
+      id: 'log-1',
+      payload: {
+        status: 'sent',
+        provider_message_id: 're_1240',
+        error_message: null,
       },
     });
   });
