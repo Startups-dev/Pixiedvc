@@ -23,6 +23,8 @@ type OutboundEmailRow = {
   created_at: string;
   sent_at: string | null;
   failed_at: string | null;
+  retry_count: number;
+  last_retry_at: string | null;
 };
 
 export default async function AdminEmailsPage() {
@@ -54,7 +56,7 @@ export default async function AdminEmailsPage() {
   const { data, error } = await adminClient
     .from("outbound_emails")
     .select(
-      "id, template_key, recipient_email, recipient_user_id, related_entity_type, related_entity_id, subject, status, provider, provider_message_id, error_message, metadata, created_at, sent_at, failed_at",
+      "id, template_key, recipient_email, recipient_user_id, related_entity_type, related_entity_id, subject, status, provider, provider_message_id, error_message, metadata, created_at, sent_at, failed_at, retry_count, last_retry_at",
     )
     .order("created_at", { ascending: false })
     .limit(500);

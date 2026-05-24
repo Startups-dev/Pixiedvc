@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 type OutboundEmailRow = {
   id: string;
@@ -18,7 +19,12 @@ type OutboundEmailRow = {
   created_at: string;
   sent_at: string | null;
   failed_at: string | null;
+  retry_count: number;
+  last_retry_at: string | null;
 };
+
+const RETRY_COOLDOWN_MS = 15_000;
+const MAX_RETRY_COUNT = 5;
 
 function formatDateTime(value: string | null) {
   if (!value) return "—";
@@ -43,9 +49,13 @@ function StatusBadge({ status }: { status: OutboundEmailRow["status"] }) {
 }
 
 export default function AdminEmailsClient({ rows }: { rows: OutboundEmailRow[] }) {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<"all" | OutboundEmailRow["status"]>("all");
   const [templateFilter, setTemplateFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [feedback, setFeedback] = useState<Record<string, { type: "success" | "error"; message: string }>>({});
+  const [activeRetryId, setActiveRetryId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const templateOptions = useMemo(
     () => Array.from(new Set(rows.map((row) => row.template_key))).sort((a, b) => a.localeCompare(b)),
@@ -63,6 +73,78 @@ export default function AdminEmailsClient({ rows }: { rows: OutboundEmailRow[] }
       return row.recipient_email.toLowerCase().includes(normalizedSearch);
     });
   }, [rows, search, statusFilter, templateFilter]);
+
+  function retryDisabledReason(row: OutboundEmailRow) {
+    if (row.status !== "failed") return "Only failed emails can be retried.";
+    if ((row.retry_count ?? 0) >= MAX_RETRY_COUNT) return "Retry limit reached.";
+    if (row.last_retry_at) {
+      const elapsedMs = Date.now() - new Date(row.last_retry_at).getTime();
+      if (Number.isFinite(elapsedMs) && elapsedMs >= 0 && elapsedMs < RETRY_COOLDOWN_MS) {
+        return "Please wait a few seconds before retrying again.";
+      }
+    }
+    return null;
+  }
+
+  function handleRetry(row: OutboundEmailRow) {
+    const disabledReason = retryDisabledReason(row);
+    if (disabledReason) {
+      setFeedback((current) => ({
+        ...current,
+        [row.id]: { type: "error", message: disabledReason },
+      }));
+      return;
+    }
+
+    setActiveRetryId(row.id);
+    setFeedback((current) => {
+      const next = { ...current };
+      delete next[row.id];
+      return next;
+    });
+
+    startTransition(async () => {
+      try {
+        const response = await fetch(`/api/admin/emails/${row.id}/retry`, {
+          method: "POST",
+        });
+        const payload = (await response.json().catch(() => ({}))) as {
+          ok?: boolean;
+          error?: string;
+        };
+
+        if (!response.ok || !payload.ok) {
+          setFeedback((current) => ({
+            ...current,
+            [row.id]: {
+              type: "error",
+              message: payload.error ?? "Retry failed.",
+            },
+          }));
+          return;
+        }
+
+        setFeedback((current) => ({
+          ...current,
+          [row.id]: {
+            type: "success",
+            message: "Email resend completed.",
+          },
+        }));
+        router.refresh();
+      } catch (error) {
+        setFeedback((current) => ({
+          ...current,
+          [row.id]: {
+            type: "error",
+            message: error instanceof Error ? error.message : "Retry failed.",
+          },
+        }));
+      } finally {
+        setActiveRetryId(null);
+      }
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -124,8 +206,10 @@ export default function AdminEmailsClient({ rows }: { rows: OutboundEmailRow[] }
                   <th className="px-5 py-4 font-semibold">Subject</th>
                   <th className="px-5 py-4 font-semibold">Status</th>
                   <th className="px-5 py-4 font-semibold">Provider</th>
+                  <th className="px-5 py-4 font-semibold">Retries</th>
                   <th className="px-5 py-4 font-semibold">Sent</th>
                   <th className="px-5 py-4 font-semibold">Failed</th>
+                  <th className="px-5 py-4 font-semibold">Actions</th>
                   <th className="px-5 py-4 font-semibold">Details</th>
                 </tr>
               </thead>
@@ -140,14 +224,47 @@ export default function AdminEmailsClient({ rows }: { rows: OutboundEmailRow[] }
                       <StatusBadge status={row.status} />
                     </td>
                     <td className="px-5 py-4 text-[#b4b4b4]">{row.provider}</td>
+                    <td className="px-5 py-4 text-[#b4b4b4]">
+                      <div>{row.retry_count ?? 0}</div>
+                      <div className="mt-1 text-[11px] text-[#8e8ea0]">{formatDateTime(row.last_retry_at)}</div>
+                    </td>
                     <td className="px-5 py-4 text-[#b4b4b4]">{formatDateTime(row.sent_at)}</td>
                     <td className="px-5 py-4 text-[#b4b4b4]">{formatDateTime(row.failed_at)}</td>
+                    <td className="px-5 py-4">
+                      {row.status === "failed" ? (
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            onClick={() => handleRetry(row)}
+                            disabled={isPending || activeRetryId === row.id || !!retryDisabledReason(row)}
+                            className="rounded-full bg-[#10a37f] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-[#0d8c6d] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {activeRetryId === row.id ? "Retrying..." : "Retry Send"}
+                          </button>
+                          {feedback[row.id] ? (
+                            <p className={`text-xs ${feedback[row.id]?.type === "success" ? "text-emerald-300" : "text-rose-300"}`}>
+                              {feedback[row.id]?.message}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[#6f7480]">—</span>
+                      )}
+                    </td>
                     <td className="px-5 py-4">
                       <details className="rounded-2xl border border-[#3a3a3a] bg-[#212121] p-3">
                         <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.2em] text-[#a9afbb]">
                           Inspect
                         </summary>
                         <div className="mt-3 space-y-3 text-xs text-[#c5c9d2]">
+                          <div>
+                            <p className="mb-1 font-semibold uppercase tracking-[0.18em] text-[#8e8ea0]">Retry metadata</p>
+                            <p>
+                              Retry count: {row.retry_count ?? 0}
+                              <br />
+                              Last retry: {formatDateTime(row.last_retry_at)}
+                            </p>
+                          </div>
                           <div>
                             <p className="mb-1 font-semibold uppercase tracking-[0.18em] text-[#8e8ea0]">Provider message ID</p>
                             <p>{row.provider_message_id ?? "—"}</p>

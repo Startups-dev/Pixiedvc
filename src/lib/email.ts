@@ -8,6 +8,7 @@ type EmailLogContext = {
   relatedEntityType?: string | null;
   relatedEntityId?: string | null;
   metadata?: EmailLogMetadata | null;
+  outboundEmailLogId?: string | null;
 };
 
 type BookingEmailPayload = {
@@ -193,6 +194,7 @@ async function sendResendEmail({
   relatedEntityType,
   relatedEntityId,
   metadata,
+  outboundEmailLogId,
 }: {
   to: string;
   subject: string;
@@ -203,16 +205,19 @@ async function sendResendEmail({
   relatedEntityType?: string | null;
   relatedEntityId?: string | null;
   metadata?: EmailLogMetadata | null;
+  outboundEmailLogId?: string | null;
 }) {
-  const logId = await insertOutboundEmailLog({
-    templateKey,
-    to,
-    recipientUserId,
-    relatedEntityType,
-    relatedEntityId,
-    subject,
-    metadata,
-  });
+  const logId =
+    outboundEmailLogId ??
+    (await insertOutboundEmailLog({
+      templateKey,
+      to,
+      recipientUserId,
+      relatedEntityType,
+      relatedEntityId,
+      subject,
+      metadata,
+    }));
 
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -274,7 +279,18 @@ async function sendResendEmail({
   }
 }
 
-export async function sendPlainEmail({ to, subject, body, context, templateKey, recipientUserId, relatedEntityType, relatedEntityId, metadata }: SendPlainEmailPayload) {
+export async function sendPlainEmail({
+  to,
+  subject,
+  body,
+  context,
+  templateKey,
+  recipientUserId,
+  relatedEntityType,
+  relatedEntityId,
+  metadata,
+  outboundEmailLogId,
+}: SendPlainEmailPayload) {
   await sendResendEmail({
     to,
     subject,
@@ -285,6 +301,7 @@ export async function sendPlainEmail({ to, subject, body, context, templateKey, 
     relatedEntityType,
     relatedEntityId,
     metadata,
+    outboundEmailLogId,
   });
 }
 
@@ -318,6 +335,7 @@ export async function sendConciergeHandoffNotification(payload: ConciergeHandoff
       ...(payload.metadata ?? {}),
       source: payload.source ?? 'handoff',
     },
+    outboundEmailLogId: payload.outboundEmailLogId,
   });
 }
 
@@ -350,6 +368,7 @@ export async function sendBookingConfirmationEmail(payload: BookingEmailPayload)
     relatedEntityType: payload.relatedEntityType,
     relatedEntityId: payload.relatedEntityId,
     metadata: payload.metadata,
+    outboundEmailLogId: payload.outboundEmailLogId,
   });
 }
 
@@ -402,6 +421,7 @@ export async function sendOwnerMatchEmail(payload: OwnerMatchEmailPayload) {
     relatedEntityType: payload.relatedEntityType,
     relatedEntityId: payload.relatedEntityId,
     metadata: payload.metadata,
+    outboundEmailLogId: payload.outboundEmailLogId,
   });
 }
 
@@ -437,6 +457,7 @@ export async function sendOwnerAgreementSignedEmail(payload: OwnerAgreementSigne
     relatedEntityType: payload.relatedEntityType,
     relatedEntityId: payload.relatedEntityId,
     metadata: payload.metadata,
+    outboundEmailLogId: payload.outboundEmailLogId,
   });
 }
 
@@ -472,6 +493,7 @@ export async function sendGuestAgreementSignedEmail(payload: GuestAgreementSigne
     relatedEntityType: payload.relatedEntityType,
     relatedEntityId: payload.relatedEntityId,
     metadata: payload.metadata,
+    outboundEmailLogId: payload.outboundEmailLogId,
   });
 }
 
@@ -533,5 +555,6 @@ export async function sendReadyStayBookingPackageToOwner(payload: ReadyStayBooki
     relatedEntityType: payload.relatedEntityType,
     relatedEntityId: payload.relatedEntityId,
     metadata: payload.metadata,
+    outboundEmailLogId: payload.outboundEmailLogId,
   });
 }
