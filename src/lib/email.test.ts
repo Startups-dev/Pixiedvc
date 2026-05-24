@@ -64,6 +64,7 @@ describe('email outbound logging', () => {
       resortName: 'Riviera Resort',
       checkIn: '2026-06-01',
       checkOut: '2026-06-05',
+      tripUrl: 'https://pixiedvc.com/trips/request-123',
       templateKey: 'guest_booking_confirmation',
       recipientUserId: '11111111-1111-1111-1111-111111111111',
       relatedEntityType: 'booking_request',
@@ -74,6 +75,12 @@ describe('email outbound logging', () => {
     });
 
     expect(fetch).toHaveBeenCalledTimes(1);
+    const request = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
+    const payload = JSON.parse(String(request.body)) as { subject: string; text: string; html?: string };
+    expect(payload.subject).toBe('We received your PixieDVC stay request');
+    expect(payload.text).toContain('No payment is required at this stage.');
+    expect(payload.html).toContain('PixieDVC');
+    expect(payload.html).toContain('View Request');
     expect(emailTestState.insertRecords).toHaveLength(1);
     expect(emailTestState.insertRecords[0]).toMatchObject({
       template_key: 'guest_booking_confirmation',
@@ -123,6 +130,13 @@ describe('email outbound logging', () => {
     ).resolves.toBeUndefined();
 
     expect(fetch).toHaveBeenCalledTimes(1);
+    const request = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
+    const payload = JSON.parse(String(request.body)) as { text: string; html?: string };
+    expect(payload.text).toContain('Guest: Guest');
+    expect(payload.text).toContain('Points needed: 120 pts');
+    expect(payload.text).toContain('https://pixiedvc.com/api/matches/owner/accept');
+    expect(payload.html).toContain('24 hours');
+    expect(payload.html).not.toContain('localhost');
     expect(emailTestState.insertRecords[0]).toMatchObject({
       template_key: 'owner_match_waiting',
       recipient_email: 'owner@example.com',
@@ -170,11 +184,40 @@ describe('email outbound logging', () => {
     });
 
     expect(fetch).toHaveBeenCalledTimes(1);
+    const request = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
+    const payload = JSON.parse(String(request.body)) as { subject: string; text: string; html?: string };
+    expect(payload.subject).toBe('PixieDVC - Ready Stay booking package');
+    expect(payload.text).toContain('Open owner action page: https://pixiedvc.com/owner/ready-stays');
+    expect(payload.html).toContain('Open Owner Dashboard');
+    expect(payload.html).not.toContain('localhost');
     expect(emailTestState.insertRecords).toHaveLength(1);
     expect(emailTestState.updateRecords).toHaveLength(1);
     expect(emailTestState.insertRecords[0]).toMatchObject({
       template_key: 'ready_stay_booking_package',
       recipient_email: 'owner@example.com',
     });
+  });
+
+  it('sendPlainEmail still sends text fallback and optional html', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 're_789' }),
+    }) as typeof fetch;
+
+    const { sendPlainEmail } = await import('@/lib/email');
+
+    await sendPlainEmail({
+      to: 'guest@example.com',
+      subject: 'Plain Email',
+      body: 'Fallback text body',
+      html: '<p>HTML body</p>',
+      context: 'plain email test',
+      templateKey: 'plain_test',
+    });
+
+    const request = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
+    const payload = JSON.parse(String(request.body)) as { text: string; html?: string };
+    expect(payload.text).toBe('Fallback text body');
+    expect(payload.html).toBe('<p>HTML body</p>');
   });
 });

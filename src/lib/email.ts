@@ -1,4 +1,7 @@
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
+import { buildGuestBookingConfirmationTemplate } from '@/lib/email/templates/guest-booking-confirmation';
+import { buildOwnerMatchWaitingTemplate } from '@/lib/email/templates/owner-match-waiting';
+import { buildReadyStayBookingPackageTemplate } from '@/lib/email/templates/ready-stay-booking-package';
 
 type EmailLogMetadata = Record<string, string | number | boolean | null | undefined>;
 
@@ -17,12 +20,14 @@ type BookingEmailPayload = {
   resortName?: string | null;
   checkIn?: string | null;
   checkOut?: string | null;
+  tripUrl?: string | null;
 } & EmailLogContext;
 
 type SendPlainEmailPayload = {
   to: string;
   subject: string;
   body: string;
+  html?: string;
   context: string;
 } & EmailLogContext;
 
@@ -187,7 +192,8 @@ async function updateOutboundEmailLog(
 async function sendResendEmail({
   to,
   subject,
-  body,
+  text,
+  html,
   context,
   templateKey,
   recipientUserId,
@@ -198,7 +204,8 @@ async function sendResendEmail({
 }: {
   to: string;
   subject: string;
-  body: string;
+  text: string;
+  html?: string | null;
   context: string;
   templateKey: string;
   recipientUserId?: string | null;
@@ -229,7 +236,10 @@ async function sendResendEmail({
     return;
   }
 
-  if (process.env.NODE_ENV === 'production' && LOCALHOST_EMAIL_URL_RE.test(body)) {
+  if (
+    process.env.NODE_ENV === 'production' &&
+    (LOCALHOST_EMAIL_URL_RE.test(text) || (html ? LOCALHOST_EMAIL_URL_RE.test(html) : false))
+  ) {
     console.warn(`[email] localhost URL detected in outgoing production email (${context})`);
   }
 
@@ -244,7 +254,8 @@ async function sendResendEmail({
         from: DEFAULT_FROM,
         to,
         subject,
-        text: body,
+        text,
+        html: html ?? undefined,
       }),
     });
 
@@ -283,6 +294,7 @@ export async function sendPlainEmail({
   to,
   subject,
   body,
+  html,
   context,
   templateKey,
   recipientUserId,
@@ -294,7 +306,8 @@ export async function sendPlainEmail({
   await sendResendEmail({
     to,
     subject,
-    body,
+    text: body,
+    html,
     context,
     templateKey,
     recipientUserId,
@@ -325,7 +338,7 @@ export async function sendConciergeHandoffNotification(payload: ConciergeHandoff
   await sendResendEmail({
     to,
     subject,
-    body,
+    text: body,
     context: 'concierge handoff notification',
     templateKey: payload.source === 'escalate' ? 'support_escalation' : 'concierge_handoff',
     recipientUserId: payload.recipientUserId,
@@ -340,28 +353,19 @@ export async function sendConciergeHandoffNotification(payload: ConciergeHandoff
 }
 
 export async function sendBookingConfirmationEmail(payload: BookingEmailPayload) {
-  const subject = 'We received your PixieDVC stay request';
-  const name = payload.name || 'PixieDVC guest';
-  const dates = payload.checkIn && payload.checkOut ? `${payload.checkIn} → ${payload.checkOut}` : 'your requested dates';
-  const resort = payload.resortName ?? 'your preferred resort';
-  const body = [
-    `Hi ${name},`,
-    '',
-    'Thanks for submitting your stay details with PixieDVC!',
-    `• Resort: ${resort}`,
-    `• Dates: ${dates}`,
-    '',
-    'Our concierge team is pairing you with available owners now. We will email you as soon as we have a match (usually within 24 hours).',
-    '',
-    'Need to update anything? Reply to this email or contact hello@pixiedvc.com.',
-    '',
-    'PixieDVC Concierge',
-  ].join('\n');
+  const template = buildGuestBookingConfirmationTemplate({
+    name: payload.name,
+    resortName: payload.resortName,
+    checkIn: payload.checkIn,
+    checkOut: payload.checkOut,
+    tripUrl: payload.tripUrl,
+  });
 
   await sendResendEmail({
     to: payload.to,
-    subject,
-    body,
+    subject: template.subject,
+    text: template.text,
+    html: template.html,
     context: 'confirmation email',
     templateKey: payload.templateKey,
     recipientUserId: payload.recipientUserId,
@@ -373,48 +377,23 @@ export async function sendBookingConfirmationEmail(payload: BookingEmailPayload)
 }
 
 export async function sendOwnerMatchEmail(payload: OwnerMatchEmailPayload) {
-  const subject = payload.resortName
-    ? `Guest request waiting at ${payload.resortName}`
-    : 'New PixieDVC guest request to review';
-  const ownerName = payload.ownerName ?? 'PixieDVC owner';
-  const guestName = payload.guestName ?? 'a guest';
-  const resort = payload.resortName ?? 'your resort';
-  const dates = payload.checkIn && payload.checkOut ? `${payload.checkIn} → ${payload.checkOut}` : 'the requested dates';
-  const pointsLabel = payload.points ? `${payload.points.toLocaleString()} pts` : 'the required points';
-  const actionLines: string[] = [];
-  if (payload.acceptUrl) {
-    actionLines.push(`Accept booking: ${payload.acceptUrl}`);
-  }
-  if (payload.declineUrl) {
-    actionLines.push(`Decline booking: ${payload.declineUrl}`);
-  }
-  if (!actionLines.length) {
-    if (payload.manageUrl) {
-      actionLines.push(`Respond now: ${payload.manageUrl}`);
-    } else {
-      actionLines.push('Log in to the PixieDVC owner portal to accept or decline.');
-    }
-  }
-
-  const body = [
-    `Hi ${ownerName},`,
-    '',
-    `We found ${guestName} who needs a ${resort} stay (${dates}).`,
-    `• Points needed: ${pointsLabel}`,
-    '',
-    'Please confirm within 24 hours so we can lock in the reservation.',
-    '',
-    ...actionLines,
-    '',
-    'Thanks for sharing your points!',
-    '',
-    'PixieDVC Concierge',
-  ].join('\n');
+  const template = buildOwnerMatchWaitingTemplate({
+    ownerName: payload.ownerName,
+    guestName: payload.guestName,
+    resortName: payload.resortName,
+    checkIn: payload.checkIn,
+    checkOut: payload.checkOut,
+    points: payload.points,
+    manageUrl: payload.manageUrl,
+    acceptUrl: payload.acceptUrl,
+    declineUrl: payload.declineUrl,
+  });
 
   await sendResendEmail({
     to: payload.to,
-    subject,
-    body,
+    subject: template.subject,
+    text: template.text,
+    html: template.html,
     context: 'owner match email',
     templateKey: payload.templateKey,
     recipientUserId: payload.recipientUserId,
@@ -450,7 +429,7 @@ export async function sendOwnerAgreementSignedEmail(payload: OwnerAgreementSigne
   await sendResendEmail({
     to: payload.to,
     subject,
-    body,
+    text: body,
     context: 'owner agreement signed email',
     templateKey: payload.templateKey,
     recipientUserId: payload.recipientUserId,
@@ -486,7 +465,7 @@ export async function sendGuestAgreementSignedEmail(payload: GuestAgreementSigne
   await sendResendEmail({
     to: payload.to,
     subject,
-    body,
+    text: body,
     context: 'guest agreement signed email',
     templateKey: payload.templateKey,
     recipientUserId: payload.recipientUserId,
@@ -498,57 +477,27 @@ export async function sendGuestAgreementSignedEmail(payload: GuestAgreementSigne
 }
 
 export async function sendReadyStayBookingPackageToOwner(payload: ReadyStayBookingPackageEmailPayload) {
-  const subject = 'PixieDVC – Ready Stay booking package';
-  const ownerName = payload.ownerName ?? 'Owner';
-  const guests = payload.guests ?? [];
-
-  const guestLines =
-    guests.length > 0
-      ? guests
-          .map((guest, index) => {
-            const detailParts = [
-              guest.ageCategory ? `type: ${guest.ageCategory}` : null,
-              typeof guest.age === 'number' ? `age: ${guest.age}` : null,
-              guest.email ? `email: ${guest.email}` : null,
-              guest.phone ? `phone: ${guest.phone}` : null,
-            ].filter(Boolean);
-            return `${index + 1}. ${guest.name}${detailParts.length ? ` (${detailParts.join(', ')})` : ''}`;
-          })
-          .join('\n')
-      : 'No additional guests provided.';
-
-  const body = [
-    `Hi ${ownerName},`,
-    '',
-    'A Ready Stay has been paid in full and is waiting for transfer confirmation.',
-    '',
-    'Stay details',
-    `• Resort: ${payload.resortName ?? '—'}`,
-    `• Room: ${payload.roomType ?? '—'}`,
-    `• Dates: ${payload.checkIn ?? '—'} → ${payload.checkOut ?? '—'}`,
-    `• Points: ${payload.points ?? '—'}`,
-    '',
-    'Guest details',
-    `• Lead guest: ${payload.guestName ?? '—'}`,
-    `• Email: ${payload.guestEmail ?? '—'}`,
-    `• Phone: ${payload.guestPhone ?? '—'}`,
-    `• Accessibility notes: ${payload.accessibilityRequired ? 'Yes' : 'No'}`,
-    `• Notes: ${payload.notes && payload.notes.trim() ? payload.notes.trim() : '—'}`,
-    '',
-    'Additional guests',
-    guestLines,
-    '',
-    payload.transferUrl
-      ? `Confirm transfer here: ${payload.transferUrl}`
-      : 'Open the Ready Stays owner page to confirm transfer.',
-    '',
-    'PixieDVC Concierge',
-  ].join('\n');
+  const template = buildReadyStayBookingPackageTemplate({
+    ownerName: payload.ownerName,
+    resortName: payload.resortName,
+    roomType: payload.roomType,
+    checkIn: payload.checkIn,
+    checkOut: payload.checkOut,
+    points: payload.points,
+    guestName: payload.guestName,
+    guestEmail: payload.guestEmail,
+    guestPhone: payload.guestPhone,
+    accessibilityRequired: payload.accessibilityRequired,
+    notes: payload.notes,
+    guests: payload.guests,
+    transferUrl: payload.transferUrl,
+  });
 
   await sendResendEmail({
     to: payload.to,
-    subject,
-    body,
+    subject: template.subject,
+    text: template.text,
+    html: template.html,
     context: 'ready stay booking package email',
     templateKey: payload.templateKey,
     recipientUserId: payload.recipientUserId,
