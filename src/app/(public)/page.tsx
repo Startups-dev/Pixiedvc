@@ -10,7 +10,11 @@ import ContextualGuides from "@/components/guides/ContextualGuides";
 import ReadyStaysEmptyState from "@/components/ready-stays-showcase/ReadyStaysEmptyState";
 import ReadyStaysSection from "@/components/ready-stays-showcase/ReadyStaysSection";
 import { STORIES } from "@/content/stories";
-import { shouldShowFoundingOwnerLaunch } from "@/lib/founding-owner-launch";
+import {
+  foundingOwnerLaunchDiagnosticsEnabled,
+  getFoundingOwnerLaunchDiagnostics,
+  shouldShowFoundingOwnerLaunch,
+} from "@/lib/founding-owner-launch";
 import { getActivePromotion } from "@/lib/pricing-promotions";
 import {
   READY_STAYS_SHOWCASE_FLAGS,
@@ -56,6 +60,10 @@ export default async function Home() {
   const { data: activePromotion } = adminClient
     ? await getActivePromotion({ adminClient })
     : { data: null };
+  const foundingOwnerLaunchDiagnostics = getFoundingOwnerLaunchDiagnostics(activePromotion);
+  if (foundingOwnerLaunchDiagnosticsEnabled()) {
+    console.info("[FoundingOwnerLaunch]", foundingOwnerLaunchDiagnostics);
+  }
   const showFoundingOwnerLaunch = shouldShowFoundingOwnerLaunch(activePromotion);
   const homeReadyStays = await getHomeReadyStaysShowcase(3);
 

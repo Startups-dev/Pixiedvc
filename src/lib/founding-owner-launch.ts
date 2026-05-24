@@ -11,7 +11,11 @@ export const FOUNDING_OWNER_LAUNCH_FLAGS = {
   enabled: envFlag("FOUNDING_OWNER_LAUNCH_ENABLED", true),
 } as const;
 
-function normalizePromotionName(value: string | null | undefined) {
+export function foundingOwnerLaunchDiagnosticsEnabled() {
+  return process.env.NODE_ENV !== "production" || envFlag("DEBUG_FOUNDING_OWNER_LAUNCH", false);
+}
+
+export function normalizePromotionName(value: string | null | undefined) {
   return (value ?? "")
     .trim()
     .toLowerCase()
@@ -27,4 +31,22 @@ export function isFoundingOwnerLaunchPromotion(promotion: PricingPromotion | nul
 export function shouldShowFoundingOwnerLaunch(promotion: PricingPromotion | null | undefined) {
   if (!FOUNDING_OWNER_LAUNCH_FLAGS.enabled) return false;
   return isFoundingOwnerLaunchPromotion(promotion);
+}
+
+export function getFoundingOwnerLaunchDiagnostics(promotion: PricingPromotion | null | undefined) {
+  const normalizedPromotionName = normalizePromotionName(promotion?.name);
+  const nameMatcherPasses = isFoundingOwnerLaunchPromotion(promotion);
+  const result = FOUNDING_OWNER_LAUNCH_FLAGS.enabled && nameMatcherPasses;
+
+  return {
+    hasActivePromotion: Boolean(promotion),
+    activePromotionId: promotion?.id ?? null,
+    activePromotionName: promotion?.name ?? null,
+    activePromotionStartsAt: promotion?.starts_at ?? null,
+    activePromotionEndsAt: promotion?.ends_at ?? null,
+    foundingOwnerLaunchEnabledEnv: process.env.FOUNDING_OWNER_LAUNCH_ENABLED ?? null,
+    normalizedPromotionName,
+    nameMatcherPasses,
+    shouldShowFoundingOwnerLaunch: result,
+  };
 }
