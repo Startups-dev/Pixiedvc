@@ -5,6 +5,10 @@ import { useEffect, useState, useTransition } from "react";
 type Promotion = {
   name: string;
   is_active: boolean;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  is_effective_active?: boolean;
+  effective_reason?: string | null;
 };
 
 export default function PricingPromotionToggleClient({ name }: { name: string }) {
@@ -30,6 +34,8 @@ export default function PricingPromotionToggleClient({ name }: { name: string })
   }, [name]);
 
   const isActive = promotion?.is_active ?? false;
+  const isEffectiveActive = promotion?.is_effective_active ?? false;
+  const effectiveReason = promotion?.effective_reason ?? null;
 
   function handleToggle(next: boolean) {
     setErrorMessage(null);
@@ -63,6 +69,21 @@ export default function PricingPromotionToggleClient({ name }: { name: string })
           <p className="mt-1 text-sm text-[#b4b4b4]">
             Toggle the active promotion window without redeploying.
           </p>
+          {promotion ? (
+            <div className="mt-3 space-y-1 text-xs text-[#8e8ea0]">
+              <p>
+                Effective status:{" "}
+                <span className={isEffectiveActive ? "text-[#10a37f]" : "text-amber-400"}>
+                  {isEffectiveActive ? "Visible now" : "Not currently visible"}
+                </span>
+              </p>
+              {effectiveReason && effectiveReason !== "active" ? (
+                <p>Reason: {effectiveReason}</p>
+              ) : null}
+              <p>Starts: {promotion.starts_at ?? "—"}</p>
+              <p>Ends: {promotion.ends_at ?? "—"}</p>
+            </div>
+          ) : null}
         </div>
         <button
           type="button"

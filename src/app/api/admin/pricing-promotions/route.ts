@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { emailIsAllowedForAdmin } from "@/lib/admin-emails";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { getEffectivePromotionStatus, type PricingPromotion } from "@/lib/pricing-promotions";
 
 export async function GET(request: Request) {
   const sessionClient = await createSupabaseServerClient();
@@ -42,7 +43,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unable to load promotion" }, { status: 500 });
   }
 
-  return NextResponse.json({ promotion: data ?? null });
+  if (!data) {
+    return NextResponse.json({ promotion: null });
+  }
+
+  const promotion = data as PricingPromotion;
+  const effective = getEffectivePromotionStatus(promotion, new Date());
+
+  return NextResponse.json({
+    promotion: {
+      ...promotion,
+      is_effective_active: effective.isEffectiveActive,
+      effective_reason: effective.reason,
+    },
+  });
 }
 
 export async function POST(request: Request) {
@@ -87,5 +101,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unable to update promotion" }, { status: 500 });
   }
 
-  return NextResponse.json({ promotion: data ?? null });
+  if (!data) {
+    return NextResponse.json({ promotion: null });
+  }
+
+  const promotion = data as PricingPromotion;
+  const effective = getEffectivePromotionStatus(promotion, new Date());
+
+  return NextResponse.json({
+    promotion: {
+      ...promotion,
+      is_effective_active: effective.isEffectiveActive,
+      effective_reason: effective.reason,
+    },
+  });
 }
