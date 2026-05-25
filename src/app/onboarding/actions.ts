@@ -277,31 +277,6 @@ export async function saveOwnerContracts(input: {
         });
         throw new Error(pointsError.message);
       }
-
-      const pointsAvailableByMembership = new Map<string | number, number>();
-      for (const row of pointsRows) {
-        pointsAvailableByMembership.set(
-          row.owner_membership_id,
-          (pointsAvailableByMembership.get(row.owner_membership_id) ?? 0) + row.available,
-        );
-      }
-
-      for (const [membershipId, availableSum] of pointsAvailableByMembership.entries()) {
-        const { error: syncError } = await sb
-          .from('owner_memberships')
-          .update({ points_available: availableSum })
-          .eq('id', membershipId);
-        if (syncError) {
-          console.error('[onboarding] failed to sync membership points available', {
-            membership_id: membershipId,
-            code: syncError.code,
-            message: syncError.message,
-            details: syncError.details,
-            hint: syncError.hint,
-          });
-          throw new Error(syncError.message);
-        }
-      }
     }
     }
 
