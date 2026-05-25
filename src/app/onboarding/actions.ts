@@ -174,7 +174,7 @@ export async function saveOwnerContracts(input: {
         details: ownerError.details,
         hint: ownerError.hint,
       });
-      throw new Error(ownerError.message);
+      throw new Error(`Failed saving owner record: ${ownerError.message}`);
     }
 
     if (validContracts.length) {
@@ -197,6 +197,7 @@ export async function saveOwnerContracts(input: {
         details: existingMemberships.error.details,
         hint: existingMemberships.error.hint,
       });
+      throw new Error(`Failed loading existing memberships: ${existingMemberships.error.message}`);
     }
     const membershipPreferenceMap = new Map(
       (existingMemberships.data ?? []).map((row) => [
@@ -238,7 +239,7 @@ export async function saveOwnerContracts(input: {
         details: error.details,
         hint: error.hint,
       });
-      throw new Error(error.message);
+      throw new Error(`Failed saving owner memberships: ${error.message}`);
     }
 
     const membershipMap = new Map(
@@ -275,7 +276,7 @@ export async function saveOwnerContracts(input: {
           details: pointsError.details,
           hint: pointsError.hint,
         });
-        throw new Error(pointsError.message);
+        throw new Error(`Failed saving use-year point buckets: ${pointsError.message}`);
       }
     }
     }
@@ -291,6 +292,7 @@ export async function saveOwnerContracts(input: {
           owner_id: user.id,
           message: foundingOwnerBonusError.message,
         });
+        throw new Error(`Failed checking Founding Owner bonus: ${foundingOwnerBonusError.message}`);
       }
     }
 

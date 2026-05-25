@@ -20,7 +20,7 @@ import {
   READY_STAYS_SHOWCASE_FLAGS,
 } from "@/lib/ready-stays/showcase-mock";
 import { getHomeReadyStaysShowcase } from "@/lib/ready-stays/showcase-live";
-import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { createServiceClient } from "@/lib/supabase-service-client";
 
 export const dynamic = "force-dynamic";
 
@@ -56,10 +56,23 @@ const resortShowcase = [
 
 export default async function Home() {
   noStore();
-  const adminClient = getSupabaseAdminClient();
-  const { data: activePromotion } = adminClient
-    ? await getActivePromotion({ adminClient })
-    : { data: null };
+  let activePromotion = null;
+  try {
+    const serviceClient = createServiceClient();
+    const promotionResult = await getActivePromotion({ adminClient: serviceClient });
+    activePromotion = promotionResult.data;
+    if (promotionResult.error && foundingOwnerLaunchDiagnosticsEnabled()) {
+      console.warn("[FoundingOwnerLaunch] promotion lookup warning", {
+        message: promotionResult.error.message,
+      });
+    }
+  } catch (error) {
+    if (foundingOwnerLaunchDiagnosticsEnabled()) {
+      console.warn("[FoundingOwnerLaunch] promotion lookup failed", {
+        message: error instanceof Error ? error.message : "unknown_error",
+      });
+    }
+  }
   const foundingOwnerLaunchDiagnostics = getFoundingOwnerLaunchDiagnostics(activePromotion);
   if (foundingOwnerLaunchDiagnosticsEnabled()) {
     console.info("[FoundingOwnerLaunch]", foundingOwnerLaunchDiagnostics);
