@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { getActiveFoundingOwnerBonusCents } from "@/lib/founding-owner-bonus";
 import { resolveCalculatorCode } from "@/lib/resort-calculator";
 import { computeOwnerPayout } from "@/lib/pricing";
 import {
@@ -92,7 +93,7 @@ export async function ensureRentalForMatch(params: {
 
   const { data: ownerRow, error: ownerErr } = await adminClient
     .from("owners")
-    .select("id, user_id")
+    .select("id, user_id, founding_owner_bonus_cents_per_point, founding_owner_bonus_started_at, founding_owner_bonus_expires_at, founding_owner_granted_at, founding_owner_promotion_id")
     .eq("id", match.owner_id)
     .maybeSingle();
 
@@ -180,12 +181,10 @@ export async function ensureRentalForMatch(params: {
     totalPoints: booking.total_points,
     matchedMembershipResortId: membershipResortId,
     bookingResortId: booking.primary_resort_id ?? null,
+    additionalBonusPerPointCents: getActiveFoundingOwnerBonusCents(ownerRow),
   });
 
-  let owner_total_cents =
-    typeof match.owner_total_cents === "number"
-      ? match.owner_total_cents
-      : ownerPayout.owner_total_cents;
+  let owner_total_cents = ownerPayout.owner_total_cents;
   let ownerRatePerPointCents = ownerPayout.owner_rate_per_point_cents;
   let ownerBaseRateCents = ownerPayout.owner_base_rate_per_point_cents;
   let ownerPremiumCents = ownerPayout.owner_premium_per_point_cents;
@@ -193,6 +192,32 @@ export async function ensureRentalForMatch(params: {
   let ownerBonusCandidate = 0;
   let ownerRewardsPoints = 0;
   let ownerRewardsTier: ReturnType<typeof getOwnerPreferredTier> | null = null;
+
+  const persistMatchPayout = async () => {
+    const { error: matchUpdateError } = await adminClient
+      .from("booking_matches")
+      .update({
+        owner_base_rate_per_point_cents: ownerBaseRateCents,
+        owner_premium_per_point_cents: ownerPremiumCents,
+        owner_rate_per_point_cents: ownerRatePerPointCents,
+        owner_total_cents,
+        owner_home_resort_premium_applied: ownerPremiumApplied,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", match.id);
+
+    if (matchUpdateError) {
+      console.error("[pricing] failed to update match payout", {
+        code: matchUpdateError.code,
+        message: matchUpdateError.message,
+        details: matchUpdateError.details,
+        hint: matchUpdateError.hint,
+        match_id: match.id,
+      });
+    }
+  };
+
+  await persistMatchPayout();
 
   if (resolvedOwnerUserId) {
     const { data: ownerProfile, error: ownerProfileError } = await adminClient
@@ -385,28 +410,7 @@ export async function ensureRentalForMatch(params: {
         ownerPremiumApplied = ownerPayout.owner_home_resort_premium_applied;
         ownerRatePerPointCents = ownerPayout.owner_rate_per_point_cents + appliedBonus;
         owner_total_cents = pointsTotal * ownerRatePerPointCents;
-
-        const { error: matchUpdateError } = await adminClient
-          .from("booking_matches")
-          .update({
-            owner_base_rate_per_point_cents: ownerBaseRateCents,
-            owner_premium_per_point_cents: ownerPremiumCents,
-            owner_rate_per_point_cents: ownerRatePerPointCents,
-            owner_total_cents,
-            owner_home_resort_premium_applied: ownerPremiumApplied,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", match.id);
-
-        if (matchUpdateError) {
-          console.error("[owner-rewards] failed to update match payout", {
-            code: matchUpdateError.code,
-            message: matchUpdateError.message,
-            details: matchUpdateError.details,
-            hint: matchUpdateError.hint,
-            match_id: match.id,
-          });
-        }
+        await persistMatchPayout();
 
         console.info("[owner-rewards] bonus applied", {
           owner_user_id: resolvedOwnerUserId,

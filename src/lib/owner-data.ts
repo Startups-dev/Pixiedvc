@@ -11,6 +11,11 @@ export type OwnerProfile = {
   display_name: string | null;
   payout_email: string | null;
   verification: string | null;
+  founding_owner_bonus_cents_per_point: number | null;
+  founding_owner_bonus_started_at: string | null;
+  founding_owner_bonus_expires_at: string | null;
+  founding_owner_granted_at: string | null;
+  founding_owner_promotion_id: string | null;
   profile_display_name: string | null;
   profile_full_name: string | null;
 };
@@ -191,7 +196,7 @@ export async function getOwnerProfile(userId: string, cookieStore?: RequestCooki
   const supabase = await getServerClient(cookieStore);
   const { data } = await supabase
     .from("owners")
-    .select("id, user_id, payout_email, verification, profiles:profiles!owners_user_id_fkey(display_name, full_name)")
+    .select("id, user_id, payout_email, verification, founding_owner_bonus_cents_per_point, founding_owner_bonus_started_at, founding_owner_bonus_expires_at, founding_owner_granted_at, founding_owner_promotion_id, profiles:profiles!owners_user_id_fkey(display_name, full_name)")
     .or(`id.eq.${userId},user_id.eq.${userId}`)
     .maybeSingle();
 
@@ -203,6 +208,11 @@ export async function getOwnerProfile(userId: string, cookieStore?: RequestCooki
     display_name: null,
     payout_email: data.payout_email ?? null,
     verification: data.verification ?? null,
+    founding_owner_bonus_cents_per_point: data.founding_owner_bonus_cents_per_point ?? null,
+    founding_owner_bonus_started_at: data.founding_owner_bonus_started_at ?? null,
+    founding_owner_bonus_expires_at: data.founding_owner_bonus_expires_at ?? null,
+    founding_owner_granted_at: data.founding_owner_granted_at ?? null,
+    founding_owner_promotion_id: data.founding_owner_promotion_id ?? null,
     profile_display_name: data.profiles?.display_name ?? null,
     profile_full_name: data.profiles?.full_name ?? null,
   } satisfies OwnerProfile;

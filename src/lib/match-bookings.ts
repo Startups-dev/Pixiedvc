@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+import { getActiveFoundingOwnerBonusCents } from '@/lib/founding-owner-bonus';
 import { computeOwnerPayout } from '@/lib/pricing';
 import { sendOwnerMatchEmail } from '@/lib/email';
 import { getAppUrl } from '@/lib/app-url';
@@ -53,6 +54,11 @@ type OwnerRow = {
   id: string;
   verification: string | null;
   payout_email?: string | null;
+  founding_owner_bonus_cents_per_point?: number | null;
+  founding_owner_bonus_started_at?: string | null;
+  founding_owner_bonus_expires_at?: string | null;
+  founding_owner_granted_at?: string | null;
+  founding_owner_promotion_id?: string | null;
   profiles: ProfileRow | ProfileRow[] | null;
 };
 
@@ -371,6 +377,11 @@ export async function evaluateMatchBookings(options: {
           id,
           verification,
           payout_email,
+          founding_owner_bonus_cents_per_point,
+          founding_owner_bonus_started_at,
+          founding_owner_bonus_expires_at,
+          founding_owner_granted_at,
+          founding_owner_promotion_id,
           profiles:profiles!owners_user_id_fkey (
             id,
             email,
@@ -826,6 +837,7 @@ export async function evaluateMatchBookings(options: {
       totalPoints: booking.total_points,
       matchedMembershipResortId: bestCandidate.membership.resort_id,
       bookingResortId: booking.primary_resort_id,
+      additionalBonusPerPointCents: getActiveFoundingOwnerBonusCents(bestCandidate.membership.owner),
     });
 
     evaluated.finalDecision = 'matched';

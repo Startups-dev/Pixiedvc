@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { emailIsAllowedForAdmin } from '@/lib/admin-emails';
+import { maybeGrantFoundingOwnerBonus } from '@/lib/founding-owner-bonus';
 
 export async function POST(
   request: NextRequest,
@@ -43,6 +44,17 @@ export async function POST(
     .from('owners')
     .update({ verification: 'verified', verified_at: now, rejection_reason: null })
     .eq('id', ownerId);
+
+  const { error: foundingOwnerBonusError } = await maybeGrantFoundingOwnerBonus({
+    adminClient,
+    ownerId,
+  });
+  if (foundingOwnerBonusError) {
+    console.error('[founding-owner-bonus] failed during owner verification approval', {
+      owner_id: ownerId,
+      message: foundingOwnerBonusError.message,
+    });
+  }
 
   return NextResponse.redirect(new URL(`/admin/owners/verifications/${ownerId}`, request.url));
 }

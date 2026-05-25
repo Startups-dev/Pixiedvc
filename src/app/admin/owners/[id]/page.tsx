@@ -23,6 +23,13 @@ type ContractSnapshot = {
   guestEmail?: string | null;
 };
 
+function formatDateTime(value: string | null) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString();
+}
+
 export default async function AdminOwnerDetailPage({ params }: { params: { id: string } }) {
   const ownerId = params.id;
   await requireAdminUser(`/admin/owners/${ownerId}`);
@@ -101,6 +108,26 @@ export default async function AdminOwnerDetailPage({ params }: { params: { id: s
             <div>
               <dt className="text-slate-500">Points available</dt>
               <dd className="text-slate-900">{totalAvailable.toLocaleString()}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Founding Owner bonus</dt>
+              <dd className="text-slate-900">
+                {owner.founding_owner_bonus_cents_per_point && owner.founding_owner_bonus_cents_per_point > 0
+                  ? `+$${(owner.founding_owner_bonus_cents_per_point / 100).toFixed(2)}/pt`
+                  : '—'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Bonus expires</dt>
+              <dd className="text-slate-900">{formatDateTime(owner.founding_owner_bonus_expires_at ?? null)}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Bonus granted</dt>
+              <dd className="text-slate-900">{formatDateTime(owner.founding_owner_granted_at ?? null)}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Promotion ID</dt>
+              <dd className="text-slate-900 break-all">{owner.founding_owner_promotion_id ?? '—'}</dd>
             </div>
           </dl>
         </div>

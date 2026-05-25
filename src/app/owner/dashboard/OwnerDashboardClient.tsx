@@ -26,6 +26,11 @@ type RewardsSummary = {
   tierLabel: string;
 };
 
+type FoundingOwnerSummary = {
+  bonusCents: number;
+  expiresAt: string | null;
+};
+
 type OwnerDashboardClientProps = {
   activeTab: string;
   listingsMode: "hub" | "add";
@@ -54,6 +59,7 @@ type OwnerDashboardClientProps = {
   pendingPayoutAmount: number;
   pendingPayouts: any[];
   rewardsSummary: RewardsSummary | null;
+  foundingOwnerSummary: FoundingOwnerSummary | null;
 };
 
 function formatDate(value: string | null) {
@@ -172,6 +178,7 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
     pendingPayoutAmount,
     pendingPayouts,
     rewardsSummary,
+    foundingOwnerSummary,
   } = props;
 
   return (
@@ -268,6 +275,28 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
           </section>
 
           <StatTiles tiles={tiles} />
+
+          {foundingOwnerSummary ? (
+            <Card className="border border-[#cdd9f0] bg-[#f7faff]">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-[#567]">Founding Owner bonus</p>
+                  <h2 className="text-lg font-semibold text-ink">
+                    +${(foundingOwnerSummary.bonusCents / 100).toFixed(2)}/pt active
+                  </h2>
+                  <p className="text-sm text-slate-600">
+                    Bonus expires {formatDate(foundingOwnerSummary.expiresAt)}.
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white px-4 py-3 text-right shadow-sm">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Bonus payout</p>
+                  <p className="text-lg font-semibold text-ink">
+                    +${(foundingOwnerSummary.bonusCents / 100).toFixed(2)}/pt
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ) : null}
 
           {hasPremiumOnlyMembership ? (
             <Card className="border border-amber-200 bg-amber-50/60 text-amber-900">

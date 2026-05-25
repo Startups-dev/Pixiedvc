@@ -1,5 +1,4 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
 
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
@@ -11,6 +10,11 @@ export type OwnerDetailRow = {
   rejection_reason: string | null;
   home_resort: string | null;
   use_year: string | null;
+  founding_owner_bonus_cents_per_point: number | null;
+  founding_owner_bonus_started_at: string | null;
+  founding_owner_bonus_expires_at: string | null;
+  founding_owner_granted_at: string | null;
+  founding_owner_promotion_id: string | null;
   profiles: {
     display_name: string | null;
     email: string | null;
@@ -56,7 +60,6 @@ export type ContractEventRow = {
 export async function fetchOwnerQueue(statusFilter: string) {
   const supabaseAdmin = getSupabaseAdminClient();
   if (!supabaseAdmin) {
-    const cookieStore = await cookies();
     const supabase = await createSupabaseServerClient();
     const {
       data: { user },
@@ -90,7 +93,7 @@ export async function fetchOwnerQueue(statusFilter: string) {
 export async function fetchOwnerById(supabase: SupabaseClient, ownerId: string) {
   const { data, error } = await supabase
     .from('owners')
-    .select('id, verification, rejection_reason, home_resort, use_year, profiles:profiles!owners_user_id_fkey(display_name, email)')
+    .select('id, verification, rejection_reason, home_resort, use_year, founding_owner_bonus_cents_per_point, founding_owner_bonus_started_at, founding_owner_bonus_expires_at, founding_owner_granted_at, founding_owner_promotion_id, profiles:profiles!owners_user_id_fkey(display_name, email)')
     .eq('id', ownerId)
     .maybeSingle();
   if (error) {

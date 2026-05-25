@@ -3,18 +3,21 @@ type GuestPriceInput = {
   guestTotalCents: number | null;
 };
 
-type OwnerPayoutInput = {
+export type OwnerPayoutInput = {
   totalPoints: number | null;
   matchedMembershipResortId: string | null;
   bookingResortId: string | null;
+  additionalBonusPerPointCents?: number | null;
 };
 
-type OwnerPayoutResult = {
+export type OwnerPayoutResult = {
   owner_base_rate_per_point_cents: number;
   owner_premium_per_point_cents: number;
+  owner_bonus_per_point_cents: number;
   owner_rate_per_point_cents: number;
   owner_total_cents: number;
   owner_home_resort_premium_applied: boolean;
+  total_points_for_payout: number;
 };
 
 export const OWNER_PAYOUT_CONFIG = {
@@ -38,6 +41,7 @@ export function computeGuestPrice(input: GuestPriceInput) {
 
 export function computeOwnerPayout(input: OwnerPayoutInput): OwnerPayoutResult {
   const totalPoints = Number(input.totalPoints ?? 0);
+  const additionalBonusPerPoint = Number(input.additionalBonusPerPointCents ?? 0);
   const overrides = input.bookingResortId
     ? OWNER_PAYOUT_CONFIG.resort_overrides[input.bookingResortId]
     : null;
@@ -49,14 +53,18 @@ export function computeOwnerPayout(input: OwnerPayoutInput): OwnerPayoutResult {
     Boolean(input.matchedMembershipResortId && input.bookingResortId) &&
     input.matchedMembershipResortId === input.bookingResortId;
   const premiumPerPoint = premiumApplies ? premiumRate : 0;
-  const ownerRate = baseRate + premiumPerPoint;
+  const bonusPerPoint =
+    Number.isFinite(additionalBonusPerPoint) && additionalBonusPerPoint > 0 ? additionalBonusPerPoint : 0;
+  const ownerRate = baseRate + premiumPerPoint + bonusPerPoint;
   const ownerTotal = Number.isFinite(totalPoints) && totalPoints > 0 ? totalPoints * ownerRate : 0;
 
   return {
     owner_base_rate_per_point_cents: baseRate,
     owner_premium_per_point_cents: premiumPerPoint,
+    owner_bonus_per_point_cents: bonusPerPoint,
     owner_rate_per_point_cents: ownerRate,
     owner_total_cents: ownerTotal,
     owner_home_resort_premium_applied: premiumApplies,
+    total_points_for_payout: Number.isFinite(totalPoints) && totalPoints > 0 ? totalPoints : 0,
   };
 }

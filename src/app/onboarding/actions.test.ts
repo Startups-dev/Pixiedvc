@@ -5,7 +5,8 @@ import { saveOwnerContracts } from './actions';
 function createSelectChain(result: unknown) {
   const maybeSingle = vi.fn().mockResolvedValue({ data: result, error: null });
   const limit = vi.fn(() => ({ maybeSingle }));
-  const eq = vi.fn(() => ({ maybeSingle, limit }));
+  const inFilter = vi.fn().mockResolvedValue({ data: result, error: null });
+  const eq = vi.fn(() => ({ maybeSingle, limit, in: inFilter }));
   const select = vi.fn(() => ({ eq, maybeSingle, limit }));
   return { select };
 }
@@ -25,10 +26,24 @@ vi.mock('@/lib/supabase-server', () => ({
   supabaseServer: () => supabaseMock,
 }));
 
+vi.mock('@/lib/supabase-admin', () => ({
+  getSupabaseAdminClient: () => null,
+}));
+
 describe('saveOwnerContracts', () => {
   beforeEach(() => {
     ownerUpsert = vi.fn().mockResolvedValue({ error: null });
-    membershipsUpsert = vi.fn().mockResolvedValue({ error: null });
+    membershipsUpsert = vi.fn((rows: Array<{ resort_id: string; use_year: string; use_year_start: string }>) => ({
+      select: vi.fn().mockResolvedValue({
+        data: rows.map((row, index) => ({
+          id: `membership-${index + 1}`,
+          resort_id: row.resort_id,
+          use_year: row.use_year,
+          use_year_start: row.use_year_start,
+        })),
+        error: null,
+      }),
+    }));
 
     const profileQuery = createSelectChain({ onboarding_completed: false, onboarding_completed_at: null });
     const ownerQuery = createSelectChain(null);

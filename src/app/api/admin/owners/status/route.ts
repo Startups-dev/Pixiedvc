@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { emailIsAllowedForAdmin } from '@/lib/admin-emails';
+import { getSupabaseAdminClient } from '@/lib/supabase-admin';
+import { maybeGrantFoundingOwnerBonus } from '@/lib/founding-owner-bonus';
 
 export async function POST(request: Request) {
   const { ownerId, status, reason } = await request.json();
@@ -15,8 +16,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unsupported status' }, { status: 400 });
   }
 
-  const cookieStore = await cookies();
   const supabase = await createSupabaseServerClient();
+  const adminClient = getSupabaseAdminClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -66,6 +67,19 @@ export async function POST(request: Request) {
       body: reason,
       kind: 'status_change',
     });
+  }
+
+  if (status === 'verified' && adminClient) {
+    const { error: foundingOwnerBonusError } = await maybeGrantFoundingOwnerBonus({
+      adminClient,
+      ownerId,
+    });
+    if (foundingOwnerBonusError) {
+      console.error('[founding-owner-bonus] failed during owner status update', {
+        owner_id: ownerId,
+        message: foundingOwnerBonusError.message,
+      });
+    }
   }
 
   return NextResponse.json({ success: true });

@@ -1,6 +1,8 @@
 'use server';
 
 import { ensureOnboardingNotComplete } from './guards';
+import { maybeGrantFoundingOwnerBonus } from '@/lib/founding-owner-bonus';
+import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { supabaseServer } from '@/lib/supabase-server';
 import { getHomeForRole } from '@/lib/routes/home';
 
@@ -281,11 +283,25 @@ export async function saveOwnerContracts(input: {
         const { error: syncError } = await sb
           .from('owner_memberships')
           .update({ points_available: availableSum })
-          .eq('id', membershipId as any);
+          .eq('id', membershipId);
         if (syncError) {
           throw new Error(syncError.message);
         }
       }
+    }
+  }
+
+  const adminClient = getSupabaseAdminClient();
+  if (adminClient) {
+    const { error: foundingOwnerBonusError } = await maybeGrantFoundingOwnerBonus({
+      adminClient,
+      ownerId: user.id,
+    });
+    if (foundingOwnerBonusError) {
+      console.error('[founding-owner-bonus] failed during owner onboarding', {
+        owner_id: user.id,
+        message: foundingOwnerBonusError.message,
+      });
     }
   }
 
