@@ -130,53 +130,54 @@ export async function saveOwnerContracts(input: {
   matching_mode: 'premium_only' | 'premium_then_standard';
   allow_standard_rate_fallback: boolean;
 }) {
-  const sb = await supabaseServer();
-  const {
-    data: { user },
-    error: authError,
-  } = await sb.auth.getUser();
+  try {
+    const sb = await supabaseServer();
+    const {
+      data: { user },
+      error: authError,
+    } = await sb.auth.getUser();
 
-  if (authError || !user) {
-    throw new Error('Not authenticated');
-  }
-
-  await ensureOnboardingNotComplete(sb, user.id);
-  const validContracts = input.contracts.filter((contract) => contract.resort_id);
-  const totalOwned = validContracts.reduce((sum, contract) => {
-    if (contract.vacation_points?.length) {
-      return sum + contract.vacation_points.reduce((inner, row) => inner + (row.available ?? 0) + (row.holding ?? 0), 0);
+    if (authError || !user) {
+      throw new Error('Not authenticated');
     }
-    return sum + (contract.points_owned ?? 0);
-  }, 0);
-  const totalAvailable = validContracts.reduce((sum, contract) => {
-    if (contract.vacation_points?.length) {
-      return sum + contract.vacation_points.reduce((inner, row) => inner + (row.available ?? 0), 0);
+
+    await ensureOnboardingNotComplete(sb, user.id);
+    const validContracts = input.contracts.filter((contract) => contract.resort_id);
+    const totalOwned = validContracts.reduce((sum, contract) => {
+      if (contract.vacation_points?.length) {
+        return sum + contract.vacation_points.reduce((inner, row) => inner + (row.available ?? 0) + (row.holding ?? 0), 0);
+      }
+      return sum + (contract.points_owned ?? 0);
+    }, 0);
+    const totalAvailable = validContracts.reduce((sum, contract) => {
+      if (contract.vacation_points?.length) {
+        return sum + contract.vacation_points.reduce((inner, row) => inner + (row.available ?? 0), 0);
+      }
+      return sum + (contract.points_available ?? 0);
+    }, 0);
+
+    const ownerPayload = {
+      id: user.id,
+      user_id: user.id,
+      verification: 'pending' as const,
+      home_resort: validContracts[0]?.resort_id ?? null,
+      use_year: validContracts[0]?.use_year ?? null,
+      points_owned: totalOwned || null,
+      points_available: totalAvailable || null,
+    };
+
+    const { error: ownerError } = await sb.from('owners').upsert(ownerPayload, { onConflict: 'id' });
+    if (ownerError) {
+      console.error('[onboarding] failed to upsert owner', {
+        code: ownerError.code,
+        message: ownerError.message,
+        details: ownerError.details,
+        hint: ownerError.hint,
+      });
+      throw new Error(ownerError.message);
     }
-    return sum + (contract.points_available ?? 0);
-  }, 0);
 
-  const ownerPayload = {
-    id: user.id,
-    user_id: user.id,
-    verification: 'pending' as const,
-    home_resort: validContracts[0]?.resort_id ?? null,
-    use_year: validContracts[0]?.use_year ?? null,
-    points_owned: totalOwned || null,
-    points_available: totalAvailable || null,
-  };
-
-  const { error: ownerError } = await sb.from('owners').upsert(ownerPayload, { onConflict: 'id' });
-  if (ownerError) {
-    console.error('[onboarding] failed to upsert owner', {
-      code: ownerError.code,
-      message: ownerError.message,
-      details: ownerError.details,
-      hint: ownerError.hint,
-    });
-    throw new Error(ownerError.message);
-  }
-
-  if (validContracts.length) {
+    if (validContracts.length) {
     const listedAt = new Date().toISOString();
     const resortIds = Array.from(
       new Set(validContracts.map((contract) => contract.resort_id).filter(Boolean)),
@@ -302,23 +303,29 @@ export async function saveOwnerContracts(input: {
         }
       }
     }
-  }
-
-  const adminClient = getSupabaseAdminClient();
-  if (adminClient) {
-    const { error: foundingOwnerBonusError } = await maybeGrantFoundingOwnerBonus({
-      adminClient,
-      ownerId: user.id,
-    });
-    if (foundingOwnerBonusError) {
-      console.error('[founding-owner-bonus] failed during owner onboarding', {
-        owner_id: user.id,
-        message: foundingOwnerBonusError.message,
-      });
     }
-  }
 
-  return { ok: true };
+    const adminClient = getSupabaseAdminClient();
+    if (adminClient) {
+      const { error: foundingOwnerBonusError } = await maybeGrantFoundingOwnerBonus({
+        adminClient,
+        ownerId: user.id,
+      });
+      if (foundingOwnerBonusError) {
+        console.error('[founding-owner-bonus] failed during owner onboarding', {
+          owner_id: user.id,
+          message: foundingOwnerBonusError.message,
+        });
+      }
+    }
+
+    return { ok: true as const };
+  } catch (error) {
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : 'Unable to save owner contracts. Try again.',
+    };
+  }
 }
 
 export async function saveOwnerLegalInfo(input: {

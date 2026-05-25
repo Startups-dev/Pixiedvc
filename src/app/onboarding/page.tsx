@@ -194,7 +194,10 @@ export default function OnboardingPage() {
           memberships={ownerMemberships}
           membershipsLoaded={ownerMembershipsLoaded}
           onNext={async (payload) => {
-            await saveOwnerContracts(payload);
+            const result = await saveOwnerContracts(payload);
+            if (!result.ok) {
+              throw new Error(result.error);
+            }
             setStep(4);
           }}
         />
