@@ -11,10 +11,41 @@ type Promotion = {
   effective_reason?: string | null;
 };
 
+function toDateTimeLocalValue(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offsetMs = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+function formatReason(reason?: string | null) {
+  if (!reason) return null;
+  switch (reason) {
+    case "active":
+      return "Active within current date window";
+    case "inactive_flag":
+      return "Promotion is toggled inactive";
+    case "starts_in_future":
+      return "Start date is in the future";
+    case "ended":
+      return "End date has already passed";
+    case "invalid_start":
+      return "Start date is invalid";
+    case "invalid_end":
+      return "End date is invalid";
+    default:
+      return reason;
+  }
+}
+
 export default function PricingPromotionToggleClient({ name }: { name: string }) {
   const [promotion, setPromotion] = useState<Promotion | null>(null);
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [startsAt, setStartsAt] = useState("");
+  const [endsAt, setEndsAt] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -22,7 +53,10 @@ export default function PricingPromotionToggleClient({ name }: { name: string })
       .then((res) => res.json())
       .then((json) => {
         if (!isMounted) return;
-        setPromotion(json?.promotion ?? null);
+        const nextPromotion = json?.promotion ?? null;
+        setPromotion(nextPromotion);
+        setStartsAt(toDateTimeLocalValue(nextPromotion?.starts_at));
+        setEndsAt(toDateTimeLocalValue(nextPromotion?.ends_at));
       })
       .catch(() => {
         if (!isMounted) return;
@@ -37,21 +71,52 @@ export default function PricingPromotionToggleClient({ name }: { name: string })
   const isEffectiveActive = promotion?.is_effective_active ?? false;
   const effectiveReason = promotion?.effective_reason ?? null;
 
-  function handleToggle(next: boolean) {
+  async function submitUpdate(payload: Record<string, unknown>, successText: string) {
     setErrorMessage(null);
+    setSuccessMessage(null);
+    const response = await fetch("/api/admin/pricing-promotions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, ...payload }),
+    });
+    const json = await response.json();
+    if (!response.ok) {
+      setErrorMessage(json?.error ?? "Unable to update promotion.");
+      return;
+    }
+    const nextPromotion = json?.promotion ?? null;
+    setPromotion(nextPromotion);
+    setStartsAt(toDateTimeLocalValue(nextPromotion?.starts_at));
+    setEndsAt(toDateTimeLocalValue(nextPromotion?.ends_at));
+    setSuccessMessage(successText);
+  }
+
+  function handleToggle(next: boolean) {
     startTransition(async () => {
       try {
-        const response = await fetch("/api/admin/pricing-promotions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, is_active: next }),
-        });
-        const json = await response.json();
-        if (!response.ok) {
-          setErrorMessage(json?.error ?? "Unable to update promotion.");
-          return;
-        }
-        setPromotion(json?.promotion ?? null);
+        await submitUpdate({ is_active: next }, "Promotion status updated.");
+      } catch {
+        setErrorMessage("Unable to update promotion.");
+      }
+    });
+  }
+
+  function handleWindowSave() {
+    if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
+      setErrorMessage("End date must be after start date.");
+      setSuccessMessage(null);
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        await submitUpdate(
+          {
+            starts_at: startsAt || null,
+            ends_at: endsAt || null,
+          },
+          "Promotion dates updated.",
+        );
       } catch {
         setErrorMessage("Unable to update promotion.");
       }
@@ -78,7 +143,7 @@ export default function PricingPromotionToggleClient({ name }: { name: string })
                 </span>
               </p>
               {effectiveReason && effectiveReason !== "active" ? (
-                <p>Reason: {effectiveReason}</p>
+                <p>Reason: {formatReason(effectiveReason)}</p>
               ) : null}
               <p>Starts: {promotion.starts_at ?? "—"}</p>
               <p>Ends: {promotion.ends_at ?? "—"}</p>
@@ -98,7 +163,54 @@ export default function PricingPromotionToggleClient({ name }: { name: string })
           <span>{isActive ? "Active" : "Inactive"}</span>
         </button>
       </div>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <label className="block">
+          <span className="mb-2 block text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">Start date</span>
+          <input
+            type="datetime-local"
+            value={startsAt}
+            onChange={(event) => setStartsAt(event.target.value)}
+            className="w-full rounded-xl border border-[#3a3a3a] bg-[#212121] px-4 py-3 text-sm text-[#ececec] outline-none transition focus:border-[#64748b]"
+          />
+        </label>
+        <label className="block">
+          <span className="mb-2 block text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">End date</span>
+          <input
+            type="datetime-local"
+            value={endsAt}
+            onChange={(event) => setEndsAt(event.target.value)}
+            className="w-full rounded-xl border border-[#3a3a3a] bg-[#212121] px-4 py-3 text-sm text-[#ececec] outline-none transition focus:border-[#64748b]"
+          />
+        </label>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={handleWindowSave}
+          disabled={isPending || !promotion}
+          className="inline-flex items-center rounded-full bg-[#64748b] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#55657f] disabled:opacity-70"
+        >
+          Save dates
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setStartsAt("");
+            setEndsAt("");
+            setErrorMessage(null);
+            setSuccessMessage(null);
+          }}
+          disabled={isPending || !promotion}
+          className="inline-flex items-center rounded-full border border-[#3a3a3a] bg-[#212121] px-4 py-2 text-sm font-semibold text-[#b4b4b4] transition hover:bg-[#171717] disabled:opacity-70"
+        >
+          Clear both
+        </button>
+        <p className="text-xs text-[#8e8ea0]">
+          Leave either field blank to remove that schedule boundary.
+        </p>
+      </div>
       {errorMessage ? <p className="mt-3 text-sm text-rose-600">{errorMessage}</p> : null}
+      {successMessage ? <p className="mt-3 text-sm text-[#10a37f]">{successMessage}</p> : null}
     </div>
   );
 }
