@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+import { getClientAppUrl } from '@/lib/app-url';
 import { supabaseBrowser } from '@/lib/supabase-browser';
 import { getHomeForRole } from '@/lib/routes/home';
 
@@ -87,12 +88,10 @@ export default function LoginClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const passwordRedirect = useMemo(() => {
-    if (typeof window === 'undefined') return '/login?mode=update';
-    return new URL('/login?mode=update', window.location.origin).toString();
+    return getClientAppUrl('/login?mode=update') ?? '/login?mode=update';
   }, []);
   const signupRedirect = useMemo(() => {
-    if (typeof window === 'undefined') return '/auth/callback';
-    return new URL('/auth/callback', window.location.origin).toString();
+    return getClientAppUrl('/auth/callback') ?? '/auth/callback';
   }, []);
 
   const [mode, setMode] = useState<Mode>('login');
@@ -285,13 +284,11 @@ export default function LoginClient() {
     setMessage(null);
     setErrorMessage(null);
     setLoading(true);
+    const oauthRedirect = getClientAppUrl('/auth/callback') ?? undefined;
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo:
-          typeof window !== 'undefined'
-            ? `${window.location.origin}/auth/callback`
-            : undefined,
+        redirectTo: oauthRedirect,
       },
     });
 

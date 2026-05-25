@@ -19,6 +19,7 @@ const authMock = {
   resetPasswordForEmail: vi.fn().mockResolvedValue({ error: null }),
   signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
   updateUser: vi.fn().mockResolvedValue({ error: null }),
+  getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
   exchangeCodeForSession: vi.fn().mockResolvedValue({ data: { session: { user: { email: 'user@example.com' } } }, error: null }),
   setSession: vi.fn().mockResolvedValue({ data: { session: { user: { email: 'user@example.com' } } }, error: null }),
   signOut: vi.fn().mockResolvedValue({ error: null }),
@@ -31,8 +32,8 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@/lib/supabase', () => ({
-  createClient: () => ({
+vi.mock('@/lib/supabase-browser', () => ({
+  supabaseBrowser: () => ({
     auth: authMock,
   }),
 }));
@@ -53,8 +54,8 @@ describe('LoginPage', () => {
   test('renders login view by default', () => {
     render(<LoginPage />);
 
-    expect(screen.getByRole('heading', { name: /log in to pixiedvc/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /log in/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /sign in to pixiedvc/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
   });
 
   test('requires email before requesting password reset', async () => {
@@ -71,9 +72,9 @@ describe('LoginPage', () => {
     render(<LoginPage />);
 
     await userEvent.type(screen.getByPlaceholderText(/you@example.com/i), 'new@pixiedvc.com');
-    await userEvent.type(screen.getByPlaceholderText(/••••••••/), 'StrongPass9!');
+    await userEvent.type(screen.getByPlaceholderText(/your password/i), 'StrongPass9!');
 
-    await userEvent.click(screen.getByRole('button', { name: /^Sign up$/ }));
+    await userEvent.click(screen.getByRole('button', { name: /create account/i }));
 
     await waitFor(() => {
       expect(authMock.signUp).toHaveBeenCalledWith({
@@ -93,12 +94,28 @@ describe('LoginPage', () => {
     render(<LoginPage />);
 
     await userEvent.type(screen.getByPlaceholderText(/you@example.com/i), 'user@example.com');
-    await userEvent.type(screen.getByPlaceholderText(/••••••••/), 'wrongpassword');
-    await userEvent.click(screen.getByRole('button', { name: /log in/i }));
+    await userEvent.type(screen.getByPlaceholderText(/your password/i), 'wrongpassword');
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Invalid email or password.');
-      expect(screen.getByRole('alert')).toHaveTextContent("If you don't have an account yet, click Sign Up.");
+      expect(screen.getByText('Invalid email or password.')).toBeInTheDocument();
+      expect(screen.getByText("If you don't have an account yet, click Sign Up.")).toBeInTheDocument();
+    });
+  });
+
+  test('uses a safe callback URL for Google OAuth', async () => {
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://pixiedvc-web-staging-776171407864.us-central1.run.app';
+    render(<LoginPage />);
+
+    await userEvent.click(screen.getByRole('button', { name: /continue with google/i }));
+
+    await waitFor(() => {
+      expect(authMock.signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'google',
+        options: {
+          redirectTo: 'https://pixiedvc-web-staging-776171407864.us-central1.run.app/auth/callback',
+        },
+      });
     });
   });
 });

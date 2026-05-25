@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { getAppBaseUrl } from "@/lib/app-url";
 import { getHomeForRole } from "@/lib/routes/home";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
+  const safeOrigin = getAppBaseUrl() ?? origin;
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const tokenType = searchParams.get("type");
@@ -32,9 +34,9 @@ export async function GET(request: Request) {
   if (next) {
     const safeNext = next.startsWith("/") ? next : "/affiliate/dashboard";
     if (!user && safeNext.startsWith("/affiliate")) {
-      return NextResponse.redirect(new URL(`/affiliate/login?redirect=${encodeURIComponent(safeNext)}&error=session`, origin));
+      return NextResponse.redirect(new URL(`/affiliate/login?redirect=${encodeURIComponent(safeNext)}&error=session`, safeOrigin));
     }
-    return NextResponse.redirect(new URL(safeNext, origin));
+    return NextResponse.redirect(new URL(safeNext, safeOrigin));
   }
 
   const metaRole = (user?.user_metadata?.role as
@@ -67,5 +69,5 @@ export async function GET(request: Request) {
         : null;
   }
 
-  return NextResponse.redirect(new URL(getHomeForRole(role), origin));
+  return NextResponse.redirect(new URL(getHomeForRole(role), safeOrigin));
 }

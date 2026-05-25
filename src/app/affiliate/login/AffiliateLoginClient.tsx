@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import Link from "next/link";
 import { Button, Card } from "@pixiedvc/design-system";
+import { getClientAppUrl } from "@/lib/app-url";
 import { createClient } from "@/lib/supabase";
 import {
   affiliateCard,
@@ -61,7 +62,13 @@ export default function AffiliateLoginClient() {
       }
 
       if ((code || (tokenHash && type)) && isMounted) {
-        const callbackUrl = new URL("/auth/callback", window.location.origin);
+        const callbackBaseUrl = getClientAppUrl("/auth/callback");
+        if (!callbackBaseUrl) {
+          setStatus("error");
+          setMessage("Unable to resolve the callback URL for affiliate sign-in.");
+          return;
+        }
+        const callbackUrl = new URL(callbackBaseUrl);
         if (code) {
           callbackUrl.searchParams.set("code", code);
         }
@@ -97,9 +104,7 @@ export default function AffiliateLoginClient() {
       email,
       options: {
         emailRedirectTo:
-          typeof window !== "undefined"
-            ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`
-            : undefined,
+          getClientAppUrl(`/auth/callback?next=${encodeURIComponent(redirectTo)}`) ?? undefined,
       },
     });
 
