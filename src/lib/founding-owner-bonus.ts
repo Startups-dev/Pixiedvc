@@ -57,6 +57,22 @@ export function getActiveFoundingOwnerBonusCents(
   return cents;
 }
 
+export function isActiveFoundingOwner(
+  owner: FoundingOwnerBonusFields | null | undefined,
+  now = new Date(),
+) {
+  const cents = Number(owner?.founding_owner_bonus_cents_per_point ?? 0);
+  if (!Number.isFinite(cents) || cents <= 0) return false;
+
+  if (!owner?.founding_owner_bonus_expires_at) {
+    return true;
+  }
+
+  const expiresAt = new Date(owner.founding_owner_bonus_expires_at);
+  if (Number.isNaN(expiresAt.getTime())) return false;
+  return now < expiresAt;
+}
+
 export function buildFoundingOwnerGrantUpdate(params: {
   owner: FoundingOwnerBonusFields | null | undefined;
   activePromotion: PricingPromotion | null | undefined;

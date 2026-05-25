@@ -5,6 +5,7 @@ import {
   buildFoundingOwnerGrantUpdate,
   getActiveFoundingOwnerBonusCents,
   hasFoundingOwnerGrant,
+  isActiveFoundingOwner,
 } from "@/lib/founding-owner-bonus";
 
 describe("founding owner bonus", () => {
@@ -69,5 +70,24 @@ describe("founding owner bonus", () => {
     expect(hasFoundingOwnerGrant({ founding_owner_bonus_cents_per_point: 200 })).toBe(true);
     expect(hasFoundingOwnerGrant({ founding_owner_promotion_id: "promo-1" })).toBe(true);
     expect(hasFoundingOwnerGrant({ founding_owner_granted_at: null })).toBe(false);
+  });
+
+  it("treats null expiry as active for UI status and expired dates as inactive", () => {
+    expect(
+      isActiveFoundingOwner({
+        founding_owner_bonus_cents_per_point: 200,
+        founding_owner_bonus_expires_at: null,
+      }),
+    ).toBe(true);
+
+    expect(
+      isActiveFoundingOwner(
+        {
+          founding_owner_bonus_cents_per_point: 200,
+          founding_owner_bonus_expires_at: "2026-06-10T15:00:00.000Z",
+        },
+        new Date("2026-06-11T00:00:00.000Z"),
+      ),
+    ).toBe(false);
   });
 });

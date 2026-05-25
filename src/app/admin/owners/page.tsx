@@ -1,5 +1,6 @@
 import OwnerQueue from './owner-queue';
 import type { QueueOwnerDocument, QueueOwnerMembership, QueueOwnerRecord } from './types';
+import { isActiveFoundingOwner } from '@/lib/founding-owner-bonus';
 import { requireAdminUser } from '@/lib/admin';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 
@@ -11,6 +12,8 @@ type OwnerRow = {
   id: string;
   verification: string | null;
   created_at: string | null;
+  founding_owner_bonus_cents_per_point: number | null;
+  founding_owner_bonus_expires_at: string | null;
   profiles?: {
     display_name: string | null;
     email: string | null;
@@ -45,7 +48,7 @@ export default async function OwnersAdminPage({ searchParams }: { searchParams: 
 
   const baseQuery = supabase
     .from('owners')
-    .select('id, verification, created_at, profiles:profiles!owners_user_id_fkey(display_name)')
+    .select('id, verification, created_at, founding_owner_bonus_cents_per_point, founding_owner_bonus_expires_at, profiles:profiles!owners_user_id_fkey(display_name)')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -195,6 +198,10 @@ const documentMap = new Map<string, QueueOwnerDocument[]>();
     submittedAt: owner.created_at,
     displayName: owner.profiles?.display_name ?? null,
     email: null,
+    foundingOwnerBonusCentsPerPoint: isActiveFoundingOwner(owner)
+      ? owner.founding_owner_bonus_cents_per_point ?? null
+      : null,
+    foundingOwnerBonusExpiresAt: owner.founding_owner_bonus_expires_at ?? null,
     memberships: membershipMap.get(owner.id) ?? [],
     documents: documentMap.get(owner.id) ?? [],
     activity: activityMap.get(owner.id) ?? [],

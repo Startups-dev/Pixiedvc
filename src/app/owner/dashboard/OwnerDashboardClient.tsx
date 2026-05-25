@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { Card, Button } from "@pixiedvc/design-system";
+import FoundingOwnerBadge from "@/components/founding-owner/FoundingOwnerBadge";
 import { formatCurrency } from "@/lib/owner-portal";
 import { getMembershipExpirationDate, getMembershipNudge } from "@/lib/owner-nudges";
 import StatTiles from "@/components/owner/StatTiles";
@@ -27,6 +28,7 @@ type RewardsSummary = {
 };
 
 type FoundingOwnerSummary = {
+  active: boolean;
   bonusCents: number;
   expiresAt: string | null;
 };
@@ -193,6 +195,21 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
           Resale memberships acquired on/after Jan 19, 2019 have booking restrictions at certain resorts (including Riviera, Villas at Disneyland Hotel, and the Cabins at Fort Wilderness). PixieDVC will automatically avoid matching you to requests you can’t book.
         </Card>
       ) : null}
+
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-3xl font-semibold tracking-tight text-ink">
+            {displayName ? `${displayName}'s dashboard` : "Owner dashboard"}
+          </h1>
+          {foundingOwnerSummary?.active ? <FoundingOwnerBadge /> : null}
+        </div>
+        {foundingOwnerSummary?.active ? (
+          <p className="text-sm text-slate-600">
+            Your +${(foundingOwnerSummary.bonusCents / 100).toFixed(2)}/pt launch bonus is active until{" "}
+            {formatDate(foundingOwnerSummary.expiresAt)}.
+          </p>
+        ) : null}
+      </section>
 
       <OwnerDashboardTabs tabs={tabs} activeTab={activeTab} />
 

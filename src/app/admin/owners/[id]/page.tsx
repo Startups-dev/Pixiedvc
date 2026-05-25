@@ -2,7 +2,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import ContractPreview from '@/components/admin/ContractPreview';
+import FoundingOwnerBadge from '@/components/founding-owner/FoundingOwnerBadge';
 import { requireAdminUser } from '@/lib/admin';
+import { isActiveFoundingOwner } from '@/lib/founding-owner-bonus';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import {
   fetchContractEvents,
@@ -69,14 +71,23 @@ export default async function AdminOwnerDetailPage({ params }: { params: { id: s
   const membershipCard = documents.find((doc) => doc.kind === 'member_card') ?? null;
   const govId = documents.find((doc) => doc.kind === 'id') ?? null;
   const ownerEmail = owner.profiles?.email ?? null;
+  const foundingOwnerActive = isActiveFoundingOwner(owner);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-6 py-8">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Admin · Owner</p>
-          <h1 className="text-3xl font-semibold text-slate-900">{owner.profiles?.display_name ?? owner.profiles?.email ?? 'Owner'}</h1>
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-semibold text-slate-900">{owner.profiles?.display_name ?? owner.profiles?.email ?? 'Owner'}</h1>
+            {foundingOwnerActive ? <FoundingOwnerBadge showBonusText /> : null}
+          </div>
           <p className="text-sm text-slate-500">Verification status: {owner.verification ?? 'pending'}</p>
+          {owner.founding_owner_bonus_cents_per_point && owner.founding_owner_bonus_cents_per_point > 0 ? (
+            <p className={`text-sm ${foundingOwnerActive ? 'text-[#6d5b28]' : 'text-slate-500'}`}>
+              {foundingOwnerActive ? 'Founding Owner bonus active' : 'Founding Owner bonus expired'}
+            </p>
+          ) : null}
         </div>
         <Link href="/admin/owners" className="text-sm font-semibold text-indigo-600 hover:underline">
           ← Back to queue

@@ -20,6 +20,8 @@ export type QueueOwnerRecord = {
   submittedAt: string | null;
   displayName: string | null;
   email: string | null;
+  foundingOwnerBonusCentsPerPoint: number | null;
+  foundingOwnerBonusExpiresAt: string | null;
   memberships: QueueOwnerMembership[];
   documents: QueueOwnerDocument[];
   activity: QueueOwnerActivity[];

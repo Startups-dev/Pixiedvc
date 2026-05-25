@@ -2,7 +2,9 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+import FoundingOwnerBadge from '@/components/founding-owner/FoundingOwnerBadge';
 import { requireAdminUser } from '@/lib/admin';
+import { isActiveFoundingOwner } from '@/lib/founding-owner-bonus';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import QuickLinksPanel from './QuickLinksPanel';
 
@@ -295,8 +297,19 @@ export default async function AdminHome({ searchParams }: AdminPageProps) {
                   {ownerRows.map((owner) => (
                     <tr key={owner.id} className="text-[#b4b4b4]">
                       <td className="px-4 py-3">
-                        <div className="font-semibold text-[#ececec]">{owner.displayName ?? 'Unnamed owner'}</div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="font-semibold text-[#ececec]">{owner.displayName ?? 'Unnamed owner'}</div>
+                          {owner.foundingOwnerActive ? <FoundingOwnerBadge /> : null}
+                        </div>
                         <div className="text-xs text-[#8e8ea0]">{owner.email ?? 'No email'}</div>
+                        {owner.foundingOwnerActive ? (
+                          <div className="text-xs text-[#d8c48a]">
+                            Founding Owner bonus active
+                            {owner.foundingOwnerBonusExpiresAt
+                              ? ` until ${dateFormatter.format(new Date(owner.foundingOwnerBonusExpiresAt))}`
+                              : ''}
+                          </div>
+                        ) : null}
                       </td>
                       <td className="px-4 py-3">
                         <div>{owner.primaryResort ?? 'Resort TBD'}</div>
@@ -412,6 +425,8 @@ type OwnerRow = {
   id: string;
   verification: string | null;
   created_at: string | null;
+  founding_owner_bonus_cents_per_point: number | null;
+  founding_owner_bonus_expires_at: string | null;
   profiles: {
     display_name: string | null;
     email: string | null;
@@ -441,6 +456,11 @@ type PaginatedResult<T> = {
   total: number;
   page: number;
   pageSize: number;
+};
+
+type FilterableAdminQuery = {
+  eq: (column: string, value: string) => FilterableAdminQuery;
+  or: (filters: string) => FilterableAdminQuery;
 };
 
 function SummaryCard({ title, value, subtitle, footer }: { title: string; value: number; subtitle: string; footer: string }) {
@@ -526,7 +546,7 @@ async function fetchRequestSummary(supabase: AdminClient) {
 
 async function countBookingRequests(
   supabase: AdminClient,
-  applyFilter?: (query: any) => any,
+  applyFilter?: (query: FilterableAdminQuery) => FilterableAdminQuery,
 ) {
   try {
     let query = supabase.from('booking_requests').select('id', { count: 'exact', head: true });
@@ -641,7 +661,7 @@ async function fetchOwnerPipelineTable(supabase: AdminClient, filters: OwnerPipe
     supabase
       .from('owners')
       .select(
-        'id, verification, created_at, profiles:profiles!owners_user_id_fkey(display_name, email), owner_memberships(points_owned, points_available, resort:resorts(name), use_year)'
+        'id, verification, created_at, founding_owner_bonus_cents_per_point, founding_owner_bonus_expires_at, profiles:profiles!owners_user_id_fkey(display_name, email), owner_memberships(points_owned, points_available, resort:resorts(name), use_year)'
       )
       .order('created_at', { ascending: false }),
     filters,
@@ -671,6 +691,8 @@ function mapOwnerRow(row: OwnerRow) {
     pointsAvailable,
     verification: row.verification ?? 'pending',
     createdAt: row.created_at,
+    foundingOwnerActive: isActiveFoundingOwner(row),
+    foundingOwnerBonusExpiresAt: row.founding_owner_bonus_expires_at ?? null,
   };
 }
 
@@ -700,7 +722,7 @@ async function fetchComplianceSnapshot(supabase: AdminClient) {
 async function countRows(
   supabase: AdminClient,
   table: string,
-  applyFilter?: (query: any) => any,
+  applyFilter?: (query: FilterableAdminQuery) => FilterableAdminQuery,
 ) {
   try {
     let query = supabase.from(table).select('id', { count: 'exact', head: true });
@@ -719,7 +741,7 @@ async function countRows(
   }
 }
 
-function applyBookingFilters(query: any, filters: BookingRequestFilters) {
+function applyBookingFilters(query: FilterableAdminQuery, filters: BookingRequestFilters) {
   let next = query;
   if (filters.status) {
     next = next.eq('status', filters.status);
@@ -731,7 +753,7 @@ function applyBookingFilters(query: any, filters: BookingRequestFilters) {
   return next;
 }
 
-function applyOwnerFilters(query: any, filters: OwnerPipelineFilters) {
+function applyOwnerFilters(query: FilterableAdminQuery, filters: OwnerPipelineFilters) {
   let next = query;
   if (filters.verification) {
     next = next.eq('verification', filters.verification);

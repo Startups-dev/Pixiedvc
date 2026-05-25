@@ -22,7 +22,7 @@ import { getMembershipExpirationDate, getMembershipNudge } from "@/lib/owner-nud
 import { getOwnerPreferredBonusCents, getOwnerPreferredTier } from "@/lib/owner-rewards";
 import { getPromotionsSetting } from "@/lib/promotions-settings";
 import { requireOwnerAccess } from "@/lib/owner/requireOwnerAccess";
-import { getActiveFoundingOwnerBonusCents } from "@/lib/founding-owner-bonus";
+import { getActiveFoundingOwnerBonusCents, isActiveFoundingOwner } from "@/lib/founding-owner-bonus";
 import OwnerDashboardClient from "./OwnerDashboardClient";
 
 export const dynamic = "force-dynamic";
@@ -328,8 +328,9 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
       }
     : null;
   const foundingOwnerBonusCents = getActiveFoundingOwnerBonusCents(owner);
-  const foundingOwnerSummary = owner && foundingOwnerBonusCents > 0
+  const foundingOwnerSummary = owner && isActiveFoundingOwner(owner)
     ? {
+        active: true,
         bonusCents: foundingOwnerBonusCents,
         expiresAt: owner.founding_owner_bonus_expires_at ?? null,
       }

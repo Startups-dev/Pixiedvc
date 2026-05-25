@@ -4,6 +4,7 @@ import { FormEvent, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import FoundingOwnerBadge from '@/components/founding-owner/FoundingOwnerBadge';
 import type { QueueOwnerDocument, QueueOwnerRecord } from './types';
 
 const statusLabels: Record<string, { label: string; tone: string }> = {
@@ -18,6 +19,13 @@ type Props = {
   owners: QueueOwnerRecord[];
   statusFilter: string;
 };
+
+function formatBadgeDate(value: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString();
+}
 
 export default function OwnerQueue({ owners, statusFilter }: Props) {
   const [search, setSearch] = useState('');
@@ -161,9 +169,22 @@ export default function OwnerQueue({ owners, statusFilter }: Props) {
                     }`}
                   >
                     <div>
-                      <p className="text-base font-semibold text-slate-900">{owner.displayName ?? 'Unnamed owner'}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-base font-semibold text-slate-900">{owner.displayName ?? 'Unnamed owner'}</p>
+                        {owner.foundingOwnerBonusCentsPerPoint && owner.foundingOwnerBonusCentsPerPoint > 0 ? (
+                          <FoundingOwnerBadge />
+                        ) : null}
+                      </div>
                       <p className="text-xs text-slate-500">{owner.email ?? 'No email on file'}</p>
                       <p className="text-xs text-slate-400">ID: {owner.id}</p>
+                      {owner.foundingOwnerBonusCentsPerPoint && owner.foundingOwnerBonusCentsPerPoint > 0 ? (
+                        <p className="mt-1 text-xs text-[#6d5b28]">
+                          Founding Owner bonus active
+                          {formatBadgeDate(owner.foundingOwnerBonusExpiresAt)
+                            ? ` until ${formatBadgeDate(owner.foundingOwnerBonusExpiresAt)}`
+                            : ''}
+                        </p>
+                      ) : null}
                     </div>
                     <div className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] ${status.tone}`}>
                       {status.label}
@@ -216,7 +237,12 @@ export default function OwnerQueue({ owners, statusFilter }: Props) {
                 <div className="space-y-4">
                   <div>
                     <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Overview</p>
-                    <h2 className="text-2xl font-semibold" style={{ color: '#64748b' }}>{selectedOwner.displayName ?? 'Unnamed owner'}</h2>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-2xl font-semibold" style={{ color: '#64748b' }}>{selectedOwner.displayName ?? 'Unnamed owner'}</h2>
+                      {selectedOwner.foundingOwnerBonusCentsPerPoint && selectedOwner.foundingOwnerBonusCentsPerPoint > 0 ? (
+                        <FoundingOwnerBadge showBonusText />
+                      ) : null}
+                    </div>
                     <p className="text-sm text-slate-500">{selectedOwner.email ?? 'No email on file'}</p>
                     {selectedOwner.submittedAt ? (
                       <p className="text-xs text-slate-400">
