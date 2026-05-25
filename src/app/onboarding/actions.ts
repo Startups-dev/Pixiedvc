@@ -268,6 +268,12 @@ export async function saveOwnerContracts(input: {
         .from('owner_membership_use_year_points')
         .upsert(pointsRows, { onConflict: 'owner_membership_id,use_year' });
       if (pointsError) {
+        console.error('[onboarding] failed to upsert owner membership use year points', {
+          code: pointsError.code,
+          message: pointsError.message,
+          details: pointsError.details,
+          hint: pointsError.hint,
+        });
         throw new Error(pointsError.message);
       }
 
@@ -285,6 +291,13 @@ export async function saveOwnerContracts(input: {
           .update({ points_available: availableSum })
           .eq('id', membershipId);
         if (syncError) {
+          console.error('[onboarding] failed to sync membership points available', {
+            membership_id: membershipId,
+            code: syncError.code,
+            message: syncError.message,
+            details: syncError.details,
+            hint: syncError.hint,
+          });
           throw new Error(syncError.message);
         }
       }
