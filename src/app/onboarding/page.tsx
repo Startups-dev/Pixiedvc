@@ -739,9 +739,10 @@ function OwnerContractsStep({
     allow_standard_rate_fallback: boolean;
   }) => void;
 }) {
-  const currentYear = String(new Date().getFullYear());
   const [pricingAcknowledged, setPricingAcknowledged] = useState(false);
   const [matchingMode, setMatchingMode] = useState<'premium_only' | 'premium_then_standard'>('premium_only');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [contracts, setContracts] = useState<ContractForm[]>([
     {
       resortId: '',
@@ -838,7 +839,7 @@ function OwnerContractsStep({
     setContracts((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const payload: ContractInput[] = [];
     const today = new Date();
@@ -870,11 +871,20 @@ function OwnerContractsStep({
       });
     }
 
-    onNext({
-      contracts: payload,
-      matching_mode: matchingMode,
-      allow_standard_rate_fallback: matchingMode === 'premium_then_standard',
-    });
+    setSaveError(null);
+    setIsSaving(true);
+
+    try {
+      await onNext({
+        contracts: payload,
+        matching_mode: matchingMode,
+        allow_standard_rate_fallback: matchingMode === 'premium_then_standard',
+      });
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Unable to save owner contracts. Try again.');
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -1148,7 +1158,13 @@ function OwnerContractsStep({
         </div>
       </div>
 
-      <button className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white" type="submit">
+      {saveError ? <p className="text-sm text-rose-600">{saveError}</p> : null}
+
+      <button
+        className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
+        type="submit"
+        disabled={isSaving}
+      >
         Continue
       </button>
     </form>
