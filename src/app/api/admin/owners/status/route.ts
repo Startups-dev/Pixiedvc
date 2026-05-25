@@ -5,6 +5,28 @@ import { emailIsAllowedForAdmin } from '@/lib/admin-emails';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { maybeGrantFoundingOwnerBonus } from '@/lib/founding-owner-bonus';
 
+function logAdminOwnerWrite(params: {
+  table: string;
+  operation: string;
+  targetId: string;
+  error: { message?: string; code?: string; details?: string; hint?: string } | null;
+}) {
+  console.error('[admin-owner-write]', {
+    route: 'POST /api/admin/owners/status',
+    table: params.table,
+    operation: params.operation,
+    targetId: params.targetId,
+    error: params.error
+      ? {
+          message: params.error.message ?? null,
+          code: params.error.code ?? null,
+          details: params.error.details ?? null,
+          hint: params.error.hint ?? null,
+        }
+      : null,
+  });
+}
+
 export async function POST(request: Request) {
   const { ownerId, status, reason } = await request.json();
 
@@ -47,37 +69,92 @@ export async function POST(request: Request) {
     .eq('id', ownerId)
     .maybeSingle();
 
+  console.error('[admin-owner-write-attempt]', {
+    route: 'POST /api/admin/owners/status',
+    table: 'owners',
+    operation: 'update',
+    targetId: String(ownerId),
+    client: 'user_scoped_server_client',
+  });
   const { error } = await supabase.from('owners').update(updates).eq('id', ownerId);
 
   if (error) {
+    logAdminOwnerWrite({
+      table: 'owners',
+      operation: 'update',
+      targetId: String(ownerId),
+      error,
+    });
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  await supabase.from('owner_verification_events').insert({
+  console.error('[admin-owner-write-attempt]', {
+    route: 'POST /api/admin/owners/status',
+    table: 'owner_verification_events',
+    operation: 'insert',
+    targetId: String(ownerId),
+    client: 'user_scoped_server_client',
+  });
+  const { error: eventError } = await supabase.from('owner_verification_events').insert({
     owner_id: ownerId,
     old_status: existing?.verification ?? null,
     new_status: status,
     actor_id: user.id,
   });
+  if (eventError) {
+    logAdminOwnerWrite({
+      table: 'owner_verification_events',
+      operation: 'insert',
+      targetId: String(ownerId),
+      error: eventError,
+    });
+    return NextResponse.json({ error: eventError.message }, { status: 400 });
+  }
 
   if (reason) {
-    await supabase.from('owner_comments').insert({
+    console.error('[admin-owner-write-attempt]', {
+      route: 'POST /api/admin/owners/status',
+      table: 'owner_comments',
+      operation: 'insert',
+      targetId: String(ownerId),
+      client: 'user_scoped_server_client',
+    });
+    const { error: commentError } = await supabase.from('owner_comments').insert({
       owner_id: ownerId,
       author_id: user.id,
       body: reason,
       kind: 'status_change',
     });
+    if (commentError) {
+      logAdminOwnerWrite({
+        table: 'owner_comments',
+        operation: 'insert',
+        targetId: String(ownerId),
+        error: commentError,
+      });
+      return NextResponse.json({ error: commentError.message }, { status: 400 });
+    }
   }
 
   if (status === 'verified' && adminClient) {
+    console.error('[admin-owner-write-attempt]', {
+      route: 'POST /api/admin/owners/status',
+      table: 'owners',
+      operation: 'update',
+      targetId: String(ownerId),
+      client: 'service_role_admin_client',
+      context: 'maybeGrantFoundingOwnerBonus',
+    });
     const { error: foundingOwnerBonusError } = await maybeGrantFoundingOwnerBonus({
       adminClient,
       ownerId,
     });
     if (foundingOwnerBonusError) {
-      console.error('[founding-owner-bonus] failed during owner status update', {
-        owner_id: ownerId,
-        message: foundingOwnerBonusError.message,
+      logAdminOwnerWrite({
+        table: 'owners',
+        operation: 'update',
+        targetId: String(ownerId),
+        error: foundingOwnerBonusError,
       });
     }
   }

@@ -201,7 +201,7 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
           <h1 className="text-3xl font-semibold tracking-tight text-ink">
             {displayName ? `${displayName}'s dashboard` : "Owner dashboard"}
           </h1>
-          {foundingOwnerSummary?.active ? <FoundingOwnerBadge /> : null}
+          {foundingOwnerSummary?.active ? <FoundingOwnerBadge variant="artwork" /> : null}
         </div>
         {foundingOwnerSummary?.active ? (
           <p className="text-sm text-slate-600">

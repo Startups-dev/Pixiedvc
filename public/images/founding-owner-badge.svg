@@ -1,0 +1,52 @@
+<svg width="520" height="180" viewBox="0 0 520 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gold" x1="48" y1="26" x2="472" y2="154" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F6E7A5"/>
+      <stop offset="0.2" stop-color="#E8C969"/>
+      <stop offset="0.5" stop-color="#B8861C"/>
+      <stop offset="0.8" stop-color="#F4D77C"/>
+      <stop offset="1" stop-color="#9B6A12"/>
+    </linearGradient>
+    <linearGradient id="goldSoft" x1="66" y1="38" x2="454" y2="142" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFEFB5"/>
+      <stop offset="0.5" stop-color="#D1A73B"/>
+      <stop offset="1" stop-color="#FFF0B0"/>
+    </linearGradient>
+    <filter id="shadow" x="20" y="14" width="480" height="152" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#0B1734" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <path d="M90 30H430L462 68V112L430 150H90L58 112V68L90 30Z" fill="url(#gold)"/>
+    <path d="M98 38H422L452 72V108L422 142H98L68 108V72L98 38Z" fill="#0F2148" stroke="url(#goldSoft)" stroke-width="4"/>
+    <path d="M112 54H408L431 80V100L408 126H112L89 100V80L112 54Z" stroke="#C9A33A" stroke-width="1.5" opacity="0.55"/>
+
+    <g fill="#F6D965">
+      <path d="M260 48L264 58L274 62L264 66L260 76L256 66L246 62L256 58L260 48Z"/>
+      <path d="M213 56L215.8 63.2L223 66L215.8 68.8L213 76L210.2 68.8L203 66L210.2 63.2L213 56Z" opacity="0.95"/>
+      <path d="M307 56L309.8 63.2L317 66L309.8 68.8L307 76L304.2 68.8L297 66L304.2 63.2L307 56Z" opacity="0.95"/>
+      <circle cx="185" cy="69" r="3.2"/>
+      <circle cx="335" cy="69" r="3.2"/>
+      <circle cx="354" cy="78" r="2.6"/>
+      <circle cx="166" cy="78" r="2.6"/>
+    </g>
+
+    <g fill="#F6D965">
+      <path d="M249 77L255 66L260 72L265 61L271 77H249Z"/>
+      <rect x="258" y="58" width="4" height="19" rx="1"/>
+      <rect x="253" y="69" width="3" height="8" rx="1"/>
+      <rect x="264" y="66" width="3" height="11" rx="1"/>
+    </g>
+
+    <text x="260" y="103" text-anchor="middle" fill="#F6D965" font-size="38" font-family="Georgia, 'Times New Roman', serif" letter-spacing="2.5">FOUNDING OWNER</text>
+
+    <g fill="#DAB24F">
+      <rect x="126" y="116" width="74" height="2" rx="1"/>
+      <rect x="320" y="116" width="74" height="2" rx="1"/>
+      <circle cx="260" cy="117" r="4"/>
+    </g>
+
+    <text x="260" y="136" text-anchor="middle" fill="#F0D375" font-size="21" font-family="Georgia, 'Times New Roman', serif" letter-spacing="3">PIXIEDVC</text>
+  </g>
+</svg>

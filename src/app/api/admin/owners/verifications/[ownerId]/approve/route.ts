@@ -5,6 +5,28 @@ import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { emailIsAllowedForAdmin } from '@/lib/admin-emails';
 import { maybeGrantFoundingOwnerBonus } from '@/lib/founding-owner-bonus';
 
+function logAdminOwnerWrite(params: {
+  table: string;
+  operation: string;
+  targetId: string;
+  error: { message?: string; code?: string; details?: string; hint?: string } | null;
+}) {
+  console.error('[admin-owner-write]', {
+    route: 'POST /api/admin/owners/verifications/[ownerId]/approve',
+    table: params.table,
+    operation: params.operation,
+    targetId: params.targetId,
+    error: params.error
+      ? {
+          message: params.error.message ?? null,
+          code: params.error.code ?? null,
+          details: params.error.details ?? null,
+          hint: params.error.hint ?? null,
+        }
+      : null,
+  });
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ ownerId: string }> },
@@ -25,6 +47,13 @@ export async function POST(
   }
 
   const now = new Date().toISOString();
+  console.error('[admin-owner-write-attempt]', {
+    route: 'POST /api/admin/owners/verifications/[ownerId]/approve',
+    table: 'owner_verifications',
+    operation: 'update',
+    targetId: String(ownerId),
+    client: 'service_role_admin_client',
+  });
   const { error } = await adminClient
     .from('owner_verifications')
     .update({
@@ -37,22 +66,54 @@ export async function POST(
     .eq('owner_id', ownerId);
 
   if (error) {
+    logAdminOwnerWrite({
+      table: 'owner_verifications',
+      operation: 'update',
+      targetId: String(ownerId),
+      error,
+    });
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  await adminClient
+  console.error('[admin-owner-write-attempt]', {
+    route: 'POST /api/admin/owners/verifications/[ownerId]/approve',
+    table: 'owners',
+    operation: 'update',
+    targetId: String(ownerId),
+    client: 'service_role_admin_client',
+  });
+  const { error: ownerError } = await adminClient
     .from('owners')
     .update({ verification: 'verified', verified_at: now, rejection_reason: null })
     .eq('id', ownerId);
+  if (ownerError) {
+    logAdminOwnerWrite({
+      table: 'owners',
+      operation: 'update',
+      targetId: String(ownerId),
+      error: ownerError,
+    });
+    return NextResponse.json({ error: ownerError.message }, { status: 400 });
+  }
 
+  console.error('[admin-owner-write-attempt]', {
+    route: 'POST /api/admin/owners/verifications/[ownerId]/approve',
+    table: 'owners',
+    operation: 'update',
+    targetId: String(ownerId),
+    client: 'service_role_admin_client',
+    context: 'maybeGrantFoundingOwnerBonus',
+  });
   const { error: foundingOwnerBonusError } = await maybeGrantFoundingOwnerBonus({
     adminClient,
     ownerId,
   });
   if (foundingOwnerBonusError) {
-    console.error('[founding-owner-bonus] failed during owner verification approval', {
-      owner_id: ownerId,
-      message: foundingOwnerBonusError.message,
+    logAdminOwnerWrite({
+      table: 'owners',
+      operation: 'update',
+      targetId: String(ownerId),
+      error: foundingOwnerBonusError,
     });
   }
 

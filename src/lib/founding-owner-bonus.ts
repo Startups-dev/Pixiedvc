@@ -130,6 +130,13 @@ export async function maybeGrantFoundingOwnerBonus(params: {
   const { adminClient, ownerId } = params;
   const now = params.now ?? new Date();
 
+  console.error('[admin-owner-write-attempt]', {
+    route: 'maybeGrantFoundingOwnerBonus',
+    table: 'owners',
+    operation: 'select',
+    targetId: String(ownerId),
+    client: 'service_role_admin_client',
+  });
   const { data: owner, error: ownerError } = await adminClient
     .from("owners")
     .select(
@@ -139,6 +146,18 @@ export async function maybeGrantFoundingOwnerBonus(params: {
     .maybeSingle();
 
   if (ownerError) {
+    console.error('[admin-owner-write]', {
+      route: 'maybeGrantFoundingOwnerBonus',
+      table: 'owners',
+      operation: 'select',
+      targetId: String(ownerId),
+      error: {
+        message: ownerError.message ?? null,
+        code: ownerError.code ?? null,
+        details: ownerError.details ?? null,
+        hint: ownerError.hint ?? null,
+      },
+    });
     return { granted: false, reason: "owner_load_failed" as const, error: ownerError };
   }
 
@@ -146,8 +165,27 @@ export async function maybeGrantFoundingOwnerBonus(params: {
     return { granted: false, reason: "owner_missing" as const, error: null };
   }
 
+  console.error('[admin-owner-write-attempt]', {
+    route: 'maybeGrantFoundingOwnerBonus',
+    table: 'pricing_promotions',
+    operation: 'select',
+    targetId: String(ownerId),
+    client: 'service_role_admin_client',
+  });
   const { data: activePromotion, error: promotionError } = await getActivePromotion({ adminClient });
   if (promotionError) {
+    console.error('[admin-owner-write]', {
+      route: 'maybeGrantFoundingOwnerBonus',
+      table: 'pricing_promotions',
+      operation: 'select',
+      targetId: String(ownerId),
+      error: {
+        message: promotionError.message ?? null,
+        code: promotionError.code ?? null,
+        details: promotionError.details ?? null,
+        hint: promotionError.hint ?? null,
+      },
+    });
     return { granted: false, reason: "promotion_lookup_failed" as const, error: promotionError };
   }
 
@@ -165,6 +203,13 @@ export async function maybeGrantFoundingOwnerBonus(params: {
     };
   }
 
+  console.error('[admin-owner-write-attempt]', {
+    route: 'maybeGrantFoundingOwnerBonus',
+    table: 'owners',
+    operation: 'update',
+    targetId: String(ownerId),
+    client: 'service_role_admin_client',
+  });
   const { data: updatedOwner, error: updateError } = await adminClient
     .from("owners")
     .update(update)
@@ -174,6 +219,18 @@ export async function maybeGrantFoundingOwnerBonus(params: {
     .maybeSingle();
 
   if (updateError) {
+    console.error('[admin-owner-write]', {
+      route: 'maybeGrantFoundingOwnerBonus',
+      table: 'owners',
+      operation: 'update',
+      targetId: String(ownerId),
+      error: {
+        message: updateError.message ?? null,
+        code: updateError.code ?? null,
+        details: updateError.details ?? null,
+        hint: updateError.hint ?? null,
+      },
+    });
     return { granted: false, reason: "owner_update_failed" as const, error: updateError };
   }
 
