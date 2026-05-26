@@ -8,6 +8,7 @@ import "./globals.css";
 import Header from "@/components/header";
 import SiteFooterClient from "@/components/layout/SiteFooterClient";
 import AffiliateTracker from "@/components/affiliate/AffiliateTracker";
+import VisitorTracker from "@/components/analytics/VisitorTracker";
 import ReferralCapture from "@/components/referral/ReferralCapture";
 import IntercomProvider from "@/components/chat/IntercomProvider";
 import RecoveryRedirect from "@/components/auth/RecoveryRedirect";
@@ -56,6 +57,9 @@ export default function RootLayout({
         </div>
         <Suspense fallback={null}>
           <AffiliateTracker />
+        </Suspense>
+        <Suspense fallback={null}>
+          <VisitorTracker />
         </Suspense>
         <Suspense fallback={null}>
           <ReferralCapture />
