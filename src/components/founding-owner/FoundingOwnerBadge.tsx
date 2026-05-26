@@ -15,7 +15,7 @@ export default function FoundingOwnerBadge({
     return (
       <span className={`inline-flex items-center ${className}`.trim()}>
         <Image
-          src="https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Owners-images/dummy.png"
+          src="https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Owners-images/Dummy2.png"
           alt="Founding Owner"
           width={170}
           height={59}

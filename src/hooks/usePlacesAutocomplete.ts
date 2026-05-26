@@ -31,6 +31,7 @@ export function usePlacesAutocomplete({ inputRef, onSelect, debugLabel, countryC
   const autocompleteRef = useRef<unknown>(null);
   const listenerRef = useRef<{ remove?: () => void } | null>(null);
   const countryRef = useRef<string | undefined>(undefined);
+  const normalizedCountryCode = countryCode?.trim().toLowerCase();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -65,12 +66,12 @@ export function usePlacesAutocomplete({ inputRef, onSelect, debugLabel, countryC
           return;
         }
 
-        if (autocompleteRef.current && countryRef.current === countryCode) return;
+        if (autocompleteRef.current && countryRef.current === normalizedCountryCode) return;
 
         const google = (window as Window & { google?: GoogleNamespace }).google;
         if (!google?.maps?.places) return;
 
-        if (autocompleteRef.current && countryRef.current !== countryCode) {
+        if (autocompleteRef.current && countryRef.current !== normalizedCountryCode) {
           listenerRef.current?.remove?.();
           listenerRef.current = null;
           autocompleteRef.current = null;
@@ -79,10 +80,10 @@ export function usePlacesAutocomplete({ inputRef, onSelect, debugLabel, countryC
         const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
           types: ["address"],
           fields: ["address_components", "formatted_address"],
-          ...(countryCode ? { componentRestrictions: { country: countryCode } } : {}),
+          ...(normalizedCountryCode ? { componentRestrictions: { country: normalizedCountryCode } } : {}),
         });
         autocompleteRef.current = autocomplete;
-        countryRef.current = countryCode;
+        countryRef.current = normalizedCountryCode;
         listenerRef.current = autocomplete.addListener("place_changed", () => {
           const place = autocomplete.getPlace();
           onSelect(
@@ -114,5 +115,5 @@ export function usePlacesAutocomplete({ inputRef, onSelect, debugLabel, countryC
       listenerRef.current?.remove?.();
       listenerRef.current = null;
     };
-  }, [countryCode, debugLabel, disabled, inputRef, onSelect]);
+  }, [debugLabel, disabled, inputRef, normalizedCountryCode, onSelect]);
 }
