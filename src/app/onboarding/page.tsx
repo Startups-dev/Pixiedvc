@@ -328,27 +328,27 @@ function RoleStep({
           <button
             key={card.role}
             type="button"
-            className="group grid w-full overflow-hidden rounded-[28px] border border-slate-200 bg-white text-left shadow-[0_12px_36px_rgba(15,23,42,0.06)] transition hover:border-slate-300 hover:shadow-[0_18px_46px_rgba(15,23,42,0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:cursor-not-allowed disabled:opacity-70 md:grid-cols-[1.02fr_1fr]"
+            className="group grid w-full overflow-hidden rounded-[28px] border border-slate-200 bg-white text-left shadow-[0_12px_36px_rgba(15,23,42,0.06)] transition hover:border-slate-300 hover:shadow-[0_18px_46px_rgba(15,23,42,0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:cursor-not-allowed disabled:opacity-70 md:grid-cols-[1.2fr_0.9fr]"
             onClick={() => onPick(card.role)}
             disabled={pending}
           >
-            <div className="relative min-h-[300px]">
+            <div className="relative min-h-[320px]">
               <Image
                 src={card.image}
                 alt=""
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover"
+                className="object-cover object-center"
                 priority={card.role === 'guest'}
               />
             </div>
-            <div className="flex flex-col justify-between p-8">
+            <div className="flex flex-col justify-between p-7">
               <div className="space-y-5">
                 <div>
-                  <h3 className="text-[24px] font-semibold tracking-tight text-[#102554]">{card.title}</h3>
-                  <p className="mt-3 max-w-[31rem] text-[15px] leading-7 text-[#64748b]">{card.description}</p>
+                  <h3 className="text-[22px] font-semibold tracking-tight text-[#102554]">{card.title}</h3>
+                  <p className="mt-3 max-w-[31rem] text-[14px] leading-7 text-[#64748b]">{card.description}</p>
                 </div>
-                <ul className="space-y-3 text-[15px] text-[#475569]">
+                <ul className="space-y-3 text-[14px] text-[#475569]">
                   {card.bullets.map((bullet) => (
                     <li key={bullet} className="flex items-center gap-3">
                       <span className={`text-lg ${card.bulletTone}`} aria-hidden="true">
@@ -360,7 +360,7 @@ function RoleStep({
                 </ul>
               </div>
               <div
-                className={`mt-8 inline-flex items-center justify-center rounded-full bg-gradient-to-r px-6 py-4 text-center text-lg font-semibold text-[#102554] ${card.shadow} ${card.accent}`}
+                className={`mt-8 inline-flex items-center justify-center self-start whitespace-nowrap rounded-full bg-gradient-to-r px-7 py-3 text-center text-base font-semibold text-[#102554] ${card.shadow} ${card.accent}`}
               >
                 <span>{card.cta}</span>
                 <span className="ml-4 text-2xl leading-none" aria-hidden="true">
