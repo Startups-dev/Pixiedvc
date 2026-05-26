@@ -31,7 +31,7 @@ export function usePlacesAutocomplete({ inputRef, onSelect, debugLabel, countryC
   const autocompleteRef = useRef<unknown>(null);
   const listenerRef = useRef<{ remove?: () => void } | null>(null);
   const countryRef = useRef<string | undefined>(undefined);
-  const normalizedCountryCode = countryCode?.trim().toUpperCase();
+  const normalizedCountryCode = countryCode?.trim().toLowerCase();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -46,6 +46,17 @@ export function usePlacesAutocomplete({ inputRef, onSelect, debugLabel, countryC
     if (!apiKey) return;
     if (!inputRef.current) return;
 
+    if (debugLabel === "onboarding") {
+      console.info("[places-debug]", {
+        stage: "effect_start",
+        debugLabel,
+        disabled,
+        hasInput: Boolean(inputRef.current),
+        countryCode: normalizedCountryCode ?? null,
+        hasApiKey: Boolean(apiKey),
+      });
+    }
+
     let cancelled = false;
 
     loadGooglePlaces(apiKey)
@@ -54,6 +65,13 @@ export function usePlacesAutocomplete({ inputRef, onSelect, debugLabel, countryC
         if (!inputRef.current) return;
 
         if (!isPlacesAvailable()) {
+          if (debugLabel === "onboarding") {
+            console.warn("[places-debug]", {
+              stage: "places_unavailable",
+              debugLabel,
+              countryCode: normalizedCountryCode ?? null,
+            });
+          }
           if (process.env.NODE_ENV !== "production") {
             console.warn(
               `[places] Google Places unavailable (${debugLabel ?? "unknown"}):`,
@@ -66,12 +84,29 @@ export function usePlacesAutocomplete({ inputRef, onSelect, debugLabel, countryC
           return;
         }
 
-        if (autocompleteRef.current && countryRef.current === normalizedCountryCode) return;
+        if (autocompleteRef.current && countryRef.current === normalizedCountryCode) {
+          if (debugLabel === "onboarding") {
+            console.info("[places-debug]", {
+              stage: "reuse_existing_instance",
+              debugLabel,
+              countryCode: normalizedCountryCode ?? null,
+            });
+          }
+          return;
+        }
 
         const google = (window as Window & { google?: GoogleNamespace }).google;
         if (!google?.maps?.places) return;
 
         if (autocompleteRef.current && countryRef.current !== normalizedCountryCode) {
+          if (debugLabel === "onboarding") {
+            console.info("[places-debug]", {
+              stage: "reset_instance_for_country_change",
+              debugLabel,
+              previousCountryCode: countryRef.current ?? null,
+              nextCountryCode: normalizedCountryCode ?? null,
+            });
+          }
           listenerRef.current?.remove?.();
           listenerRef.current = null;
           autocompleteRef.current = null;
@@ -80,12 +115,29 @@ export function usePlacesAutocomplete({ inputRef, onSelect, debugLabel, countryC
         const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
           types: ["address"],
           fields: ["address_components", "formatted_address"],
-          ...(normalizedCountryCode ? { componentRestrictions: { country: [normalizedCountryCode] } } : {}),
+          ...(normalizedCountryCode ? { componentRestrictions: { country: normalizedCountryCode } } : {}),
         });
+        if (debugLabel === "onboarding") {
+          console.info("[places-debug]", {
+            stage: "instance_created",
+            debugLabel,
+            countryCode: normalizedCountryCode ?? null,
+          });
+        }
         autocompleteRef.current = autocomplete;
         countryRef.current = normalizedCountryCode;
         listenerRef.current = autocomplete.addListener("place_changed", () => {
           const place = autocomplete.getPlace();
+          if (debugLabel === "onboarding") {
+            console.info("[places-debug]", {
+              stage: "place_changed",
+              debugLabel,
+              countryCode: normalizedCountryCode ?? null,
+              hasFormattedAddress: Boolean(
+                (place as { formatted_address?: string }).formatted_address
+              ),
+            });
+          }
           onSelect(
             parseGooglePlace(
               place as {
@@ -97,6 +149,13 @@ export function usePlacesAutocomplete({ inputRef, onSelect, debugLabel, countryC
         });
       })
       .catch(() => {
+        if (debugLabel === "onboarding") {
+          console.warn("[places-debug]", {
+            stage: "script_load_failed",
+            debugLabel,
+            countryCode: normalizedCountryCode ?? null,
+          });
+        }
         if (process.env.NODE_ENV !== "production") {
           console.warn(`[places] Failed to load Google Places script (${debugLabel ?? "unknown"}).`);
         }
