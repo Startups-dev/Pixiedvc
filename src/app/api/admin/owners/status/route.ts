@@ -63,11 +63,28 @@ export async function POST(request: Request) {
     updates.verified_at = null;
   }
 
-  const { data: existing } = await supabase
+  console.error('[admin-owner-write-attempt]', {
+    route: 'POST /api/admin/owners/status',
+    table: 'owners',
+    operation: 'select',
+    targetId: String(ownerId),
+    client: 'user_scoped_server_client',
+    context: 'load_existing_verification',
+  });
+  const { data: existing, error: existingError } = await supabase
     .from('owners')
     .select('verification')
     .eq('id', ownerId)
     .maybeSingle();
+  if (existingError) {
+    logAdminOwnerWrite({
+      table: 'owners',
+      operation: 'select',
+      targetId: String(ownerId),
+      error: existingError,
+    });
+    return NextResponse.json({ error: existingError.message }, { status: 400 });
+  }
 
   console.error('[admin-owner-write-attempt]', {
     route: 'POST /api/admin/owners/status',
