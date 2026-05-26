@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useMemo, useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 import {
@@ -283,50 +284,92 @@ function RoleStep({
   pending: boolean;
   error: string | null;
 }) {
+  const cards = [
+    {
+      role: 'guest' as const,
+      title: "I'm planning a stay",
+      description: 'Estimate points, explore Disney resorts, and effortlessly book a reservation with concierge support.',
+      bullets: [
+        'Real-time point estimates',
+        'Explore resorts and availability',
+        'Concierge guidance every step of the way',
+      ],
+      cta: 'Continue as a DVC Guest',
+      image:
+        'https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Owners-images/onboard%20guest%20card.png',
+      accent: 'from-[#ffd7c7] via-[#ffc6ab] to-[#ffb586]',
+      shadow: 'shadow-[0_10px_24px_rgba(255,183,138,0.25)]',
+      bulletTone: 'text-[#f28a58]',
+    },
+    {
+      role: 'owner' as const,
+      title: 'I own DVC points',
+      description: 'Rent your points through PixieDVC with verified guests and structured payouts.',
+      bullets: [
+        'Verified guests and secure bookings',
+        'Transparent payouts and timelines',
+        'Dedicated owner support',
+        'You stay in control, always',
+      ],
+      cta: 'Continue as DVC Owner',
+      image:
+        'https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Owners-images/onboard%20owner%20card.png',
+      accent: 'from-[#25b989] via-[#1ba777] to-[#119565]',
+      shadow: 'shadow-[0_10px_24px_rgba(17,149,101,0.24)]',
+      bulletTone: 'text-[#79c8ad]',
+    },
+  ];
+
   return (
     <div className="space-y-4">
       <p className="text-lg text-slate-700">Choose your path to get started.</p>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <button
-          type="button"
-          className="group flex h-full w-full flex-col items-start gap-3 rounded-3xl border border-slate-200 bg-white p-5 text-left transition hover:border-emerald-500 hover:shadow-[0_16px_40px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
-          onClick={() => onPick('guest')}
-          disabled={pending}
-        >
-          <span className="inline-flex h-12 w-12 items-center justify-center self-center rounded-2xl bg-emerald-50">
-            <img
-              src="https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/icons/Guest%20Icon.png"
-              alt=""
-              className="h-12 w-12"
-            />
-          </span>
-          <div>
-            <p className="text-base font-semibold text-slate-900">I’m planning a stay</p>
-            <p className="mt-1 text-sm text-slate-500">
-              Estimate points, explore resorts, and request a reservation with concierge support.
-            </p>
-          </div>
-        </button>
-        <button
-          type="button"
-          className="group flex h-full w-full flex-col items-start gap-3 rounded-3xl border border-slate-200 bg-white p-5 text-left transition hover:border-emerald-500 hover:shadow-[0_16px_40px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
-          onClick={() => onPick('owner')}
-          disabled={pending}
-        >
-          <span className="inline-flex h-12 w-12 items-center justify-center self-center rounded-2xl bg-emerald-50">
-            <img
-              src="https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/icons/OwnerIcon.png"
-              alt=""
-              className="h-12 w-12"
-            />
-          </span>
-          <div>
-            <p className="text-base font-semibold text-slate-900">I own DVC points</p>
-            <p className="mt-1 text-sm text-slate-500">
-              Rent your points through PixieDVC with verified guests and structured payouts.
-            </p>
-          </div>
-        </button>
+      <div className="space-y-4">
+        {cards.map((card) => (
+          <button
+            key={card.role}
+            type="button"
+            className="group grid w-full overflow-hidden rounded-[28px] border border-slate-200 bg-white text-left shadow-[0_12px_36px_rgba(15,23,42,0.06)] transition hover:border-slate-300 hover:shadow-[0_18px_46px_rgba(15,23,42,0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:cursor-not-allowed disabled:opacity-70 md:grid-cols-[1.02fr_1fr]"
+            onClick={() => onPick(card.role)}
+            disabled={pending}
+          >
+            <div className="relative min-h-[300px]">
+              <Image
+                src={card.image}
+                alt=""
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-cover"
+                priority={card.role === 'guest'}
+              />
+            </div>
+            <div className="flex flex-col justify-between p-8">
+              <div className="space-y-5">
+                <div>
+                  <h3 className="text-[24px] font-semibold tracking-tight text-[#102554]">{card.title}</h3>
+                  <p className="mt-3 max-w-[31rem] text-[15px] leading-7 text-[#64748b]">{card.description}</p>
+                </div>
+                <ul className="space-y-3 text-[15px] text-[#475569]">
+                  {card.bullets.map((bullet) => (
+                    <li key={bullet} className="flex items-center gap-3">
+                      <span className={`text-lg ${card.bulletTone}`} aria-hidden="true">
+                        ○
+                      </span>
+                      <span>{bullet}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div
+                className={`mt-8 inline-flex items-center justify-center rounded-full bg-gradient-to-r px-6 py-4 text-center text-lg font-semibold text-[#102554] ${card.shadow} ${card.accent}`}
+              >
+                <span>{card.cta}</span>
+                <span className="ml-4 text-2xl leading-none" aria-hidden="true">
+                  →
+                </span>
+              </div>
+            </div>
+          </button>
+        ))}
       </div>
       {pending ? <p className="text-sm text-slate-500">Saving your choice…</p> : null}
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
@@ -376,6 +419,15 @@ function ProfileStep({
   } | null;
   profileLoaded: boolean;
 }) {
+  const SUPPORTED_OWNER_COUNTRIES = [
+    { code: 'CA', label: 'Canada' },
+    { code: 'US', label: 'United States' },
+    { code: 'MX', label: 'Mexico' },
+    { code: 'BR', label: 'Brazil' },
+    { code: 'AU', label: 'Australia' },
+    { code: 'JP', label: 'Japan' },
+  ] as const;
+  const supportedCountryByLabel = new Map(SUPPORTED_OWNER_COUNTRIES.map((country) => [country.label, country.code]));
   const isOwner = role === 'owner';
   const [displayName, setDisplayName] = useState('');
   const [fullName, setFullName] = useState('');
@@ -418,18 +470,6 @@ function ProfileStep({
     }
   }, [sameAsLogin, userEmail]);
 
-  usePlacesAutocomplete({
-    inputRef: address1Ref,
-    debugLabel: "onboarding",
-    onSelect: (address) => {
-      if (address.line1) setAddress1(address.line1);
-      if (address.city) setCity(address.city);
-      if (address.state) setRegion(address.state);
-      if (address.postalCode) setPostalCode(address.postalCode);
-      if (address.country) setCountry(address.country);
-    },
-  });
-
   const last4 = dvcLast4.trim();
   const last4Valid = !last4 || /^[0-9]{4}$/.test(last4);
   const hasProfileData = Boolean(
@@ -443,6 +483,19 @@ function ProfileStep({
   );
   const profileLocked = hasProfileData && !isEditing;
   const disableFields = profileLocked;
+
+  usePlacesAutocomplete({
+    inputRef: address1Ref,
+    debugLabel: "onboarding",
+    countryCode: isOwner ? supportedCountryByLabel.get(country) : undefined,
+    disabled: disableFields || (isOwner && !country),
+    onSelect: (address) => {
+      if (address.line1) setAddress1(address.line1);
+      if (address.city) setCity(address.city);
+      if (address.state) setRegion(address.state);
+      if (address.postalCode) setPostalCode(address.postalCode);
+    },
+  });
 
   if (!profileLoaded) {
     return <p className="text-sm text-slate-500">Loading profile…</p>;
@@ -535,16 +588,44 @@ function ProfileStep({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">
+          <label className="text-sm text-slate-500">Country</label>
+          {isOwner ? (
+            <select
+              className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2"
+              value={supportedCountryByLabel.has(country) ? country : ''}
+              onChange={(event) => setCountry(event.target.value)}
+              required={isOwner}
+              disabled={disableFields}
+              autoComplete="country-name"
+            >
+              <option value="">Select a country</option>
+              {SUPPORTED_OWNER_COUNTRIES.map((supportedCountry) => (
+                <option key={supportedCountry.code} value={supportedCountry.label}>
+                  {supportedCountry.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
+              value={country}
+              onChange={(event) => setCountry(event.target.value)}
+              required={isOwner}
+              disabled={disableFields}
+            />
+          )}
+        </div>
+        <div className="sm:col-span-2">
           <label className="text-sm text-slate-500">Address line 1</label>
           <input
             ref={address1Ref}
             className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
-            placeholder="123 Dream St"
+            placeholder={isOwner && !country ? 'Select a country first' : 'Start typing your address...'}
             value={address1}
             onChange={(event) => setAddress1(event.target.value)}
             required={isOwner}
             autoComplete="street-address"
-            disabled={disableFields}
+            disabled={disableFields || (isOwner && !country)}
           />
         </div>
         <div className="sm:col-span-2">
@@ -583,16 +664,6 @@ function ProfileStep({
             className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
             value={postalCode}
             onChange={(event) => setPostalCode(event.target.value)}
-            required={isOwner}
-            disabled={disableFields}
-          />
-        </div>
-        <div>
-          <label className="text-sm text-slate-500">Country</label>
-          <input
-            className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
-            value={country}
-            onChange={(event) => setCountry(event.target.value)}
             required={isOwner}
             disabled={disableFields}
           />
@@ -957,23 +1028,26 @@ function OwnerContractsStep({
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">How pricing works</p>
         <div className="mt-3 space-y-2">
           <span className="inline-flex rounded-full bg-[#0B1B3A]/10 px-3 py-1 text-xs font-semibold text-[#0B1B3A]">
-            Typical point rates
+            Typical owner payout rates
           </span>
-          <p>Standard window (7 months or less):</p>
-          <p className="font-semibold text-slate-700">$16 per point</p>
-          <p>Premium window (more than 7 months):</p>
+          <p>Standard payout:</p>
           <p className="font-semibold text-slate-700">$18 per point</p>
-          <p>
-            Some stays — such as holidays, premium views, or high-demand room types — may qualify for higher concierge
-            pricing.
-          </p>
-          <p>Final pricing depends on:</p>
+          <p>Premium payout:</p>
+          <p className="font-semibold text-slate-700">$20 per point</p>
+          <p>Platinum payout:</p>
+          <p className="font-semibold text-slate-700">$23 per point</p>
+          <p>Founding Owner bonus:</p>
+          <p>Eligible launch owners receive an additional +$2 per point for 2 years.</p>
+          <p>Final payout depends on:</p>
           <ul className="list-disc space-y-1 pl-5">
-            <li>Booking window (Premium vs Standard)</li>
-            <li>Date flexibility</li>
-            <li>Overall demand at the time of booking</li>
+            <li>Resort</li>
+            <li>Booking window</li>
+            <li>Point expiration timing</li>
+            <li>Demand</li>
+            <li>Reservation type</li>
+            <li>Whether Founding Owner benefits are active</li>
           </ul>
-          <p>Our goal is simple: price your points fairly to maximize successful rentals, not just list them.</p>
+          <p>PixieDVC always confirms payout details with you before moving forward.</p>
         </div>
         <label className="mt-3 flex items-start gap-2 text-xs text-slate-500">
           <input
