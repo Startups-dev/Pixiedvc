@@ -488,7 +488,7 @@ function ProfileStep({
     inputRef: address1Ref,
     debugLabel: "onboarding",
     countryCode: isOwner ? supportedCountryByLabel.get(country) : undefined,
-    disabled: disableFields || (isOwner && !country),
+    disabled: disableFields,
     onSelect: (address) => {
       if (address.line1) setAddress1(address.line1);
       if (address.city) setCity(address.city);
@@ -625,7 +625,9 @@ function ProfileStep({
             onChange={(event) => setAddress1(event.target.value)}
             required={isOwner}
             autoComplete="street-address"
-            disabled={disableFields || (isOwner && !country)}
+            disabled={disableFields}
+            readOnly={isOwner && !country}
+            aria-disabled={disableFields || (isOwner && !country)}
           />
         </div>
         <div className="sm:col-span-2">

@@ -31,7 +31,7 @@ export function usePlacesAutocomplete({ inputRef, onSelect, debugLabel, countryC
   const autocompleteRef = useRef<unknown>(null);
   const listenerRef = useRef<{ remove?: () => void } | null>(null);
   const countryRef = useRef<string | undefined>(undefined);
-  const normalizedCountryCode = countryCode?.trim().toLowerCase();
+  const normalizedCountryCode = countryCode?.trim().toUpperCase();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -80,7 +80,7 @@ export function usePlacesAutocomplete({ inputRef, onSelect, debugLabel, countryC
         const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
           types: ["address"],
           fields: ["address_components", "formatted_address"],
-          ...(normalizedCountryCode ? { componentRestrictions: { country: normalizedCountryCode } } : {}),
+          ...(normalizedCountryCode ? { componentRestrictions: { country: [normalizedCountryCode] } } : {}),
         });
         autocompleteRef.current = autocomplete;
         countryRef.current = normalizedCountryCode;
