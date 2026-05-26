@@ -17,9 +17,9 @@ export default function FoundingOwnerBadge({
         <Image
           src="https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Owners-images/Dummy2.png"
           alt="Founding Owner"
-          width={170}
-          height={59}
-          className="h-auto w-[170px] max-w-full"
+          width={260}
+          height={90}
+          className="h-auto w-[260px] max-w-full"
           priority={false}
         />
       </span>
