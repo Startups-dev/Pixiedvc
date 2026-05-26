@@ -205,8 +205,7 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
         </div>
         {foundingOwnerSummary?.active ? (
           <p className="text-sm text-slate-600">
-            Your +${(foundingOwnerSummary.bonusCents / 100).toFixed(2)}/pt launch bonus is active until{" "}
-            {formatDate(foundingOwnerSummary.expiresAt)}.
+            You&apos;re part of the PixieDVC Founding Owner Circle.
           </p>
         ) : null}
       </section>

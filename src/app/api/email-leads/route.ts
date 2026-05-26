@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { subscribeEmail } from "@/lib/email-subscribers";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
 type EmailLeadSource = "hero_bar" | "post_intent" | "resort_section" | "bottom_cta";
@@ -47,6 +48,21 @@ export async function POST(request: Request) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  try {
+    await subscribeEmail({
+      email,
+      source,
+      tags: ['guest_lead', `source:${source}`],
+      client: admin,
+    });
+  } catch (subscriberError) {
+    console.error('[email-leads] failed to sync subscriber', {
+      email,
+      source,
+      message: subscriberError instanceof Error ? subscriberError.message : 'unknown_error',
+    });
   }
 
   return NextResponse.json({ ok: true });
