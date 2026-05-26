@@ -48,6 +48,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  if (!adminClient) {
+    return NextResponse.json({ error: 'Service role key not configured' }, { status: 500 });
+  }
+
   const updates: Record<string, unknown> = {
     verification: status,
   };
@@ -68,10 +72,10 @@ export async function POST(request: Request) {
     table: 'owners',
     operation: 'select',
     targetId: String(ownerId),
-    client: 'user_scoped_server_client',
+    client: 'service_role_admin_client',
     context: 'load_existing_verification',
   });
-  const { data: existing, error: existingError } = await supabase
+  const { data: existing, error: existingError } = await adminClient
     .from('owners')
     .select('verification')
     .eq('id', ownerId)
@@ -91,9 +95,9 @@ export async function POST(request: Request) {
     table: 'owners',
     operation: 'update',
     targetId: String(ownerId),
-    client: 'user_scoped_server_client',
+    client: 'service_role_admin_client',
   });
-  const { error } = await supabase.from('owners').update(updates).eq('id', ownerId);
+  const { error } = await adminClient.from('owners').update(updates).eq('id', ownerId);
 
   if (error) {
     logAdminOwnerWrite({
@@ -110,9 +114,9 @@ export async function POST(request: Request) {
     table: 'owner_verification_events',
     operation: 'insert',
     targetId: String(ownerId),
-    client: 'user_scoped_server_client',
+    client: 'service_role_admin_client',
   });
-  const { error: eventError } = await supabase.from('owner_verification_events').insert({
+  const { error: eventError } = await adminClient.from('owner_verification_events').insert({
     owner_id: ownerId,
     old_status: existing?.verification ?? null,
     new_status: status,
@@ -134,9 +138,9 @@ export async function POST(request: Request) {
       table: 'owner_comments',
       operation: 'insert',
       targetId: String(ownerId),
-      client: 'user_scoped_server_client',
+      client: 'service_role_admin_client',
     });
-    const { error: commentError } = await supabase.from('owner_comments').insert({
+    const { error: commentError } = await adminClient.from('owner_comments').insert({
       owner_id: ownerId,
       author_id: user.id,
       body: reason,
