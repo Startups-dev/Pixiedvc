@@ -297,6 +297,18 @@ const SPLIT_SECTION_IMAGES_BY_SLUG: Record<string, ResortSplitImages> = {
     nearbyAmenities:
       "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/grand%20floridian/nearby.png",
   },
+  "grand-californian-villas": {
+    about:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Grand%20Californian/aboutcali.png",
+    goodToKnow:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Grand%20Californian/goodcali.png",
+    dining:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Grand%20Californian/diningcali.png",
+    gettingAround:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Grand%20Californian/aroundcali.png",
+    nearbyAmenities:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Grand%20Californian/nearbycali.png",
+  },
   "saratoga-springs": {
     about:
       "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Saratoga/about.png",
