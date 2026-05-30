@@ -211,6 +211,19 @@ function hasTripIntent(intent: TripIntent) {
   );
 }
 
+function buildTripIntentQuery(intent: TripIntent) {
+  const params = new URLSearchParams();
+  if (intent.checkIn) params.set("checkIn", intent.checkIn);
+  if (intent.checkOut) params.set("checkOut", intent.checkOut);
+  if (intent.nights) params.set("nights", String(intent.nights));
+  if (intent.resort) params.set("resort", intent.resort);
+  if (typeof intent.adults === "number") params.set("adults", String(intent.adults));
+  if (typeof intent.children === "number") params.set("children", String(intent.children));
+  if (intent.room) params.set("room", intent.room);
+  if (intent.view) params.set("view", intent.view);
+  return params;
+}
+
 function parseTripIntentFromParams(params: URLSearchParams): TripIntent {
   const checkIn = cleanString(params.get("checkIn"));
   const checkOut = cleanString(params.get("checkOut"));
@@ -503,6 +516,20 @@ export function DvcCalculator() {
     saveTripIntentToSession(nextIntent);
   }, [checkIn, checkOut, nights, resort, room, view, tripIntentContext, hasHydratedTripIntent]);
 
+  const selectedResortSlug = RESORT_CODE_TO_SLUG[resort] ?? tripIntentContext.resort ?? null;
+  const hasIncomingResortContext = Boolean(tripIntentContext.resort);
+  const changeResortQuery = buildTripIntentQuery(
+    mergeTripIntent(tripIntentContext, {
+      checkIn,
+      checkOut,
+      nights,
+      resort: selectedResortSlug ?? undefined,
+      room,
+      view,
+    }),
+  ).toString();
+  const changeResortHref = changeResortQuery ? `/plan/resorts?${changeResortQuery}` : "/plan/resorts";
+
   function handleCheckInChange(nextCheckIn: string) {
     const sanitized = sanitizeStayDates(nextCheckIn, checkOut);
     setCheckIn(sanitized.checkIn);
@@ -695,6 +722,16 @@ export function DvcCalculator() {
           </button>
         </div>
       </div>
+      {hasIncomingResortContext ? (
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-600">
+          <span>
+            Selected resort: <span className="font-semibold text-slate-900">{meta.name}</span>
+          </span>
+          <a href={changeResortHref} className="font-semibold text-[#4457c7] hover:underline">
+            Change resort
+          </a>
+        </div>
+      ) : null}
       <div className="mt-2 text-sm text-slate-500">
         Estimates do not reflect live availability. Our concierge team confirms availability before any booking.
       </div>

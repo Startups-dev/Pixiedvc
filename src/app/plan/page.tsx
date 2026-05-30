@@ -3,6 +3,64 @@ import { Search, Sparkles } from "lucide-react";
 import { Button } from "@pixiedvc/design-system";
 import ReferralLink from "@/components/referral/ReferralLink";
 import { buildTripIntentQuery, parseTripIntentFromSearchParams } from "@/lib/trip-intent";
+import { CANONICAL_RESORT_SLUG_SET, canonicalizeResortSlug } from "@/lib/resorts/canonical";
+import { FALLBACK_CALC_CODE_BY_SLUG } from "@/lib/resort-calculator";
+
+function slugify(value: string) {
+  return value
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+const RESORT_NAME_SLUG_MAP = new Map<string, string>([
+  [slugify("Disney's Animal Kingdom Villas - Jambo House"), "animal-kingdom-villas"],
+  [slugify("Disney's Animal Kingdom Villas - Kidani Village"), "animal-kingdom-kidani"],
+  [slugify("Aulani, Disney Vacation Club Villas"), "aulani"],
+  [slugify("Bay Lake Tower at Disney's Contemporary Resort"), "bay-lake-tower"],
+  [slugify("Disney's Beach Club Villas"), "beach-club-villas"],
+  [slugify("Disney's BoardWalk Villas"), "boardwalk-villas"],
+  [slugify("Boulder Ridge Villas at Disney's Wilderness Lodge"), "boulder-ridge-villas"],
+  [slugify("Copper Creek Villas & Cabins at Disney's Wilderness Lodge"), "copper-creek-villas"],
+  [slugify("The Villas at Disneyland Hotel"), "disneyland-hotel-villas"],
+  [slugify("The Cabins at Disney's Fort Wilderness Resort"), "fort-wilderness-cabins"],
+  [slugify("The Villas at Disney's Grand Californian Hotel & Spa"), "grand-californian-villas"],
+  [slugify("The Villas at Disney's Grand Floridian Resort & Spa"), "grand-floridian-villas"],
+  [slugify("Disney's Hilton Head Island Resort"), "hilton-head-island"],
+  [slugify("Disney's Old Key West Resort"), "old-key-west"],
+  [slugify("Disney's Polynesian Villas & Bungalows"), "polynesian-villas"],
+  [slugify("Disney's Riviera Resort"), "riviera-resort"],
+  [slugify("Disney's Saratoga Springs Resort & Spa"), "saratoga-springs"],
+  [slugify("Disney's Vero Beach Resort"), "vero-beach"],
+]);
+
+function resolveResortSlug(value?: string) {
+  const normalized = value?.trim();
+  if (!normalized) return null;
+
+  const lower = normalized.toLowerCase();
+  const canonicalSlug = canonicalizeResortSlug(lower);
+  if (CANONICAL_RESORT_SLUG_SET.has(canonicalSlug)) {
+    return canonicalSlug;
+  }
+
+  const upper = normalized.toUpperCase();
+  for (const [slug, code] of Object.entries(FALLBACK_CALC_CODE_BY_SLUG)) {
+    if (code === upper) {
+      return slug;
+    }
+  }
+
+  const nameSlug = slugify(normalized);
+  for (const slug of CANONICAL_RESORT_SLUG_SET) {
+    if (slugify(slug) === nameSlug || slugify(slug.replace(/-/g, " ")) === nameSlug) {
+      return slug;
+    }
+  }
+
+  return RESORT_NAME_SLUG_MAP.get(nameSlug) ?? null;
+}
 
 export default async function PlanLandingPage({
   searchParams,
@@ -11,9 +69,19 @@ export default async function PlanLandingPage({
 }) {
   const resolvedSearchParams = (await searchParams) ?? {};
   const tripIntent = parseTripIntentFromSearchParams(resolvedSearchParams);
-  const tripQuery = buildTripIntentQuery(tripIntent).toString();
+  const resolvedResortSlug = resolveResortSlug(tripIntent.resort);
+  const tripIntentWithCanonicalResort = resolvedResortSlug
+    ? { ...tripIntent, resort: resolvedResortSlug }
+    : tripIntent;
+  const tripQuery = buildTripIntentQuery(tripIntentWithCanonicalResort).toString();
   const readyStaysHref = tripQuery ? `/ready-stays?${tripQuery}` : "/ready-stays";
-  const resortsHref = tripQuery ? `/plan/resorts?${tripQuery}` : "/plan/resorts";
+  const resortsHref = resolvedResortSlug
+    ? tripQuery
+      ? `/calculator?${tripQuery}`
+      : "/calculator"
+    : tripQuery
+      ? `/plan/resorts?${tripQuery}`
+      : "/plan/resorts";
   const guidedHref = tripQuery ? `/plan/guided?${tripQuery}` : "/plan/guided";
 
   return (
