@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 type Props = {
   layout: {
     title: string;
@@ -18,11 +16,9 @@ export default function RoomLayout({ layout, id }: Props) {
     >
       <div className="relative overflow-hidden rounded-2xl border border-black/5 bg-white shadow-lg">
         {layout.image ? (
-          <Image
+          <img
             src={layout.image}
             alt={`${layout.title} floor plan`}
-            width={920}
-            height={560}
             className="h-auto w-full object-contain"
           />
         ) : (

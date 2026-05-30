@@ -40,7 +40,10 @@ const ICON_RULES: IconRule[] = [
   { test: /campfire|hearth|fire/i, icon: Flame },
 ];
 
-function normalizeLabel(label: string) {
+function normalizeLabel(label: string | null | undefined) {
+  if (typeof label !== "string") {
+    return "";
+  }
   return label.replace(/^[^a-z0-9]+/i, "").trim();
 }
 
@@ -55,6 +58,9 @@ function resolveIcon(label: string) {
 
 export default function ResortChip({ label, variant = "light" }: Props) {
   const normalized = normalizeLabel(label);
+  if (!normalized) {
+    return null;
+  }
   const Icon = resolveIcon(normalized);
   const base = "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold";
   const styles =

@@ -249,6 +249,18 @@ const SPLIT_SECTION_IMAGES_BY_SLUG: Record<string, ResortSplitImages> = {
     nearbyAmenities:
       "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Animal%20Kingdom/nearby.png",
   },
+  "beach-club-villas": {
+    about:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Beach%20Club/aboutbeach.png",
+    goodToKnow:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Beach%20Club/goodbeach.png",
+    dining:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Beach%20Club/diningbeach.png",
+    gettingAround:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Beach%20Club/aroundbeach.png",
+    nearbyAmenities:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Beach%20Club/nearbybeach.png",
+  },
   "riviera-resort": {
     about:
       "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Riviera/riviera%20about%20this%20resort.png",
@@ -308,6 +320,18 @@ const SPLIT_SECTION_IMAGES_BY_SLUG: Record<string, ResortSplitImages> = {
       "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/old%20key/getting%20around.png",
     nearbyAmenities:
       "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/old%20key/old%20key%20nearby%20actviites%20.png",
+  },
+  "vero-beach": {
+    about:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Vero%20beach/veroabout.png",
+    goodToKnow:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Vero%20beach/verogood.png",
+    dining:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Vero%20beach/verodining.png",
+    gettingAround:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Vero%20beach/Vero%20around.png",
+    nearbyAmenities:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Vero%20beach/Nearbyvero.png",
   },
 };
 
@@ -1430,13 +1454,14 @@ function SplitSection({
 }
 
 function ResortIntro({ name, tagline, chips }: { name: string; tagline: string; chips: string[] }) {
+  const safeChips = Array.isArray(chips) ? chips : [];
   return (
     <section className="bg-[#0F2148] pb-4 text-white">
       <div className="mx-auto max-w-6xl px-6 pb-10">
         <h1 className="mb-2 text-4xl font-serif md:text-5xl">{name}</h1>
         <p className="mb-5 max-w-2xl text-base text-white/85 md:text-lg">{tagline}</p>
         <div className="flex flex-wrap gap-2">
-          {chips.map((chip) => (
+          {safeChips.map((chip) => (
             <ResortChip key={chip} label={chip} variant="light" />
           ))}
         </div>

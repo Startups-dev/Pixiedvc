@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 type Props = {
   photos: { src: string; caption: string; alt?: string }[];
 };
@@ -18,11 +16,10 @@ export default function PhotoCarousel({ photos }: Props) {
                 key={`${photo.src}-${photo.caption}-${index}`}
                 className="relative h-[210px] w-[300px] shrink-0 snap-start overflow-hidden rounded-2xl border border-black/5 bg-white shadow-md md:h-[230px] md:w-[340px]"
               >
-                <Image
+                <img
                   src={photo.src}
                   alt={photo.alt ?? photo.caption}
-                  fill
-                  className="object-cover transition-transform duration-500 hover:scale-[1.03]"
+                  className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.03]"
                 />
                 <figcaption className="absolute bottom-0 w-full bg-gradient-to-t from-black/60 to-transparent p-3 text-xs text-white md:text-sm">
                   {photo.caption}

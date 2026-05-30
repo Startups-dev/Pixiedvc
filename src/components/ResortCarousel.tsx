@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type Photo = {
@@ -46,13 +45,11 @@ export default function ResortCarousel({ photos }: Props) {
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="relative overflow-hidden rounded-3xl bg-black/30 shadow-[0_30px_80px_rgba(8,12,30,0.4)]">
           <div className="relative z-0 pointer-events-none h-[320px] w-full sm:h-[520px]">
-            <Image
+            <img
               key={current.src}
               src={current.src}
               alt={current.alt ?? current.caption ?? "Resort image"}
-              fill
-              priority
-              className="object-cover"
+              className="h-full w-full object-cover"
             />
             <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_20%,transparent_30%,rgba(8,12,30,0.65)_100%)]" />
           </div>
@@ -99,11 +96,10 @@ export default function ResortCarousel({ photos }: Props) {
                 }`}
                 aria-label={`View photo ${index + 1}`}
               >
-                <Image
+                <img
                   src={photo.src}
                   alt={photo.alt ?? photo.caption ?? `Resort thumbnail ${index + 1}`}
-                  fill
-                  className="object-cover"
+                  className="h-full w-full object-cover"
                 />
               </button>
             ))}
