@@ -225,6 +225,30 @@ const SPLIT_SECTION_IMAGES_BY_SLUG: Record<string, ResortSplitImages> = {
     nearbyAmenities:
       "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Boardwalk/BoardwalkNearby.png",
   },
+  "boulder-ridge-villas": {
+    about:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Boulder%20ridge/aboutridge.png",
+    goodToKnow:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Boulder%20ridge/goodridge.png",
+    dining:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Boulder%20ridge/dining%20ridge.png",
+    gettingAround:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Boulder%20ridge/aroundfort.png",
+    nearbyAmenities:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Boulder%20ridge/nearbyridge.png",
+  },
+  "copper-creek-villas": {
+    about:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/copper%20creek/aboutcopper.png",
+    goodToKnow:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/copper%20creek/good%20copper.png",
+    dining:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/copper%20creek/dining%20copper.png",
+    gettingAround:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/copper%20creek/aroundcopper.png",
+    nearbyAmenities:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/copper%20creek/nearbycopper.png",
+  },
   aulani: {
     about:
       "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Aulani/AulaniAbout.png",
@@ -308,6 +332,42 @@ const SPLIT_SECTION_IMAGES_BY_SLUG: Record<string, ResortSplitImages> = {
       "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Grand%20Californian/aroundcali.png",
     nearbyAmenities:
       "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Grand%20Californian/nearbycali.png",
+  },
+  "disneyland-hotel-villas": {
+    about:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Disneyland%20Hotel/aboutdisney.png",
+    goodToKnow:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Disneyland%20Hotel/gooddisney.png",
+    dining:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Disneyland%20Hotel/diningdisney.png",
+    gettingAround:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Disneyland%20Hotel/arounddisney.png",
+    nearbyAmenities:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Disneyland%20Hotel/nearbydisney.png",
+  },
+  "hilton-head-island": {
+    about:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Hilton%20Head/abouthead.png",
+    goodToKnow:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Hilton%20Head/goodhead.png",
+    dining:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Hilton%20Head/dininghead.png",
+    gettingAround:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Hilton%20Head/aroundhead.png",
+    nearbyAmenities:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Hilton%20Head/nearby%20head.png",
+  },
+  "fort-wilderness-cabins": {
+    about:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Fort%20wilderness%20cabins/aboutfort.png",
+    goodToKnow:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Fort%20wilderness%20cabins/goodfort.png",
+    dining:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Fort%20wilderness%20cabins/diningfort.png",
+    gettingAround:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Fort%20wilderness%20cabins/aroundfort.png",
+    nearbyAmenities:
+      "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Resort%20Info/Fort%20wilderness%20cabins/nearbyfort.png",
   },
   "saratoga-springs": {
     about:
