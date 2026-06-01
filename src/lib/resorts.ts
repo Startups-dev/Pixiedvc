@@ -456,6 +456,12 @@ type ResortPhotoRow = {
   sort_order?: number | null;
 };
 
+const RESORT_PHOTO_URL_OVERRIDES: Record<string, Partial<Record<number, string>>> = {
+  "animal-kingdom-villas": {
+    2: "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/animal-kingdom-lodge/8d9462ab-c27c-4b89-8ab9-54d11706f65c.png",
+  },
+};
+
 function buildResortPhotoUrls(slug: string) {
   if (!SUPABASE_PUBLIC_URL) {
     return [];
@@ -467,8 +473,11 @@ function buildResortPhotoUrls(slug: string) {
   const { folder, prefix } = override;
   return Array.from({ length: 5 }, (_, index) => {
     const order = index + 1;
+    const overriddenSrc = RESORT_PHOTO_URL_OVERRIDES[slug]?.[order];
     return {
-      src: `${SUPABASE_PUBLIC_URL}/storage/v1/object/public/${RESORT_PHOTO_BUCKET}/${folder}/${prefix}${order}.png`,
+      src:
+        overriddenSrc ??
+        `${SUPABASE_PUBLIC_URL}/storage/v1/object/public/${RESORT_PHOTO_BUCKET}/${folder}/${prefix}${order}.png`,
       caption: `Resort photo ${order}`,
       alt: null,
     };
