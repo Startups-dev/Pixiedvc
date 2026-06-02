@@ -14,6 +14,7 @@ import { buildReadyStayBookingPackageTemplate } from '@/lib/email/templates/read
 import { buildReadyStayLinkReadyTemplate } from '@/lib/email/templates/ready-stay-link-ready';
 import { buildReadyStayRejectedTemplate } from '@/lib/email/templates/ready-stay-rejected';
 import { buildSupportEscalationTemplate } from '@/lib/email/templates/support-escalation';
+import { buildWelcomeSequenceTemplate, type WelcomeSequenceStep } from '@/lib/email/templates/welcome-sequence';
 
 type EmailLogMetadata = Record<string, string | number | boolean | null | undefined>;
 
@@ -50,6 +51,19 @@ type SendPlainEmailPayload = {
   body: string;
   html?: string;
   context: string;
+} & EmailLogContext;
+
+type WelcomeSequenceEmailPayload = {
+  to: string;
+  firstName?: string | null;
+  step: WelcomeSequenceStep;
+  browseUrl?: string | null;
+  readyStaysUrl?: string | null;
+  resortsUrl?: string | null;
+  requestStayUrl?: string | null;
+  lastMinuteUrl?: string | null;
+  howItWorksUrl?: string | null;
+  unsubscribeUrl?: string | null;
 } & EmailLogContext;
 
 type OwnerMatchEmailPayload = {
@@ -296,7 +310,7 @@ async function sendResendEmail({
       errorMessage: 'RESEND_API_KEY missing',
     });
     console.warn(`[email] RESEND_API_KEY missing, skipping ${context}`);
-    return;
+    return { status: 'failed' as const, outboundEmailLogId: logId };
   }
 
   if (
@@ -329,7 +343,7 @@ async function sendResendEmail({
         errorMessage: text,
       });
       console.warn(`[email] Failed to send ${context}`, text);
-      return;
+      return { status: 'failed' as const, outboundEmailLogId: logId };
     }
 
     let providerMessageId: string | null = null;
@@ -344,12 +358,13 @@ async function sendResendEmail({
       status: 'sent',
       providerMessageId,
     });
+    return { status: 'sent' as const, outboundEmailLogId: logId, providerMessageId };
   } catch (error) {
     await updateOutboundEmailLog(logId, {
       status: 'failed',
       errorMessage: error instanceof Error ? error.message : 'Unknown email delivery error',
     });
-    throw error;
+    return { status: 'failed' as const, outboundEmailLogId: logId, error };
   }
 }
 
@@ -366,7 +381,7 @@ export async function sendPlainEmail({
   metadata,
   outboundEmailLogId,
 }: SendPlainEmailPayload) {
-  await sendResendEmail({
+  return sendResendEmail({
     to,
     subject,
     text: body,
@@ -378,6 +393,33 @@ export async function sendPlainEmail({
     relatedEntityId,
     metadata,
     outboundEmailLogId,
+  });
+}
+
+export async function sendWelcomeSequenceEmail(payload: WelcomeSequenceEmailPayload) {
+  const template = buildWelcomeSequenceTemplate(payload.step, {
+    firstName: payload.firstName,
+    browseUrl: payload.browseUrl,
+    readyStaysUrl: payload.readyStaysUrl,
+    resortsUrl: payload.resortsUrl,
+    requestStayUrl: payload.requestStayUrl,
+    lastMinuteUrl: payload.lastMinuteUrl,
+    howItWorksUrl: payload.howItWorksUrl,
+    unsubscribeUrl: payload.unsubscribeUrl,
+  });
+
+  return sendResendEmail({
+    to: payload.to,
+    subject: template.subject,
+    text: template.text,
+    html: template.html,
+    context: `welcome sequence day ${payload.step}`,
+    templateKey: payload.templateKey,
+    recipientUserId: payload.recipientUserId,
+    relatedEntityType: payload.relatedEntityType,
+    relatedEntityId: payload.relatedEntityId,
+    metadata: payload.metadata,
+    outboundEmailLogId: payload.outboundEmailLogId,
   });
 }
 

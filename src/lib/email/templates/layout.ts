@@ -28,7 +28,10 @@ type EmailLayoutOptions = {
   }>;
   ctaLabel?: string | null;
   ctaUrl?: string | null;
+  secondaryCtaLabel?: string | null;
+  secondaryCtaUrl?: string | null;
   footerNote?: string | null;
+  footerHtml?: string | null;
 };
 
 export function renderEmailLayout({
@@ -37,7 +40,10 @@ export function renderEmailLayout({
   sections,
   ctaLabel,
   ctaUrl,
+  secondaryCtaLabel,
+  secondaryCtaUrl,
   footerNote,
+  footerHtml,
 }: EmailLayoutOptions) {
   const sectionHtml = sections
     .map((section) => {
@@ -61,12 +67,29 @@ export function renderEmailLayout({
 
   const ctaHtml =
     ctaLabel && ctaUrl
-      ? `<div style="margin:0 0 28px;"><a href="${escapeHtml(
-          ctaUrl,
-        )}" style="display:inline-block;border-radius:999px;background:#163566;color:#ffffff;text-decoration:none;padding:14px 22px;font-size:14px;font-weight:700;">${escapeHtml(
-          ctaLabel,
-        )}</a></div>`
-      : '';
+      ? [
+          '<div style="margin:0 0 28px;">',
+          `<a href="${escapeHtml(
+            ctaUrl,
+          )}" style="display:inline-block;border-radius:999px;background:#163566;color:#ffffff;text-decoration:none;padding:14px 22px;font-size:14px;font-weight:700;margin:0 12px 12px 0;">${escapeHtml(
+            ctaLabel,
+          )}</a>`,
+          secondaryCtaLabel && secondaryCtaUrl
+            ? `<a href="${escapeHtml(
+                secondaryCtaUrl,
+              )}" style="display:inline-block;border-radius:999px;background:#ffffff;color:#163566;text-decoration:none;padding:14px 22px;font-size:14px;font-weight:700;border:1px solid #dbe4f0;margin:0 0 12px;">${escapeHtml(
+                secondaryCtaLabel,
+              )}</a>`
+            : '',
+          '</div>',
+        ].join('')
+      : secondaryCtaLabel && secondaryCtaUrl
+        ? `<div style="margin:0 0 28px;"><a href="${escapeHtml(
+            secondaryCtaUrl,
+          )}" style="display:inline-block;border-radius:999px;background:#ffffff;color:#163566;text-decoration:none;padding:14px 22px;font-size:14px;font-weight:700;border:1px solid #dbe4f0;">${escapeHtml(
+            secondaryCtaLabel,
+          )}</a></div>`
+        : '';
 
   return [
     '<!DOCTYPE html>',
@@ -87,9 +110,11 @@ export function renderEmailLayout({
       : '',
     sectionHtml,
     ctaHtml,
-    `<p style="margin:24px 0 0;font-size:12px;line-height:1.6;color:#63758c;">${escapeHtml(
-      footerNote ?? DISCLAIMER,
-    )}</p>`,
+    footerHtml
+      ? `<div style="margin:24px 0 0;font-size:12px;line-height:1.6;color:#63758c;">${footerHtml}</div>`
+      : `<p style="margin:24px 0 0;font-size:12px;line-height:1.6;color:#63758c;">${escapeHtml(
+          footerNote ?? DISCLAIMER,
+        )}</p>`,
     '</div>',
     '</div>',
     '</div>',

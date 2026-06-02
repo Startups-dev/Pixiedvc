@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { ingestSubscriber } from "@/lib/email-subscribers";
 import { createServiceClient } from "@/lib/supabase-service-client";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
@@ -37,6 +38,27 @@ export async function POST(request: Request) {
 
   if (error) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  }
+
+  try {
+    await ingestSubscriber({
+      email,
+      userId: user?.id ?? null,
+      source: "liquidation_unlock",
+      tags: ["guest_lead", "liquidation_lead", "newsletter_subscriber"],
+      emailPreferences: { marketing: true },
+      explicitConsent: true,
+      metadata: {
+        capture_point: "liquidation_unlock",
+        source_page: sourcePage,
+      },
+    });
+  } catch (subscriberError) {
+    console.error("[liquidation-opportunities/unlock] failed to sync subscriber", {
+      email,
+      sourcePage,
+      message: subscriberError instanceof Error ? subscriberError.message : "unknown_error",
+    });
   }
 
   return NextResponse.json({ ok: true });

@@ -16,8 +16,14 @@ type SubscriberRow = {
   last_bounced_at: string | null;
   suppressed_at: string | null;
   suppression_reason: string | null;
+  last_email_sent_at: string | null;
+  last_opened_at: string | null;
+  last_clicked_at: string | null;
   subscribed_at: string | null;
   unsubscribed_at: string | null;
+  welcome_sequence_started_at: string | null;
+  welcome_sequence_completed_at: string | null;
+  welcome_sequence_step: number | null;
   unsubscribe_token_hash: string | null;
   unsubscribe_token_created_at: string | null;
   unsubscribe_token_rotated_at: string | null;
@@ -80,8 +86,14 @@ function makeAdminClient() {
                   last_bounced_at: (payload.last_bounced_at as string | null) ?? null,
                   suppressed_at: (payload.suppressed_at as string | null) ?? null,
                   suppression_reason: (payload.suppression_reason as string | null) ?? null,
+                  last_email_sent_at: (payload.last_email_sent_at as string | null) ?? null,
+                  last_opened_at: (payload.last_opened_at as string | null) ?? null,
+                  last_clicked_at: (payload.last_clicked_at as string | null) ?? null,
                   subscribed_at: (payload.subscribed_at as string | null) ?? null,
                   unsubscribed_at: (payload.unsubscribed_at as string | null) ?? null,
+                  welcome_sequence_started_at: (payload.welcome_sequence_started_at as string | null) ?? null,
+                  welcome_sequence_completed_at: (payload.welcome_sequence_completed_at as string | null) ?? null,
+                  welcome_sequence_step: (payload.welcome_sequence_step as number | null) ?? null,
                   unsubscribe_token_hash: (payload.unsubscribe_token_hash as string | null) ?? null,
                   unsubscribe_token_created_at: (payload.unsubscribe_token_created_at as string | null) ?? null,
                   unsubscribe_token_rotated_at: (payload.unsubscribe_token_rotated_at as string | null) ?? null,
@@ -149,7 +161,7 @@ vi.mock('@/lib/supabase-admin', () => ({
   getSupabaseAdminClient: subscriberState.getSupabaseAdminClient,
 }));
 
-import { addSubscriberTag, removeSubscriberTag, subscribeEmail, unsubscribeEmail } from '@/lib/email-subscribers';
+import { addSubscriberTag, ingestSubscriber, removeSubscriberTag, subscribeEmail, unsubscribeEmail } from '@/lib/email-subscribers';
 import {
   buildUnsubscribeUrl,
   createOrRotateUnsubscribeToken,
@@ -183,7 +195,57 @@ describe('email subscriber helpers', () => {
     expect(subscriberState.subscribersByEmail.get('guest@example.com')?.unsubscribe_token_hash).toBeTruthy();
     expect(subscriberState.events[0]).toMatchObject({
       event_type: 'subscribed',
-      metadata: { source: 'hero_bar', tags: ['guest_lead'] },
+      metadata: { source: 'hero_bar', tags: ['guest_lead'], explicit_consent: true },
+    });
+  });
+
+  it('does not silently resubscribe an unsubscribed subscriber without explicit consent', async () => {
+    subscriberState.subscribersByEmail.set('guest@example.com', {
+      id: 'subscriber-1',
+      email: 'guest@example.com',
+      first_name: null,
+      last_name: null,
+      user_id: null,
+      status: 'unsubscribed',
+      source: 'bottom_cta',
+      country: null,
+      tags: ['guest_lead'],
+      email_preferences: { marketing: false },
+      is_founding_owner: false,
+      bounce_count: 0,
+      last_bounced_at: null,
+      suppressed_at: null,
+      suppression_reason: null,
+      last_email_sent_at: null,
+      last_opened_at: null,
+      last_clicked_at: null,
+      subscribed_at: '2026-01-01T00:00:00.000Z',
+      unsubscribed_at: '2026-01-02T00:00:00.000Z',
+      welcome_sequence_started_at: null,
+      welcome_sequence_completed_at: null,
+      welcome_sequence_step: null,
+      unsubscribe_token_hash: hashUnsubscribeToken('seed-token'),
+      unsubscribe_token_created_at: '2026-01-01T00:00:00.000Z',
+      unsubscribe_token_rotated_at: '2026-01-01T00:00:00.000Z',
+    });
+
+    const row = await ingestSubscriber({
+      email: 'guest@example.com',
+      source: 'last_minute_unlock',
+      tags: ['liquidation_lead', 'newsletter_subscriber'],
+      explicitConsent: false,
+      emailPreferences: { marketing: true },
+    });
+
+    expect(row.status).toBe('unsubscribed');
+    expect(row.email_preferences).toEqual({ marketing: false });
+    expect(row.tags).toEqual(['guest_lead', 'liquidation_lead', 'newsletter_subscriber']);
+    expect(subscriberState.events.at(-1)).toMatchObject({
+      event_type: 'subscriber_ingested',
+      metadata: {
+        source: 'last_minute_unlock',
+        explicit_consent: false,
+      },
     });
   });
 
@@ -204,8 +266,14 @@ describe('email subscriber helpers', () => {
       last_bounced_at: null,
       suppressed_at: null,
       suppression_reason: null,
+      last_email_sent_at: null,
+      last_opened_at: null,
+      last_clicked_at: null,
       subscribed_at: null,
       unsubscribed_at: '2026-01-01T00:00:00.000Z',
+      welcome_sequence_started_at: null,
+      welcome_sequence_completed_at: null,
+      welcome_sequence_step: null,
       unsubscribe_token_hash: null,
       unsubscribe_token_created_at: null,
       unsubscribe_token_rotated_at: null,
@@ -242,8 +310,14 @@ describe('email subscriber helpers', () => {
       last_bounced_at: null,
       suppressed_at: null,
       suppression_reason: null,
+      last_email_sent_at: null,
+      last_opened_at: null,
+      last_clicked_at: null,
       subscribed_at: '2026-01-01T00:00:00.000Z',
       unsubscribed_at: null,
+      welcome_sequence_started_at: null,
+      welcome_sequence_completed_at: null,
+      welcome_sequence_step: null,
       unsubscribe_token_hash: hashUnsubscribeToken('seed-token'),
       unsubscribe_token_created_at: '2026-01-01T00:00:00.000Z',
       unsubscribe_token_rotated_at: '2026-01-01T00:00:00.000Z',
@@ -273,8 +347,14 @@ describe('email subscriber helpers', () => {
       last_bounced_at: null,
       suppressed_at: null,
       suppression_reason: null,
+      last_email_sent_at: null,
+      last_opened_at: null,
+      last_clicked_at: null,
       subscribed_at: '2026-01-01T00:00:00.000Z',
       unsubscribed_at: null,
+      welcome_sequence_started_at: null,
+      welcome_sequence_completed_at: null,
+      welcome_sequence_step: null,
       unsubscribe_token_hash: hashUnsubscribeToken('seed-token'),
       unsubscribe_token_created_at: '2026-01-01T00:00:00.000Z',
       unsubscribe_token_rotated_at: '2026-01-01T00:00:00.000Z',
@@ -317,8 +397,14 @@ describe('email subscriber helpers', () => {
       last_bounced_at: null,
       suppressed_at: null,
       suppression_reason: null,
+      last_email_sent_at: null,
+      last_opened_at: null,
+      last_clicked_at: null,
       subscribed_at: '2026-01-01T00:00:00.000Z',
       unsubscribed_at: null,
+      welcome_sequence_started_at: null,
+      welcome_sequence_completed_at: null,
+      welcome_sequence_step: null,
       unsubscribe_token_hash: hashUnsubscribeToken(token),
       unsubscribe_token_created_at: '2026-01-01T00:00:00.000Z',
       unsubscribe_token_rotated_at: '2026-01-01T00:00:00.000Z',
@@ -362,8 +448,14 @@ describe('email subscriber helpers', () => {
       last_bounced_at: null,
       suppressed_at: null,
       suppression_reason: null,
+      last_email_sent_at: null,
+      last_opened_at: null,
+      last_clicked_at: null,
       subscribed_at: '2026-01-01T00:00:00.000Z',
       unsubscribed_at: null,
+      welcome_sequence_started_at: null,
+      welcome_sequence_completed_at: null,
+      welcome_sequence_step: null,
       unsubscribe_token_hash: null,
       unsubscribe_token_created_at: null,
       unsubscribe_token_rotated_at: null,

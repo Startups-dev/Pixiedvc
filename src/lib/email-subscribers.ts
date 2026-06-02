@@ -3,6 +3,7 @@ import { getAppUrl } from '@/lib/app-url';
 import { createHash, randomBytes } from 'crypto';
 
 type AdminClient = NonNullable<ReturnType<typeof getSupabaseAdminClient>>;
+type SubscriberEventMetadata = Record<string, unknown>;
 
 export type EmailSubscriberStatus = 'subscribed' | 'unsubscribed';
 
@@ -22,8 +23,14 @@ export type EmailSubscriberRow = {
   last_bounced_at: string | null;
   suppressed_at: string | null;
   suppression_reason: string | null;
+  last_email_sent_at: string | null;
+  last_opened_at: string | null;
+  last_clicked_at: string | null;
   subscribed_at: string | null;
   unsubscribed_at: string | null;
+  welcome_sequence_started_at: string | null;
+  welcome_sequence_completed_at: string | null;
+  welcome_sequence_step: number | null;
   unsubscribe_token_hash: string | null;
   unsubscribe_token_created_at: string | null;
   unsubscribe_token_rotated_at: string | null;
@@ -38,6 +45,21 @@ type SubscribeEmailParams = {
   country?: string | null;
   tags?: string[];
   isFoundingOwner?: boolean;
+  client?: AdminClient | null;
+};
+
+export type IngestSubscriberParams = {
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  userId?: string | null;
+  source?: string | null;
+  country?: string | null;
+  tags?: string[];
+  isFoundingOwner?: boolean;
+  emailPreferences?: Record<string, unknown> | null;
+  explicitConsent?: boolean;
+  metadata?: SubscriberEventMetadata | null;
   client?: AdminClient | null;
 };
 
@@ -102,8 +124,14 @@ function getSubscriberSelect() {
     'last_bounced_at',
     'suppressed_at',
     'suppression_reason',
+    'last_email_sent_at',
+    'last_opened_at',
+    'last_clicked_at',
     'subscribed_at',
     'unsubscribed_at',
+    'welcome_sequence_started_at',
+    'welcome_sequence_completed_at',
+    'welcome_sequence_step',
     'unsubscribe_token_hash',
     'unsubscribe_token_created_at',
     'unsubscribe_token_rotated_at',
@@ -124,7 +152,7 @@ async function getSubscriberByEmail(client: AdminClient, email: string) {
   return data;
 }
 
-async function recordEvent(client: AdminClient, subscriberId: string, eventType: string, metadata?: Record<string, unknown>) {
+async function recordEvent(client: AdminClient, subscriberId: string, eventType: string, metadata?: SubscriberEventMetadata) {
   const { error } = await client.from('email_events').insert({
     subscriber_id: subscriberId,
     event_type: eventType,
@@ -198,7 +226,26 @@ export async function getSubscriberByUnsubscribeToken(token: string, options?: {
   return data;
 }
 
-export async function subscribeEmail(params: SubscribeEmailParams) {
+function buildIngestionEventMetadata({
+  source,
+  tags,
+  explicitConsent,
+  metadata,
+}: {
+  source: string | null;
+  tags: string[];
+  explicitConsent: boolean;
+  metadata?: SubscriberEventMetadata | null;
+}) {
+  return {
+    source,
+    tags,
+    explicit_consent: explicitConsent,
+    ...(metadata ?? {}),
+  };
+}
+
+export async function ingestSubscriber(params: IngestSubscriberParams) {
   const client = getClient(params.client);
   if (!client) {
     throw new Error('service_role_missing');
@@ -210,9 +257,22 @@ export async function subscribeEmail(params: SubscribeEmailParams) {
   const source = params.source?.trim() || null;
   const country = params.country?.trim() || null;
   const nextTags = normalizeTags(params.tags);
+  const explicitConsent = Boolean(params.explicitConsent);
   const existing = await getSubscriberByEmail(client, email);
+  const requestedPreferences = {
+    ...(params.emailPreferences ?? {}),
+  };
+  const eventMetadata = buildIngestionEventMetadata({
+    source,
+    tags: nextTags,
+    explicitConsent,
+    metadata: params.metadata,
+  });
 
   if (!existing) {
+    const nowIso = new Date().toISOString();
+    const marketingEnabled = explicitConsent && Boolean(requestedPreferences.marketing ?? true);
+
     const { data, error } = await client
       .from('email_subscribers')
       .insert({
@@ -220,18 +280,21 @@ export async function subscribeEmail(params: SubscribeEmailParams) {
         first_name: firstName,
         last_name: lastName,
         user_id: params.userId ?? null,
-        status: 'subscribed',
+        status: marketingEnabled ? 'subscribed' : 'unsubscribed',
         source,
         country,
         tags: nextTags,
-        email_preferences: { marketing: true },
+        email_preferences: {
+          ...requestedPreferences,
+          marketing: marketingEnabled,
+        },
         is_founding_owner: Boolean(params.isFoundingOwner),
         bounce_count: 0,
         last_bounced_at: null,
         suppressed_at: null,
         suppression_reason: null,
-        subscribed_at: new Date().toISOString(),
-        unsubscribed_at: null,
+        subscribed_at: nowIso,
+        unsubscribed_at: marketingEnabled ? null : nowIso,
       })
       .select(getSubscriberSelect())
       .single<EmailSubscriberRow>();
@@ -243,21 +306,34 @@ export async function subscribeEmail(params: SubscribeEmailParams) {
     await createOrRotateUnsubscribeToken(data.id, { client });
     const refreshed = await getSubscriberByEmail(client, email);
 
-    await recordEvent(client, data.id, 'subscribed', {
-      source,
-      tags: nextTags,
-    });
+    await recordEvent(client, data.id, marketingEnabled ? 'subscribed' : 'subscriber_ingested', eventMetadata);
 
     return refreshed ?? data;
   }
 
   const mergedTags = Array.from(new Set([...(existing.tags ?? []), ...nextTags])).sort();
-  const nextStatus: EmailSubscriberStatus = 'subscribed';
-  const subscribedAt = existing.status === 'subscribed' ? existing.subscribed_at : new Date().toISOString();
-  const nextPreferences = {
-    ...(existing.email_preferences ?? {}),
-    marketing: true,
-  };
+  const marketingEnabled = explicitConsent
+    ? Boolean(requestedPreferences.marketing ?? true)
+    : Boolean(existing.email_preferences?.marketing ?? existing.status === 'subscribed');
+  const nextPreferences = explicitConsent
+    ? {
+        ...(existing.email_preferences ?? {}),
+        ...requestedPreferences,
+        marketing: marketingEnabled,
+      }
+    : {
+        ...(existing.email_preferences ?? {}),
+        ...requestedPreferences,
+        marketing: existing.email_preferences?.marketing ?? existing.status === 'subscribed',
+      };
+  const nextStatus: EmailSubscriberStatus =
+    existing.status === 'unsubscribed' && explicitConsent ? 'subscribed' : existing.status;
+  const subscribedAt =
+    existing.subscribed_at ?? (nextStatus === 'subscribed' ? new Date().toISOString() : existing.subscribed_at);
+  const unsubscribedAt =
+    nextStatus === 'subscribed'
+      ? null
+      : existing.unsubscribed_at ?? (existing.status === 'unsubscribed' ? new Date().toISOString() : null);
 
   const { data, error } = await client
     .from('email_subscribers')
@@ -271,10 +347,10 @@ export async function subscribeEmail(params: SubscribeEmailParams) {
       tags: mergedTags,
       email_preferences: nextPreferences,
       is_founding_owner: Boolean(params.isFoundingOwner) || existing.is_founding_owner,
-      suppressed_at: null,
-      suppression_reason: null,
+      suppressed_at: explicitConsent ? null : existing.suppressed_at,
+      suppression_reason: explicitConsent ? null : existing.suppression_reason,
       subscribed_at: subscribedAt,
-      unsubscribed_at: null,
+      unsubscribed_at: unsubscribedAt,
     })
     .eq('id', existing.id)
     .select(getSubscriberSelect())
@@ -284,25 +360,42 @@ export async function subscribeEmail(params: SubscribeEmailParams) {
     throw new Error(error.message);
   }
 
-  if (!existing.unsubscribe_token_hash || existing.status === 'unsubscribed') {
+  const shouldRotateToken = !existing.unsubscribe_token_hash || (existing.status === 'unsubscribed' && nextStatus === 'subscribed');
+  if (shouldRotateToken) {
     await createOrRotateUnsubscribeToken(existing.id, { client });
-    const refreshed = await getSubscriberByEmail(client, email);
-    if (refreshed) {
-      await recordEvent(client, data.id, existing.status === 'subscribed' ? 'subscription_updated' : 'resubscribed', {
-        source: source ?? existing.source,
-        tags: mergedTags,
-      });
-
-      return refreshed;
-    }
   }
 
-  await recordEvent(client, data.id, existing.status === 'subscribed' ? 'subscription_updated' : 'resubscribed', {
-    source: source ?? existing.source,
+  const refreshed = shouldRotateToken ? await getSubscriberByEmail(client, email) : null;
+  const subscriber = refreshed ?? data;
+  const eventType =
+    existing.status === 'unsubscribed' && nextStatus === 'subscribed'
+      ? 'resubscribed'
+      : nextStatus === 'subscribed'
+        ? 'subscription_updated'
+        : 'subscriber_ingested';
+
+  await recordEvent(client, subscriber.id, eventType, {
+    ...eventMetadata,
     tags: mergedTags,
   });
 
-  return data;
+  return subscriber;
+}
+
+export async function subscribeEmail(params: SubscribeEmailParams) {
+  return ingestSubscriber({
+    email: params.email,
+    firstName: params.firstName,
+    lastName: params.lastName,
+    userId: params.userId,
+    source: params.source,
+    country: params.country,
+    tags: params.tags,
+    isFoundingOwner: params.isFoundingOwner,
+    emailPreferences: { marketing: true },
+    explicitConsent: true,
+    client: params.client,
+  });
 }
 
 export async function unsubscribeEmail(params: UnsubscribeParams) {

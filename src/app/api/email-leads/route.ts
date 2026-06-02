@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { subscribeEmail } from "@/lib/email-subscribers";
+import { ingestSubscriber } from "@/lib/email-subscribers";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
 type EmailLeadSource = "hero_bar" | "post_intent" | "resort_section" | "bottom_cta";
@@ -51,10 +51,13 @@ export async function POST(request: Request) {
   }
 
   try {
-    await subscribeEmail({
+    await ingestSubscriber({
       email,
       source,
-      tags: ['guest_lead', `source:${source}`],
+      tags: ['newsletter_subscriber', 'guest_lead'],
+      emailPreferences: { marketing: true },
+      explicitConsent: true,
+      metadata: { capture_point: 'homepage_signup' },
       client: admin,
     });
   } catch (subscriberError) {

@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const routeState = vi.hoisted(() => ({
   upsertCalls: [] as Record<string, unknown>[],
-  subscribeCalls: [] as Record<string, unknown>[],
+  ingestCalls: [] as Record<string, unknown>[],
   adminMissing: false,
   upsertError: null as { message: string } | null,
-  subscribeError: null as Error | null,
+  ingestError: null as Error | null,
 }));
 
 vi.mock('@/lib/supabase-admin', () => ({
@@ -28,10 +28,10 @@ vi.mock('@/lib/supabase-admin', () => ({
 }));
 
 vi.mock('@/lib/email-subscribers', () => ({
-  subscribeEmail: vi.fn(async (payload: Record<string, unknown>) => {
-    routeState.subscribeCalls.push(payload);
-    if (routeState.subscribeError) {
-      throw routeState.subscribeError;
+  ingestSubscriber: vi.fn(async (payload: Record<string, unknown>) => {
+    routeState.ingestCalls.push(payload);
+    if (routeState.ingestError) {
+      throw routeState.ingestError;
     }
     return { id: 'subscriber-1' };
   }),
@@ -42,10 +42,10 @@ import { POST } from '@/app/api/email-leads/route';
 describe('POST /api/email-leads', () => {
   beforeEach(() => {
     routeState.upsertCalls.length = 0;
-    routeState.subscribeCalls.length = 0;
+    routeState.ingestCalls.length = 0;
     routeState.adminMissing = false;
     routeState.upsertError = null;
-    routeState.subscribeError = null;
+    routeState.ingestError = null;
     vi.restoreAllMocks();
   });
 
@@ -60,15 +60,17 @@ describe('POST /api/email-leads', () => {
 
     expect(response.status).toBe(200);
     expect(routeState.upsertCalls).toEqual([{ email: 'guest@example.com', source: 'hero_bar' }]);
-    expect(routeState.subscribeCalls[0]).toMatchObject({
+    expect(routeState.ingestCalls[0]).toMatchObject({
       email: 'guest@example.com',
       source: 'hero_bar',
-      tags: ['guest_lead', 'source:hero_bar'],
+      tags: ['newsletter_subscriber', 'guest_lead'],
+      explicitConsent: true,
+      emailPreferences: { marketing: true },
     });
   });
 
   it('returns success even if subscriber sync fails after the legacy lead write', async () => {
-    routeState.subscribeError = new Error('subscriber sync failed');
+    routeState.ingestError = new Error('subscriber sync failed');
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
     const response = await POST(

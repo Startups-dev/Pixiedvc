@@ -1,7 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { ingestSubscriber } from "@/lib/email-subscribers";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+
+function splitFullName(fullName: string | null | undefined) {
+  const value = fullName?.trim() ?? "";
+  if (!value) {
+    return { firstName: null, lastName: null };
+  }
+
+  const parts = value.split(/\s+/);
+  return {
+    firstName: parts[0] ?? null,
+    lastName: parts.length > 1 ? parts.slice(1).join(" ") : null,
+  };
+}
 
 export async function POST(request: NextRequest) {
   const supabase = await createSupabaseServerClient();
@@ -74,7 +88,9 @@ export async function POST(request: NextRequest) {
 
   const { data: ownerRecord } = await admin
     .from("owners")
-    .select("id, user_id, agreement_accepted_at")
+    .select(
+      "id, user_id, agreement_accepted_at, verification, founding_owner_bonus_started_at, founding_owner_granted_at, founding_owner_promotion_id, profiles:profiles!owners_user_id_fkey(email, full_name, country)",
+    )
     .or(`id.eq.${user.id},user_id.eq.${user.id}`)
     .maybeSingle();
 
@@ -127,6 +143,54 @@ export async function POST(request: NextRequest) {
 
   if (error || !data) {
     return NextResponse.json({ error: error?.message ?? "Unable to submit opportunity." }, { status: 400 });
+  }
+
+  if (newsletterOptIn) {
+    const ownerProfile = Array.isArray(ownerRecord.profiles) ? ownerRecord.profiles[0] : ownerRecord.profiles;
+    const { firstName, lastName } = splitFullName(ownerProfile?.full_name ?? null);
+    const isVerifiedOwner = ownerRecord.verification === "verified";
+    const isFoundingOwner = Boolean(
+      ownerRecord.founding_owner_granted_at ||
+      ownerRecord.founding_owner_bonus_started_at ||
+      ownerRecord.founding_owner_promotion_id,
+    );
+    const tags = ["owner_lead"];
+
+    if (isVerifiedOwner) {
+      tags.push("verified_owner");
+    }
+
+    if (isFoundingOwner) {
+      tags.push("founding_owner");
+    }
+
+    try {
+      await ingestSubscriber({
+        email: ownerProfile?.email ?? user.email ?? "",
+        firstName,
+        lastName,
+        userId: user.id,
+        source: "owner_liquidation",
+        country: ownerProfile?.country ?? null,
+        tags,
+        isFoundingOwner,
+        emailPreferences: { marketing: true },
+        explicitConsent: true,
+        metadata: {
+          capture_point: "owner_liquidation_opt_in",
+          liquidation_request_id: data.id,
+          owner_id: ownerId,
+          verified_owner: isVerifiedOwner,
+        },
+        client: admin,
+      });
+    } catch (subscriberError) {
+      console.error("[owner/liquidation-opportunities] failed to sync subscriber", {
+        ownerId,
+        requestId: data.id,
+        message: subscriberError instanceof Error ? subscriberError.message : "unknown_error",
+      });
+    }
   }
 
   return NextResponse.json({ ok: true, id: data.id });

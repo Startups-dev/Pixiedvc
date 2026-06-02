@@ -45,6 +45,19 @@ type AutomationConfig = {
 
 const AUTOMATIONS: AutomationConfig[] = [
   {
+    key: "welcome_sequence",
+    name: "Welcome sequence",
+    purpose: "Sends the 30-day subscriber onboarding series for newly subscribed guest leads.",
+    templateKeys: [
+      "welcome_sequence_day_0",
+      "welcome_sequence_day_3",
+      "welcome_sequence_day_7",
+      "welcome_sequence_day_14",
+      "welcome_sequence_day_21",
+      "welcome_sequence_day_30",
+    ],
+  },
+  {
     key: "abandoned_booking_request_recovery",
     name: "Abandoned booking request recovery",
     purpose: "Recovers incomplete guest booking requests before they go cold.",

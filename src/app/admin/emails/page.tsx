@@ -116,6 +116,9 @@ export default async function AdminEmailsPage({
               Outbound Email Logs
             </h1>
             <p className="text-sm text-[#b4b4b4]">Inspect delivery status, template usage, recipients, and provider details.</p>
+            <Link href="/admin/emails/welcome-sequence" className="inline-flex text-sm font-medium text-[#9bb0c9] hover:text-[#ececec]">
+              Preview and test-send welcome sequence emails →
+            </Link>
           </div>
         </header>
 

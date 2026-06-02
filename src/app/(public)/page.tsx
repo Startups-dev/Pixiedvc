@@ -20,6 +20,8 @@ import {
   READY_STAYS_SHOWCASE_FLAGS,
 } from "@/lib/ready-stays/showcase-mock";
 import { getHomeReadyStaysShowcase } from "@/lib/ready-stays/showcase-live";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { createServiceClient } from "@/lib/supabase-service-client";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +58,7 @@ const resortShowcase = [
 
 export default async function Home() {
   noStore();
+  let shouldShowNewsletterSignup = true;
   let activePromotion = null;
   try {
     const serviceClient = createServiceClient();
@@ -77,6 +80,40 @@ export default async function Home() {
   if (foundingOwnerLaunchDiagnosticsEnabled()) {
     console.info("[FoundingOwnerLaunch]", foundingOwnerLaunchDiagnostics);
   }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const normalizedEmail = user?.email?.trim().toLowerCase() ?? "";
+    if (normalizedEmail) {
+      const adminClient = getSupabaseAdminClient();
+      if (adminClient) {
+        const { data: subscriber, error: subscriberError } = await adminClient
+          .from("email_subscribers")
+          .select("id")
+          .eq("email", normalizedEmail)
+          .eq("status", "subscribed")
+          .maybeSingle();
+
+        if (subscriberError) {
+          console.warn("[newsletter-signup] subscriber lookup failed", {
+            email: normalizedEmail,
+            message: subscriberError.message,
+          });
+        } else if (subscriber?.id) {
+          shouldShowNewsletterSignup = false;
+        }
+      }
+    }
+  } catch (error) {
+    console.warn("[newsletter-signup] visibility check failed", {
+      message: error instanceof Error ? error.message : "unknown_error",
+    });
+  }
+
   const showFoundingOwnerLaunch = shouldShowFoundingOwnerLaunch(activePromotion);
   const homeReadyStays = await getHomeReadyStaysShowcase(3);
 
@@ -175,16 +212,22 @@ export default async function Home() {
           </div>
         </section>
       ) : null}
-      <section className="mx-auto max-w-7xl px-6 pt-6">
-        <EmailLeadCapture
-          source="hero_bar"
-          headline="Get Disney deals before they’re gone"
-          buttonLabel="Get Deals"
-          className="rounded-[28px] border border-[#d9e3fb] bg-[linear-gradient(135deg,rgba(244,247,255,0.96),rgba(255,255,255,0.92))] px-5 py-5 shadow-[0_18px_45px_rgba(15,33,72,0.08)] backdrop-blur sm:px-6"
-          innerClassName="mx-auto flex max-w-5xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-center lg:gap-10"
-          compact
-        />
-      </section>
+      {shouldShowNewsletterSignup ? (
+        <section className="mx-auto max-w-7xl px-6 pt-6">
+          <EmailLeadCapture
+            source="hero_bar"
+            headline="Get Disney deals before they’re gone"
+            body="Join thousands of savvy travelers and get early access to Ready Stays, last-minute offers, and exclusive Disney villa deals."
+            buttonLabel="Get Disney Deals"
+            helperText="No spam. Unsubscribe anytime."
+            placeholder="Enter your email"
+            className="rounded-[36px] bg-[radial-gradient(circle_at_top,rgba(81,118,255,0.14),transparent_52%),linear-gradient(180deg,#fbfdff_0%,#f7f9ff_100%)] px-5 py-8 shadow-[0_26px_60px_rgba(15,33,72,0.08)] sm:px-8 sm:py-10"
+            innerClassName="mx-auto max-w-6xl"
+            align="center"
+            variant="homepage_hero"
+          />
+        </section>
+      ) : null}
       <section className="mx-auto max-w-7xl px-6 py-20">
         <div className="text-center">
           <h2 className="text-3xl font-semibold text-slate-900">Two Ways to Secure Your Stay</h2>
