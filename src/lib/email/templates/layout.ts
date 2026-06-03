@@ -21,6 +21,7 @@ export function renderTextList(items: Array<string | null | undefined>) {
 type EmailLayoutOptions = {
   title: string;
   intro?: string | null;
+  topHtml?: string | null;
   sections: Array<{
     title?: string | null;
     lines?: Array<string | null | undefined>;
@@ -37,6 +38,7 @@ type EmailLayoutOptions = {
 export function renderEmailLayout({
   title,
   intro,
+  topHtml,
   sections,
   ctaLabel,
   ctaUrl,
@@ -104,6 +106,7 @@ export function renderEmailLayout({
     '<div style="max-width:640px;margin:0 auto;">',
     '<div style="margin:0 0 18px;text-align:center;font-size:18px;line-height:1.2;font-weight:700;letter-spacing:0.08em;color:#163566;text-transform:uppercase;">PixieDVC</div>',
     '<div style="background:#ffffff;border:1px solid #dbe4f0;border-radius:20px;padding:32px 28px;box-shadow:0 12px 32px rgba(16,37,66,0.08);">',
+    topHtml ?? '',
     `<h1 style="margin:0 0 14px;font-size:28px;line-height:1.2;font-weight:700;color:#102542;">${escapeHtml(title)}</h1>`,
     intro
       ? `<p style="margin:0 0 24px;font-size:16px;line-height:1.7;color:#31445b;">${escapeHtml(intro)}</p>`

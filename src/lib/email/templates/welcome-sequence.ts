@@ -11,6 +11,8 @@ type WelcomeSequenceTemplateInput = {
   lastMinuteUrl?: string | null;
   howItWorksUrl?: string | null;
   unsubscribeUrl?: string | null;
+  welcomeDay0HeroImageUrl?: string | null;
+  welcomeDay0SecondaryImageUrl?: string | null;
 };
 
 type WelcomeSequenceTemplate = {
@@ -25,9 +27,11 @@ type WelcomeEmailContent = {
   previewText: string;
   title: string;
   intro: string;
+  topHtml?: string;
   body: Array<
     | { kind: 'paragraph'; text: string }
     | { kind: 'list'; items: string[] }
+    | { kind: 'html'; html: string }
   >;
   primaryCtaLabel: string;
   primaryCtaUrl: string | null;
@@ -61,6 +65,28 @@ function renderListHtml(items: string[]) {
   ].join('');
 }
 
+function renderResponsiveImageHtml({
+  imageUrl,
+  alt,
+}: {
+  imageUrl?: string | null;
+  alt: string;
+}) {
+  if (!imageUrl?.trim()) return '';
+
+  return [
+    '<table role="presentation" width="100%" cellPadding="0" cellSpacing="0" border="0" style="border-collapse:collapse;margin:0 0 8px;">',
+    '<tr>',
+    '<td style="padding:0;">',
+    `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(
+      alt,
+    )}" width="584" style="display:block;width:100%;max-width:584px;height:auto;border:0;border-radius:18px;outline:none;text-decoration:none;" />`,
+    '</td>',
+    '</tr>',
+    '</table>',
+  ].join('');
+}
+
 function renderFooterHtml(unsubscribeUrl?: string | null) {
   const disclaimer =
     'PixieDVC is an independent vacation rental platform and is not affiliated with, sponsored by, or endorsed by The Walt Disney Company or Disney Vacation Club.';
@@ -86,7 +112,9 @@ function buildTemplate(content: WelcomeEmailContent, unsubscribeUrl?: string | n
     ...content.body.flatMap((section) =>
       section.kind === 'paragraph'
         ? [section.text, '']
-        : [...section.items.map((item) => `- ${item}`), ''],
+        : section.kind === 'list'
+          ? [...section.items.map((item) => `- ${item}`), '']
+          : [''],
     ),
     ...(content.signoff ? [...content.signoff, ''] : []),
     `${content.primaryCtaLabel}: ${content.primaryCtaUrl ?? ''}`.trim(),
@@ -99,7 +127,9 @@ function buildTemplate(content: WelcomeEmailContent, unsubscribeUrl?: string | n
   const htmlSections = content.body.map((section) =>
     section.kind === 'paragraph'
       ? { lines: [section.text] }
-      : { html: renderListHtml(section.items) },
+      : section.kind === 'list'
+        ? { html: renderListHtml(section.items) }
+        : { html: section.html },
   );
 
   if (content.signoff?.length) {
@@ -109,6 +139,7 @@ function buildTemplate(content: WelcomeEmailContent, unsubscribeUrl?: string | n
   const html = renderEmailLayout({
     title: content.title,
     intro: content.intro,
+    topHtml: content.topHtml ?? null,
     sections: htmlSections,
     ctaLabel: content.primaryCtaLabel,
     ctaUrl: content.primaryCtaUrl,
@@ -138,6 +169,10 @@ export function buildWelcomeSequenceTemplate(
         previewText: 'Your Disney villa insider access starts here.',
         title: 'Welcome to PixieDVC',
         intro,
+        topHtml: renderResponsiveImageHtml({
+          imageUrl: input.welcomeDay0HeroImageUrl,
+          alt: 'Elegant Disney villa living room interior with warm lighting and premium furnishings',
+        }),
         body: [
           { kind: 'paragraph', text: 'You’re officially on the PixieDVC Insider list.' },
           {
@@ -154,6 +189,13 @@ export function buildWelcomeSequenceTemplate(
               'Last-minute availability alerts',
               'Special PixieDVC promotions',
             ],
+          },
+          {
+            kind: 'html',
+            html: renderResponsiveImageHtml({
+              imageUrl: input.welcomeDay0SecondaryImageUrl,
+              alt: 'Family enjoying a relaxed Disney vacation moment together',
+            }),
           },
           {
             kind: 'paragraph',

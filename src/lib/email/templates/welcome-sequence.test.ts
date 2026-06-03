@@ -9,6 +9,8 @@ describe('buildWelcomeSequenceTemplate', () => {
       readyStaysUrl: 'https://pixiedvc.test/ready-stays',
       resortsUrl: 'https://pixiedvc.test/resorts',
       unsubscribeUrl: 'https://pixiedvc.test/unsubscribe/token-123',
+      welcomeDay0HeroImageUrl: 'https://pixiedvc.test/welcome-hero.png',
+      welcomeDay0SecondaryImageUrl: 'https://pixiedvc.test/welcome-secondary.png',
     });
 
     expect(template.subject).toBe('Welcome to PixieDVC');
@@ -22,6 +24,19 @@ describe('buildWelcomeSequenceTemplate', () => {
     expect(template.html).toContain('Browse Ready Stays');
     expect(template.html).toContain('Explore Disney Resorts');
     expect(template.html).toContain('Unsubscribe here');
+    expect(template.html).toContain('https://pixiedvc.test/welcome-hero.png');
+    expect(template.html).toContain('https://pixiedvc.test/welcome-secondary.png');
+    expect(template.html).toContain('Elegant Disney villa living room interior');
+    expect(template.html).toContain('Family enjoying a relaxed Disney vacation moment together');
+  });
+
+  it('omits day 0 images cleanly when image urls are missing', () => {
+    const template = buildWelcomeSequenceTemplate(0, {
+      readyStaysUrl: 'https://pixiedvc.test/ready-stays',
+      resortsUrl: 'https://pixiedvc.test/resorts',
+    });
+
+    expect(template.html).not.toContain('<img src=');
   });
 
   it('renders the updated day 30 subject and CTA copy', () => {

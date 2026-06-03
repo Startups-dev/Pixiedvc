@@ -64,6 +64,8 @@ type WelcomeSequenceEmailPayload = {
   lastMinuteUrl?: string | null;
   howItWorksUrl?: string | null;
   unsubscribeUrl?: string | null;
+  welcomeDay0HeroImageUrl?: string | null;
+  welcomeDay0SecondaryImageUrl?: string | null;
 } & EmailLogContext;
 
 type OwnerMatchEmailPayload = {
@@ -406,6 +408,8 @@ export async function sendWelcomeSequenceEmail(payload: WelcomeSequenceEmailPayl
     lastMinuteUrl: payload.lastMinuteUrl,
     howItWorksUrl: payload.howItWorksUrl,
     unsubscribeUrl: payload.unsubscribeUrl,
+    welcomeDay0HeroImageUrl: payload.welcomeDay0HeroImageUrl,
+    welcomeDay0SecondaryImageUrl: payload.welcomeDay0SecondaryImageUrl,
   });
 
   return sendResendEmail({

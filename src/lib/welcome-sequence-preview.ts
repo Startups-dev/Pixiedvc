@@ -3,6 +3,7 @@ import { buildUnsubscribeUrl, createOrRotateUnsubscribeToken } from '@/lib/email
 import { sendWelcomeSequenceEmail } from '@/lib/email';
 import { buildWelcomeSequenceTemplate, type WelcomeSequenceStep } from '@/lib/email/templates/welcome-sequence';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
+import { getWelcomeSequenceAssetUrls } from '@/lib/welcome-sequence-assets';
 
 type AdminClient = NonNullable<ReturnType<typeof getSupabaseAdminClient>>;
 
@@ -41,6 +42,7 @@ function buildTemplateUrls() {
     requestStayUrl: getAppUrl('/check-dates', 'Request your stay page') ?? 'https://pixiedvc.com/check-dates',
     lastMinuteUrl: getAppUrl('/last-minute-deals', 'Last-minute deals page') ?? 'https://pixiedvc.com/last-minute-deals',
     howItWorksUrl: getAppUrl('/how-it-works', 'How it works page') ?? 'https://pixiedvc.com/how-it-works',
+    ...getWelcomeSequenceAssetUrls(),
   };
 }
 
