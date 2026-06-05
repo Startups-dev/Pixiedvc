@@ -75,6 +75,7 @@ export type NewsletterCampaignEditorState = {
   previewHtml?: string | null;
   previewText?: string | null;
   campaignId?: string | null;
+  values?: NewsletterCampaignEditorValues | null;
 };
 
 const audienceSlugs = NEWSLETTER_CAMPAIGN_AUDIENCE_OPTIONS.map((option) => option.slug);
@@ -189,18 +190,22 @@ export function getNewsletterCampaignEditorValues(row?: NewsletterCampaignEditor
 }
 
 export function parseNewsletterCampaignFormData(formData: FormData) {
-  const bodySections = formData
-    .getAll('sectionTitle')
-    .map((title, index) => ({
-      title: String(title ?? ''),
-      content: String(formData.getAll('sectionContent')[index] ?? ''),
-    }));
+  return baseSchema.safeParse(buildNewsletterCampaignDraftValuesFromFormData(formData));
+}
 
-  return baseSchema.safeParse({
+export function buildNewsletterCampaignDraftValuesFromFormData(formData: FormData): NewsletterCampaignEditorValues {
+  const sectionTitles = formData.getAll('sectionTitle');
+  const sectionContents = formData.getAll('sectionContent');
+  const bodySections = sectionTitles.map((title, index) => ({
+    title: String(title ?? ''),
+    content: String(sectionContents[index] ?? ''),
+  }));
+
+  return {
     name: String(formData.get('name') ?? ''),
     subject: String(formData.get('subject') ?? ''),
     previewText: String(formData.get('previewText') ?? ''),
-    audience: String(formData.get('audience') ?? ''),
+    audience: String(formData.get('audience') ?? 'newsletter_subscribers') as NewsletterCampaignAudienceSlug,
     heroImageUrl: String(formData.get('heroImageUrl') ?? ''),
     featuredResort: String(formData.get('featuredResort') ?? ''),
     bodySections,
@@ -209,10 +214,13 @@ export function parseNewsletterCampaignFormData(formData: FormData) {
     secondaryCtaLabel: String(formData.get('secondaryCtaLabel') ?? ''),
     secondaryCtaUrl: String(formData.get('secondaryCtaUrl') ?? ''),
     footerNote: String(formData.get('footerNote') ?? ''),
-  });
+  };
 }
 
-export function buildNewsletterCampaignActionErrorState(error: z.ZodError): NewsletterCampaignEditorState {
+export function buildNewsletterCampaignActionErrorState(
+  error: z.ZodError,
+  values?: NewsletterCampaignEditorValues | null,
+): NewsletterCampaignEditorState {
   const fieldErrors: NewsletterCampaignEditorState['fieldErrors'] = {};
 
   for (const issue of error.issues) {
@@ -235,6 +243,7 @@ export function buildNewsletterCampaignActionErrorState(error: z.ZodError): News
     status: 'error',
     message: 'Fix the highlighted fields and save again.',
     fieldErrors,
+    values: values ?? null,
   };
 }
 

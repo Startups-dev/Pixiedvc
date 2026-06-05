@@ -5,6 +5,7 @@ vi.mock('@/lib/email-subscribers', () => ({
 }));
 
 import {
+  buildNewsletterCampaignDraftValuesFromFormData,
   buildNewsletterCampaignActionErrorState,
   buildNewsletterCampaignPersistence,
   getAudienceLabel,
@@ -58,9 +59,15 @@ describe('newsletter campaign helpers', () => {
 
     expect(parsed.success).toBe(false);
     if (!parsed.success) {
-      const state = buildNewsletterCampaignActionErrorState(parsed.error);
+      const values = buildNewsletterCampaignDraftValuesFromFormData(formData);
+      const state = buildNewsletterCampaignActionErrorState(parsed.error, values);
       expect(state.fieldErrors?.bodySections).toBe('Add at least one body section.');
       expect(state.fieldErrors?.primaryCta).toBe('Primary CTA label and URL must both be provided.');
+      expect(state.values).toMatchObject({
+        subject: 'Test Campaign',
+        audience: 'newsletter_subscribers',
+        primaryCtaLabel: 'Browse Ready Stays',
+      });
     }
   });
 

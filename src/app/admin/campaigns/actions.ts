@@ -5,6 +5,7 @@ import { notFound, redirect } from 'next/navigation';
 
 import { requireAdminUser } from '@/lib/admin';
 import {
+  buildNewsletterCampaignDraftValuesFromFormData,
   buildNewsletterCampaignActionErrorState,
   buildNewsletterCampaignPersistence,
   type NewsletterCampaignEditorState,
@@ -32,9 +33,10 @@ export async function createCampaignDraftAction(
     };
   }
 
+  const submittedValues = buildNewsletterCampaignDraftValuesFromFormData(formData);
   const parsed = parseNewsletterCampaignFormData(formData);
   if (!parsed.success) {
-    return buildNewsletterCampaignActionErrorState(parsed.error);
+    return buildNewsletterCampaignActionErrorState(parsed.error, submittedValues);
   }
 
   const payload = buildNewsletterCampaignPersistence(parsed.data);
@@ -54,6 +56,7 @@ export async function createCampaignDraftAction(
       message: error?.message ?? 'Unable to create the campaign draft.',
       previewHtml: payload.rendered.html,
       previewText: payload.rendered.text,
+      values: payload.values,
     };
   }
 
@@ -106,16 +109,17 @@ export async function updateCampaignDraftAction(
     notFound();
   }
 
-  if (existing.status !== 'draft') {
+  if (!(existing.status === 'draft' || existing.status === 'scheduled')) {
     return {
       status: 'error',
-      message: 'Only draft campaigns can be edited.',
+      message: 'Only draft or scheduled campaigns can be edited.',
     };
   }
 
+  const submittedValues = buildNewsletterCampaignDraftValuesFromFormData(formData);
   const parsed = parseNewsletterCampaignFormData(formData);
   if (!parsed.success) {
-    return buildNewsletterCampaignActionErrorState(parsed.error);
+    return buildNewsletterCampaignActionErrorState(parsed.error, submittedValues);
   }
 
   const payload = buildNewsletterCampaignPersistence(parsed.data);
@@ -130,6 +134,7 @@ export async function updateCampaignDraftAction(
       message: error.message,
       previewHtml: payload.rendered.html,
       previewText: payload.rendered.text,
+      values: payload.values,
     };
   }
 
@@ -142,7 +147,128 @@ export async function updateCampaignDraftAction(
     campaignId,
     previewHtml: payload.rendered.html,
     previewText: payload.rendered.text,
+    values: payload.values,
   };
+}
+
+export async function scheduleCampaignAction(formData: FormData) {
+  await requireAdminUser('/admin/campaigns');
+  const admin = getSupabaseAdminClient();
+  if (!admin) {
+    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY.');
+  }
+
+  const campaignId = String(formData.get('campaignId') ?? '').trim();
+  const scheduledAtInput = String(formData.get('scheduledAt') ?? '').trim();
+
+  if (!campaignId) {
+    redirect(buildCampaignRedirectUrl('missing', { scheduleError: 'Missing campaign.' }));
+  }
+
+  if (!scheduledAtInput) {
+    redirect(
+      buildCampaignRedirectUrl(campaignId, {
+        scheduleError: 'Choose a date and time to schedule this campaign.',
+      }),
+    );
+  }
+
+  const scheduledAt = new Date(scheduledAtInput);
+  if (Number.isNaN(scheduledAt.getTime())) {
+    redirect(buildCampaignRedirectUrl(campaignId, { scheduleError: 'Enter a valid schedule date and time.' }));
+  }
+
+  if (scheduledAt.getTime() <= Date.now()) {
+    redirect(buildCampaignRedirectUrl(campaignId, { scheduleError: 'Schedule time must be in the future.' }));
+  }
+
+  const { data: campaign, error: campaignError } = await admin
+    .from('email_campaigns')
+    .select('id, status')
+    .eq('id', campaignId)
+    .maybeSingle<{ id: string; status: string }>();
+
+  if (campaignError) {
+    redirect(buildCampaignRedirectUrl(campaignId, { scheduleError: campaignError.message }));
+  }
+
+  if (!campaign) {
+    redirect(buildCampaignRedirectUrl(campaignId, { scheduleError: 'Campaign not found.' }));
+  }
+
+  if (!(campaign.status === 'draft' || campaign.status === 'scheduled')) {
+    redirect(
+      buildCampaignRedirectUrl(campaignId, {
+        scheduleError: 'Only draft or scheduled campaigns can be scheduled.',
+      }),
+    );
+  }
+
+  const { error } = await admin
+    .from('email_campaigns')
+    .update({
+      status: 'scheduled',
+      scheduled_at: scheduledAt.toISOString(),
+    })
+    .eq('id', campaignId);
+
+  if (error) {
+    redirect(buildCampaignRedirectUrl(campaignId, { scheduleError: error.message }));
+  }
+
+  revalidatePath('/admin/campaigns');
+  revalidatePath(`/admin/campaigns/${campaignId}`);
+
+  redirect(buildCampaignRedirectUrl(campaignId, { scheduleSaved: '1' }));
+}
+
+export async function unscheduleCampaignAction(formData: FormData) {
+  await requireAdminUser('/admin/campaigns');
+  const admin = getSupabaseAdminClient();
+  if (!admin) {
+    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY.');
+  }
+
+  const campaignId = String(formData.get('campaignId') ?? '').trim();
+  if (!campaignId) {
+    redirect(buildCampaignRedirectUrl('missing', { scheduleError: 'Missing campaign.' }));
+  }
+
+  const { data: campaign, error: campaignError } = await admin
+    .from('email_campaigns')
+    .select('id, status')
+    .eq('id', campaignId)
+    .maybeSingle<{ id: string; status: string }>();
+
+  if (campaignError) {
+    redirect(buildCampaignRedirectUrl(campaignId, { scheduleError: campaignError.message }));
+  }
+
+  if (!campaign) {
+    redirect(buildCampaignRedirectUrl(campaignId, { scheduleError: 'Campaign not found.' }));
+  }
+
+  if (campaign.status !== 'scheduled') {
+    redirect(buildCampaignRedirectUrl(campaignId, { scheduleError: 'Only scheduled campaigns can be unscheduled.' }));
+  }
+
+  const { error } = await admin
+    .from('email_campaigns')
+    .update({
+      status: 'draft',
+      scheduled_at: null,
+    })
+    .eq('id', campaignId)
+    .eq('status', 'scheduled');
+
+  if (error) {
+    redirect(buildCampaignRedirectUrl(campaignId, { scheduleError: error.message }));
+  }
+
+  revalidatePath('/admin/campaigns');
+  revalidatePath(`/admin/campaigns/${campaignId}`);
+
+  redirect(buildCampaignRedirectUrl(campaignId, { unscheduled: '1' }));
 }
 
 export async function archiveCampaignAction(formData: FormData) {

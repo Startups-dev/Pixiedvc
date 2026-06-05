@@ -32,7 +32,7 @@ vi.mock('@/lib/supabase-admin', () => ({
   getSupabaseAdminClient: vi.fn(),
 }));
 
-import { sendCampaignNowAction, sendCampaignTestEmailAction } from '@/app/admin/campaigns/actions';
+import { scheduleCampaignAction, sendCampaignNowAction, sendCampaignTestEmailAction } from '@/app/admin/campaigns/actions';
 
 describe('sendCampaignTestEmailAction', () => {
   beforeEach(() => {
@@ -62,5 +62,15 @@ describe('sendCampaignTestEmailAction', () => {
 
     await expect(sendCampaignNowAction(formData)).rejects.toThrow('redirected');
     expect(state.sendNewsletterCampaignNow).not.toHaveBeenCalled();
+  });
+
+  it('blocks scheduling through the existing admin guard for non-admin access', async () => {
+    state.requireAdminUser.mockRejectedValue(new Error('redirected'));
+
+    const formData = new FormData();
+    formData.set('campaignId', 'campaign-1');
+    formData.set('scheduledAt', '2026-06-10T09:30');
+
+    await expect(scheduleCampaignAction(formData)).rejects.toThrow('redirected');
   });
 });

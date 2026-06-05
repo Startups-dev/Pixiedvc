@@ -45,6 +45,12 @@ type AutomationConfig = {
 
 const AUTOMATIONS: AutomationConfig[] = [
   {
+    key: "newsletter_campaigns",
+    name: "Newsletter campaigns",
+    purpose: "Automatically delivers scheduled newsletter campaigns to their selected subscriber audiences.",
+    templateKeys: ["newsletter_campaign"],
+  },
+  {
     key: "welcome_sequence",
     name: "Welcome sequence",
     purpose: "Sends the 30-day subscriber onboarding series for newly subscribed guest leads.",

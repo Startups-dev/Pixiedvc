@@ -27,8 +27,9 @@ type Props = {
 export function CampaignEditorForm({ mode, initialValues, initialPreview, action, readOnly = false }: Props) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(action, INITIAL_NEWSLETTER_CAMPAIGN_EDITOR_STATE);
+  const currentValues = state.values ?? initialValues;
   const [sections, setSections] = useState(
-    initialValues.bodySections.length ? initialValues.bodySections : [{ title: '', content: '' }],
+    currentValues.bodySections.length ? currentValues.bodySections : [{ title: '', content: '' }],
   );
 
   useEffect(() => {
@@ -36,6 +37,10 @@ export function CampaignEditorForm({ mode, initialValues, initialPreview, action
       router.replace(`/admin/campaigns/${state.campaignId}?created=1`);
     }
   }, [mode, router, state.campaignId, state.status]);
+
+  useEffect(() => {
+    setSections(currentValues.bodySections.length ? currentValues.bodySections : [{ title: '', content: '' }]);
+  }, [currentValues.bodySections]);
 
   const preview = useMemo(
     () => ({
@@ -72,7 +77,8 @@ export function CampaignEditorForm({ mode, initialValues, initialPreview, action
             <input
               name="name"
               type="text"
-              defaultValue={initialValues.name}
+              key={`name:${currentValues.name}`}
+              defaultValue={currentValues.name}
               disabled={readOnly || pending}
               className="w-full rounded-xl border border-[#464646] bg-[#1f1f1f] px-4 py-3 text-sm text-[#ececec] outline-none"
             />
@@ -81,7 +87,8 @@ export function CampaignEditorForm({ mode, initialValues, initialPreview, action
           <Field label="Audience" error={state.fieldErrors?.audience}>
             <select
               name="audience"
-              defaultValue={initialValues.audience}
+              key={`audience:${currentValues.audience}`}
+              defaultValue={currentValues.audience}
               disabled={readOnly || pending}
               className="w-full rounded-xl border border-[#464646] bg-[#1f1f1f] px-4 py-3 text-sm text-[#ececec] outline-none"
             >
@@ -98,7 +105,8 @@ export function CampaignEditorForm({ mode, initialValues, initialPreview, action
           <input
             name="subject"
             type="text"
-            defaultValue={initialValues.subject}
+            key={`subject:${currentValues.subject}`}
+            defaultValue={currentValues.subject}
             disabled={readOnly || pending}
             className="w-full rounded-xl border border-[#464646] bg-[#1f1f1f] px-4 py-3 text-sm text-[#ececec] outline-none"
             required
@@ -109,7 +117,8 @@ export function CampaignEditorForm({ mode, initialValues, initialPreview, action
           <input
             name="previewText"
             type="text"
-            defaultValue={initialValues.previewText}
+            key={`preview:${currentValues.previewText}`}
+            defaultValue={currentValues.previewText}
             disabled={readOnly || pending}
             className="w-full rounded-xl border border-[#464646] bg-[#1f1f1f] px-4 py-3 text-sm text-[#ececec] outline-none"
           />
@@ -120,7 +129,8 @@ export function CampaignEditorForm({ mode, initialValues, initialPreview, action
             <input
               name="heroImageUrl"
               type="url"
-              defaultValue={initialValues.heroImageUrl}
+              key={`hero:${currentValues.heroImageUrl}`}
+              defaultValue={currentValues.heroImageUrl}
               disabled={readOnly || pending}
               className="w-full rounded-xl border border-[#464646] bg-[#1f1f1f] px-4 py-3 text-sm text-[#ececec] outline-none"
             />
@@ -130,7 +140,8 @@ export function CampaignEditorForm({ mode, initialValues, initialPreview, action
             <input
               name="featuredResort"
               type="text"
-              defaultValue={initialValues.featuredResort}
+              key={`resort:${currentValues.featuredResort}`}
+              defaultValue={currentValues.featuredResort}
               disabled={readOnly || pending}
               className="w-full rounded-xl border border-[#464646] bg-[#1f1f1f] px-4 py-3 text-sm text-[#ececec] outline-none"
             />
@@ -156,7 +167,7 @@ export function CampaignEditorForm({ mode, initialValues, initialPreview, action
 
           <div className="space-y-4">
             {sections.map((section, index) => (
-              <div key={index} className="rounded-2xl border border-[#3a3a3a] bg-[#252525] p-4">
+              <div key={`${index}:${section.title ?? ''}:${section.content ?? ''}`} className="rounded-2xl border border-[#3a3a3a] bg-[#252525] p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-xs uppercase tracking-[0.22em] text-[#8e8ea0]">Section {index + 1}</p>
                   {!readOnly && sections.length > 1 ? (
@@ -173,6 +184,7 @@ export function CampaignEditorForm({ mode, initialValues, initialPreview, action
                   <input
                     name="sectionTitle"
                     type="text"
+                    key={`section-title:${index}:${section.title ?? ''}`}
                     defaultValue={section.title ?? ''}
                     disabled={readOnly || pending}
                     className="w-full rounded-xl border border-[#464646] bg-[#1f1f1f] px-4 py-3 text-sm text-[#ececec] outline-none"
@@ -180,6 +192,7 @@ export function CampaignEditorForm({ mode, initialValues, initialPreview, action
                   />
                   <textarea
                     name="sectionContent"
+                    key={`section-content:${index}:${section.content ?? ''}`}
                     defaultValue={section.content ?? ''}
                     disabled={readOnly || pending}
                     rows={5}
@@ -197,7 +210,8 @@ export function CampaignEditorForm({ mode, initialValues, initialPreview, action
             <input
               name="primaryCtaLabel"
               type="text"
-              defaultValue={initialValues.primaryCtaLabel}
+              key={`primary-label:${currentValues.primaryCtaLabel}`}
+              defaultValue={currentValues.primaryCtaLabel}
               disabled={readOnly || pending}
               className="w-full rounded-xl border border-[#464646] bg-[#1f1f1f] px-4 py-3 text-sm text-[#ececec] outline-none"
             />
@@ -207,7 +221,8 @@ export function CampaignEditorForm({ mode, initialValues, initialPreview, action
             <input
               name="primaryCtaUrl"
               type="url"
-              defaultValue={initialValues.primaryCtaUrl}
+              key={`primary-url:${currentValues.primaryCtaUrl}`}
+              defaultValue={currentValues.primaryCtaUrl}
               disabled={readOnly || pending}
               className="w-full rounded-xl border border-[#464646] bg-[#1f1f1f] px-4 py-3 text-sm text-[#ececec] outline-none"
             />
@@ -219,7 +234,8 @@ export function CampaignEditorForm({ mode, initialValues, initialPreview, action
             <input
               name="secondaryCtaLabel"
               type="text"
-              defaultValue={initialValues.secondaryCtaLabel}
+              key={`secondary-label:${currentValues.secondaryCtaLabel}`}
+              defaultValue={currentValues.secondaryCtaLabel}
               disabled={readOnly || pending}
               className="w-full rounded-xl border border-[#464646] bg-[#1f1f1f] px-4 py-3 text-sm text-[#ececec] outline-none"
             />
@@ -229,7 +245,8 @@ export function CampaignEditorForm({ mode, initialValues, initialPreview, action
             <input
               name="secondaryCtaUrl"
               type="url"
-              defaultValue={initialValues.secondaryCtaUrl}
+              key={`secondary-url:${currentValues.secondaryCtaUrl}`}
+              defaultValue={currentValues.secondaryCtaUrl}
               disabled={readOnly || pending}
               className="w-full rounded-xl border border-[#464646] bg-[#1f1f1f] px-4 py-3 text-sm text-[#ececec] outline-none"
             />
@@ -239,7 +256,8 @@ export function CampaignEditorForm({ mode, initialValues, initialPreview, action
         <Field label="Footer note">
           <textarea
             name="footerNote"
-            defaultValue={initialValues.footerNote}
+            key={`footer:${currentValues.footerNote}`}
+            defaultValue={currentValues.footerNote}
             disabled={readOnly || pending}
             rows={4}
             className="w-full rounded-xl border border-[#464646] bg-[#1f1f1f] px-4 py-3 text-sm text-[#ececec] outline-none"

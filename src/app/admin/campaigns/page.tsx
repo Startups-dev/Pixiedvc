@@ -96,7 +96,7 @@ export default async function AdminCampaignsPage() {
               <h1 className="text-3xl font-semibold" style={{ color: '#64748b' }}>
                 Campaigns
               </h1>
-              <p className="text-sm text-[#b4b4b4]">Create and manage newsletter campaign drafts before send and scheduling are enabled.</p>
+              <p className="text-sm text-[#b4b4b4]">Create, edit, send, and schedule newsletter campaigns.</p>
             </div>
             <Link
               href="/admin/campaigns/new"

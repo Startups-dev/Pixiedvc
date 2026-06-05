@@ -4,7 +4,14 @@ import { notFound } from 'next/navigation';
 import { Card } from '@pixiedvc/design-system';
 
 import { CampaignEditorForm } from '@/app/admin/campaigns/CampaignEditorForm';
-import { archiveCampaignAction, sendCampaignNowAction, sendCampaignTestEmailAction, updateCampaignDraftAction } from '@/app/admin/campaigns/actions';
+import {
+  archiveCampaignAction,
+  scheduleCampaignAction,
+  sendCampaignNowAction,
+  sendCampaignTestEmailAction,
+  unscheduleCampaignAction,
+  updateCampaignDraftAction,
+} from '@/app/admin/campaigns/actions';
 import { requireAdminUser } from '@/lib/admin';
 import { buildUnsubscribeUrl } from '@/lib/email-subscribers';
 import { buildNewsletterCampaignPreview, getAudienceLabel, getNewsletterCampaignEditorValues, type NewsletterCampaignEditorRow } from '@/lib/newsletter-campaigns';
@@ -18,6 +25,20 @@ function formatDateTime(value: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
+}
+
+function formatDateTimeInputValue(value: string | null) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 export default async function CampaignDetailPage({
@@ -37,6 +58,9 @@ export default async function CampaignDetailPage({
   const sendNow = (Array.isArray(resolvedSearchParams.sendNow) ? resolvedSearchParams.sendNow[0] : resolvedSearchParams.sendNow) === '1';
   const sendStatus = (Array.isArray(resolvedSearchParams.sendStatus) ? resolvedSearchParams.sendStatus[0] : resolvedSearchParams.sendStatus)?.trim() ?? '';
   const sendError = (Array.isArray(resolvedSearchParams.sendError) ? resolvedSearchParams.sendError[0] : resolvedSearchParams.sendError)?.trim() ?? '';
+  const scheduleSaved = (Array.isArray(resolvedSearchParams.scheduleSaved) ? resolvedSearchParams.scheduleSaved[0] : resolvedSearchParams.scheduleSaved) === '1';
+  const unscheduled = (Array.isArray(resolvedSearchParams.unscheduled) ? resolvedSearchParams.unscheduled[0] : resolvedSearchParams.unscheduled) === '1';
+  const scheduleError = (Array.isArray(resolvedSearchParams.scheduleError) ? resolvedSearchParams.scheduleError[0] : resolvedSearchParams.scheduleError)?.trim() ?? '';
   const audienceCount = Number(Array.isArray(resolvedSearchParams.audienceCount) ? resolvedSearchParams.audienceCount[0] : resolvedSearchParams.audienceCount) || 0;
   const sentCount = Number(Array.isArray(resolvedSearchParams.sentCount) ? resolvedSearchParams.sentCount[0] : resolvedSearchParams.sentCount) || 0;
   const skippedCount = Number(Array.isArray(resolvedSearchParams.skippedCount) ? resolvedSearchParams.skippedCount[0] : resolvedSearchParams.skippedCount) || 0;
@@ -102,13 +126,14 @@ export default async function CampaignDetailPage({
 
   const initialValues = getNewsletterCampaignEditorValues(data);
   const preview = buildNewsletterCampaignPreview(initialValues, buildUnsubscribeUrl('preview-token'));
-  const readOnly = data.status !== 'draft';
+  const readOnly = !(data.status === 'draft' || data.status === 'scheduled');
   const audienceEstimate = data.status === 'draft' || data.status === 'scheduled'
     ? (await resolveNewsletterCampaignAudience({
         client: admin,
         segmentSlug: data.segment_slug,
       }).catch(() => []))
     : [];
+  const scheduledInputValue = formatDateTimeInputValue(data.scheduled_at);
 
   return (
     <div className="min-h-screen bg-[#212121]">
@@ -124,10 +149,10 @@ export default async function CampaignDetailPage({
                 {data.name?.trim() || data.subject}
               </h1>
               <p className="text-sm text-[#b4b4b4]">
-                Status: <span className="font-medium text-[#ececec]">{data.status}</span> · Created {formatDateTime(data.created_at)}
+                Status: <span className="font-medium text-[#ececec]">{data.status}</span> · Created {formatDateTime(data.created_at)} · Scheduled {formatDateTime(data.scheduled_at)} · Sent {formatDateTime(data.sent_at)}
               </p>
               {created ? <p className="text-sm text-emerald-300">Campaign draft created.</p> : null}
-              {readOnly ? <p className="text-sm text-amber-200">This campaign is no longer editable because it is not in draft status.</p> : null}
+              {readOnly ? <p className="text-sm text-amber-200">This campaign is read only because it is currently {data.status}.</p> : null}
             </div>
             {!readOnly ? (
               <form action={archiveCampaignAction}>
@@ -171,6 +196,24 @@ export default async function CampaignDetailPage({
           </Card>
         ) : null}
 
+        {scheduleSaved ? (
+          <Card surface="dark" className="border-emerald-500/30 bg-emerald-500/12 p-4 text-sm text-emerald-200">
+            Campaign scheduled. This campaign will automatically send to the selected audience at the scheduled time.
+          </Card>
+        ) : null}
+
+        {unscheduled ? (
+          <Card surface="dark" className="border-emerald-500/30 bg-emerald-500/12 p-4 text-sm text-emerald-200">
+            Campaign moved back to draft.
+          </Card>
+        ) : null}
+
+        {scheduleError ? (
+          <Card surface="dark" className="border-rose-500/30 bg-rose-500/12 p-4 text-sm text-rose-200">
+            {scheduleError}
+          </Card>
+        ) : null}
+
         <Card surface="dark" className="border-[#3a3a3a] bg-[#2a2a2a] p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-2">
@@ -197,6 +240,57 @@ export default async function CampaignDetailPage({
                 Send Test Email
               </button>
             </form>
+          </div>
+        </Card>
+
+        <Card surface="dark" className="border-[#3a3a3a] bg-[#2a2a2a] p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.22em] text-[#8e8ea0]">Schedule</p>
+              <h2 className="text-xl font-semibold text-[#ececec]">Schedule campaign</h2>
+              <p className="text-sm text-[#b4b4b4]">
+                Status: <span className="font-medium text-[#ececec]">{data.status}</span> · Scheduled date: <span className="font-medium text-[#ececec]">{formatDateTime(data.scheduled_at)}</span> · Sent date: <span className="font-medium text-[#ececec]">{formatDateTime(data.sent_at)}</span>
+              </p>
+              <p className="text-sm text-amber-200">
+                This campaign will automatically send to the selected audience at the scheduled time.
+              </p>
+            </div>
+            <div className="grid w-full max-w-2xl gap-4 md:grid-cols-2">
+              <form action={scheduleCampaignAction} className="space-y-3 rounded-2xl border border-[#3a3a3a] bg-[#252525] p-4">
+                <input type="hidden" name="campaignId" value={campaignId} />
+                <label className="block space-y-1">
+                  <span className="text-xs uppercase tracking-[0.22em] text-[#8e8ea0]">Schedule date and time</span>
+                  <input
+                    name="scheduledAt"
+                    type="datetime-local"
+                    defaultValue={scheduledInputValue}
+                    className="w-full rounded-xl border border-[#464646] bg-[#1f1f1f] px-4 py-3 text-sm text-[#ececec] outline-none"
+                    required
+                    disabled={readOnly}
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={readOnly}
+                  className="rounded-xl bg-[#64748b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#7b8aa0] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Schedule Campaign
+                </button>
+              </form>
+              <form action={unscheduleCampaignAction} className="space-y-3 rounded-2xl border border-[#3a3a3a] bg-[#252525] p-4">
+                <input type="hidden" name="campaignId" value={campaignId} />
+                <p className="text-sm text-[#b4b4b4]">
+                  Move a scheduled campaign back to draft so you can keep editing or delay launch.
+                </p>
+                <button
+                  type="submit"
+                  disabled={data.status !== 'scheduled'}
+                  className="rounded-xl border border-[#4a4a4a] bg-[#1f1f1f] px-4 py-3 text-sm font-semibold text-[#ececec] transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Unschedule Campaign
+                </button>
+              </form>
+            </div>
           </div>
         </Card>
 
