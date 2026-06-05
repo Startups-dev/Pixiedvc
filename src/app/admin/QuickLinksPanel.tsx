@@ -163,6 +163,47 @@ const SECTIONS: QuickLinkSection[] = [
     ],
   },
   {
+    title: 'Email / Campaigns',
+    links: [
+      {
+        id: 'subscribers',
+        title: 'Subscribers',
+        description: 'Review subscriber counts, segments, and lifecycle activity.',
+        href: '/admin/subscribers',
+      },
+      {
+        id: 'emails',
+        title: 'Email Logs',
+        description: 'Inspect outbound email delivery, metadata, and failures.',
+        href: '/admin/emails',
+      },
+      {
+        id: 'automation-health',
+        title: 'Automation Health',
+        description: 'Monitor welcome sequence and other email automation runs.',
+        href: '/admin/automation',
+      },
+      {
+        id: 'welcome-sequence-previews',
+        title: 'Welcome Email Previews',
+        description: 'Preview and test-send the welcome sequence emails.',
+        href: '/admin/emails/welcome-sequence',
+      },
+      {
+        id: 'campaigns',
+        title: 'Campaign Manager',
+        description: 'Create, edit, test, and send newsletter campaign drafts.',
+        href: '/admin/campaigns',
+      },
+      {
+        id: 'new-campaign',
+        title: 'New Campaign',
+        description: 'Jump straight into creating a newsletter campaign draft.',
+        href: '/admin/campaigns/new',
+      },
+    ],
+  },
+  {
     title: 'System',
     links: [
       {
