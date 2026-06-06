@@ -2,6 +2,7 @@
 
 import { ensureOnboardingNotComplete } from './guards';
 import { maybeGrantFoundingOwnerBonus } from '@/lib/founding-owner-bonus';
+import { syncOwnerNewsletterSubscriber } from '@/lib/owner-newsletter';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { supabaseServer } from '@/lib/supabase-server';
 import { getHomeForRole } from '@/lib/routes/home';
@@ -366,7 +367,7 @@ export async function saveGuestPrefs(input: { dates_pref?: string; favorite_reso
   return { ok: true };
 }
 
-export async function completeOnboarding() {
+export async function completeOnboarding(input?: { newsletterOptIn?: boolean }) {
   const sb = await supabaseServer();
   const {
     data: { user },
@@ -382,7 +383,7 @@ export async function completeOnboarding() {
 
   const { data: profile, error: profileError } = await sb
     .from('profiles')
-    .select('role, display_name, full_name')
+    .select('role, display_name, full_name, country')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -410,6 +411,39 @@ export async function completeOnboarding() {
 
     if (!ownerLegalFullName) {
       throw new Error('Owner legal full name is required to complete onboarding.');
+    }
+
+    const newsletterOptIn = Boolean(input?.newsletterOptIn);
+    const { error: ownerConsentError } = await sb
+      .from('owners')
+      .upsert(
+        {
+          id: user.id,
+          user_id: user.id,
+          newsletter_opt_in: newsletterOptIn,
+          newsletter_opt_in_at: newsletterOptIn ? new Date().toISOString() : null,
+          newsletter_opt_in_source: newsletterOptIn ? 'owner_onboarding' : null,
+        },
+        { onConflict: 'id' },
+      );
+
+    if (ownerConsentError) {
+      throw new Error(ownerConsentError.message);
+    }
+
+    if (newsletterOptIn && user.email) {
+      const fullName =
+        profile?.full_name ??
+        profile?.display_name ??
+        ownerLegalFullName;
+
+      await syncOwnerNewsletterSubscriber({
+        email: user.email,
+        fullName,
+        userId: user.id,
+        country: profile?.country ?? null,
+        client: getSupabaseAdminClient(),
+      });
     }
   }
 

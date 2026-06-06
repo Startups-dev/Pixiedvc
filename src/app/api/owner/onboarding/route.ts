@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { syncOwnerNewsletterSubscriber } from "@/lib/owner-newsletter";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
 const bodySchema = z.object({
   ownerLegalName: z.string().trim().min(1).max(200).optional(),
   coOwnerLegalName: z.string().trim().max(200).optional(),
+  newsletterOptIn: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -29,7 +31,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
   }
 
-  const { ownerLegalName, coOwnerLegalName } = parsed.data;
+  const { ownerLegalName, coOwnerLegalName, newsletterOptIn } = parsed.data;
 
   const { data: existingOwner } = await admin
     .from("owners")
@@ -56,7 +58,17 @@ export async function POST(request: Request) {
 
   const { error: upsertError } = await admin
     .from("owners")
-    .upsert({ id: ownerId, user_id: user.id, metadata: nextMetadata }, { onConflict: "id" });
+    .upsert(
+      {
+        id: ownerId,
+        user_id: user.id,
+        metadata: nextMetadata,
+        newsletter_opt_in: Boolean(newsletterOptIn),
+        newsletter_opt_in_at: newsletterOptIn ? new Date().toISOString() : null,
+        newsletter_opt_in_source: newsletterOptIn ? "owner_onboarding" : null,
+      },
+      { onConflict: "id" },
+    );
 
   if (upsertError) {
     return NextResponse.json({ error: upsertError.message }, { status: 400 });
@@ -80,6 +92,24 @@ export async function POST(request: Request) {
 
   if (ownerError) {
     return NextResponse.json({ error: ownerError.message }, { status: 400 });
+  }
+
+  if (newsletterOptIn && user.email) {
+    try {
+      await syncOwnerNewsletterSubscriber({
+        email: user.email,
+        fullName: ownerLegalName ?? null,
+        userId: user.id,
+        client: admin,
+      });
+    } catch (subscriberError) {
+      return NextResponse.json(
+        {
+          error: subscriberError instanceof Error ? subscriberError.message : "Unable to sync owner subscriber.",
+        },
+        { status: 400 },
+      );
+    }
   }
 
   return NextResponse.json({ ok: true, owner });

@@ -237,8 +237,8 @@ export default function OnboardingPage() {
       {step === 5 ? (
         <FinishStep
           role={role}
-          onFinish={async (nextOverride) => {
-            const { next } = await completeOnboarding();
+          onFinish={async (nextOverride, ownerNewsletterOptIn) => {
+            const { next } = await completeOnboarding({ newsletterOptIn: ownerNewsletterOptIn });
             router.replace(nextOverride ?? next ?? '/');
           }}
         />
@@ -1402,9 +1402,11 @@ function FinishStep({
   onFinish,
   role,
 }: {
-  onFinish: (next?: string) => void;
+  onFinish: (next?: string, ownerNewsletterOptIn?: boolean) => void;
   role: 'owner' | 'guest' | null;
 }) {
+  const [ownerNewsletterOptIn, setOwnerNewsletterOptIn] = useState(false);
+
   return (
     <div className="space-y-4">
       <p className="text-lg text-slate-700">
@@ -1427,9 +1429,25 @@ function FinishStep({
           </button>
         </div>
       ) : (
-        <button className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => onFinish()}>
-          Finish onboarding
-        </button>
+        <div className="space-y-4">
+          <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 rounded border-slate-300"
+              checked={ownerNewsletterOptIn}
+              onChange={(event) => setOwnerNewsletterOptIn(event.target.checked)}
+            />
+            <span>
+              Yes, I&apos;d like to receive PixieDVC owner updates, platform news, booking opportunities, and marketing emails. I can unsubscribe at any time.
+            </span>
+          </label>
+          <button
+            className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+            onClick={() => onFinish(undefined, ownerNewsletterOptIn)}
+          >
+            Finish onboarding
+          </button>
+        </div>
       )}
     </div>
   );

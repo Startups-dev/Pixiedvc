@@ -34,11 +34,11 @@ export default function OwnerOnboarding() {
   const [memberships, setMemberships] = useState<
     { id?: string | number | null; resortId: string; useYear: string; pointsOwned: number; vacationPoints: VacationPointsRow[] }[]
   >([{ resortId: '', useYear: 'February', pointsOwned: 0, vacationPoints: defaultVacationPoints() }]);
-  const [membershipId, setMembershipId] = useState<string | null>(null);
   const [ownerLegalName, setOwnerLegalName] = useState('');
   const [coOwnerLegalName, setCoOwnerLegalName] = useState('');
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
 
   useEffect(() => {
     getCanonicalResorts(supabase, { select: 'id,name,slug,calculator_code' })
@@ -86,7 +86,6 @@ export default function OwnerOnboarding() {
         }
 
         const primaryMembership = existingMemberships[0];
-        setMembershipId((primaryMembership.id as string | null) ?? null);
         setOwnerLegalName(primaryMembership.owner_legal_full_name ?? '');
         setCoOwnerLegalName(primaryMembership.co_owner_legal_full_name ?? '');
         setMemberships(
@@ -101,7 +100,7 @@ export default function OwnerOnboarding() {
         );
       }
     });
-  }, [router, supabase.auth]);
+  }, [router, supabase]);
 
   async function onSubmit() {
     setLoading(true);
@@ -129,6 +128,7 @@ export default function OwnerOnboarding() {
         body: JSON.stringify({
           ownerLegalName: trimmedOwnerName,
           coOwnerLegalName: coOwnerLegalName.trim() || undefined,
+          newsletterOptIn,
         }),
       });
 
@@ -213,9 +213,6 @@ export default function OwnerOnboarding() {
               upsertMembershipPoints(id, sourceEntries[idx]?.vacationPoints ?? defaultVacationPoints()),
             ),
           );
-        }
-        if (inserted?.[0]?.id) {
-          setMembershipId(String(inserted[0].id));
         }
       }
 
@@ -333,6 +330,17 @@ export default function OwnerOnboarding() {
         Add another resort
       </button>
 
+      <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+        <input
+          type="checkbox"
+          className="mt-0.5 h-4 w-4 rounded border-slate-300"
+          checked={newsletterOptIn}
+          onChange={(event) => setNewsletterOptIn(event.target.checked)}
+        />
+        <span>
+          Yes, I&apos;d like to receive PixieDVC owner updates, platform news, booking opportunities, and marketing emails. I can unsubscribe at any time.
+        </span>
+      </label>
       <button
         disabled={loading}
         onClick={onSubmit}

@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { emailIsAllowedForAdmin } from '@/lib/admin-emails';
 import { maybeGrantFoundingOwnerBonus } from '@/lib/founding-owner-bonus';
+import { syncOwnerNewsletterSubscriber } from '@/lib/owner-newsletter';
 
 function logAdminOwnerWrite(params: {
   table: string;
@@ -115,6 +116,34 @@ export async function POST(
       targetId: String(ownerId),
       error: foundingOwnerBonusError,
     });
+  }
+
+  const { data: ownerRecord, error: ownerFetchError } = await adminClient
+    .from('owners')
+    .select('id, user_id, email, newsletter_opt_in, profiles:profiles!owners_user_id_fkey(email, full_name, country)')
+    .eq('id', ownerId)
+    .maybeSingle();
+
+  if (!ownerFetchError && ownerRecord?.newsletter_opt_in) {
+    const ownerProfile = Array.isArray(ownerRecord.profiles) ? ownerRecord.profiles[0] : ownerRecord.profiles;
+    const email = ownerProfile?.email ?? ownerRecord.email ?? null;
+
+    if (email) {
+      try {
+        await syncOwnerNewsletterSubscriber({
+          email,
+          fullName: ownerProfile?.full_name ?? null,
+          userId: ownerRecord.user_id ?? null,
+          country: ownerProfile?.country ?? null,
+          client: adminClient,
+        });
+      } catch (subscriberError) {
+        console.error('[admin-owner-verification-subscriber-sync]', {
+          ownerId,
+          message: subscriberError instanceof Error ? subscriberError.message : 'unknown_error',
+        });
+      }
+    }
   }
 
   return NextResponse.redirect(new URL(`/admin/owners/verifications/${ownerId}`, request.url));
