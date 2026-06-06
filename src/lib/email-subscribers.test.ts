@@ -29,8 +29,28 @@ type SubscriberRow = {
   unsubscribe_token_rotated_at: string | null;
 };
 
+type OwnerRow = {
+  id: string;
+  user_id: string | null;
+  email: string | null;
+  verification: string | null;
+  founding_owner_bonus_cents_per_point: number | null;
+  founding_owner_bonus_started_at: string | null;
+  founding_owner_bonus_expires_at: string | null;
+  founding_owner_granted_at: string | null;
+  founding_owner_promotion_id: string | null;
+};
+
+type ProfileRow = {
+  id: string;
+  email: string | null;
+};
+
 const subscriberState = vi.hoisted(() => ({
   subscribersByEmail: new Map<string, SubscriberRow>(),
+  ownersByIdOrUserId: new Map<string, OwnerRow>(),
+  ownersByEmail: new Map<string, OwnerRow>(),
+  profilesByEmail: new Map<string, ProfileRow>(),
   events: [] as Array<{ subscriber_id: string; event_type: string; metadata: Record<string, unknown> }>,
   idCounter: 1,
   getSupabaseAdminClient: vi.fn(),
@@ -137,6 +157,51 @@ function makeAdminClient() {
         };
       }
 
+      if (table === 'owners') {
+        return {
+          select: () => ({
+            or: (_expression: string) => ({
+              maybeSingle: async () => {
+                const expression = _expression;
+                const values = expression
+                  .split(',')
+                  .map((part) => part.split('.eq.')[1])
+                  .filter(Boolean);
+
+                const owner =
+                  values
+                    .map((value) => subscriberState.ownersByIdOrUserId.get(String(value)))
+                    .find(Boolean) ?? null;
+
+                return {
+                  data: owner,
+                  error: null,
+                };
+              },
+            }),
+            eq: (_column: string, value: string) => ({
+              maybeSingle: async () => ({
+                data: subscriberState.ownersByEmail.get(value) ?? null,
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+
+      if (table === 'profiles') {
+        return {
+          select: () => ({
+            eq: (_column: string, value: string) => ({
+              maybeSingle: async () => ({
+                data: subscriberState.profilesByEmail.get(value) ?? null,
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+
       if (table === 'email_events') {
         return {
           insert: async (payload: Record<string, unknown>) => {
@@ -175,6 +240,9 @@ import {
 describe('email subscriber helpers', () => {
   beforeEach(() => {
     subscriberState.subscribersByEmail.clear();
+    subscriberState.ownersByIdOrUserId.clear();
+    subscriberState.ownersByEmail.clear();
+    subscriberState.profilesByEmail.clear();
     subscriberState.events.length = 0;
     subscriberState.idCounter = 1;
     subscriberState.getSupabaseAdminClient.mockClear();
@@ -195,8 +263,96 @@ describe('email subscriber helpers', () => {
     expect(subscriberState.subscribersByEmail.get('guest@example.com')?.unsubscribe_token_hash).toBeTruthy();
     expect(subscriberState.events[0]).toMatchObject({
       event_type: 'subscribed',
-      metadata: { source: 'hero_bar', tags: ['guest_lead'], explicit_consent: true },
+      metadata: { source: 'hero_bar', tags: ['guest_lead'], explicit_consent: true, owner_matched: false },
     });
+  });
+
+  it('does not mark a normal guest subscriber as a founding owner', async () => {
+    const row = await subscribeEmail({
+      email: 'guest@example.com',
+      source: 'hero_bar',
+      tags: ['newsletter_subscriber'],
+    });
+
+    expect(row.is_founding_owner).toBe(false);
+    expect(row.tags).toEqual(['newsletter_subscriber']);
+  });
+
+  it('marks a founding owner matched by profile email with founding_owner and verified_owner tags', async () => {
+    subscriberState.profilesByEmail.set('founder@example.com', {
+      id: 'user-1',
+      email: 'founder@example.com',
+    });
+    subscriberState.ownersByIdOrUserId.set('user-1', {
+      id: 'owner-1',
+      user_id: 'user-1',
+      email: null,
+      verification: 'verified',
+      founding_owner_bonus_cents_per_point: 200,
+      founding_owner_bonus_started_at: '2026-01-01T00:00:00.000Z',
+      founding_owner_bonus_expires_at: '2028-01-01T00:00:00.000Z',
+      founding_owner_granted_at: '2026-01-01T00:00:00.000Z',
+      founding_owner_promotion_id: 'promo-1',
+    });
+
+    const row = await subscribeEmail({
+      email: 'Founder@Example.com',
+      tags: ['newsletter_subscriber'],
+    });
+
+    expect(row.is_founding_owner).toBe(true);
+    expect(row.tags).toEqual(['newsletter_subscriber', 'founding_owner', 'owner_lead', 'verified_owner']);
+  });
+
+  it('updates an existing subscriber when the email is later identified as a founding owner', async () => {
+    subscriberState.subscribersByEmail.set('founder@example.com', {
+      id: 'subscriber-1',
+      email: 'founder@example.com',
+      first_name: null,
+      last_name: null,
+      user_id: null,
+      status: 'subscribed',
+      source: 'hero_bar',
+      country: null,
+      tags: ['newsletter_subscriber'],
+      email_preferences: { marketing: true },
+      is_founding_owner: false,
+      bounce_count: 0,
+      last_bounced_at: null,
+      suppressed_at: null,
+      suppression_reason: null,
+      last_email_sent_at: null,
+      last_opened_at: null,
+      last_clicked_at: null,
+      subscribed_at: '2026-01-01T00:00:00.000Z',
+      unsubscribed_at: null,
+      welcome_sequence_started_at: null,
+      welcome_sequence_completed_at: null,
+      welcome_sequence_step: null,
+      unsubscribe_token_hash: hashUnsubscribeToken('seed-token'),
+      unsubscribe_token_created_at: '2026-01-01T00:00:00.000Z',
+      unsubscribe_token_rotated_at: '2026-01-01T00:00:00.000Z',
+    });
+    subscriberState.ownersByEmail.set('founder@example.com', {
+      id: 'owner-legacy',
+      user_id: null,
+      email: 'founder@example.com',
+      verification: 'verified',
+      founding_owner_bonus_cents_per_point: 200,
+      founding_owner_bonus_started_at: '2026-01-01T00:00:00.000Z',
+      founding_owner_bonus_expires_at: '2028-01-01T00:00:00.000Z',
+      founding_owner_granted_at: '2026-01-01T00:00:00.000Z',
+      founding_owner_promotion_id: 'promo-legacy',
+    });
+
+    const row = await ingestSubscriber({
+      email: 'founder@example.com',
+      tags: ['newsletter_subscriber'],
+      explicitConsent: false,
+    });
+
+    expect(row.is_founding_owner).toBe(true);
+    expect(row.tags).toEqual(['founding_owner', 'newsletter_subscriber', 'owner_lead', 'verified_owner']);
   });
 
   it('does not silently resubscribe an unsubscribed subscriber without explicit consent', async () => {
@@ -247,6 +403,59 @@ describe('email subscriber helpers', () => {
         explicit_consent: false,
       },
     });
+  });
+
+  it('does not silently resubscribe an unsubscribed founding owner but safely updates founder metadata and tags', async () => {
+    subscriberState.subscribersByEmail.set('founder@example.com', {
+      id: 'subscriber-1',
+      email: 'founder@example.com',
+      first_name: null,
+      last_name: null,
+      user_id: null,
+      status: 'unsubscribed',
+      source: 'hero_bar',
+      country: null,
+      tags: ['newsletter_subscriber'],
+      email_preferences: { marketing: false },
+      is_founding_owner: false,
+      bounce_count: 0,
+      last_bounced_at: null,
+      suppressed_at: null,
+      suppression_reason: null,
+      last_email_sent_at: null,
+      last_opened_at: null,
+      last_clicked_at: null,
+      subscribed_at: '2026-01-01T00:00:00.000Z',
+      unsubscribed_at: '2026-01-02T00:00:00.000Z',
+      welcome_sequence_started_at: null,
+      welcome_sequence_completed_at: null,
+      welcome_sequence_step: null,
+      unsubscribe_token_hash: hashUnsubscribeToken('seed-token'),
+      unsubscribe_token_created_at: '2026-01-01T00:00:00.000Z',
+      unsubscribe_token_rotated_at: '2026-01-01T00:00:00.000Z',
+    });
+    subscriberState.ownersByEmail.set('founder@example.com', {
+      id: 'owner-legacy',
+      user_id: null,
+      email: 'founder@example.com',
+      verification: 'verified',
+      founding_owner_bonus_cents_per_point: 200,
+      founding_owner_bonus_started_at: '2026-01-01T00:00:00.000Z',
+      founding_owner_bonus_expires_at: '2028-01-01T00:00:00.000Z',
+      founding_owner_granted_at: '2026-01-01T00:00:00.000Z',
+      founding_owner_promotion_id: 'promo-legacy',
+    });
+
+    const row = await ingestSubscriber({
+      email: 'founder@example.com',
+      source: 'homepage',
+      explicitConsent: false,
+    });
+
+    expect(row.status).toBe('unsubscribed');
+    expect(row.is_founding_owner).toBe(true);
+    expect(row.tags).toEqual(['founding_owner', 'newsletter_subscriber', 'owner_lead', 'verified_owner']);
+    expect(row.email_preferences).toEqual({ marketing: false });
   });
 
   it('resubscribes an unsubscribed subscriber and merges tags', async () => {
