@@ -40,7 +40,9 @@ export async function Hero() {
               </span>
               <h2 className="mt-2 max-w-[24ch] lg:max-w-[760px] font-display !text-[50px] !leading-[1.03] !font-bold !text-white drop-shadow-[0_6px_20px_rgba(12,15,44,0.3)] sm:!text-[52px] lg:!text-[56px]">
                 <span className="block lg:whitespace-nowrap">Disney Deluxe Resorts</span>
-                <span className="block lg:whitespace-nowrap">for 50% Less</span>
+                <span className="block lg:whitespace-nowrap">
+                  for <span className="text-[#BE872D]">50%</span> Less
+                </span>
               </h2>
             </div>
             <p

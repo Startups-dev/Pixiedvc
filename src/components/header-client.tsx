@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -16,6 +15,7 @@ import UserMenu from "@/components/user-menu";
 import { createClient } from "@/lib/supabase";
 import AffiliatePortalHeader from "@/components/layout/AffiliatePortalHeader";
 import { openIntercom } from "@/lib/intercom";
+import PixieLogo from "@/components/PixieLogo";
 
 const NAV_LINKS = [
   { href: "/resorts", label: "Resorts" },
@@ -287,24 +287,17 @@ export default function HeaderClient({
   return (
     <header className="relative z-[100] w-full overflow-visible">
       <div className="w-full border-b border-white/10 bg-[#0f2148] pt-4">
-        <div className="mx-auto flex h-[80px] w-full max-w-[1200px] items-center px-4 md:px-6">
-          <div className="shrink-0">
-            <div className="logo-overlay">
-              <Link href="/" onClick={closeMobile}>
-                <Image
-                  src="/images/Pixiedvc-logo.png"
-                  alt="PixieDVC"
-                  width={1188}
-                  height={300}
-                  priority
-                  className="h-[96px] w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)] sm:h-[132px] md:h-[156px] lg:h-[164px]"
-                />
-              </Link>
-              <span className="logo-sparkle" aria-hidden="true" />
-            </div>
+        <div className="mx-auto flex h-[80px] w-full max-w-[1200px] items-center gap-4 px-3 sm:px-4 md:px-6 lg:gap-5">
+          <div className="-ml-[84px] w-[330px] shrink-0 lg:-ml-[92px] lg:w-[388px]">
+            <Link href="/" onClick={closeMobile} className="flex translate-y-[15px] items-center">
+              <PixieLogo
+                priority
+                className="block w-[274px] h-auto sm:w-[303px] md:w-[337px] lg:w-[370px] xl:w-[385px]"
+              />
+            </Link>
           </div>
 
-          <nav ref={navRef} className="hidden min-w-0 flex-1 items-center justify-center px-3 text-[15px] text-white/85 lg:flex">
+          <nav ref={navRef} className="hidden min-w-0 flex-1 items-center justify-end pl-1 text-[15px] text-white/85 lg:flex lg:pl-2">
             <div className="flex min-w-0 items-center gap-5 lg:gap-7">
               {NAV_LINKS.map((item) => {
                 const dropdown = item.label === "For Owners" ? ownerDropdown : DROPDOWNS[item.label];

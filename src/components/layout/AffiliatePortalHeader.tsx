@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 
 import UserMenu from "@/components/user-menu";
+import PixieLogo from "@/components/PixieLogo";
 
 type AffiliatePortalHeaderProps = {
   userLabel: string | null;
@@ -26,17 +26,10 @@ export default function AffiliatePortalHeader({
   return (
     <header className="relative z-[60]">
       <div className="w-full border-b border-white/10 bg-[#0f2148]">
-        <div className="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-4 px-4 md:px-6">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center">
-              <Image
-                src="/images/Pixiedvc-logo.png"
-                alt="PixieDVC"
-                width={160}
-                height={32}
-                priority
-                className="h-7 w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)]"
-              />
+        <div className="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-3 px-3 sm:px-4 md:px-6">
+          <div className="-ml-[84px] flex items-center gap-3 lg:-ml-[92px]">
+            <Link href="/" className="flex translate-y-[15px] items-center">
+              <PixieLogo priority className="block w-[311px] h-auto md:w-[340px]" />
             </Link>
             <span className="text-xs uppercase tracking-[0.22em] text-white/70">
               Affiliate Portal

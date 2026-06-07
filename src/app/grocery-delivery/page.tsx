@@ -76,7 +76,7 @@ export default function GroceryDeliveryGuidePage() {
                   href={PARTNER_URL}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center rounded-full bg-[linear-gradient(180deg,#f5c965,#d9a53a)] px-5 py-3 text-sm font-semibold text-[#102554] shadow-[0_16px_34px_rgba(217,165,58,0.28)] transition hover:brightness-105"
+                  className="inline-flex items-center rounded-full bg-[linear-gradient(180deg,#f5c965,#d9a53a)] px-5 py-3 text-sm font-semibold !text-[#102554] shadow-[0_16px_34px_rgba(217,165,58,0.28)] transition hover:brightness-105"
                 >
                   Order with Our Recommended Partner
                 </Link>
@@ -122,17 +122,20 @@ export default function GroceryDeliveryGuidePage() {
                 Our Recommended Grocery Delivery Partner
               </div>
               <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#0F2148]">
-                Trusted, guest-friendly grocery delivery for Disney stays
+                A Partner Founded by Former Disney Cast Members
               </h2>
               <p className="mt-4 text-base leading-7 text-[#0F2148]/72">
-                We&apos;ve selected a trusted grocery delivery provider experienced with Disney resort deliveries.
-                Whether you&apos;re staying at a Disney Vacation Club villa or a standard Disney resort room,
-                you can have essentials delivered before or shortly after arrival.
+                After years of creating magical experiences for Disney guests, the founders of Vacation Grocery Delivery
+                built a service designed to make Disney vacations easier from the moment families arrive. Founded by former
+                Disney Cast Members and Disney Cruise Line Cast Members after the pandemic disrupted their Disney careers,
+                the company was created as a way to continue serving guests in a meaningful, hospitality-driven way.
               </p>
               <p className="mt-4 text-base leading-7 text-[#0F2148]/72">
-                PixieDVC recommends this service because it fits naturally into the Disney resort planning experience:
-                useful for late arrivals, family stays, villa kitchens, bottled water, breakfast staples, refrigerated items,
-                and the everyday essentials guests want handled before vacation begins.
+                Today, the team brings more than 15 years of combined Disney Cast Member experience, and many of the people
+                behind the service are former or current Cast Members themselves. They understand Disney resorts, arrival days,
+                guest expectations, and how much smoother a vacation feels when families can skip the grocery run and settle
+                in right away. PixieDVC recommends them because their service aligns naturally with the Disney guest experience
+                and helps our guests start their vacations with less stress and more ease.
               </p>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -303,7 +306,7 @@ export default function GroceryDeliveryGuidePage() {
                 href={PARTNER_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center rounded-full bg-[linear-gradient(180deg,#f5c965,#d9a53a)] px-5 py-3 text-sm font-semibold text-[#102554] shadow-[0_16px_34px_rgba(217,165,58,0.28)] transition hover:brightness-105"
+                className="inline-flex items-center rounded-full bg-[linear-gradient(180deg,#f5c965,#d9a53a)] px-5 py-3 text-sm font-semibold !text-[#102554] shadow-[0_16px_34px_rgba(217,165,58,0.28)] transition hover:brightness-105"
               >
                 Order with Our Recommended Partner
               </Link>
