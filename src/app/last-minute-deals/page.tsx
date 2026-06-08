@@ -4,6 +4,7 @@ import LastMinuteDealsClient, {
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getCurrentUserAdminState } from "@/lib/admin";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { isAdminOrPublicReadyStayRow } from "@/lib/ready-stays/visibility";
 import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
 
 function toDateOnly(value: Date) {
@@ -22,7 +23,7 @@ function nightsBetween(checkIn: string | null, checkOut: string | null) {
 export default async function LastMinuteDealsPage() {
   const supabase = await createSupabaseServerClient();
   const { isAdmin } = await getCurrentUserAdminState(supabase);
-  const readyStaysClient = isAdmin ? getSupabaseAdminClient() ?? supabase : supabase;
+  const readyStaysClient = getSupabaseAdminClient() ?? supabase;
 
   const now = new Date();
   const startDate = toDateOnly(now);
@@ -30,23 +31,38 @@ export default async function LastMinuteDealsPage() {
   maxWindow.setDate(maxWindow.getDate() + 60);
   const endDate = toDateOnly(maxWindow);
 
-  const { data } = await readyStaysClient
+  const { data, error } = await readyStaysClient
     .from("ready_stays")
     .select(
-      "id, check_in, check_out, points, room_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, status, expires_at, sleeps, created_at, is_test_listing, test_guest_total_cents, resorts(name, slug)",
+      "id, check_in, check_out, points, room_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, status, expires_at, locked_until, verification_status, slug, title, is_visible_publicly, sleeps, created_at, is_test_listing, test_guest_total_cents, resorts(name, slug)",
     )
     .in("status", ["active", "test"])
     .gte("check_in", startDate)
     .lte("check_in", endDate)
     .order("check_in", { ascending: true });
 
+  if (error) {
+    console.error("[last-minute-deals] query failed", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      isAdmin,
+    });
+  }
+
   const activeDeals: LastMinuteDeal[] = ((data ?? []) as Array<Record<string, unknown>>)
-    .filter((row) => {
-      const expiresAt = typeof row.expires_at === "string" ? row.expires_at : null;
-      if (!expiresAt) return true;
-      const expiresDate = new Date(expiresAt);
-      return !Number.isNaN(expiresDate.getTime()) && expiresDate.getTime() > now.getTime();
-    })
+    .filter((row) => isAdminOrPublicReadyStayRow({
+      status: typeof row.status === "string" ? row.status : null,
+      is_visible_publicly: Boolean(row.is_visible_publicly),
+      slug: typeof row.slug === "string" ? row.slug : null,
+      title: typeof row.title === "string" ? row.title : null,
+      image_url: typeof row.image_url === "string" ? row.image_url : null,
+      check_out: typeof row.check_out === "string" ? row.check_out : null,
+      expires_at: typeof row.expires_at === "string" ? row.expires_at : null,
+      locked_until: typeof row.locked_until === "string" ? row.locked_until : null,
+      verification_status: typeof row.verification_status === "string" ? row.verification_status : null,
+    }, isAdmin, now.getTime(), startDate))
     .map((row) => {
       const checkIn = typeof row.check_in === "string" ? row.check_in : null;
       const checkOut = typeof row.check_out === "string" ? row.check_out : null;

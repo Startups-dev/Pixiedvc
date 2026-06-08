@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getCurrentUserAdminState } from "@/lib/admin";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { isAdminOrPublicReadyStayRow } from "@/lib/ready-stays/visibility";
 import ReadyStaysMarketplaceClient from "@/components/ready-stays/ReadyStaysMarketplaceClient";
 import ReadyStaysSection from "@/components/ready-stays-showcase/ReadyStaysSection";
 import {
@@ -48,7 +49,7 @@ export default async function ReadyStaysPublicPage({
   const searchReadyStays = await getSearchReadyStaysShowcase(3);
   const supabase = await createSupabaseServerClient();
   const { isAdmin } = await getCurrentUserAdminState(supabase);
-  const readyStaysClient = isAdmin ? getSupabaseAdminClient() ?? supabase : supabase;
+  const readyStaysClient = getSupabaseAdminClient() ?? supabase;
   const today = new Date().toISOString().slice(0, 10);
   const nowMs = Date.now();
 
@@ -60,7 +61,7 @@ export default async function ReadyStaysPublicPage({
   let query = readyStaysClient
     .from("ready_stays")
     .select(
-      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, expires_at, locked_until, verification_status, is_test_listing, test_guest_total_cents, resorts(name, slug, calculator_code)",
+      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, expires_at, locked_until, verification_status, status, is_test_listing, is_visible_publicly, test_guest_total_cents, slug, title, image_url, resorts(name, slug, calculator_code)",
     )
     .in("status", ["active", "test"])
     .gte("check_out", today)
@@ -103,27 +104,18 @@ export default async function ReadyStaysPublicPage({
     query = query.lte("points", pointsMax);
   }
 
-  const { data: readyStays } = await query;
+  const { data: readyStays, error: readyStaysError } = await query;
+  if (readyStaysError) {
+    console.error("[ready-stays/page] query failed", {
+      message: readyStaysError.message,
+      code: readyStaysError.code,
+      details: readyStaysError.details,
+      hint: readyStaysError.hint,
+      isAdmin,
+    });
+  }
   const visibleReadyStays = (readyStays ?? []).filter((stay) => {
-    if (stay.expires_at) {
-      const expiresAt = new Date(stay.expires_at);
-      if (!Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() <= nowMs) {
-        return false;
-      }
-    }
-
-    if (stay.locked_until) {
-      const lockedUntil = new Date(stay.locked_until);
-      if (!Number.isNaN(lockedUntil.getTime()) && lockedUntil.getTime() >= nowMs) {
-        return false;
-      }
-    }
-
-    if (stay.verification_status === "proof_uploaded" || stay.verification_status === "rejected") {
-      return false;
-    }
-
-    return true;
+    return isAdminOrPublicReadyStayRow(stay, isAdmin, nowMs, today);
   }).filter((stay) => {
     if (resolvedSearchParams?.resort && stay.resort_id !== resolvedSearchParams.resort) return false;
     if (resolvedSearchParams?.holiday && stay.season_type !== resolvedSearchParams.holiday) return false;
