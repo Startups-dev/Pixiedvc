@@ -7,6 +7,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getCurrentUserAdminState } from "@/lib/admin";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
+import { isAdminOrPublicReadyStayRow } from "@/lib/ready-stays/visibility";
 import { resolveResortImage } from "@/lib/resort-image";
 
 function formatDate(value: string) {
@@ -53,17 +54,17 @@ export default async function ReadyStayDetailPage({
 }) {
   const supabase = await createSupabaseServerClient();
   const { isAdmin } = await getCurrentUserAdminState(supabase);
-  const readyStayClient = isAdmin ? getSupabaseAdminClient() ?? supabase : supabase;
+  const readyStayClient = getSupabaseAdminClient() ?? supabase;
   const { data: stay } = await readyStayClient
     .from("ready_stays")
     .select(
-      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, owner_price_per_point_cents, is_test_listing, test_guest_total_cents, resorts(name, slug, calculator_code)",
+      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, owner_price_per_point_cents, status, is_test_listing, is_visible_publicly, test_guest_total_cents, slug, title, image_url, expires_at, resorts(name, slug, calculator_code)",
     )
     .eq("id", params.id)
     .in("status", ["active", "test"])
     .maybeSingle();
 
-  if (!stay) {
+  if (!stay || !isAdminOrPublicReadyStayRow(stay, isAdmin)) {
     redirect("/ready-stays");
   }
 
