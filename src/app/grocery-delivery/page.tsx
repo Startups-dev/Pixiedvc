@@ -157,7 +157,7 @@ export default function GroceryDeliveryGuidePage() {
                   href={PARTNER_URL}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center rounded-full border border-[#0F2148]/12 bg-[#0F2148] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_34px_rgba(15,33,72,0.18)] transition hover:bg-[#132a5c]"
+                  className="inline-flex items-center rounded-full border border-[#0F2148]/12 bg-[#0F2148] px-5 py-3 text-sm font-semibold !text-white shadow-[0_16px_34px_rgba(15,33,72,0.18)] transition hover:bg-[#132a5c] hover:!text-white"
                 >
                   Start Your Grocery Order
                 </Link>

@@ -56,6 +56,9 @@ const resortShowcase = [
   },
 ];
 
+// Launch Phase: Testimonials temporarily hidden. Re-enable when sufficient verified reviews are available.
+const SHOW_HOME_STORIES_FOR_LAUNCH = false;
+
 export default async function Home() {
   noStore();
   let shouldShowNewsletterSignup = true;
@@ -391,6 +394,7 @@ export default async function Home() {
             </div>
           </section>
 
+        {SHOW_HOME_STORIES_FOR_LAUNCH ? (
         <section className="relative bg-white/85 py-16 backdrop-blur">
             <div
               aria-hidden="true"
@@ -444,18 +448,8 @@ export default async function Home() {
               </div>
             </div>
           </section>
+        ) : null}
 
-        <section className="mx-auto max-w-5xl px-6 py-6">
-          <EmailLeadCapture
-            source="bottom_cta"
-            headline="Not ready to book yet?"
-            body="We’ll send you the best Disney stays as they become available."
-            buttonLabel="Get Deals"
-            className="rounded-[32px] border border-[#dbe3f6] bg-[linear-gradient(135deg,rgba(247,249,255,0.95),rgba(255,255,255,0.98))] px-6 py-8 shadow-[0_24px_55px_rgba(15,33,72,0.08)]"
-            innerClassName="mx-auto max-w-3xl"
-            align="center"
-          />
-        </section>
         <div className="h-[90px] w-full bg-[linear-gradient(to_bottom,rgba(255,255,255,1)_0%,rgba(255,255,255,0.85)_40%,rgba(255,255,255,0)_100%)]" />
         <section
             id="PixieBooking"
@@ -530,6 +524,18 @@ export default async function Home() {
               </p>
             </div>
           </section>
+
+        <section className="mx-auto max-w-5xl px-6 py-6">
+          <EmailLeadCapture
+            source="bottom_cta"
+            headline="Not ready to book yet?"
+            body="We’ll send you the best Disney stays as they become available."
+            buttonLabel="Get Deals"
+            className="rounded-[32px] border border-[#dbe3f6] bg-[linear-gradient(135deg,rgba(247,249,255,0.95),rgba(255,255,255,0.98))] px-6 py-8 shadow-[0_24px_55px_rgba(15,33,72,0.08)]"
+            innerClassName="mx-auto max-w-3xl"
+            align="center"
+          />
+        </section>
 
         <section className="py-20">
             <div className="mx-auto max-w-6xl px-6">

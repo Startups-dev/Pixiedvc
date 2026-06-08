@@ -21,6 +21,9 @@ type FormState = {
   consent: boolean;
 };
 
+// Launch Phase: Testimonials temporarily hidden. Re-enable when sufficient verified reviews are available.
+const SHOW_TESTIMONIALS_FOR_LAUNCH = false;
+
 export default function TestimonialsSection({
   title = "What Guests Are Saying",
   subtitle,
@@ -28,6 +31,10 @@ export default function TestimonialsSection({
   showForm = true,
   testimonials = TESTIMONIALS,
 }: Props) {
+  if (!SHOW_TESTIMONIALS_FOR_LAUNCH) {
+    return null;
+  }
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");

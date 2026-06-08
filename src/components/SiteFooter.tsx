@@ -43,6 +43,9 @@ const PARTNER_LINKS = [
 const linkClassName =
   "text-sm text-white/70 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2148]";
 
+const FOOTER_LOGO_URL =
+  "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/icons/Text%20Styling%20Pixie%20in%20White%20copy.svg";
+
 export default function SiteFooter() {
   const year = new Date().getFullYear();
 
@@ -51,7 +54,14 @@ export default function SiteFooter() {
       <div className="mx-auto max-w-6xl px-6 py-12 sm:py-14">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-6">
           <div className="space-y-3">
-            <p className="text-xl font-semibold tracking-tight">PixieDVC</p>
+  <img
+    src={FOOTER_LOGO_URL}
+    alt="PixieDVC"
+    className="-ml-[25px] block w-[161px] h-auto sm:w-[173px] md:w-[179px]"
+    loading="lazy"
+    decoding="async"
+    draggable={false}
+  />
             <p className="text-sm text-white/70">Disney Vacation Club rentals reimagined.</p>
           </div>
 
