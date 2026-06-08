@@ -4,6 +4,8 @@ import { guestInfoSchema } from "@pixiedvc/booking-form";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
+import { getCurrentUserAdminState } from "@/lib/admin";
 import { ensureGuestAgreementForBooking } from "@/server/contracts";
 
 export async function POST(request: Request) {
@@ -11,6 +13,7 @@ export async function POST(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const { isAdmin } = await getCurrentUserAdminState(supabase);
 
   if (!user) {
     return NextResponse.json({ error: "AUTH_REQUIRED" }, { status: 401 });
@@ -77,13 +80,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Child age is required." }, { status: 400 });
   }
 
+  if (!isAdmin) {
+    const { data: visibleStay } = await supabase
+      .from("ready_stays")
+      .select("id")
+      .eq("id", readyStayId)
+      .in("status", ["active", "test"])
+      .maybeSingle();
+
+    if (!visibleStay) {
+      return NextResponse.json({ error: "Ready Stay is no longer active." }, { status: 404 });
+    }
+  }
+
   const { data: stay } = await adminClient
     .from("ready_stays")
     .select(
-      "id, owner_id, rental_id, resort_id, check_in, check_out, points, room_type, guest_price_per_point_cents, status, booking_request_id",
+      "id, owner_id, rental_id, resort_id, check_in, check_out, points, room_type, guest_price_per_point_cents, is_test_listing, test_guest_total_cents, status, booking_request_id",
     )
     .eq("id", readyStayId)
-    .eq("status", "active")
+    .in("status", ["active", "test"])
     .maybeSingle();
 
   if (!stay) {
@@ -148,7 +164,7 @@ export async function POST(request: Request) {
     check_out: stay.check_out,
     total_points: stay.points,
     guest_rate_per_point_cents: stay.guest_price_per_point_cents,
-    guest_total_cents: Number(stay.points ?? 0) * Number(stay.guest_price_per_point_cents ?? 0),
+    guest_total_cents: getReadyStayGuestTotalCents(stay),
     lead_guest_name: leadGuestName,
     lead_guest_email: guest.email,
     lead_guest_phone: guest.phone,

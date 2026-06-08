@@ -244,15 +244,15 @@ export async function acceptContractAction(_: { error?: string | null }, formDat
     if (isReadyStay && contract.booking_request_id) {
       const { data: readyStayPricing } = await supabase
         .from('ready_stays')
-        .select('id, points, guest_price_per_point_cents')
+        .select('id, points, guest_price_per_point_cents, is_test_listing, test_guest_total_cents')
         .eq('booking_request_id', contract.booking_request_id)
         .limit(1)
         .maybeSingle();
-      if (
-        typeof readyStayPricing?.points === 'number' &&
-        typeof readyStayPricing?.guest_price_per_point_cents === 'number'
-      ) {
-        readyStayAmountCents = readyStayPricing.points * readyStayPricing.guest_price_per_point_cents;
+      if (readyStayPricing) {
+        readyStayAmountCents =
+          readyStayPricing.is_test_listing && typeof readyStayPricing.test_guest_total_cents === 'number'
+            ? readyStayPricing.test_guest_total_cents
+            : (readyStayPricing.points ?? 0) * (readyStayPricing.guest_price_per_point_cents ?? 0);
       }
       readyStayIdForMetadata = readyStayPricing?.id ?? null;
     }

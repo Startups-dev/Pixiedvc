@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import { Check, ChevronDown } from "lucide-react";
 import { Button, Card } from "@pixiedvc/design-system";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getCurrentUserAdminState } from "@/lib/admin";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
 import { resolveResortImage } from "@/lib/resort-image";
 
 function formatDate(value: string) {
@@ -49,13 +52,15 @@ export default async function ReadyStayDetailPage({
   params: { id: string };
 }) {
   const supabase = await createSupabaseServerClient();
-  const { data: stay } = await supabase
+  const { isAdmin } = await getCurrentUserAdminState(supabase);
+  const readyStayClient = isAdmin ? getSupabaseAdminClient() ?? supabase : supabase;
+  const { data: stay } = await readyStayClient
     .from("ready_stays")
     .select(
-      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, owner_price_per_point_cents, resorts(name, slug, calculator_code)",
+      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, owner_price_per_point_cents, is_test_listing, test_guest_total_cents, resorts(name, slug, calculator_code)",
     )
     .eq("id", params.id)
-    .eq("status", "active")
+    .in("status", ["active", "test"])
     .maybeSingle();
 
   if (!stay) {
@@ -68,7 +73,7 @@ export default async function ReadyStayDetailPage({
   const imageIndex = imageIndexFromId(stay.id);
   const image = resolveResortImage({ resortSlug, resortCode, imageIndex });
   const badge = holidayLabel(stay.season_type);
-  const totalPriceCents = stay.guest_price_per_point_cents * stay.points;
+  const totalPriceCents = getReadyStayGuestTotalCents(stay);
   const originalTotalPriceCents =
     stay.original_guest_price_per_point_cents &&
     stay.original_guest_price_per_point_cents > stay.guest_price_per_point_cents

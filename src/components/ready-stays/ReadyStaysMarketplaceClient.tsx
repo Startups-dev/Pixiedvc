@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button, Card } from "@pixiedvc/design-system";
 import { resolveReadyStaySignals } from "@/lib/ready-stays/signal-engine";
 import { resolveResortImage } from "@/lib/resort-image";
+import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
 
 type ReadyStayRow = {
   id: string;
@@ -18,6 +19,8 @@ type ReadyStayRow = {
   guest_price_per_point_cents: number;
   original_guest_price_per_point_cents: number | null;
   price_reduced_at: string | null;
+  is_test_listing?: boolean | null;
+  test_guest_total_cents?: number | null;
   resorts?: {
     name?: string | null;
     slug?: string | null;
@@ -113,14 +116,14 @@ function sortReadyStays(list: ReadyStayRow[], sort: string) {
         if (markdownDelta !== 0) return markdownDelta;
         const holidayDelta = holidayPriority(b.season_type) - holidayPriority(a.season_type);
         if (holidayDelta !== 0) return holidayDelta;
-        const totalA = a.guest_price_per_point_cents * a.points;
-        const totalB = b.guest_price_per_point_cents * b.points;
+        const totalA = getReadyStayGuestTotalCents(a);
+        const totalB = getReadyStayGuestTotalCents(b);
         return totalB - totalA;
       });
     case "price_asc":
-      return sorted.sort((a, b) => a.guest_price_per_point_cents - b.guest_price_per_point_cents);
+      return sorted.sort((a, b) => getReadyStayGuestTotalCents(a) - getReadyStayGuestTotalCents(b));
     case "price_desc":
-      return sorted.sort((a, b) => b.guest_price_per_point_cents - a.guest_price_per_point_cents);
+      return sorted.sort((a, b) => getReadyStayGuestTotalCents(b) - getReadyStayGuestTotalCents(a));
     case "check_in":
       return sorted.sort((a, b) => a.check_in.localeCompare(b.check_in));
     case "points_asc":
@@ -352,7 +355,7 @@ export default function ReadyStaysMarketplaceClient({
               const resortCode = stay.resorts?.calculator_code ?? null;
               const imageIndex = imageIndexFromId(stay.id);
               const image = resolveResortImage({ resortSlug, resortCode, imageIndex });
-              const totalPriceCents = stay.guest_price_per_point_cents * stay.points;
+              const totalPriceCents = getReadyStayGuestTotalCents(stay);
               const originalTotalPriceCents =
                 stay.original_guest_price_per_point_cents &&
                 stay.original_guest_price_per_point_cents > stay.guest_price_per_point_cents
@@ -366,11 +369,11 @@ export default function ReadyStaysMarketplaceClient({
               const similarInventoryCount = comparableListings.length;
               const comparableAverageTotalCents =
                 comparableListings.reduce(
-                  (sum, candidate) => sum + candidate.guest_price_per_point_cents * candidate.points,
+                  (sum, candidate) => sum + getReadyStayGuestTotalCents(candidate),
                   0,
                 ) / Math.max(similarInventoryCount, 1);
               const lowestComparableTotalCents = Math.min(
-                ...comparableListings.map((candidate) => candidate.guest_price_per_point_cents * candidate.points),
+                ...comparableListings.map((candidate) => getReadyStayGuestTotalCents(candidate)),
               );
               const signals = resolveReadyStaySignals({
                 checkIn: stay.check_in,

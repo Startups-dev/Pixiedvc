@@ -106,22 +106,23 @@ export default function GroceryDeliveryGuidePage() {
 
       <section className="mx-auto max-w-6xl px-4 pb-4 sm:px-6 lg:px-8">
         <div className="rounded-[28px] border border-[#d9e3f3] bg-white px-6 py-7 shadow-[0_20px_55px_rgba(15,33,72,0.08)] sm:px-8">
-          <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
-            <div className="flex items-center justify-center py-4 lg:py-0">
+          <div className="mx-auto max-w-3xl">
+            <div className="text-center text-xs font-semibold uppercase tracking-[0.32em] text-[#0F2148]/55">
+              Our Recommended Grocery Delivery Partner
+            </div>
+
+            <div className="flex justify-center py-5">
               <Image
                 src={PARTNER_LOGO}
                 alt="Vacation Grocery Delivery"
                 width={480}
                 height={160}
-                className="h-auto max-h-28 w-auto object-contain"
+                className="h-auto max-h-[134px] w-auto object-contain"
               />
             </div>
 
             <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.32em] text-[#0F2148]/55">
-                Our Recommended Grocery Delivery Partner
-              </div>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#0F2148]">
+              <h2 className="text-3xl font-semibold tracking-tight text-[#0F2148]">
                 A Partner Founded by Former Disney Cast Members
               </h2>
               <p className="mt-4 text-base leading-7 text-[#0F2148]/72">

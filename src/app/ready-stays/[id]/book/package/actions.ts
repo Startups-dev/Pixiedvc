@@ -2,6 +2,8 @@
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
+import { getCurrentUserAdminState } from "@/lib/admin";
 import { ensureGuestAgreementForBooking } from "@/server/contracts";
 
 export async function continueReadyStayToAgreement(input: {
@@ -23,15 +25,29 @@ export async function continueReadyStayToAgreement(input: {
     throw new Error("Booking is temporarily unavailable.");
   }
 
+  const { isAdmin } = await getCurrentUserAdminState(supabase);
+  if (!isAdmin) {
+    const { data: visibleStay } = await supabase
+      .from("ready_stays")
+      .select("id")
+      .eq("id", input.readyStayId)
+      .in("status", ["active", "test"])
+      .maybeSingle();
+
+    if (!visibleStay) {
+      throw new Error("Ready Stay is no longer available.");
+    }
+  }
+
   const { data: stay } = await adminClient
     .from("ready_stays")
-    .select("id, owner_id, rental_id, resort_id, check_in, check_out, points, room_type, guest_price_per_point_cents, status")
+    .select("id, owner_id, rental_id, resort_id, check_in, check_out, points, room_type, guest_price_per_point_cents, is_test_listing, test_guest_total_cents, status")
     .eq("id", input.readyStayId)
-    .eq("status", "active")
+    .in("status", ["active", "test"])
     .maybeSingle();
 
   if (!stay) {
-    throw new Error("Ready Stay is no longer active.");
+    throw new Error("Ready Stay is no longer available.");
   }
 
   const { data: bookingRequest } = await adminClient
@@ -54,7 +70,7 @@ export async function continueReadyStayToAgreement(input: {
       check_out: stay.check_out,
       total_points: stay.points,
       guest_rate_per_point_cents: stay.guest_price_per_point_cents,
-      guest_total_cents: Number(stay.points ?? 0) * Number(stay.guest_price_per_point_cents ?? 0),
+      guest_total_cents: getReadyStayGuestTotalCents(stay),
       renter_id: user.id,
       updated_at: new Date().toISOString(),
     })
@@ -70,7 +86,7 @@ export async function continueReadyStayToAgreement(input: {
       updated_at: new Date().toISOString(),
     })
     .eq("id", input.readyStayId)
-    .eq("status", "active");
+    .in("status", ["active", "test"]);
 
   let { data: ownerRecord } = await adminClient
     .from("owners")

@@ -2,6 +2,9 @@ import LastMinuteDealsClient, {
   type LastMinuteDeal,
 } from "@/components/last-minute-deals/LastMinuteDealsClient";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getCurrentUserAdminState } from "@/lib/admin";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
 
 function toDateOnly(value: Date) {
   return value.toISOString().slice(0, 10);
@@ -18,6 +21,8 @@ function nightsBetween(checkIn: string | null, checkOut: string | null) {
 
 export default async function LastMinuteDealsPage() {
   const supabase = await createSupabaseServerClient();
+  const { isAdmin } = await getCurrentUserAdminState(supabase);
+  const readyStaysClient = isAdmin ? getSupabaseAdminClient() ?? supabase : supabase;
 
   const now = new Date();
   const startDate = toDateOnly(now);
@@ -25,12 +30,12 @@ export default async function LastMinuteDealsPage() {
   maxWindow.setDate(maxWindow.getDate() + 60);
   const endDate = toDateOnly(maxWindow);
 
-  const { data } = await supabase
+  const { data } = await readyStaysClient
     .from("ready_stays")
     .select(
-      "id, check_in, check_out, points, room_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, status, expires_at, sleeps, created_at, resorts(name, slug)",
+      "id, check_in, check_out, points, room_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, status, expires_at, sleeps, created_at, is_test_listing, test_guest_total_cents, resorts(name, slug)",
     )
-    .eq("status", "active")
+    .in("status", ["active", "test"])
     .gte("check_in", startDate)
     .lte("check_in", endDate)
     .order("check_in", { ascending: true });
@@ -47,7 +52,12 @@ export default async function LastMinuteDealsPage() {
       const checkOut = typeof row.check_out === "string" ? row.check_out : null;
       const points = Number(row.points ?? 0);
       const ppp = Number(row.guest_price_per_point_cents ?? 0);
-      const totalCents = Number.isFinite(points) && Number.isFinite(ppp) ? points * ppp : null;
+      const totalCents = getReadyStayGuestTotalCents({
+        points,
+        guest_price_per_point_cents: ppp,
+        is_test_listing: Boolean(row.is_test_listing),
+        test_guest_total_cents: Number(row.test_guest_total_cents ?? 0) || null,
+      });
       const originalPpp = Number(row.original_guest_price_per_point_cents ?? 0);
       const originalTotalCents =
         originalPpp > 0 && originalPpp > ppp && Number.isFinite(points) ? originalPpp * points : null;
@@ -68,7 +78,7 @@ export default async function LastMinuteDealsPage() {
         nights: nightsBetween(checkIn, checkOut),
         sleeps,
         roomType,
-        totalPriceCents: totalCents && totalCents > 0 ? totalCents : null,
+        totalPriceCents: totalCents > 0 ? totalCents : null,
         originalTotalPriceCents: originalTotalCents && originalTotalCents > 0 ? originalTotalCents : null,
         pricePerPointCents: ppp > 0 ? ppp : null,
         imageUrl:

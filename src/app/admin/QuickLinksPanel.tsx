@@ -235,6 +235,12 @@ const SECTIONS: QuickLinkSection[] = [
         href: '/admin/private-inventory',
       },
       {
+        id: 'testing-qa',
+        title: 'Testing / QA',
+        description: 'Create and manage test Ready Stays for checkout and email validation.',
+        href: '/admin/testing',
+      },
+      {
         id: 'platform-tools',
         title: 'Platform Tools',
         description: 'Run guarded operational reset tools for test data.',

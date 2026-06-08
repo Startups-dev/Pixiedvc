@@ -1,12 +1,15 @@
 import Link from "next/link";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getCurrentUserAdminState } from "@/lib/admin";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import ReadyStaysMarketplaceClient from "@/components/ready-stays/ReadyStaysMarketplaceClient";
 import ReadyStaysSection from "@/components/ready-stays-showcase/ReadyStaysSection";
 import {
   READY_STAYS_SHOWCASE_FLAGS,
 } from "@/lib/ready-stays/showcase-mock";
 import { getSearchReadyStaysShowcase } from "@/lib/ready-stays/showcase-live";
+import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
 
 const READY_STAY_GUIDE_LINKS = [
   { href: "/guides/ready-stays-transfer-linking#what-is-ready-stay", label: "1. What Is a Ready Stay?" },
@@ -44,6 +47,8 @@ export default async function ReadyStaysPublicPage({
   const resolvedSearchParams = searchParams instanceof Promise ? await searchParams : searchParams;
   const searchReadyStays = await getSearchReadyStaysShowcase(3);
   const supabase = await createSupabaseServerClient();
+  const { isAdmin } = await getCurrentUserAdminState(supabase);
+  const readyStaysClient = isAdmin ? getSupabaseAdminClient() ?? supabase : supabase;
   const today = new Date().toISOString().slice(0, 10);
   const nowMs = Date.now();
 
@@ -52,13 +57,12 @@ export default async function ReadyStaysPublicPage({
     .select("id, name")
     .order("name", { ascending: true });
 
-  let query = supabase
+  let query = readyStaysClient
     .from("ready_stays")
     .select(
-      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, expires_at, locked_until, resorts(name, slug, calculator_code)",
-      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, expires_at, locked_until, verification_status, resorts(name, slug, calculator_code)",
+      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, expires_at, locked_until, verification_status, is_test_listing, test_guest_total_cents, resorts(name, slug, calculator_code)",
     )
-    .eq("status", "active")
+    .in("status", ["active", "test"])
     .gte("check_out", today)
     .order("price_reduced_at", { ascending: false, nullsFirst: false })
     .order("check_in", { ascending: true });
@@ -136,8 +140,11 @@ export default async function ReadyStaysPublicPage({
       }
     }
 
-    if (Number.isFinite(priceMin) && stay.guest_price_per_point_cents < priceMin) return false;
-    if (Number.isFinite(priceMax) && stay.guest_price_per_point_cents > priceMax) return false;
+    const effectiveGuestTotalCents = getReadyStayGuestTotalCents(stay);
+    const effectivePricePerPointCents =
+      stay.points > 0 ? Math.round(effectiveGuestTotalCents / stay.points) : stay.guest_price_per_point_cents;
+    if (Number.isFinite(priceMin) && effectivePricePerPointCents < priceMin) return false;
+    if (Number.isFinite(priceMax) && effectivePricePerPointCents > priceMax) return false;
     if (Number.isFinite(pointsMin) && stay.points < pointsMin) return false;
     if (Number.isFinite(pointsMax) && stay.points > pointsMax) return false;
 

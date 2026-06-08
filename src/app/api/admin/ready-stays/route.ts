@@ -6,7 +6,7 @@ import { FEE_PER_POINT_CENTS } from "@/lib/ready-stays/ownerPricing";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-const ALLOWED_STATUSES = new Set(["draft", "active", "sold", "expired", "paused", "removed"]);
+const ALLOWED_STATUSES = new Set(["draft", "active", "test", "sold", "expired", "paused", "removed"]);
 
 type ReadyStayMutationPayload = {
   id?: string;

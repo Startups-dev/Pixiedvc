@@ -7,6 +7,7 @@ import {
   getReadyStaysShowcaseForSearch,
 } from "@/lib/ready-stays/showcase-mock";
 import { READY_STAYS_SHOWCASE_FLAGS } from "@/lib/ready-stays/showcase-config";
+import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
 
 type ReadyStayShowcaseRow = {
   id: string;
@@ -31,6 +32,8 @@ type ReadyStayShowcaseRow = {
   expires_at: string | null;
   locked_until: string | null;
   verification_status: string | null;
+  is_test_listing?: boolean | null;
+  test_guest_total_cents?: number | null;
   resorts:
     | {
         name?: string | null;
@@ -77,7 +80,7 @@ function mapShowcaseRow(row: ReadyStayShowcaseRow): ReadyStayShowcaseItem | null
   const imageUrl = resolveShowcaseImageUrl(row, resortSlug);
   const slug = row.slug?.trim() ?? "";
   const nights = daysBetween(row.check_in, row.check_out);
-  const totalPriceUsd = Math.round((Number(row.guest_price_per_point_cents ?? 0) * Number(row.points ?? 0)) / 100);
+  const totalPriceUsd = Math.round(getReadyStayGuestTotalCents(row) / 100);
   const originalTotalPriceUsd =
     row.original_guest_price_per_point_cents != null &&
     Number(row.original_guest_price_per_point_cents) > Number(row.guest_price_per_point_cents)
@@ -172,13 +175,13 @@ async function fetchPublicShowcaseRows(placementColumn?: "placement_home" | "pla
   const supabase = await createSupabaseServerClient();
 
   const selectClause = resortSlug
-    ? "id, slug, title, short_description, created_at, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, expires_at, locked_until, verification_status, resorts!inner(name, slug)"
-    : "id, slug, title, short_description, created_at, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, expires_at, locked_until, verification_status, resorts(name, slug)";
+    ? "id, slug, title, short_description, created_at, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, expires_at, locked_until, verification_status, is_test_listing, test_guest_total_cents, resorts!inner(name, slug)"
+    : "id, slug, title, short_description, created_at, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, expires_at, locked_until, verification_status, is_test_listing, test_guest_total_cents, resorts(name, slug)";
 
   let query = supabase
     .from("ready_stays")
     .select(selectClause)
-    .eq("status", "active");
+    .in("status", ["active", "test"]);
 
   if (placementColumn) {
     query = query.eq(placementColumn, true);
@@ -188,7 +191,7 @@ async function fetchPublicShowcaseRows(placementColumn?: "placement_home" | "pla
 
   const { data, error } = await query;
   if (error) {
-    console.error("[ready-stays/showcase-live] public query failed", {
+    console.warn("[ready-stays/showcase-live] public query failed", {
       placement: placementColumn,
       resortSlug: resortSlug ?? null,
       error: error.message,

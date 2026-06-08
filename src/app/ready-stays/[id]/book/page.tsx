@@ -3,23 +3,10 @@ import crypto from "crypto";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
+import { getCurrentUserAdminState } from "@/lib/admin";
 import { Card } from "@pixiedvc/design-system";
 
-type ReadyStayRow = {
-  id: string;
-  status: string;
-  owner_id: string;
-  rental_id: string;
-  resort_id: string;
-  check_in: string;
-  check_out: string;
-  points: number;
-  room_type: string;
-  guest_price_per_point_cents: number;
-  locked_until: string | null;
-  lock_session_id: string | null;
-  booking_request_id: string | null;
-};
 
 export default async function ReadyStayBookPage({
   params,
@@ -37,7 +24,9 @@ export default async function ReadyStayBookPage({
     redirect(`/login?redirect=/ready-stays/${params.id}/book`);
   }
 
+  const { isAdmin } = await getCurrentUserAdminState(supabase);
   const adminClient = getSupabaseAdminClient();
+  const readyStayClient = isAdmin && adminClient ? adminClient : supabase;
   if (!adminClient) {
     return (
       <main className="mx-auto max-w-2xl px-6 py-12">
@@ -48,13 +37,13 @@ export default async function ReadyStayBookPage({
     );
   }
 
-  const { data: stay } = await adminClient
+  const { data: stay } = await readyStayClient
     .from("ready_stays")
     .select(
-      "id, status, owner_id, rental_id, resort_id, check_in, check_out, points, room_type, guest_price_per_point_cents, locked_until, lock_session_id, booking_request_id",
+      "id, status, owner_id, rental_id, resort_id, check_in, check_out, points, room_type, guest_price_per_point_cents, is_test_listing, test_guest_total_cents, locked_until, lock_session_id, booking_request_id",
     )
     .eq("id", params.id)
-    .eq("status", "active")
+    .in("status", ["active", "test"])
     .maybeSingle();
 
   if (!stay) {
@@ -128,7 +117,7 @@ export default async function ReadyStayBookPage({
       .from("ready_stays")
       .update(lockUpdatePayload)
       .eq("id", stay.id)
-      .eq("status", "active")
+      .in("status", ["active", "test"])
       .is("locked_until", null)
       .select("id")
       .maybeSingle();
@@ -149,7 +138,7 @@ export default async function ReadyStayBookPage({
         .from("ready_stays")
         .update(lockUpdatePayload)
         .eq("id", stay.id)
-        .eq("status", "active")
+        .in("status", ["active", "test"])
         .lt("locked_until", now.toISOString())
         .select("id")
         .maybeSingle();
@@ -188,7 +177,7 @@ export default async function ReadyStayBookPage({
     .eq("id", user.id)
     .maybeSingle();
 
-  const guestTotalCents = stay.guest_price_per_point_cents * stay.points;
+  const guestTotalCents = getReadyStayGuestTotalCents(stay);
 
   const { data: existingBookingRequest } = await adminClient
     .from("booking_requests")
@@ -286,7 +275,7 @@ export default async function ReadyStayBookPage({
       updated_at: new Date().toISOString(),
     })
     .eq("id", stay.id)
-    .eq("status", "active");
+    .in("status", ["active", "test"]);
 
   if (!searchParams?.lock || searchParams.lock !== bookingId) {
     redirect(`/ready-stays/${params.id}/book?lock=${encodeURIComponent(bookingId)}`);

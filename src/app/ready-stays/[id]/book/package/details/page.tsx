@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getCanonicalResorts } from "@/lib/resorts/getResorts";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getCurrentUserAdminState } from "@/lib/admin";
+import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
 import BookingFlowMountedClient from "./BookingFlowMountedClient";
 
 type PageProps = {
@@ -27,18 +29,20 @@ export default async function ReadyStayPackageDetailsPage({ params, searchParams
 
   const lockId = searchParams?.lock ?? "";
 
+  const { isAdmin } = await getCurrentUserAdminState(supabase);
   const adminClient = getSupabaseAdminClient();
+  const readyStayClient = isAdmin && adminClient ? adminClient : supabase;
   if (!adminClient) {
     redirect(`/ready-stays/${params.id}/book`);
   }
 
-  const { data: stay } = await adminClient
+  const { data: stay } = await readyStayClient
     .from("ready_stays")
     .select(
-      "id, status, booking_request_id, lock_session_id, resort_id, check_in, check_out, points, room_type, guest_price_per_point_cents, resorts(name, calculator_code)",
+      "id, status, booking_request_id, lock_session_id, resort_id, check_in, check_out, points, room_type, guest_price_per_point_cents, is_test_listing, test_guest_total_cents, resorts(name, calculator_code)",
     )
     .eq("id", params.id)
-    .eq("status", "active")
+    .in("status", ["active", "test"])
     .maybeSingle();
 
   if (!stay) {
@@ -73,7 +77,7 @@ export default async function ReadyStayPackageDetailsPage({ params, searchParams
     estCash: Number(
       bookingRequest?.guest_total_cents != null
         ? Number(bookingRequest.guest_total_cents) / 100
-        : ((stay.guest_price_per_point_cents ?? 0) * (stay.points ?? 0)) / 100,
+        : getReadyStayGuestTotalCents(stay) / 100,
     ),
   };
 

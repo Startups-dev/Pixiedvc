@@ -14,7 +14,7 @@ type ReadyStayRow = {
   slug: string | null;
   title: string | null;
   short_description: string | null;
-  status: 'draft' | 'active' | 'sold' | 'expired' | 'paused' | 'removed';
+  status: 'draft' | 'active' | 'test' | 'sold' | 'expired' | 'paused' | 'removed';
   verification_status: 'not_submitted' | 'proof_uploaded' | 'submitted' | 'approved' | 'rejected' | null;
   verification_submitted_at: string | null;
   verification_approved_at: string | null;
@@ -61,7 +61,7 @@ type Props = {
   resorts: ResortOption[];
 };
 
-const STATUS_OPTIONS: ReadyStayRow['status'][] = ['draft', 'active', 'sold', 'expired', 'paused', 'removed'];
+const STATUS_OPTIONS: ReadyStayRow['status'][] = ['draft', 'active', 'test', 'sold', 'expired', 'paused', 'removed'];
 
 type RowEditor = {
   id: string;

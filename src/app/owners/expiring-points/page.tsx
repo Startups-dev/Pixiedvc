@@ -32,8 +32,8 @@ const steps = [
   { title: "Tell us what you have", body: "Share your points, home resort, or confirmed reservation details." },
   { title: "Tell us when it expires", body: "We need timing context to understand urgency and possible placement paths." },
   {
-    title: "Tell us what you’d like to receive",
-    body: "Let us know what you hope to receive so we can assess whether the opportunity is realistic.",
+    title: "Tell us your ideal outcome",
+    body: "If your points are approaching expiration, flexibility on pricing may help increase visibility and interest. Share what you'd like to receive and we'll review the request alongside current demand, travel timing, and resort interest.",
   },
   {
     title: "PixieDVC reviews demand",
@@ -51,7 +51,6 @@ const steps = [
 
 const disclosures = [
   "Submitting a request does not guarantee placement, promotion, or a completed rental.",
-  "Owner verification may be required.",
   "We review each request individually.",
   "Selected stays may be featured through newsletters, promotional campaigns, or other marketing channels based on demand, timing, and travel dates.",
   "Nothing moves forward without your approval.",
@@ -60,9 +59,9 @@ const disclosures = [
 const promotionChannels = [
   "Featured newsletter placements",
   "Limited-time promotions",
-  "Featured owner stays",
+  "Featured Ready Stay showcases",
   "Targeted outreach to Disney travelers",
-  "Placement opportunities based on demand and timing",
+  "Additional placement opportunities based on demand, timing, and availability",
 ];
 
 export default function ExpiringPointsPage() {
@@ -77,11 +76,13 @@ export default function ExpiringPointsPage() {
           <div className="rounded-[40px] border border-[#dbe5f5] bg-white/82 px-7 py-10 shadow-[0_28px_70px_rgba(15,33,72,0.10)] backdrop-blur-sm sm:px-10 sm:py-12 lg:px-12">
             <div className="grid gap-10 lg:grid-cols-[1.08fr_0.92fr] lg:items-center">
               <div className="max-w-4xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#5f7397]">Owner Support</p>
-                <h1 className="mt-5 max-w-[14ch] font-display text-4xl font-semibold leading-[1.02] text-[#0F2148] sm:text-5xl md:text-6xl">
+                <p className="text-[11px] font-medium uppercase tracking-[0.34em] text-[#5f7397]/78">Owner Support</p>
+                <h1 className="mt-5 max-w-[14ch] font-display text-[40px] font-semibold leading-[0.98] text-[#0F2148] sm:text-[46px] md:text-[54px]">
                   Have Expiring DVC Points?
                 </h1>
-                <p className="mt-5 text-xl leading-8 text-[#3f5a80]">Don&apos;t let valuable points go unused.</p>
+                <p className="mt-4 text-[22px] font-medium leading-[1.3] text-[#4e6690] sm:text-[24px] md:text-[26px]">
+                  We&apos;ll help you explore your options before they expire.
+                </p>
                 <p className="mt-5 max-w-3xl text-[16px] leading-8 text-[#5d6f8b]">
                   If you have points approaching expiration or a reservation you can no longer use, PixieDVC may be
                   able to help by presenting select stays to our audience of Disney travelers through newsletters,
@@ -107,9 +108,9 @@ export default function ExpiringPointsPage() {
                 <div className="mt-10">
                   <Link
                     href="#request-form"
-                    className="inline-flex items-center rounded-full bg-[linear-gradient(180deg,#0f2148_0%,#193466_100%)] px-7 py-3.5 text-sm font-semibold text-white shadow-[0_20px_45px_rgba(15,33,72,0.22)] transition hover:-translate-y-[1px] hover:brightness-105"
+                    className="inline-flex items-center rounded-full bg-[linear-gradient(180deg,#0f2148_0%,#193466_100%)] px-7 py-3.5 text-sm font-semibold !text-white shadow-[0_20px_45px_rgba(15,33,72,0.22)] transition hover:-translate-y-[1px] hover:brightness-105"
                   >
-                    Submit Request
+                    Tell Us About Your Points
                   </Link>
                 </div>
               </div>
@@ -199,8 +200,8 @@ export default function ExpiringPointsPage() {
                 </p>
                 <div className="mt-4 space-y-3 text-[15px] leading-7 text-[#5d6f8b]">
                   <p>
-                    Unlike a traditional marketplace listing, selected stays may receive additional
-                    exposure through:
+                    Unlike a traditional marketplace listing, qualifying stays and expiring points may receive
+                    additional visibility through opportunities such as:
                   </p>
                   <ul className="space-y-3 pt-1">
                     {promotionChannels.map((item) => (
@@ -210,7 +211,10 @@ export default function ExpiringPointsPage() {
                       </li>
                     ))}
                   </ul>
-                  <p>This approach can help generate visibility for stays that require faster action.</p>
+                  <p>
+                    These promotional opportunities can help increase visibility for stays that may benefit from
+                    additional exposure. Placement is not guaranteed and is determined at PixieDVC&apos;s discretion.
+                  </p>
                 </div>
               </div>
             </div>
@@ -240,7 +244,7 @@ export default function ExpiringPointsPage() {
       <section className="px-6 pb-16 sm:pb-20">
         <div className="mx-auto max-w-5xl overflow-hidden rounded-[36px] border border-[#0f2148]/10 bg-[radial-gradient(circle_at_top_right,rgba(217,165,58,0.18),transparent_22%),linear-gradient(135deg,#0f2148_0%,#17325f_54%,#102554_100%)] px-8 py-14 text-center text-white shadow-[0_30px_70px_rgba(15,33,72,0.22)]">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/62">Owner Support</p>
-          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+          <h2 className="mt-4 text-3xl font-semibold tracking-tight !text-[#f5c965] sm:text-4xl">
             Need Help Before Your Points Expire?
           </h2>
           <p className="mt-4 text-base leading-8 text-white/78">
@@ -249,7 +253,7 @@ export default function ExpiringPointsPage() {
           <div className="mt-8">
             <Link
               href="#request-form"
-              className="inline-flex items-center rounded-full bg-[linear-gradient(180deg,#f5c965,#d9a53a)] px-6 py-3 text-sm font-semibold text-[#102554] shadow-[0_18px_36px_rgba(217,165,58,0.26)] transition hover:brightness-105"
+              className="inline-flex items-center rounded-full bg-[linear-gradient(180deg,#f5c965,#d9a53a)] px-6 py-3 text-sm font-semibold !text-white shadow-[0_18px_36px_rgba(217,165,58,0.26)] transition hover:brightness-105"
             >
               Submit Request
             </Link>

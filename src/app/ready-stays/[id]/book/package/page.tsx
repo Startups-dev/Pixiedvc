@@ -1,19 +1,13 @@
 import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getCurrentUserAdminState } from "@/lib/admin";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
 type ReadyStayPackagePageProps = {
   params: { id: string };
   searchParams?: { lock?: string };
 };
-
-function calculateNights(checkIn: string, checkOut: string) {
-  const start = new Date(`${checkIn}T00:00:00Z`).getTime();
-  const end = new Date(`${checkOut}T00:00:00Z`).getTime();
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
-  return Math.round((end - start) / (1000 * 60 * 60 * 24));
-}
 
 export default async function ReadyStayPackagePage({
   params,
@@ -30,16 +24,18 @@ export default async function ReadyStayPackagePage({
 
   const lockId = searchParams?.lock ?? "";
 
+  const { isAdmin } = await getCurrentUserAdminState(supabase);
   const adminClient = getSupabaseAdminClient();
+  const readyStayClient = isAdmin && adminClient ? adminClient : supabase;
   if (!adminClient) {
     redirect(`/ready-stays/${params.id}/book`);
   }
 
-  const { data: stay } = await adminClient
+  const { data: stay } = await readyStayClient
     .from("ready_stays")
     .select("id, status, owner_id, rental_id, booking_request_id, lock_session_id")
     .eq("id", params.id)
-    .eq("status", "active")
+    .in("status", ["active", "test"])
     .maybeSingle();
 
   if (!stay) {

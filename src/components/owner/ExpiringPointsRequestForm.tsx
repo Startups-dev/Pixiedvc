@@ -19,6 +19,26 @@ type FormState = {
 const fieldClassName =
   "mt-2 w-full rounded-2xl border border-[#d7e1f2] bg-white px-4 py-3.5 text-sm text-[#0F2148] shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_4px_14px_rgba(15,33,72,0.04)] outline-none transition placeholder:text-[#8aa0c2] focus:border-[#0F2148]/30 focus:ring-4 focus:ring-[#d9a53a]/12";
 const labelClassName = "text-[11px] font-semibold uppercase tracking-[0.24em] text-[#5f7397]";
+const resortOptions = [
+  "Disney's Animal Kingdom Villas - Jambo House",
+  "Disney's Animal Kingdom Villas - Kidani Village",
+  "Aulani, Disney Vacation Club Villas",
+  "Bay Lake Tower at Disney's Contemporary Resort",
+  "Disney's Beach Club Villas",
+  "Disney's BoardWalk Villas",
+  "Disney's Boulder Ridge Villas at Disney's Wilderness Lodge",
+  "Copper Creek Villas & Cabins at Disney's Wilderness Lodge",
+  "The Villas at Disneyland Hotel",
+  "The Cabins at Disney's Fort Wilderness Resort",
+  "The Villas at Disney's Grand Californian Hotel & Spa",
+  "The Villas at Disney's Grand Floridian Resort & Spa",
+  "Disney's Hilton Head Island Resort",
+  "Disney's Old Key West Resort",
+  "Disney's Polynesian Villas & Bungalows",
+  "Disney's Riviera Resort",
+  "Disney's Saratoga Springs Resort & Spa",
+  "Disney's Vero Beach Resort",
+];
 
 const initialState: FormState = {
   fullName: "",
@@ -116,13 +136,19 @@ export default function ExpiringPointsRequestForm() {
 
       <label>
         <span className={labelClassName}>Home Resort</span>
-        <input
+        <select
           required
           className={fieldClassName}
           value={form.resort}
           onChange={(event) => setForm((prev) => ({ ...prev, resort: event.target.value }))}
-          placeholder="Disney's Polynesian Villas & Bungalows"
-        />
+        >
+          <option value="">Select a resort</option>
+          {resortOptions.map((resort) => (
+            <option key={resort} value={resort}>
+              {resort}
+            </option>
+          ))}
+        </select>
       </label>
 
       <label>
@@ -166,7 +192,7 @@ export default function ExpiringPointsRequestForm() {
           className={fieldClassName}
           value={form.desiredPayout}
           onChange={(event) => setForm((prev) => ({ ...prev, desiredPayout: event.target.value }))}
-          placeholder="$16/pt or total amount"
+          placeholder="Price per point"
         />
       </label>
 
@@ -226,7 +252,7 @@ export default function ExpiringPointsRequestForm() {
         <button
           type="submit"
           disabled={status === "submitting"}
-          className="inline-flex min-w-[190px] items-center justify-center rounded-full bg-[linear-gradient(180deg,#f5c965,#d9a53a)] px-7 py-3.5 text-sm font-semibold text-[#102554] shadow-[0_20px_40px_rgba(217,165,58,0.30)] transition hover:-translate-y-[1px] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex min-w-[190px] items-center justify-center rounded-full bg-[linear-gradient(180deg,#f5c965,#d9a53a)] px-7 py-3.5 text-sm font-semibold !text-white shadow-[0_20px_40px_rgba(217,165,58,0.30)] transition hover:-translate-y-[1px] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {status === "submitting" ? "Submitting..." : "Submit Request"}
         </button>

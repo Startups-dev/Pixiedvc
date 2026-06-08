@@ -15,14 +15,14 @@ export function isUserAdmin(input: {
   );
 }
 
-export async function requireAdminUser(redirectPath = '/admin/owners') {
-  const supabase = await createSupabaseServerClient();
+export async function getCurrentUserAdminState(supabaseParam?: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
+  const supabase = supabaseParam ?? (await createSupabaseServerClient());
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/login?redirect=${encodeURIComponent(redirectPath)}&admin=1`);
+    return { supabase, user: null, profileRole: null, appRole: null, isAdmin: false } as const;
   }
 
   const { data: profile } = await supabase
@@ -31,14 +31,30 @@ export async function requireAdminUser(redirectPath = '/admin/owners') {
     .eq('id', user.id)
     .maybeSingle();
 
+  const profileRole = profile?.role ?? null;
   const appRole = (user.app_metadata?.role as string | undefined) ?? null;
-  if (
-    !isUserAdmin({
-      profileRole: profile?.role ?? null,
+
+  return {
+    supabase,
+    user,
+    profileRole,
+    appRole,
+    isAdmin: isUserAdmin({
+      profileRole,
       appRole,
       email: user.email ?? null,
-    })
-  ) {
+    }),
+  } as const;
+}
+
+export async function requireAdminUser(redirectPath = '/admin/owners') {
+  const { supabase, user, isAdmin } = await getCurrentUserAdminState();
+
+  if (!user) {
+    redirect(`/login?redirect=${encodeURIComponent(redirectPath)}&admin=1`);
+  }
+
+  if (!isAdmin) {
     redirect('/');
   }
 

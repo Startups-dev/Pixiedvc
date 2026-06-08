@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createSupabaseServerClient } from '@/lib/supabase-server';
@@ -350,7 +351,7 @@ export default async function ReadyStayAgreementPage({
       ? 'owner_memberships.owner_legal_full_name'
       : snapshotHasConcreteOwnerName
         ? 'contracts.snapshot.parties.owner.fullName'
-      : 'none';
+        : 'none';
 
   if (isDev) {
     console.error('[ready-stays/agreement] owner legal name source', {
@@ -391,7 +392,6 @@ export default async function ReadyStayAgreementPage({
     'Not provided';
   const resortName = resolvedResort?.name ?? summary?.resortName ?? 'Not provided';
   const roomType = readyStay.room_type ?? summary?.accommodationType ?? 'Not provided';
-  const pricePerPoint = readyStayPricePerPointCents / 100;
   const totalCents = readyStayTotalCents;
   const totalFormatted = formatCurrency(totalCents);
   const pricePerPointFormatted = formatCurrency(readyStayPricePerPointCents);
@@ -551,9 +551,9 @@ export default async function ReadyStayAgreementPage({
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900">
             Reservation transferred successfully.
             <div className="mt-2">
-              <a href="/guides/link-to-disney-experience" className="font-semibold underline underline-offset-4">
+              <Link href="/guides/link-to-disney-experience" className="font-semibold underline underline-offset-4">
                 Link to My Disney Experience
-              </a>
+              </Link>
             </div>
           </div>
         ) : contract.guest_accepted_at ? (
