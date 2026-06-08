@@ -269,6 +269,7 @@ export default function HeaderClient({
         items: [
           { label: "List a Ready Stay", href: ownerJoinHref, icon: Calendar },
           { label: "Owner Dashboard", href: ownerPortalHref, icon: ShieldCheck },
+          { label: "Have Expiring Points?", href: "/owners/expiring-points", icon: Sparkles },
         ],
       },
     ],
