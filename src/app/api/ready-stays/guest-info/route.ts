@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
 import { getCurrentUserAdminState } from "@/lib/admin";
+import { isAdminOrPublicReadyStayRow } from "@/lib/ready-stays/visibility";
 import { ensureGuestAgreementForBooking } from "@/server/contracts";
 
 export async function POST(request: Request) {
@@ -80,29 +81,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Child age is required." }, { status: 400 });
   }
 
-  if (!isAdmin) {
-    const { data: visibleStay } = await supabase
-      .from("ready_stays")
-      .select("id")
-      .eq("id", readyStayId)
-      .in("status", ["active", "test"])
-      .maybeSingle();
-
-    if (!visibleStay) {
-      return NextResponse.json({ error: "Ready Stay is no longer active." }, { status: 404 });
-    }
-  }
-
   const { data: stay } = await adminClient
     .from("ready_stays")
     .select(
-      "id, owner_id, rental_id, resort_id, check_in, check_out, points, room_type, guest_price_per_point_cents, is_test_listing, test_guest_total_cents, status, booking_request_id",
+      "id, owner_id, rental_id, resort_id, check_in, check_out, points, room_type, guest_price_per_point_cents, is_test_listing, is_visible_publicly, test_guest_total_cents, status, booking_request_id, slug, title, image_url, expires_at, locked_until, verification_status",
     )
     .eq("id", readyStayId)
     .in("status", ["active", "test"])
     .maybeSingle();
 
-  if (!stay) {
+  if (!stay || !isAdminOrPublicReadyStayRow(stay, isAdmin)) {
     return NextResponse.json({ error: "Ready Stay is no longer active." }, { status: 404 });
   }
 

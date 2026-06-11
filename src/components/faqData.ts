@@ -101,7 +101,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         question: "How does payment work?",
         answer:
-          "After you submit your request, you'll pay a $99 refundable request deposit. This deposit allows our team to actively work your request with verified DVC Owners and is fully refunded if we're unable to secure your reservation. Once the reservation is confirmed, the remaining balance is due within 24 hours. You'll receive a Rental Agreement, and payment in full confirms acceptance. We accept Visa/Mastercard and PayPal.",
+          "After you submit your request, you'll pay a $99 refundable request deposit. This deposit allows our team to actively work your request with verified DVC Owners and is fully refunded if we're unable to secure your reservation. Once the reservation is confirmed, the remaining balance is due within 24 hours. You'll receive a Rental Agreement, and payment in full confirms acceptance. We accept major credit and debit cards through Stripe.",
       },
       {
         question: "When is the remaining balance due?",

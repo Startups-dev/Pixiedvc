@@ -358,7 +358,10 @@ export function BookingFlow({
     if (stepIndexToSet >= 0) {
       setStepIndex(stepIndexToSet);
     }
-    setError(`Please complete required fields in ${getStepLabel(resolvedStep)}.`);
+    const onlyMiddleInitialErrors =
+      Object.keys(fieldErrors).length > 0 &&
+      Object.keys(fieldErrors).every((path) => path.endsWith("MiddleInitial") || path.endsWith(".middleInitial"));
+    setError(onlyMiddleInitialErrors ? null : `Please complete required fields in ${getStepLabel(resolvedStep)}.`);
     focusAndScrollToInvalid();
   };
 

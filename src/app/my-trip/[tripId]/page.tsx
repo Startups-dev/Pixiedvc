@@ -14,7 +14,7 @@
 
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ConfirmationCopy } from "./TripDetailsClient";
+import { ComingSoonOverlay, ConfirmationCopy } from "./TripDetailsClient";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { isAdminEmailStrict } from "@/lib/admin-emails";
@@ -58,6 +58,7 @@ type EnhanceItem = {
   cta: string;
   href: string;
   bgImageUrl: string;
+  isAvailable: boolean;
 };
 
 function formatDate(d: string | null) {
@@ -185,6 +186,7 @@ function buildEnhanceItems(): EnhanceItem[] {
       href: "/services/concierge",
       bgImageUrl:
         "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Enhance%20your%20stay/concierge.png",
+      isAvailable: false,
     },
     {
       title: "Dining",
@@ -193,6 +195,7 @@ function buildEnhanceItems(): EnhanceItem[] {
       href: "/services/dining",
       bgImageUrl:
         "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Enhance%20your%20stay/dining-plan.png",
+      isAvailable: false,
     },
     {
       title: "Grocery delivery",
@@ -201,6 +204,7 @@ function buildEnhanceItems(): EnhanceItem[] {
       href: "/services/grocery",
       bgImageUrl:
         "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Enhance%20your%20stay/grocery%20delivery.png",
+      isAvailable: true,
     },
     {
       title: "Resort guide",
@@ -209,6 +213,7 @@ function buildEnhanceItems(): EnhanceItem[] {
       href: "/guides",
       bgImageUrl:
         "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Enhance%20your%20stay/resort-guide.png",
+      isAvailable: true,
     },
     {
       title: "Special requests",
@@ -217,6 +222,7 @@ function buildEnhanceItems(): EnhanceItem[] {
       href: "/guest",
       bgImageUrl:
         "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Enhance%20your%20stay/concierge.png",
+      isAvailable: true,
     },
     {
       title: "Tickets",
@@ -225,6 +231,7 @@ function buildEnhanceItems(): EnhanceItem[] {
       href: "/services/tickets",
       bgImageUrl:
         "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Enhance%20your%20stay/Disney%20tickets.png",
+      isAvailable: false,
     },
   ];
 }
@@ -555,12 +562,21 @@ export default async function TripDetailsPage({
 
         <div className="mt-4 flex gap-4 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] snap-x snap-mandatory">
           {enhanceItems.map((item) => (
-            <Link
+            <div
               key={item.title}
-              href={item.href}
-              className="group relative min-w-[260px] snap-start overflow-hidden rounded-xl border border-[#0B1B3A]/10 bg-white transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-[#0B1B3A]/15"
-              aria-label={item.title}
+              title={
+                item.isAvailable
+                  ? undefined
+                  : "This feature is currently in development and will be available soon."
+              }
+              aria-disabled={!item.isAvailable}
+              className={`group/soon relative min-w-[260px] snap-start overflow-hidden rounded-xl border border-[#0B1B3A]/10 bg-white ${
+                item.isAvailable
+                  ? "transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-[#0B1B3A]/15"
+                  : "cursor-default opacity-75"
+              }`}
             >
+              {!item.isAvailable ? <ComingSoonOverlay /> : null}
               <div className="relative flex min-h-[320px] flex-col">
                 {/* Top navy block */}
                 <div className="relative overflow-hidden rounded-t-2xl bg-[#071a33]">
@@ -576,9 +592,15 @@ export default async function TripDetailsPage({
                       <div className="text-base font-semibold text-white">{item.title}</div>
                       <p className="mt-2 text-xs leading-relaxed text-white/75">{item.body}</p>
                     </div>
-                    <span className="mt-4 inline-flex items-center rounded-full border border-white/30 px-2.5 py-1 text-[0.7rem] font-semibold text-white/90 transition group-hover:border-white/50 group-hover:text-white">
-                      {item.cta}
-                    </span>
+                    {item.isAvailable ? (
+                      <span className="mt-4 inline-flex items-center rounded-full border border-white/30 px-2.5 py-1 text-[0.7rem] font-semibold text-white/90 transition group-hover/soon:border-white/50 group-hover/soon:text-white">
+                        {item.cta}
+                      </span>
+                    ) : (
+                      <span className="mt-4 inline-flex items-center rounded-full border border-white/20 px-2.5 py-1 text-[0.7rem] font-semibold text-white/70">
+                        {item.cta}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -599,7 +621,10 @@ export default async function TripDetailsPage({
                   />
                 </div>
               </div>
-            </Link>
+              {item.isAvailable ? (
+                <Link href={item.href} className="absolute inset-0 z-20" aria-label={item.title} />
+              ) : null}
+            </div>
           ))}
         </div>
 

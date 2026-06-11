@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFormContext } from "react-hook-form";
 
 import { Button, Card, FieldLabel, HelperText, TextArea, TextInput } from "@pixiedvc/design-system";
@@ -17,10 +17,11 @@ type FormValues = {
   agreement: AgreementInput;
 };
 
-const gatewayTabs: { id: AgreementInput["gateway"]; label: string; description: string }[] = [
-  { id: "stripe", label: "Stripe", description: "Secure card deposit with instant confirmation." },
-  { id: "paypal", label: "PayPal", description: "Use your PayPal balance or linked account." },
-];
+const stripeMethod: { id: AgreementInput["gateway"]; label: string; description: string } = {
+  id: "stripe",
+  label: "Credit or debit card",
+  description: "Secure card deposit with instant confirmation through Stripe.",
+};
 
 export function AgreementAndPayment({
   onBack,
@@ -37,6 +38,12 @@ export function AgreementAndPayment({
 
   const selectedGateway = watch("agreement.gateway") ?? "stripe";
   const [isSubmitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (selectedGateway !== "stripe") {
+      setValue("agreement.gateway", "stripe");
+    }
+  }, [selectedGateway, setValue]);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -104,31 +111,16 @@ export function AgreementAndPayment({
 
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Deposit Method</p>
-            <div className="flex flex-wrap gap-3">
-              {gatewayTabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={`rounded-2xl border px-5 py-3 text-sm font-semibold transition ${
-                    selectedGateway === tab.id
-                      ? "border-brand bg-brand text-white shadow-[0_16px_40px_rgba(46,143,255,0.35)]"
-                      : "border-slate-200 bg-white text-ink hover:border-brand"
-                  }`}
-                  onClick={() => setValue("agreement.gateway", tab.id)}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            <div className="rounded-2xl border border-brand/20 bg-brand/5 px-5 py-4">
+              <p className="text-sm font-semibold text-ink">{stripeMethod.label}</p>
+              <p className="mt-1 text-sm text-slate-500">{stripeMethod.description}</p>
             </div>
-            <p className="text-sm text-slate-500">
-              {gatewayTabs.find((tab) => tab.id === selectedGateway)?.description}
-            </p>
           </div>
 
         </div>
 
         {errors.agreement && !errors.agreement?.signedName ? (
-          <HelperText>Accept the terms and choose a payment method to continue.</HelperText>
+          <HelperText>Accept the terms and complete card payment to continue.</HelperText>
         ) : null}
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-between">

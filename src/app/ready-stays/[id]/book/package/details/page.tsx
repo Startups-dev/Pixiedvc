@@ -5,6 +5,7 @@ import { getCanonicalResorts } from "@/lib/resorts/getResorts";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getCurrentUserAdminState } from "@/lib/admin";
 import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
+import { isAdminOrPublicReadyStayRow } from "@/lib/ready-stays/visibility";
 import BookingFlowMountedClient from "./BookingFlowMountedClient";
 
 type PageProps = {
@@ -31,21 +32,20 @@ export default async function ReadyStayPackageDetailsPage({ params, searchParams
 
   const { isAdmin } = await getCurrentUserAdminState(supabase);
   const adminClient = getSupabaseAdminClient();
-  const readyStayClient = isAdmin && adminClient ? adminClient : supabase;
   if (!adminClient) {
     redirect(`/ready-stays/${params.id}/book`);
   }
 
-  const { data: stay } = await readyStayClient
+  const { data: stay } = await adminClient
     .from("ready_stays")
     .select(
-      "id, status, booking_request_id, lock_session_id, resort_id, check_in, check_out, points, room_type, guest_price_per_point_cents, is_test_listing, test_guest_total_cents, resorts(name, calculator_code)",
+      "id, status, booking_request_id, lock_session_id, resort_id, check_in, check_out, points, room_type, guest_price_per_point_cents, is_test_listing, is_visible_publicly, test_guest_total_cents, slug, title, image_url, expires_at, locked_until, verification_status, resorts(name, calculator_code)",
     )
     .eq("id", params.id)
     .in("status", ["active", "test"])
     .maybeSingle();
 
-  if (!stay) {
+  if (!stay || !isAdminOrPublicReadyStayRow(stay, isAdmin)) {
     redirect(`/ready-stays/${params.id}/book`);
   }
 

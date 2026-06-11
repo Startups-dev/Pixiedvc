@@ -49,7 +49,29 @@ export type MonetizationItem = {
   cta: string;
   href: string;
   bgImageUrl: string;
+  isAvailable?: boolean;
 };
+
+export function ComingSoonOverlay({
+  message = "This feature is currently in development and will be available soon.",
+}: {
+  message?: string;
+}) {
+  return (
+    <>
+      <div className="pointer-events-none absolute inset-0 z-30 bg-[#071a33]/10" aria-hidden="true" />
+      <div className="pointer-events-none absolute right-[-54px] top-[18px] z-40 w-[220px] rotate-[35deg] border border-[#d4a43a]/40 bg-[linear-gradient(180deg,#f3cf76_0%,#d4a43a_100%)] px-3 py-1.5 text-center text-[0.65rem] font-bold uppercase tracking-[0.28em] text-[#0B1B3A] shadow-[0_12px_28px_rgba(11,27,58,0.18)]">
+        Coming Soon
+      </div>
+      <div
+        role="tooltip"
+        className="pointer-events-none absolute inset-x-4 bottom-4 z-40 rounded-xl border border-[#0B1B3A]/12 bg-white/96 px-3 py-2 text-xs leading-relaxed text-[#0B1B3A]/75 opacity-0 shadow-[0_16px_34px_rgba(11,27,58,0.14)] transition-opacity duration-200 group-hover/soon:opacity-100"
+      >
+        {message}
+      </div>
+    </>
+  );
+}
 
 export function MonetizationCarousel({ items }: { items: MonetizationItem[] }) {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -93,8 +115,19 @@ export function MonetizationCarousel({ items }: { items: MonetizationItem[] }) {
         {items.map((item) => (
           <div
             key={item.title}
-            className="group relative min-w-[260px] snap-start overflow-hidden rounded-xl border border-[#0B1B3A]/10 bg-white transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-[#0B1B3A]/15"
+            title={
+              item.isAvailable === false
+                ? "This feature is currently in development and will be available soon."
+                : undefined
+            }
+            aria-disabled={item.isAvailable === false}
+            className={`group/soon relative min-w-[260px] snap-start overflow-hidden rounded-xl border border-[#0B1B3A]/10 bg-white transition-transform duration-200 ${
+              item.isAvailable === false
+                ? "cursor-default opacity-75"
+                : "hover:-translate-y-1 hover:shadow-lg hover:shadow-[#0B1B3A]/15"
+            }`}
           >
+            {item.isAvailable === false ? <ComingSoonOverlay /> : null}
             <div className="relative flex min-h-[320px] flex-col">
               {/* Top navy block */}
               <div className="relative overflow-hidden rounded-t-2xl bg-[#071a33]">
@@ -111,12 +144,18 @@ export function MonetizationCarousel({ items }: { items: MonetizationItem[] }) {
                     <p className="mt-2 text-xs leading-relaxed text-white/75">{item.body}</p>
                   </div>
 
-                  <Link
-                    href={item.href}
-                    className="mt-4 inline-flex items-center rounded-full border border-white/30 px-2.5 py-1 text-[0.7rem] font-semibold text-white/90 transition hover:border-white/50 hover:text-white"
-                  >
-                    {item.cta}
-                  </Link>
+                  {item.isAvailable === false ? (
+                    <span className="mt-4 inline-flex items-center rounded-full border border-white/20 px-2.5 py-1 text-[0.7rem] font-semibold text-white/70">
+                      {item.cta}
+                    </span>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      className="mt-4 inline-flex items-center rounded-full border border-white/30 px-2.5 py-1 text-[0.7rem] font-semibold text-white/90 transition hover:border-white/50 hover:text-white"
+                    >
+                      {item.cta}
+                    </Link>
+                  )}
                 </div>
               </div>
 

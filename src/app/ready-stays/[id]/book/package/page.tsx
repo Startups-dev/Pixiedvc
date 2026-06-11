@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getCurrentUserAdminState } from "@/lib/admin";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { isAdminOrPublicReadyStayRow } from "@/lib/ready-stays/visibility";
 
 type ReadyStayPackagePageProps = {
   params: { id: string };
@@ -26,19 +27,18 @@ export default async function ReadyStayPackagePage({
 
   const { isAdmin } = await getCurrentUserAdminState(supabase);
   const adminClient = getSupabaseAdminClient();
-  const readyStayClient = isAdmin && adminClient ? adminClient : supabase;
   if (!adminClient) {
     redirect(`/ready-stays/${params.id}/book`);
   }
 
-  const { data: stay } = await readyStayClient
+  const { data: stay } = await adminClient
     .from("ready_stays")
-    .select("id, status, owner_id, rental_id, booking_request_id, lock_session_id")
+    .select("id, status, owner_id, rental_id, booking_request_id, lock_session_id, check_out, expires_at, locked_until, verification_status, is_visible_publicly, slug, title, image_url")
     .eq("id", params.id)
     .in("status", ["active", "test"])
     .maybeSingle();
 
-  if (!stay) {
+  if (!stay || !isAdminOrPublicReadyStayRow(stay, isAdmin)) {
     redirect(`/ready-stays/${params.id}/book`);
   }
 

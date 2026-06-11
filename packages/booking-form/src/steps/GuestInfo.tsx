@@ -86,6 +86,23 @@ const referralOptions = [
   "Other",
 ];
 
+const middleInitialHelperText =
+  "Enter one letter, or type the middle name and we'll use the first initial.";
+
+function normalizeMiddleInitialInput(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  const firstLetter = trimmed.match(/[A-Za-z]/)?.[0];
+  if (!firstLetter) {
+    return trimmed;
+  }
+
+  return firstLetter.toUpperCase();
+}
+
 function splitCombinedAddress(value: string) {
   const parts = value
     .split(",")
@@ -364,7 +381,25 @@ export function GuestInfo({
                     </div>
                     <div>
                       <FieldLabel htmlFor="guest.leadMiddleInitial">Middle initial</FieldLabel>
-                      <TextInput id="guest.leadMiddleInitial" placeholder="M.I." {...register("guest.leadMiddleInitial")} />
+                      <TextInput
+                        id="guest.leadMiddleInitial"
+                        placeholder="M.I."
+                        {...register("guest.leadMiddleInitial", {
+                          setValueAs: normalizeMiddleInitialInput,
+                          onBlur: (event) => {
+                            setValue(
+                              "guest.leadMiddleInitial",
+                              normalizeMiddleInitialInput(event.target.value),
+                              { shouldDirty: true, shouldValidate: true },
+                            );
+                          },
+                        })}
+                      />
+                      {errors.guest?.leadMiddleInitial ? (
+                        <HelperText>{errors.guest.leadMiddleInitial.message}</HelperText>
+                      ) : (
+                        <HelperText>{middleInitialHelperText}</HelperText>
+                      )}
                     </div>
                     <div>
                       <FieldLabel htmlFor="guest.leadLastName">Last name</FieldLabel>
@@ -544,7 +579,21 @@ export function GuestInfo({
                               </label>
                               <label className="text-xs font-semibold text-slate-500">
                                 Middle initial
-                                <TextInput {...register(`guest.adultGuests.${index}.middleInitial` as const)} />
+                                <TextInput
+                                  {...register(`guest.adultGuests.${index}.middleInitial` as const, {
+                                    setValueAs: normalizeMiddleInitialInput,
+                                    onBlur: (event) => {
+                                      setValue(
+                                        `guest.adultGuests.${index}.middleInitial`,
+                                        normalizeMiddleInitialInput(event.target.value),
+                                        { shouldDirty: true, shouldValidate: true },
+                                      );
+                                    },
+                                  })}
+                                />
+                                {errors.guest?.adultGuests?.[index]?.middleInitial ? (
+                                  <HelperText>{errors.guest.adultGuests[index]?.middleInitial?.message}</HelperText>
+                                ) : null}
                               </label>
                               <label className="text-xs font-semibold text-slate-500">
                                 Last name
@@ -588,7 +637,21 @@ export function GuestInfo({
                               </label>
                               <label className="text-xs font-semibold text-slate-500">
                                 Middle initial
-                                <TextInput {...register(`guest.childGuests.${index}.middleInitial` as const)} />
+                                <TextInput
+                                  {...register(`guest.childGuests.${index}.middleInitial` as const, {
+                                    setValueAs: normalizeMiddleInitialInput,
+                                    onBlur: (event) => {
+                                      setValue(
+                                        `guest.childGuests.${index}.middleInitial`,
+                                        normalizeMiddleInitialInput(event.target.value),
+                                        { shouldDirty: true, shouldValidate: true },
+                                      );
+                                    },
+                                  })}
+                                />
+                                {errors.guest?.childGuests?.[index]?.middleInitial ? (
+                                  <HelperText>{errors.guest.childGuests[index]?.middleInitial?.message}</HelperText>
+                                ) : null}
                               </label>
                               <label className="text-xs font-semibold text-slate-500">
                                 Last name

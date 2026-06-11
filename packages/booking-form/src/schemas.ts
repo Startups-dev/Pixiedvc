@@ -1,6 +1,30 @@
 import { z } from "zod";
 
 const guestTitleSchema = z.enum(["Mr.", "Mrs.", "Ms.", "Miss", "Master"]);
+const middleInitialErrorMessage = "Enter at least one letter for the middle initial.";
+
+function normalizeMiddleInitial(value: unknown) {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  const firstLetter = trimmed.match(/[A-Za-z]/)?.[0];
+  if (!firstLetter) {
+    return trimmed;
+  }
+
+  return firstLetter.toUpperCase();
+}
+
+const middleInitialSchema = z.preprocess(
+  normalizeMiddleInitial,
+  z.union([z.literal(""), z.string().regex(/^[A-Z]$/, middleInitialErrorMessage)]),
+);
 
 export const tripDetailsSchema = z.object({
   resortId: z.string().min(1),
@@ -21,7 +45,7 @@ export const tripDetailsSchema = z.object({
 const adultGuestSchema = z.object({
   title: guestTitleSchema,
   firstName: z.string().min(1, "Required"),
-  middleInitial: z.string().max(3).optional(),
+  middleInitial: middleInitialSchema.optional(),
   lastName: z.string().min(1, "Required"),
   suffix: z.string().max(12).optional(),
 });
@@ -29,7 +53,7 @@ const adultGuestSchema = z.object({
 const childGuestSchema = z.object({
   title: guestTitleSchema,
   firstName: z.string().min(1, "Required"),
-  middleInitial: z.string().max(3).optional(),
+  middleInitial: middleInitialSchema.optional(),
   lastName: z.string().min(1, "Required"),
   suffix: z.string().max(12).optional(),
   age: z.number().int().min(0).max(17),
@@ -38,7 +62,7 @@ const childGuestSchema = z.object({
 export const guestInfoSchema = z.object({
   leadTitle: guestTitleSchema,
   leadFirstName: z.string().min(1, "Required"),
-  leadMiddleInitial: z.string().max(3).optional(),
+  leadMiddleInitial: middleInitialSchema.optional(),
   leadLastName: z.string().min(1, "Required"),
   leadSuffix: z.string().max(12).optional(),
   email: z.string().email(),

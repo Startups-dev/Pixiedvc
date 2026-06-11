@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
+import { isAdminOrPublicReadyStayRow } from "@/lib/ready-stays/visibility";
 import { getCurrentUserAdminState } from "@/lib/admin";
 import { Card } from "@pixiedvc/design-system";
 
@@ -26,7 +27,6 @@ export default async function ReadyStayBookPage({
 
   const { isAdmin } = await getCurrentUserAdminState(supabase);
   const adminClient = getSupabaseAdminClient();
-  const readyStayClient = isAdmin && adminClient ? adminClient : supabase;
   if (!adminClient) {
     return (
       <main className="mx-auto max-w-2xl px-6 py-12">
@@ -37,16 +37,16 @@ export default async function ReadyStayBookPage({
     );
   }
 
-  const { data: stay } = await readyStayClient
+  const { data: stay } = await adminClient
     .from("ready_stays")
     .select(
-      "id, status, owner_id, rental_id, resort_id, check_in, check_out, points, room_type, guest_price_per_point_cents, is_test_listing, test_guest_total_cents, locked_until, lock_session_id, booking_request_id",
+      "id, status, owner_id, rental_id, resort_id, check_in, check_out, points, room_type, guest_price_per_point_cents, is_test_listing, is_visible_publicly, test_guest_total_cents, locked_until, lock_session_id, booking_request_id, slug, title, image_url, expires_at, verification_status",
     )
     .eq("id", params.id)
     .in("status", ["active", "test"])
     .maybeSingle();
 
-  if (!stay) {
+  if (!stay || !isAdminOrPublicReadyStayRow(stay, isAdmin)) {
     redirect("/ready-stays");
   }
 
