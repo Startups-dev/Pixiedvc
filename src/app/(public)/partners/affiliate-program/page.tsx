@@ -2,6 +2,7 @@
 
 import { FormEvent, ReactNode, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight, ShieldCheck, Sparkles, Clock3, BarChart3 } from "lucide-react";
 import {
   affiliateCard,
@@ -11,6 +12,7 @@ import {
   affiliatePrimaryButton,
   affiliateTextMuted,
 } from "@/lib/affiliate-theme";
+import { createClient } from "@/lib/supabase";
 
 type ApplyForm = {
   fullName: string;
@@ -60,10 +62,21 @@ const faqs = [
 
 export default function AffiliateProgramPage() {
   const applyRef = useRef<HTMLElement | null>(null);
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
   const [form, setForm] = useState<ApplyForm>(initialForm);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [referralLink, setReferralLink] = useState<string | null>(null);
+  const [applicationStep, setApplicationStep] = useState<"form" | "received" | "account">("form");
+  const [submittedEmail, setSubmittedEmail] = useState("");
+  const [accountForm, setAccountForm] = useState({
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [accountStatus, setAccountStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [accountMessage, setAccountMessage] = useState<string | null>(null);
 
   const canSubmit = useMemo(() => {
     return (
@@ -94,7 +107,7 @@ export default function AffiliateProgramPage() {
     });
 
     const data = (await response.json().catch(() => null)) as
-      | { error?: string; referralLink?: string }
+      | { error?: string; message?: string; referralLink?: string }
       | null;
 
     if (!response.ok) {
@@ -104,9 +117,83 @@ export default function AffiliateProgramPage() {
     }
 
     setStatus("success");
-    setMessage(data?.message ?? "Application submitted. We review applications within 48 hours.");
+    setMessage(data?.message ?? null);
     setReferralLink(data?.referralLink ?? null);
+    const normalizedEmail = form.email.trim().toLowerCase();
+    setSubmittedEmail(normalizedEmail);
+    setAccountForm({ email: normalizedEmail, password: "", confirmPassword: "" });
+    setApplicationStep("received");
     setForm(initialForm);
+  }
+
+  async function handleCreateAccount(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAccountStatus("loading");
+    setAccountMessage(null);
+
+    const email = accountForm.email.trim().toLowerCase();
+    if (!email || !accountForm.password || accountForm.password !== accountForm.confirmPassword) {
+      setAccountStatus("error");
+      setAccountMessage("Passwords must match to continue.");
+      return;
+    }
+
+    const verifyResponse = await fetch("/api/affiliate/account", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!verifyResponse.ok) {
+      setAccountStatus("error");
+      setAccountMessage("Unable to create partner account.");
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password: accountForm.password,
+      options: {
+        emailRedirectTo:
+          `${window.location.origin}/auth/callback?next=${encodeURIComponent("/affiliate/dashboard")}`,
+      },
+    });
+
+    if (error) {
+      const signIn = await supabase.auth.signInWithPassword({
+        email,
+        password: accountForm.password,
+      });
+
+      if (!signIn.error) {
+        await fetch("/api/affiliate/account", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        }).catch(() => null);
+        setAccountStatus("success");
+        router.replace("/affiliate/dashboard");
+        return;
+      }
+
+      setAccountStatus("error");
+      setAccountMessage("Unable to create partner account.");
+      return;
+    }
+
+    if (data.session) {
+      await fetch("/api/affiliate/account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      }).catch(() => null);
+      setAccountStatus("success");
+      router.replace("/affiliate/dashboard");
+      return;
+    }
+
+    setAccountStatus("success");
+    setAccountMessage("Check your email to confirm your account, then sign in at /affiliate/login.");
   }
 
   return (
@@ -188,10 +275,82 @@ export default function AffiliateProgramPage() {
           </h2>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className={`mt-10 rounded-3xl p-8 ${affiliateCard}`}
-        >
+        {applicationStep === "received" ? (
+          <div className={`mt-10 rounded-3xl p-8 ${affiliateCard}`}>
+            <div className="max-w-2xl space-y-4">
+              <h3 className="text-2xl font-semibold text-slate-500" style={{ color: "#64748b" }}>
+                Application received!
+              </h3>
+              <p className={`text-sm leading-relaxed ${affiliateTextMuted}`}>
+                Your PixieDVC Partner application has been received. Next, let’s create your secure partner account so you can access your dashboard while we review your application.
+              </p>
+              <button
+                type="button"
+                onClick={() => setApplicationStep("account")}
+                className={`rounded-xl px-6 py-3 text-sm font-semibold transition ${affiliatePrimaryButton}`}
+              >
+                Create Partner Account
+              </button>
+              <p className={`text-sm ${affiliateTextMuted}`}>
+                Review usually happens within one business day. Referral links, payouts, and campaign tools unlock after approval.
+              </p>
+            </div>
+          </div>
+        ) : applicationStep === "account" ? (
+          <form onSubmit={handleCreateAccount} className={`mt-10 rounded-3xl p-8 ${affiliateCard}`}>
+            <div className="max-w-2xl space-y-5">
+              <p className={`text-sm ${affiliateTextMuted}`}>
+                Use the same email from your application so we can connect your account automatically.
+              </p>
+              <Field label="Email">
+                <input
+                  type="email"
+                  value={accountForm.email || submittedEmail}
+                  onChange={(e) => setAccountForm({ ...accountForm, email: e.target.value })}
+                  required
+                  autoComplete="email"
+                  className={`${affiliateInput} !text-slate-400`}
+                />
+              </Field>
+              <Field label="Password">
+                <input
+                  type="password"
+                  value={accountForm.password}
+                  onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })}
+                  required
+                  autoComplete="new-password"
+                  className={`${affiliateInput} !text-slate-400`}
+                />
+              </Field>
+              <Field label="Confirm password">
+                <input
+                  type="password"
+                  value={accountForm.confirmPassword}
+                  onChange={(e) => setAccountForm({ ...accountForm, confirmPassword: e.target.value })}
+                  required
+                  autoComplete="new-password"
+                  className={`${affiliateInput} !text-slate-400`}
+                />
+              </Field>
+              <button
+                type="submit"
+                disabled={accountStatus === "loading"}
+                className={`rounded-xl px-6 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${affiliatePrimaryButton}`}
+              >
+                {accountStatus === "loading" ? "Creating..." : "Create My Partner Account"}
+              </button>
+              {accountMessage ? (
+                <p className={`text-sm ${accountStatus === "error" ? "text-red-400" : "text-emerald-400"}`}>
+                  {accountMessage}
+                </p>
+              ) : null}
+            </div>
+          </form>
+        ) : (
+          <form
+            onSubmit={handleSubmit}
+            className={`mt-10 rounded-3xl p-8 ${affiliateCard}`}
+          >
           <div className="grid gap-5 md:grid-cols-2">
             <Field label="Full Name *">
               <input
@@ -283,7 +442,8 @@ export default function AffiliateProgramPage() {
               Your referral link is ready: <span className="font-semibold text-slate-500">{referralLink}</span>
             </p>
           ) : null}
-        </form>
+          </form>
+        )}
       </section>
 
       <section className="mx-auto max-w-7xl px-6 py-20">

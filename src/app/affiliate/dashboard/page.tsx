@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { Button, Card } from "@pixiedvc/design-system";
 import {
@@ -6,9 +7,10 @@ import {
   getAffiliatePayoutHistory,
   getAffiliatePayoutSummary,
 } from "@/lib/affiliates";
-import { requireAffiliateUser } from "@/lib/role-guards";
 import AffiliatePayoutEmailForm from "@/components/affiliate/PayoutEmailForm";
 import CopyReferralLinkButton from "@/components/affiliate/CopyReferralLinkButton";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import {
   affiliateCard,
   affiliateCard2,
@@ -17,6 +19,12 @@ import {
   affiliateSecondaryButton,
   affiliateTextMuted,
 } from "@/lib/affiliate-theme";
+
+type PendingAffiliateApplication = {
+  id: string;
+  status: string;
+  auth_user_id: string | null;
+};
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(value);
@@ -45,10 +53,166 @@ function statusChip(status: string) {
   return "border border-sky-400/30 bg-sky-400/10 text-sky-200";
 }
 
+async function getPendingAffiliateApplicationForUser(userId: string, email?: string | null) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return null;
+
+  const { data: byUser } = await admin
+    .from("affiliate_applications")
+    .select("id, status, auth_user_id")
+    .eq("auth_user_id", userId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const application =
+    byUser ??
+    (email
+      ? (
+          await admin
+            .from("affiliate_applications")
+            .select("id, status, auth_user_id")
+            .eq("email", email.toLowerCase())
+            .eq("status", "pending")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        ).data
+      : null);
+
+  if (application?.id && !application.auth_user_id) {
+    await admin
+      .from("affiliate_applications")
+      .update({ auth_user_id: userId })
+      .eq("id", application.id);
+  }
+
+  return application as PendingAffiliateApplication | null;
+}
+
+function UnderReviewDashboard() {
+  const launchCards = [
+    {
+      title: "Learn how PixieDVC works",
+      body: "Understand how owners rent their points, how guests book stays, and where partners fit into the process.",
+    },
+    {
+      title: "Review the partner playbook",
+      body: "Get familiar with our messaging, positioning, and best practices before your referral tools unlock.",
+    },
+    {
+      title: "Prepare your audience",
+      body: "Start thinking about which DVC owners in your community would benefit from a simpler way to rent their points.",
+    },
+    {
+      title: "Approval unlocks your tools",
+      body: "Once approved, your referral links, tracking, campaign resources, and payout information will become available.",
+    },
+  ];
+
+  const progressItems = [
+    { label: "Application Submitted", state: "completed" },
+    { label: "Account Created", state: "completed" },
+    { label: "Under Review", state: "current" },
+    { label: "Approved", state: "pending" },
+    { label: "First Owner Referred", state: "pending" },
+    { label: "First Commission", state: "pending" },
+  ];
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-8 px-6 py-14">
+      <header className={`rounded-3xl border border-white/15 bg-gradient-to-br from-[#0f172a] via-[#111827] to-[#0b1224] p-8 shadow-[0_22px_60px_rgba(2,6,23,0.45)]`}>
+        <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Affiliate Dashboard</p>
+        <h1 className="mt-4 font-display text-4xl text-slate-100">Welcome to PixieDVC Partners</h1>
+      </header>
+
+      <Card surface="dark" className={`${affiliateCard} border-white/15 bg-[#0f172a]`}>
+        <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Application Status</p>
+        <p className="mt-3 text-2xl font-semibold text-slate-100">Under Review</p>
+        <p className={`mt-3 text-sm ${affiliateTextMuted}`}>
+          We’re reviewing your partner application. Most applications are reviewed within one business day.
+        </p>
+      </Card>
+
+      <section className="space-y-4">
+        <h2 className="text-2xl font-semibold text-slate-100">While you wait, get ready for launch</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          {launchCards.map((card) => (
+            <Card key={card.title} surface="dark" className={`${affiliateCard} border-white/15 bg-[#0f172a]`}>
+              <h3 className="text-lg font-semibold text-slate-100">{card.title}</h3>
+              <p className={`mt-2 text-sm leading-relaxed ${affiliateTextMuted}`}>{card.body}</p>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-2xl font-semibold text-slate-100">Your Partner Journey</h2>
+        <Card surface="dark" className={`${affiliateCard} border-white/15 bg-[#0f172a]`}>
+          <ol className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {progressItems.map((item) => {
+              const isPending = item.state === "pending";
+              const label =
+                item.state === "current"
+                  ? "Current"
+                  : item.state === "completed"
+                    ? "Completed"
+                    : "Pending";
+
+              return (
+                <li
+                  key={item.label}
+                  className={`rounded-2xl border p-4 ${
+                    isPending
+                      ? "border-white/10 bg-[#0b1224] text-slate-500"
+                      : "border-emerald-400/20 bg-emerald-400/10 text-slate-100"
+                  }`}
+                >
+                  <p className="text-sm font-semibold">{item.label}</p>
+                  <p className={`mt-2 text-xs uppercase tracking-[0.2em] ${isPending ? "text-slate-500" : "text-emerald-300"}`}>
+                    {label}
+                  </p>
+                </li>
+              );
+            })}
+          </ol>
+        </Card>
+      </section>
+    </div>
+  );
+}
+
 export default async function AffiliateDashboardPage() {
-  const { user } = await requireAffiliateUser("/affiliate/dashboard");
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(`/affiliate/login?redirect=${encodeURIComponent("/affiliate/dashboard")}`);
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const role = String(profile?.role ?? "guest").toLowerCase();
+  const isAdmin = role === "admin";
+  const hasAffiliateRole = role === "affiliate";
 
   const affiliate = await getAffiliateForUser(user.id, user.email);
+  if (!affiliate && !isAdmin && !hasAffiliateRole) {
+    const pendingApplication = await getPendingAffiliateApplicationForUser(user.id, user.email);
+    if (pendingApplication?.id) {
+      return <UnderReviewDashboard />;
+    }
+
+    redirect(`/affiliate/login?redirect=${encodeURIComponent("/affiliate/dashboard")}&error=role`);
+  }
+
   if (!affiliate) {
     return (
       <div className="mx-auto max-w-4xl px-6 py-20">
