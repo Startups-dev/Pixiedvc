@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import Link from "next/link";
@@ -25,12 +25,23 @@ export default function AffiliateLoginClient() {
   const redirectTo = allowedRedirects.has(rawRedirect) ? rawRedirect : "/affiliate/dashboard";
   const roleError = searchParams.get("error") === "role";
   const sessionError = searchParams.get("error") === "session";
+  const verified = searchParams.get("verified") === "1";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
+
+  const redirectAfterAuth = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.location.assign(redirectTo);
+      return;
+    }
+    router.replace(redirectTo);
+  }, [redirectTo, router]);
 
   useEffect(() => {
     let isMounted = true;
@@ -87,7 +98,7 @@ export default function AffiliateLoginClient() {
       const { data } = await supabase.auth.getUser();
       if (!isMounted) return;
       if (data.user && mode !== "update") {
-        router.replace(redirectTo);
+        redirectAfterAuth();
         return;
       }
     };
@@ -96,7 +107,7 @@ export default function AffiliateLoginClient() {
     return () => {
       isMounted = false;
     };
-  }, [mode, redirectTo, router, searchParams, supabase]);
+  }, [mode, redirectAfterAuth, redirectTo, router, searchParams, supabase]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -135,7 +146,7 @@ export default function AffiliateLoginClient() {
 
       setStatus("sent");
       setMessage("Password updated. Redirecting…");
-      router.replace(redirectTo);
+      redirectAfterAuth();
       return;
     }
 
@@ -147,9 +158,7 @@ export default function AffiliateLoginClient() {
       return;
     }
 
-    setStatus("sent");
-    setMessage("Signed in. Redirecting…");
-    router.replace(redirectTo);
+    window.location.assign("/affiliate/dashboard");
   }
 
   const copy = {
@@ -200,30 +209,50 @@ export default function AffiliateLoginClient() {
           {mode !== "reset" ? (
             <label className="flex flex-col gap-2 text-sm font-semibold text-slate-500">
               Password
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Enter your password"
-                autoComplete={mode === "update" ? "new-password" : "current-password"}
-                className={affiliateInput}
-              />
+              <span className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Enter your password"
+                  autoComplete={mode === "update" ? "new-password" : "current-password"}
+                  className={`${affiliateInput} pr-28`}
+                />
+                <button
+                  type="button"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  onClick={() => setShowPassword((value) => !value)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-3 py-1 text-xs font-semibold text-slate-400 transition hover:bg-white/5 hover:text-slate-200"
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </span>
             </label>
           ) : null}
 
           {mode === "update" ? (
             <label className="flex flex-col gap-2 text-sm font-semibold text-slate-500">
               Confirm password
-              <input
-                type="password"
-                required
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="Confirm your password"
-                autoComplete="new-password"
-                className={affiliateInput}
-              />
+              <span className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Confirm your password"
+                  autoComplete="new-password"
+                  className={`${affiliateInput} pr-28`}
+                />
+                <button
+                  type="button"
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                  onClick={() => setShowConfirmPassword((value) => !value)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-3 py-1 text-xs font-semibold text-slate-400 transition hover:bg-white/5 hover:text-slate-200"
+                >
+                  {showConfirmPassword ? "Hide" : "Show"}
+                </button>
+              </span>
             </label>
           ) : null}
 
@@ -264,6 +293,11 @@ export default function AffiliateLoginClient() {
         {sessionError && !message ? (
           <p className="text-sm text-red-400">
             Sign-in session could not be established. Please sign in again.
+          </p>
+        ) : null}
+        {verified && !message ? (
+          <p className="text-sm text-emerald-400">
+            Email confirmed. Sign in to continue.
           </p>
         ) : null}
 

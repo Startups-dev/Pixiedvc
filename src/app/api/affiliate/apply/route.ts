@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       status: existingApplication.status ?? "pending",
-      message: "Application already received. We will review it shortly.",
+      message: "Application already received.",
     });
   }
 

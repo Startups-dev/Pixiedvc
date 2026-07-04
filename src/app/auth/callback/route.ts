@@ -3,6 +3,8 @@ import { getAppBaseUrl } from "@/lib/app-url";
 import { getHomeForRole } from "@/lib/routes/home";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const safeOrigin = getAppBaseUrl() ?? origin;
@@ -11,11 +13,13 @@ export async function GET(request: Request) {
   const tokenType = searchParams.get("type");
   const next = searchParams.get("next") ?? searchParams.get("redirect");
   const supabase = await createSupabaseServerClient();
+  let callbackUser = null;
 
   if (code) {
-    await supabase.auth.exchangeCodeForSession(code);
+    const { data } = await supabase.auth.exchangeCodeForSession(code);
+    callbackUser = data.user;
   } else if (tokenHash && tokenType) {
-    await supabase.auth.verifyOtp({
+    const { data } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
       type: tokenType as
         | "signup"
@@ -25,21 +29,31 @@ export async function GET(request: Request) {
         | "email_change"
         | "email",
     });
+    callbackUser = data.user;
   }
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const resolvedUser = user ?? callbackUser;
 
   if (next) {
     const safeNext = next.startsWith("/") ? next : "/affiliate/dashboard";
-    if (!user && safeNext.startsWith("/affiliate")) {
-      return NextResponse.redirect(new URL(`/affiliate/login?redirect=${encodeURIComponent(safeNext)}&error=session`, safeOrigin));
+    if (!resolvedUser && safeNext.startsWith("/affiliate")) {
+      const affiliateLoginUrl = new URL("/affiliate/login", safeOrigin);
+      affiliateLoginUrl.searchParams.set("redirect", safeNext);
+      affiliateLoginUrl.searchParams.set("error", "session");
+      return NextResponse.redirect(affiliateLoginUrl);
+    }
+    if (resolvedUser && safeNext.startsWith("/affiliate/login")) {
+      const affiliateLoginUrl = new URL(safeNext, safeOrigin);
+      affiliateLoginUrl.searchParams.set("verified", "1");
+      return NextResponse.redirect(affiliateLoginUrl);
     }
     return NextResponse.redirect(new URL(safeNext, safeOrigin));
   }
 
-  const metaRole = (user?.user_metadata?.role as
+  const metaRole = (resolvedUser?.user_metadata?.role as
     | "owner"
     | "guest"
     | "affiliate"
@@ -51,8 +65,8 @@ export async function GET(request: Request) {
       ? metaRole
       : null;
 
-  if (user?.id && !role) {
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  if (resolvedUser?.id && !role) {
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", resolvedUser.id).maybeSingle();
     const profileRole = (profile?.role as
       | "owner"
       | "guest"

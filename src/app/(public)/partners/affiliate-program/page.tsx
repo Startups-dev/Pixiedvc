@@ -181,6 +181,26 @@ export default function AffiliateProgramPage() {
       return;
     }
 
+    async function signInAndRedirect() {
+      const signIn = await supabase.auth.signInWithPassword({
+        email,
+        password: accountForm.password,
+      });
+
+      if (signIn.error) {
+        return false;
+      }
+
+      await fetch("/api/affiliate/account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      }).catch(() => null);
+      setAccountStatus("success");
+      router.replace("/affiliate/dashboard");
+      return true;
+    }
+
     if (data.session) {
       await fetch("/api/affiliate/account", {
         method: "POST",
@@ -189,6 +209,18 @@ export default function AffiliateProgramPage() {
       }).catch(() => null);
       setAccountStatus("success");
       router.replace("/affiliate/dashboard");
+      return;
+    }
+
+    const signedIn = await signInAndRedirect();
+    if (signedIn) {
+      return;
+    }
+
+    const maybeExistingUser = data.user?.identities?.length === 0;
+    if (maybeExistingUser) {
+      setAccountStatus("error");
+      setAccountMessage("Unable to create partner account");
       return;
     }
 
@@ -290,9 +322,6 @@ export default function AffiliateProgramPage() {
               >
                 Create Partner Account
               </button>
-              <p className={`text-sm ${affiliateTextMuted}`}>
-                You’ll register a login and have access to your affiliate dashboard. From there, you can explore resources, learn how the program works, and get everything ready while we review your application.
-              </p>
             </div>
           </div>
         ) : applicationStep === "account" ? (
@@ -374,6 +403,16 @@ export default function AffiliateProgramPage() {
                       Contact Support
                     </Link>
                   </div>
+                </div>
+              ) : accountStatus === "success" && accountMessage ? (
+                <div className="space-y-4 rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-5 text-sm text-slate-200">
+                  <p className="text-slate-200">{accountMessage}</p>
+                  <Link
+                    href="/affiliate/login"
+                    className={`inline-flex rounded-xl px-5 py-2 text-xs font-semibold transition ${affiliatePrimaryButton}`}
+                  >
+                    Go to Affiliate Login
+                  </Link>
                 </div>
               ) : accountMessage ? (
                 <p className={`text-sm ${accountStatus === "error" ? "text-red-400" : "text-emerald-400"}`}>
