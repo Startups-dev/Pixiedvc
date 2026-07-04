@@ -131,7 +131,7 @@ function UnderReviewDashboard() {
         <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Application Status</p>
         <p className="mt-3 text-2xl font-semibold text-slate-100">Under Review</p>
         <p className={`mt-3 text-sm ${affiliateTextMuted}`}>
-          We’re reviewing your partner application. Most applications are reviewed within one business day.
+          We’re reviewing your partner application. While you wait, you can explore the dashboard and prepare your account.
         </p>
       </Card>
 

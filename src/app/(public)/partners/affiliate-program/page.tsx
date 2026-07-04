@@ -3,7 +3,7 @@
 import { FormEvent, ReactNode, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ShieldCheck, Sparkles, Clock3, BarChart3 } from "lucide-react";
+import { ArrowRight, BookOpen, ShieldCheck, Sparkles, Users } from "lucide-react";
 import {
   affiliateCard,
   affiliateCard2,
@@ -35,28 +35,28 @@ const initialForm: ApplyForm = {
 };
 
 const benefits = [
-  { icon: Sparkles, title: "6% commission per confirmed booking", copy: "Earn on every qualified stay you refer." },
-  { icon: Clock3, title: "90-day referral tracking window", copy: "Attribution remains active for 90 days." },
-  { icon: BarChart3, title: "Real-time performance dashboard", copy: "Track clicks, conversions, and payouts clearly." },
+  { icon: Sparkles, title: "Helpful partner ecosystem", copy: "Introduce owners to PixieDVC in a trustworthy way." },
+  { icon: BookOpen, title: "Partner resources", copy: "Learn how the program works before your tools unlock." },
+  { icon: Users, title: "Audience-ready positioning", copy: "Prepare helpful PixieDVC messaging for your community." },
   { icon: ShieldCheck, title: "Luxury positioning", copy: "Premium partner ecosystem without discount-brand feel." },
 ];
 
 const faqs = [
   {
-    q: "When do I get paid?",
-    a: "Commissions are paid after confirmed stays according to our payout schedule.",
-  },
-  {
     q: "Can anyone apply?",
-    a: "We welcome Disney-focused creators and travel partners. All accounts are subject to review.",
+    a: "PixieDVC Partners is designed for Disney-focused creators, travel planners, DVC educators, and community builders who can introduce owners to PixieDVC in a helpful and trustworthy way.",
   },
   {
-    q: "How long is the referral window?",
-    a: "90 days from initial referral click.",
+    q: "What happens after I apply?",
+    a: "You’ll create your partner login and access your dashboard. Some tools unlock after your application is reviewed.",
   },
   {
-    q: "Can my account be suspended?",
-    a: "Yes. Accounts that violate brand guidelines or affiliate terms may be suspended.",
+    q: "Do I need to be a Disney Vacation Club owner?",
+    a: "No. You do not need to own DVC points, but your audience should have a natural connection to Disney travel, DVC ownership, or vacation planning.",
+  },
+  {
+    q: "What can I do inside the dashboard?",
+    a: "You can learn how PixieDVC works, review partner resources, prepare your audience, and see what becomes available as your account moves forward.",
   },
 ];
 
@@ -146,7 +146,7 @@ export default function AffiliateProgramPage() {
 
     if (!verifyResponse.ok) {
       setAccountStatus("error");
-      setAccountMessage("Unable to create partner account.");
+      setAccountMessage("Unable to create partner account");
       return;
     }
 
@@ -177,7 +177,7 @@ export default function AffiliateProgramPage() {
       }
 
       setAccountStatus("error");
-      setAccountMessage("Unable to create partner account.");
+      setAccountMessage("Unable to create partner account");
       return;
     }
 
@@ -210,8 +210,7 @@ export default function AffiliateProgramPage() {
             Partner With PixieDVC
           </h1>
           <p className={`mt-6 max-w-xl text-lg leading-relaxed ${affiliateTextMuted}`}>
-            Earn commission on every confirmed DVC booking you refer. Simple tracking. Premium positioning. Transparent
-            payouts.
+            Introduce DVC owners to PixieDVC in a helpful and trustworthy way. Simple tracking. Premium positioning.
           </p>
           <button
             type="button"
@@ -282,7 +281,7 @@ export default function AffiliateProgramPage() {
                 Application received!
               </h3>
               <p className={`text-sm leading-relaxed ${affiliateTextMuted}`}>
-                Your PixieDVC Partner application has been received. Next, let’s create your secure partner account so you can access your dashboard while we review your application.
+                Your PixieDVC Partner application has been received. Next, let’s create your secure partner account so you can access your dashboard.
               </p>
               <button
                 type="button"
@@ -292,13 +291,16 @@ export default function AffiliateProgramPage() {
                 Create Partner Account
               </button>
               <p className={`text-sm ${affiliateTextMuted}`}>
-                Review usually happens within one business day. Referral links, payouts, and campaign tools unlock after approval.
+                You’ll register a login and have access to your affiliate dashboard. From there, you can explore resources, learn how the program works, and get everything ready while we review your application.
               </p>
             </div>
           </div>
         ) : applicationStep === "account" ? (
           <form onSubmit={handleCreateAccount} className={`mt-10 rounded-3xl p-8 ${affiliateCard}`}>
             <div className="max-w-2xl space-y-5">
+              <h3 className="text-2xl font-semibold text-slate-500" style={{ color: "#64748b" }}>
+                Create Your Partner Account
+              </h3>
               <p className={`text-sm ${affiliateTextMuted}`}>
                 Use the same email from your application so we can connect your account automatically.
               </p>
@@ -322,7 +324,7 @@ export default function AffiliateProgramPage() {
                   className={`${affiliateInput} !text-slate-400`}
                 />
               </Field>
-              <Field label="Confirm password">
+              <Field label="Confirm Password">
                 <input
                   type="password"
                   value={accountForm.confirmPassword}
@@ -339,7 +341,41 @@ export default function AffiliateProgramPage() {
               >
                 {accountStatus === "loading" ? "Creating..." : "Create My Partner Account"}
               </button>
-              {accountMessage ? (
+              <p className={`text-xs ${affiliateTextMuted}`}>
+                Your information is secure and will only be used for your PixieDVC Partner account.
+              </p>
+              {accountStatus === "error" && accountMessage === "Unable to create partner account" ? (
+                <div className="space-y-4 rounded-2xl border border-rose-400/30 bg-rose-400/10 p-5 text-sm text-slate-200">
+                  <div>
+                    <h4 className="text-base font-semibold text-rose-200">Unable to create partner account</h4>
+                    <p className="mt-2 text-slate-300">We couldn’t create your partner account. This can happen if:</p>
+                  </div>
+                  <ul className="list-disc space-y-1 pl-5 text-slate-300">
+                    <li>The email address doesn’t match your application</li>
+                    <li>An account with this email already exists</li>
+                    <li>There was a temporary issue. Please try again</li>
+                  </ul>
+                  <p className="text-slate-300">If the problem continues, please contact support.</p>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAccountStatus("idle");
+                        setAccountMessage(null);
+                      }}
+                      className={`rounded-xl px-5 py-2 text-xs font-semibold transition ${affiliatePrimaryButton}`}
+                    >
+                      Try Again
+                    </button>
+                    <Link
+                      href="/contact"
+                      className="inline-flex rounded-xl border border-white/10 px-5 py-2 text-xs font-semibold text-slate-200 transition hover:bg-white/5"
+                    >
+                      Contact Support
+                    </Link>
+                  </div>
+                </div>
+              ) : accountMessage ? (
                 <p className={`text-sm ${accountStatus === "error" ? "text-red-400" : "text-emerald-400"}`}>
                   {accountMessage}
                 </p>
@@ -433,7 +469,6 @@ export default function AffiliateProgramPage() {
             {status === "loading" ? "Submitting..." : "Submit Application"}
           </button>
 
-          <p className={`mt-3 text-sm ${affiliateTextMuted}`}>Applications are reviewed within 48 hours.</p>
           {message ? (
             <p className={`mt-2 text-sm ${status === "error" ? "text-red-400" : "text-emerald-400"}`}>{message}</p>
           ) : null}
@@ -450,22 +485,9 @@ export default function AffiliateProgramPage() {
         <h2 className="text-3xl font-semibold tracking-tight text-slate-500 md:text-4xl" style={{ color: "#64748b" }}>
           What Happens Next
         </h2>
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
-          {[
-            { step: "1", title: "Apply", copy: "Submit your affiliate profile and channel details." },
-            { step: "2", title: "Get Approved", copy: "Our team reviews fit and verifies promotional alignment." },
-            { step: "3", title: "Access Your Affiliate Dashboard", copy: "Track performance and manage payouts in one place." },
-          ].map((item) => (
-            <article key={item.step} className={`${affiliateCard} p-6`}>
-              <p className={`text-xs uppercase tracking-[0.28em] ${affiliateTextMuted}`}>Step {item.step}</p>
-              <h3 className="mt-3 text-xl font-semibold text-slate-500" style={{ color: "#64748b" }}>
-                {item.title}
-              </h3>
-              <p className={`mt-2 text-sm leading-relaxed ${affiliateTextMuted}`}>{item.copy}</p>
-            </article>
-          ))}
-        </div>
-        <p className={`mt-6 text-sm ${affiliateTextMuted}`}>Payment details and tax information are collected after approval.</p>
+        <p className={`mt-6 max-w-3xl text-sm leading-relaxed ${affiliateTextMuted}`}>
+          You’ll register a login and have access to your affiliate dashboard. From there, you can explore resources, learn how the program works, and get everything ready while we review your application.
+        </p>
       </section>
 
       <section className="mx-auto max-w-7xl px-6 py-20">

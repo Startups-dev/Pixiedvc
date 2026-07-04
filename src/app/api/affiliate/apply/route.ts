@@ -85,6 +85,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     status: "pending",
-    message: "Application submitted. We review applications within 48 hours.",
+    message: "Application submitted.",
   });
 }
