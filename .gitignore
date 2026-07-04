@@ -56,9 +56,14 @@ env-staging.yaml
 .secrets/
 env-staging.*.local.yaml
 
-# local bundles / archives
-pixiedvc.bundle
+# NEVER COMMIT PRODUCTION SECRETS
+env-production.local.yaml
+env-production.yaml
+env-production.secrets.local.yaml
+env-production.*.local.yaml
 
 # local bundles / archives
 pixiedvc.bundle
 
+# local bundles / archives
+pixiedvc.bundle
