@@ -37,7 +37,9 @@ export function setReferral(ref: string, landingPath?: string) {
 export function appendRefToUrl(url: string, ref: string | null) {
   if (!ref) return url;
   try {
-    const base = typeof window !== "undefined" ? window.location.origin : "http://localhost";
+    const base =
+      process.env.NEXT_PUBLIC_APP_URL ??
+      (typeof window !== "undefined" ? window.location.origin : "https://pixiedvc.invalid");
     const parsed = new URL(url, base);
     if (!parsed.searchParams.get("ref")) {
       parsed.searchParams.set("ref", ref);

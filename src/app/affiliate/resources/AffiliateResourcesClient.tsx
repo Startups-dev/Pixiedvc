@@ -11,6 +11,7 @@ import {
   affiliateSecondaryButton,
   affiliateTextMuted,
 } from "@/lib/affiliate-theme";
+import { buildAffiliateReferralUrl, getClientReferralBaseUrl } from "@/lib/affiliate-referrals";
 
 type AffiliateSummary = {
   displayName: string;
@@ -105,16 +106,6 @@ function copyToClipboard(value: string) {
   return navigator.clipboard.writeText(value);
 }
 
-function normalizeBaseOrigin(baseUrl: string) {
-  if (baseUrl) {
-    return baseUrl.replace(/\/$/, "");
-  }
-  if (typeof window !== "undefined") {
-    return window.location.origin.replace(/\/$/, "");
-  }
-  return "";
-}
-
 function appendCampaign(pathAndSearch: string, campaignTag: string) {
   const trimmed = campaignTag.trim();
   if (!trimmed) return pathAndSearch;
@@ -142,8 +133,8 @@ export default function AffiliateResourcesClient({
   const [mobileSection, setMobileSection] = useState("overview");
 
   const slug = affiliate.slug?.trim() ?? "";
-  const origin = normalizeBaseOrigin(baseUrl);
-  const canonicalReferralLink = slug && origin ? `${origin}/r/${slug}` : "";
+  const origin = baseUrl || getClientReferralBaseUrl();
+  const canonicalReferralLink = buildAffiliateReferralUrl(origin, slug);
   const missingReferralLink = !slug;
 
   const sections = [
@@ -158,10 +149,7 @@ export default function AffiliateResourcesClient({
   const buildTrackedLink = (pathAndSearch: string) => {
     if (!slug || !origin) return "";
     const toWithCampaign = appendCampaign(pathAndSearch, advancedCampaignTag);
-    if (toWithCampaign === "/") {
-      return `${origin}/r/${slug}`;
-    }
-    return `${origin}/r/${slug}?to=${encodeURIComponent(toWithCampaign)}`;
+    return buildAffiliateReferralUrl(origin, slug, toWithCampaign);
   };
 
   const quickLinks = [

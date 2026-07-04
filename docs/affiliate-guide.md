@@ -5,14 +5,14 @@
 2) In `/admin/affiliates`, create an affiliate:
    - Set display name, email, slug, and commission rate (0.07 or 0.08).
    - If the partner already has a Supabase auth user, paste their `auth_user_id` to link the dashboard.
-3) Share the referral link: `/r/<slug>` (or use `?ref=<referral_code>` on any page).
+3) Share the referral link: `/go/<slug>` (legacy `/r/<slug>` links still work) or use `?ref=<referral_code>` on any page.
 
 ## Affiliate login
 - Affiliates use `/affiliate/login` to request a magic link.
 - Once logged in, the dashboard shows referral links, payout summaries, and payout history.
 
 ## Referral + payout flow (manual)
-1) Guests land through affiliate links (`?ref=` or `/r/<slug>`). First-touch wins for 90 days.
+1) Guests land through affiliate links (`?ref=`, `/go/<slug>`, or legacy `/r/<slug>`). First-touch wins for 90 days.
 2) Booking requests store the referral_code during submission.
 3) In `/admin/affiliates/payouts`, create a payout run for a monthly period.
    - Totals are grouped by referral_code and matched to affiliates (referral_code or slug).

@@ -19,12 +19,22 @@ import {
   affiliateSecondaryButton,
   affiliateTextMuted,
 } from "@/lib/affiliate-theme";
+import { buildAffiliateReferralUrl, getReferralBaseUrl } from "@/lib/affiliate-referrals";
 
 type PendingAffiliateApplication = {
   id: string;
   status: string;
-  auth_user_id: string | null;
+  auth_user_id?: string | null;
 };
+
+function isMissingAffiliateApplicationAuthUserIdColumn(error: { message?: string; code?: string } | null) {
+  return Boolean(
+    error &&
+      (error.code === "42703" ||
+        error.message?.toLowerCase().includes("affiliate_applications.auth_user_id does not exist") ||
+        error.message?.toLowerCase().includes("column affiliate_applications.auth_user_id does not exist")),
+  );
+}
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(value);
@@ -57,7 +67,7 @@ async function getPendingAffiliateApplicationForUser(userId: string, email?: str
   const admin = getSupabaseAdminClient();
   if (!admin) return null;
 
-  const { data: byUser } = await admin
+  const byUserResult = await admin
     .from("affiliate_applications")
     .select("id, status, auth_user_id")
     .eq("auth_user_id", userId)
@@ -66,22 +76,38 @@ async function getPendingAffiliateApplicationForUser(userId: string, email?: str
     .limit(1)
     .maybeSingle();
 
-  const application =
-    byUser ??
-    (email
-      ? (
-          await admin
-            .from("affiliate_applications")
-            .select("id, status, auth_user_id")
-            .eq("email", email.toLowerCase())
-            .eq("status", "pending")
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle()
-        ).data
-      : null);
+  let canLinkAuthUser = !isMissingAffiliateApplicationAuthUserIdColumn(byUserResult.error);
+  let application: PendingAffiliateApplication | null = canLinkAuthUser
+    ? (byUserResult.data as PendingAffiliateApplication | null)
+    : null;
 
-  if (application?.id && !application.auth_user_id) {
+  if (!application && email) {
+    const byEmailResult = await admin
+      .from("affiliate_applications")
+      .select(canLinkAuthUser ? "id, status, auth_user_id" : "id, status")
+      .eq("email", email.toLowerCase())
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (canLinkAuthUser && isMissingAffiliateApplicationAuthUserIdColumn(byEmailResult.error)) {
+      canLinkAuthUser = false;
+      const fallback = await admin
+        .from("affiliate_applications")
+        .select("id, status")
+        .eq("email", email.toLowerCase())
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      application = fallback.data as PendingAffiliateApplication | null;
+    } else {
+      application = byEmailResult.data as PendingAffiliateApplication | null;
+    }
+  }
+
+  if (canLinkAuthUser && application?.id && !application.auth_user_id) {
     await admin
       .from("affiliate_applications")
       .update({ auth_user_id: userId })
@@ -239,8 +265,7 @@ export default async function AffiliateDashboardPage() {
     getAffiliatePayoutSummary(affiliate.id),
     getAffiliatePayoutHistory(affiliate.id),
   ]);
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "";
-  const referralLink = baseUrl ? `${baseUrl}/r/${affiliate.slug}` : `/r/${affiliate.slug}`;
+  const referralLink = buildAffiliateReferralUrl(getReferralBaseUrl(), affiliate.slug);
   const recentPayouts = payouts.slice(0, 6).reverse();
   const payoutAverage =
     payouts.length === 0

@@ -4,14 +4,10 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { requireAdminEmail } from "@/lib/require-admin";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { normalizeAffiliateSlug } from "@/lib/affiliate-referrals";
 
 function normalizeSlug(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/['’]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/-+/g, "-");
+  return normalizeAffiliateSlug(value);
 }
 
 async function ensureUniqueSlug(client: SupabaseClient, base: string) {

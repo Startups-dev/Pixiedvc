@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import { Card } from "@pixiedvc/design-system";
-import { appendRefToUrl } from "@/lib/referral";
 import { affiliateCard, affiliateCard2, affiliateInput, affiliateLink, affiliateTextMuted } from "@/lib/affiliate-theme";
+import { buildAffiliateReferralUrl, getClientReferralBaseUrl } from "@/lib/affiliate-referrals";
 
 type CopyBlock = {
   title: string;
@@ -86,9 +86,11 @@ const FAQS = [
 ];
 
 function buildFullUrl(path: string, ref: string | null, origin: string) {
-  const withTracking = appendRefToUrl(path, ref);
-  if (!origin) return withTracking;
-  return new URL(withTracking, origin).toString();
+  if (!ref) {
+    return origin ? new URL(path, origin).toString() : path;
+  }
+
+  return buildAffiliateReferralUrl(origin, ref, path);
 }
 
 async function copyText(value: string, onDone: () => void, onError: (message: string) => void) {
@@ -106,7 +108,7 @@ export default function AffiliateGuidesClient({ initialAffiliateSlug = "" }: { i
   const [origin, setOrigin] = useState("");
 
   useEffect(() => {
-    setOrigin(window.location.origin);
+    setOrigin(getClientReferralBaseUrl());
   }, []);
 
   const refValue = affiliateSlug.trim() || null;
@@ -189,7 +191,7 @@ export default function AffiliateGuidesClient({ initialAffiliateSlug = "" }: { i
           </div>
         </div>
         <p className={`text-xs ${affiliateTextMuted}`}>
-          Referral links use <strong>?ref=</strong> and track for 90 days on first touch.
+          Referral links use <strong>/go/</strong> and track for 90 days on first touch.
         </p>
         {copyStatus ? <p className="text-xs text-emerald-700">{copyStatus}</p> : null}
       </Card>
