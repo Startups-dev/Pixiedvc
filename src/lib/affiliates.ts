@@ -107,9 +107,11 @@ export function isActiveAffiliateStatus(status: string | null | undefined) {
 }
 
 export function isBlockedAffiliateStatus(status: string | null | undefined) {
-  return ["pending_review", "suspended", "rejected", "declined", "denied"].includes(
-    String(status ?? "").toLowerCase(),
-  );
+  return ["pending_review", "suspended", "rejected", "declined", "denied"].includes(String(status ?? "").toLowerCase());
+}
+
+function isHardBlockedAffiliateStatus(status: string | null | undefined) {
+  return ["suspended", "rejected", "declined", "denied"].includes(String(status ?? "").toLowerCase());
 }
 
 async function ensureUniqueAffiliateSlug(client: NonNullable<ReturnType<typeof getSupabaseAdminClient>>, base: string) {
@@ -247,8 +249,25 @@ export async function ensureAffiliateForApplicationUser(
     ).data;
 
   if (existingByEmail) {
+    if (isHardBlockedAffiliateStatus(existingByEmail.status)) {
+      return { affiliate: null, blocked: true };
+    }
+
     if (!existingByEmail.auth_user_id) {
       await admin.from("affiliates").update({ auth_user_id: userId }).eq("id", existingByEmail.id);
+    }
+
+    if (String(existingByEmail.status ?? "").toLowerCase() === "pending_review") {
+      const { data: activatedAffiliate } = await admin
+        .from("affiliates")
+        .update({ status: "active" })
+        .eq("id", existingByEmail.id)
+        .select(AFFILIATE_SELECT)
+        .single();
+
+      if (activatedAffiliate) {
+        return { affiliate: mapAffiliateRow(activatedAffiliate as AffiliateRow), blocked: false };
+      }
     }
 
     return { affiliate: mapAffiliateRow(existingByEmail as AffiliateRow), blocked: false };

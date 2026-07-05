@@ -291,7 +291,7 @@ export default function AffiliateLoginClient() {
         ) : null}
         {roleError && !message ? (
           <p className="text-sm text-red-400">
-            This account is not approved for the affiliate portal.
+            We couldn’t open the affiliate portal for this account. Please make sure you used the same email from your application.
           </p>
         ) : null}
         {sessionError && !message ? (
