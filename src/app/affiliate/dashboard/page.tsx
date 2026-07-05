@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { CheckCircle2, ClipboardCheck, Clock3 } from "lucide-react";
 
 import { Button, Card } from "@pixiedvc/design-system";
 import {
@@ -118,26 +119,32 @@ async function getPendingAffiliateApplicationForUser(userId: string, email?: str
 }
 
 function UnderReviewDashboard() {
+  const goldText = "text-[#d6b45a]";
+  const goldBorder = "border-[#d6b45a]/40";
+  const goldBg = "bg-[#d6b45a]/10";
+  const panel = "rounded-3xl border border-slate-700/70 bg-slate-950/40";
+  const compactPanel = "rounded-2xl border border-slate-700/70 bg-slate-950/35";
+
   const launchCards = [
     {
       title: "Understand the owner problem",
       body: "Many DVC owners have unused points and need a simpler, more guided way to rent them safely.",
-      badge: "Preparation",
+      badge: "PREPARATION",
     },
     {
       title: "Think about your audience",
       body: "Consider which owners, Disney travelers, or DVC-curious followers would find PixieDVC useful.",
-      badge: "Preparation",
+      badge: "PREPARATION",
     },
     {
       title: "Prepare your messaging",
       body: "Start planning how you would explain PixieDVC in a helpful, trustworthy, non-salesy way.",
-      badge: "Preparation",
+      badge: "PREPARATION",
     },
     {
       title: "Tools unlock after approval",
       body: "Referral links, tracking, campaign resources, and commission information become available after approval.",
-      badge: "Locked",
+      badge: "LOCKED",
     },
   ];
 
@@ -165,55 +172,74 @@ function UnderReviewDashboard() {
   ];
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 px-6 py-14">
-      <header className={`rounded-3xl border border-white/15 bg-gradient-to-br from-[#0f172a] via-[#111827] to-[#0b1224] p-8 shadow-[0_22px_60px_rgba(2,6,23,0.45)]`}>
-        <p className="text-xs uppercase tracking-[0.3em] text-[#D4AF37]">Affiliate Dashboard</p>
-        <h1 className="mt-4 font-display text-4xl text-slate-100">Welcome to PixieDVC Partners</h1>
-        <p className="mt-3 text-sm text-slate-300">Your application is currently under review.</p>
+    <div className="mx-auto max-w-7xl space-y-8 px-6 py-10">
+      <header className={`${panel} flex flex-col gap-5 px-8 py-6 sm:flex-row sm:items-center sm:justify-between`}>
+        <div>
+          <p className={`text-xs uppercase tracking-[0.32em] ${goldText}`}>AFFILIATE DASHBOARD</p>
+          <h1 className="mt-3 font-display text-3xl text-slate-100 sm:text-4xl">Welcome to PixieDVC Partners</h1>
+          <p className="mt-2 text-sm text-slate-300">Your application is currently under review.</p>
+        </div>
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-700 bg-slate-950/50 px-4 py-3">
+          <span className={`flex h-9 w-9 items-center justify-center rounded-full border ${goldBorder} ${goldText}`}>
+            <Clock3 aria-hidden="true" className="h-4 w-4" />
+          </span>
+          <div>
+            <p className={`text-[0.68rem] font-semibold uppercase tracking-[0.28em] ${goldText}`}>STATUS</p>
+            <p className="mt-1 text-sm font-semibold text-slate-100">Under Review</p>
+          </div>
+        </div>
       </header>
 
-      <Card surface="dark" className={`${affiliateCard} border-white/15 bg-[#0f172a]`}>
-        <p className="text-xs uppercase tracking-[0.3em] text-[#D4AF37]">Application Status</p>
-        <p className="mt-3 text-2xl font-semibold text-slate-100">Under Review</p>
-        <p className="mt-3 text-sm leading-relaxed text-slate-300">
-          We’re reviewing your partner application. While you wait, you can review the information below and prepare for when your account is approved.
-        </p>
-      </Card>
+      <section className={`${panel} flex flex-col gap-5 bg-slate-950/50 px-8 py-7 sm:flex-row sm:items-center sm:justify-between`}>
+        <div className="max-w-3xl">
+          <p className={`text-xs uppercase tracking-[0.3em] ${goldText}`}>APPLICATION STATUS</p>
+          <h2 className="mt-3 text-2xl font-semibold text-slate-100">Under Review</h2>
+          <p className="mt-3 text-sm leading-relaxed text-slate-300">
+            We’re reviewing your partner application. While you wait, you can review the information below and prepare for when your account is approved.
+          </p>
+        </div>
+        <ClipboardCheck aria-hidden="true" className="hidden h-16 w-16 shrink-0 text-[#d6b45a]/75 sm:block" strokeWidth={1.5} />
+      </section>
 
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold text-slate-100">While you wait, get ready for launch</h2>
-        <p className="max-w-3xl text-sm leading-relaxed text-slate-300">
-          Use this time to understand the opportunity and think about how PixieDVC could fit naturally into your content.
-        </p>
-        <div className="grid gap-4 md:grid-cols-2">
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-xl font-semibold text-slate-100 sm:text-2xl">While you wait, get ready for launch</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-400">
+            Use this time to understand the opportunity and think about how PixieDVC could fit naturally into your content.
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {launchCards.map((card) => (
-            <Card key={card.title} surface="dark" className={`${affiliateCard} border-white/15 bg-[#0f172a]`}>
+            <article key={card.title} className={`${compactPanel} p-5`}>
               <span
-                className={`inline-flex rounded-full border px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] ${
-                  card.badge === "Locked"
-                    ? "border-slate-400/25 text-slate-400"
-                    : "border-[#D4AF37]/35 text-[#D4AF37]"
+                className={`inline-flex rounded-full border px-2.5 py-1 text-[0.65rem] font-semibold tracking-[0.16em] ${
+                  card.badge === "LOCKED"
+                    ? "border-slate-700 text-slate-300"
+                    : `${goldBorder} ${goldText} ${goldBg}`
                 }`}
               >
                 {card.badge}
               </span>
-              <h3 className="text-lg font-semibold text-slate-100">{card.title}</h3>
+              <h3 className="mt-4 text-base font-semibold text-slate-100">{card.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-300">{card.body}</p>
-            </Card>
+            </article>
           ))}
         </div>
       </section>
 
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold text-slate-100">Your Partner Journey</h2>
-        <p className="max-w-3xl text-sm leading-relaxed text-slate-300">
-          Here’s where you are in the partner approval process.
-        </p>
-        <Card surface="dark" className={`${affiliateCard} border-white/15 bg-[#0f172a]`}>
-          <ol className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            {progressItems.map((item) => {
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-xl font-semibold text-slate-100 sm:text-2xl">Your Partner Journey</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-400">
+            Here’s where you are in the partner approval process.
+          </p>
+        </div>
+        <div className={`${panel} p-5 sm:p-6`}>
+          <ol className="grid gap-5 md:grid-cols-4">
+            {progressItems.map((item, index) => {
               const isCurrent = item.state === "current";
               const isCompleted = item.state === "completed";
+              const isActiveConnector = index === 0;
               const label =
                 item.state === "current"
                   ? "Current"
@@ -224,24 +250,43 @@ function UnderReviewDashboard() {
               return (
                 <li
                   key={item.label}
-                  className={`rounded-2xl border p-4 ${
-                    isCurrent
-                      ? "border-[#D4AF37]/40 bg-[#D4AF37]/10 text-slate-100"
-                      : isCompleted
-                        ? "border-white/15 bg-white/[0.03] text-slate-100"
-                        : "border-slate-400/20 bg-[#0b1224] text-slate-400"
-                  }`}
+                  className="relative flex gap-3 md:block"
                 >
-                  <p className="text-sm font-semibold">{item.label}</p>
-                  <p className="mt-2 text-xs leading-relaxed text-slate-300">{item.body}</p>
-                  <p className={`mt-3 text-xs uppercase tracking-[0.2em] ${isCurrent ? "text-[#D4AF37]" : "text-slate-400"}`}>
-                    {label}
-                  </p>
+                  <div className="flex flex-col items-center md:flex-row">
+                    <span
+                      className={`z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
+                        isCurrent || isCompleted
+                          ? `${goldBorder} ${goldBg} ${goldText}`
+                          : "border-slate-600 bg-slate-900/60 text-slate-500"
+                      }`}
+                    >
+                      {isCompleted ? <CheckCircle2 aria-hidden="true" className="h-4 w-4" /> : index + 1}
+                    </span>
+                    {index < progressItems.length - 1 ? (
+                      <span
+                        className={`h-full w-px md:h-px md:flex-1 ${
+                          isActiveConnector ? "bg-[#d6b45a]/50" : "bg-slate-700/70"
+                        }`}
+                        aria-hidden="true"
+                      />
+                    ) : null}
+                  </div>
+                  <div className="pb-2 md:mt-3 md:pb-0">
+                    <p className={`text-sm font-semibold ${isCurrent || isCompleted ? "text-slate-100" : "text-slate-400"}`}>
+                      {item.label}
+                    </p>
+                    <p className={`mt-1 text-xs leading-relaxed ${isCurrent || isCompleted ? "text-slate-300" : "text-slate-500"}`}>
+                      {item.body}
+                    </p>
+                    <p className={`mt-2 text-[0.65rem] font-semibold uppercase tracking-[0.18em] ${isCurrent ? goldText : "text-slate-500"}`}>
+                      {label}
+                    </p>
+                  </div>
                 </li>
               );
             })}
           </ol>
-        </Card>
+        </div>
       </section>
     </div>
   );
