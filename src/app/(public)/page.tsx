@@ -69,7 +69,9 @@ const foundingOwnerPromo = {
   offerDescription: "+$2/pt above standard payout rates",
   duration: "first 2 years",
   headline:
-    "Join PixieDVC during our July–August launch and lock in boosted payout rates for your first 2 years.",
+    "Partner with PixieDVC for our July–August launch and earn enhanced payout rates for 2 years.",
+  body:
+    "A streamlined owner experience for renting DVC points and confirmed reservations, with added launch benefits for early partners.",
   ctaNote: "Available to approved owners joining during the July–August launch.",
 };
 
@@ -178,7 +180,7 @@ export default async function Home() {
                       <p className="text-[11px] uppercase tracking-[0.22em] text-white/58">Founder positioning</p>
                       <p className="mt-2 text-xl font-semibold text-white">Concierge-supported from application through first bookings</p>
                     </div>
-                    <div className="rounded-full border border-white/14 bg-white/[0.08] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/78">
+                    <div className="inline-flex h-[34px] items-center justify-center rounded-full border border-[#D6B45A]/55 bg-[#D6B45A]/10 px-[18px] text-[11px] font-semibold uppercase tracking-[0.22em] text-[#D6B45A] shadow-[0_10px_24px_rgba(2,6,23,0.18)]">
                       {foundingOwnerPromo.badge}
                     </div>
                   </div>
@@ -203,21 +205,13 @@ export default async function Home() {
                 {foundingOwnerPromo.headline}
               </h2>
               <p className="mt-5 max-w-[58ch] text-[16px] leading-8 text-[#53627e]">
-                Built for owners who want a calmer, more premium way to place points and confirmed reservations with concierge support and stronger launch visibility.
+                {foundingOwnerPromo.body}
               </p>
-
-              <ul className="mt-8 space-y-3 text-[15px] leading-7 text-[#24334f]">
-                <li>• {foundingOwnerPromo.offerDescription}</li>
-                <li>• Priority owner visibility</li>
-                <li>• Founding Owner status</li>
-                <li>• Early access to Ready Stay opportunities</li>
-                <li>• Concierge-supported matching</li>
-              </ul>
 
               <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
                 <Link
                   href="/owners"
-                  className="inline-flex items-center justify-center rounded-full bg-[#0F2148] px-6 py-3 text-sm font-semibold !text-white shadow-[0_16px_34px_rgba(15,33,72,0.22)] transition hover:-translate-y-[1px] hover:bg-[#173465]"
+                  className="inline-flex items-center justify-center rounded-full border border-[#263d68]/55 bg-[linear-gradient(135deg,#0B1B3A_0%,#102C5F_55%,#173F78_100%)] px-6 py-2.5 text-sm font-semibold !text-white shadow-[0_14px_30px_rgba(15,33,72,0.24)] transition duration-200 hover:-translate-y-[1px] hover:bg-[linear-gradient(135deg,#10264F_0%,#173E7A_55%,#1E5598_100%)] hover:shadow-[0_18px_38px_rgba(15,33,72,0.28)]"
                 >
                   Apply as an Owner
                 </Link>
