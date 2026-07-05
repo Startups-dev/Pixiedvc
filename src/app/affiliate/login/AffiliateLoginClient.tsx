@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import Link from "next/link";
-import { Button, Card } from "@pixiedvc/design-system";
+import { Card } from "@pixiedvc/design-system";
 import { getClientAppUrl } from "@/lib/app-url";
 import { createClient } from "@/lib/supabase";
 import {
@@ -184,7 +184,7 @@ export default function AffiliateLoginClient() {
       <Card surface="dark" className={`w-full space-y-6 ${affiliateCard}`}>
         <div className="space-y-2">
           <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Affiliate Portal</p>
-          <h1 className="font-display text-3xl text-slate-500">{copy.title}</h1>
+          <h1 className={`font-display text-3xl ${affiliateTextMuted}`}>{copy.title}</h1>
           <p className={`text-sm ${affiliateTextMuted}`}>
             {copy.body}
           </p>
@@ -256,9 +256,13 @@ export default function AffiliateLoginClient() {
             </label>
           ) : null}
 
-          <Button type="submit" disabled={status === "loading"} fullWidth className={affiliatePrimaryButton}>
+          <button
+            type="submit"
+            disabled={status === "loading"}
+            className={`inline-flex w-full items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${affiliatePrimaryButton}`}
+          >
             {copy.button}
-          </Button>
+          </button>
         </form>
 
         {mode === "login" ? (
