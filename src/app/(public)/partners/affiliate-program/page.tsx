@@ -3,7 +3,7 @@
 import { FormEvent, ReactNode, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BookOpen, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { ArrowRight, BookOpen, Check, ShieldCheck, Sparkles, Users } from "lucide-react";
 import {
   affiliateCard,
   affiliateCard2,
@@ -430,14 +430,38 @@ export default function AffiliateProgramPage() {
                   </div>
                 </div>
               ) : accountStatus === "success" && accountMessage ? (
-                <div className="space-y-4 rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-5 text-sm text-slate-200">
-                  <p className="text-slate-200">{accountMessage}</p>
+                <div className={`space-y-5 rounded-2xl border border-[#D4AF37]/35 bg-[#111827] p-5 text-sm shadow-sm sm:p-6`}>
+                  <div className="flex items-start gap-4">
+                    <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#D4AF37]/70 text-[#D4AF37]">
+                      <Check aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+                    </span>
+                    <div className="space-y-3">
+                      <h4 className="font-display text-xl text-slate-200">Account Created</h4>
+                      <div className={`space-y-2 ${affiliateTextMuted}`}>
+                        <p>We've sent a confirmation email to your inbox.</p>
+                        <p>Please verify your email to activate your Partner Account.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="h-px bg-white/10" />
+                  <div className={`space-y-3 ${affiliateTextMuted}`}>
+                    <p>Once confirmed, you'll be able to:</p>
+                    <ul className="list-disc space-y-2 pl-5">
+                      <li>Access your Partner Dashboard</li>
+                      <li>Explore marketing resources</li>
+                      <li>Learn how the referral program works</li>
+                      <li>Prepare your referral links</li>
+                    </ul>
+                  </div>
                   <Link
                     href="/affiliate/login"
-                    className={`inline-flex rounded-xl px-5 py-2 text-xs font-semibold transition ${affiliatePrimaryButton}`}
+                    className={`inline-flex rounded-xl px-5 py-2.5 text-xs font-semibold transition ${affiliatePrimaryButton}`}
                   >
-                    Go to Affiliate Login
+                    Go to Partner Login
                   </Link>
+                  <p className={`text-xs ${affiliateTextMuted}`}>
+                    You can return here after verifying your email.
+                  </p>
                 </div>
               ) : accountMessage ? (
                 <p className={`text-sm ${accountStatus === "error" ? "text-red-400" : "text-emerald-400"}`}>
