@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { isActiveAffiliateStatus } from "@/lib/affiliates";
 
 type AppRole = "guest" | "owner" | "affiliate" | "admin" | "staff" | null;
 
@@ -28,7 +29,7 @@ async function getSessionWithRole(redirectTo: string, loginPath = "/login") {
 
 export async function requireAffiliateUser(redirectTo: string) {
   const session = await getSessionWithRole(redirectTo, "/affiliate/login");
-  if (session.role === "affiliate" || session.role === "admin") {
+  if (session.role === "admin") {
     return session;
   }
 
@@ -52,11 +53,7 @@ export async function requireAffiliateUser(redirectTo: string) {
           ).data
         : null);
 
-    const status = String(byEmail?.status ?? "").toLowerCase();
-    const isApprovedAffiliate =
-      Boolean(byEmail?.id) && ["pending_review", "verified", "active", "approved"].includes(status);
-
-    if (isApprovedAffiliate) {
+    if (Boolean(byEmail?.id) && isActiveAffiliateStatus(byEmail?.status)) {
       return session;
     }
   }

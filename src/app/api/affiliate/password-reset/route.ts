@@ -5,7 +5,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 const NEUTRAL_MESSAGE = "If this email is approved, password reset instructions have been sent.";
-const APPROVED_AFFILIATE_STATUSES = new Set(["pending_review", "verified", "active", "approved"]);
+const APPROVED_AFFILIATE_STATUSES = new Set(["verified", "active", "approved"]);
 
 function isApprovedAffiliateStatus(status: unknown) {
   return APPROVED_AFFILIATE_STATUSES.has(String(status ?? "").toLowerCase());

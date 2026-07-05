@@ -145,7 +145,7 @@ export async function PATCH(request: Request) {
 
   const displayName = application.display_name?.trim() || application.email.split("@")[0] || "Affiliate";
   const tier = action === "approve_elite" ? "elite" : action === "approve_verified" ? "verified" : "basic";
-  const affiliateStatus = action === "approve_basic" ? "pending_review" : "verified";
+  const affiliateStatus = "active";
   const commissionRate = action === "approve_elite" ? 0.08 : action === "approve_verified" ? 0.07 : 0.06;
 
   const { data: existingAffiliate } = await client
@@ -163,17 +163,30 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Unable to create or link affiliate auth user." }, { status: 400 });
   }
 
-  const { error: profileUpsertError } = await client
+  const { data: existingProfile } = await client
     .from("profiles")
-    .upsert(
-      {
-        id: authUserId,
-        email: application.email,
-        display_name: displayName,
-        role: "affiliate",
-      },
-      { onConflict: "id" },
-    );
+    .select("id")
+    .eq("id", authUserId)
+    .maybeSingle();
+
+  const profileWrite = existingProfile?.id
+    ? client
+        .from("profiles")
+        .update({
+          email: application.email,
+          display_name: displayName,
+        })
+        .eq("id", authUserId)
+    : client
+        .from("profiles")
+        .insert({
+          id: authUserId,
+          email: application.email,
+          display_name: displayName,
+          role: "affiliate",
+        });
+
+  const { error: profileUpsertError } = await profileWrite;
 
   if (profileUpsertError) {
     return NextResponse.json({ error: profileUpsertError.message }, { status: 400 });

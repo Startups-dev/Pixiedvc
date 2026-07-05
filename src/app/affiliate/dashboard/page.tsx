@@ -1,16 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CheckCircle2, ClipboardCheck, Clock3 } from "lucide-react";
 
 import { Button, Card } from "@pixiedvc/design-system";
 import {
+  ensureAffiliateForApplicationUser,
   getAffiliateForUser,
   getAffiliatePayoutHistory,
   getAffiliatePayoutSummary,
+  isBlockedAffiliateStatus,
 } from "@/lib/affiliates";
 import AffiliatePayoutEmailForm from "@/components/affiliate/PayoutEmailForm";
 import CopyReferralLinkButton from "@/components/affiliate/CopyReferralLinkButton";
-import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import {
   affiliateCard,
@@ -21,21 +21,6 @@ import {
   affiliateTextMuted,
 } from "@/lib/affiliate-theme";
 import { buildAffiliateReferralUrl, getReferralBaseUrl } from "@/lib/affiliate-referrals";
-
-type PendingAffiliateApplication = {
-  id: string;
-  status: string;
-  auth_user_id?: string | null;
-};
-
-function isMissingAffiliateApplicationAuthUserIdColumn(error: { message?: string; code?: string } | null) {
-  return Boolean(
-    error &&
-      (error.code === "42703" ||
-        error.message?.toLowerCase().includes("affiliate_applications.auth_user_id does not exist") ||
-        error.message?.toLowerCase().includes("column affiliate_applications.auth_user_id does not exist")),
-  );
-}
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(value);
@@ -64,233 +49,6 @@ function statusChip(status: string) {
   return "border border-sky-400/30 bg-sky-400/10 text-sky-200";
 }
 
-async function getPendingAffiliateApplicationForUser(userId: string, email?: string | null) {
-  const admin = getSupabaseAdminClient();
-  if (!admin) return null;
-
-  const byUserResult = await admin
-    .from("affiliate_applications")
-    .select("id, status, auth_user_id")
-    .eq("auth_user_id", userId)
-    .eq("status", "pending")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  let canLinkAuthUser = !isMissingAffiliateApplicationAuthUserIdColumn(byUserResult.error);
-  let application: PendingAffiliateApplication | null = canLinkAuthUser
-    ? (byUserResult.data as PendingAffiliateApplication | null)
-    : null;
-
-  if (!application && email) {
-    const byEmailResult = await admin
-      .from("affiliate_applications")
-      .select(canLinkAuthUser ? "id, status, auth_user_id" : "id, status")
-      .eq("email", email.toLowerCase())
-      .eq("status", "pending")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (canLinkAuthUser && isMissingAffiliateApplicationAuthUserIdColumn(byEmailResult.error)) {
-      canLinkAuthUser = false;
-      const fallback = await admin
-        .from("affiliate_applications")
-        .select("id, status")
-        .eq("email", email.toLowerCase())
-        .eq("status", "pending")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      application = fallback.data as PendingAffiliateApplication | null;
-    } else {
-      application = byEmailResult.data as PendingAffiliateApplication | null;
-    }
-  }
-
-  if (canLinkAuthUser && application?.id && !application.auth_user_id) {
-    await admin
-      .from("affiliate_applications")
-      .update({ auth_user_id: userId })
-      .eq("id", application.id);
-  }
-
-  return application as PendingAffiliateApplication | null;
-}
-
-function UnderReviewDashboard() {
-  const goldText = "text-[#d6b45a]";
-  const goldBorder = "border-[#d6b45a]/40";
-  const goldBg = "bg-[#d6b45a]/10";
-  const panel = "rounded-3xl border border-slate-700/70 bg-slate-950/40";
-  const compactPanel = "rounded-2xl border border-slate-700/70 bg-slate-950/35";
-
-  const launchCards = [
-    {
-      title: "Understand the owner problem",
-      body: "Many DVC owners have unused points and need a simpler, more guided way to rent them safely.",
-      badge: "PREPARATION",
-    },
-    {
-      title: "Think about your audience",
-      body: "Consider which owners, Disney travelers, or DVC-curious followers would find PixieDVC useful.",
-      badge: "PREPARATION",
-    },
-    {
-      title: "Prepare your messaging",
-      body: "Start planning how you would explain PixieDVC in a helpful, trustworthy, non-salesy way.",
-      badge: "PREPARATION",
-    },
-    {
-      title: "Tools unlock after approval",
-      body: "Referral links, tracking, campaign resources, and commission information become available after approval.",
-      badge: "LOCKED",
-    },
-  ];
-
-  const progressItems = [
-    {
-      label: "Application Submitted",
-      body: "Your application has been received.",
-      state: "completed",
-    },
-    {
-      label: "Under Review",
-      body: "PixieDVC is reviewing your fit.",
-      state: "current",
-    },
-    {
-      label: "Approved",
-      body: "Your partner tools unlock.",
-      state: "pending",
-    },
-    {
-      label: "Start Referring",
-      body: "Begin sharing PixieDVC with your audience.",
-      state: "pending",
-    },
-  ];
-
-  return (
-    <div className="mx-auto max-w-7xl space-y-8 px-6 py-10">
-      <header className={`${panel} flex flex-col gap-5 px-8 py-6 sm:flex-row sm:items-center sm:justify-between`}>
-        <div>
-          <p className={`text-xs uppercase tracking-[0.32em] ${goldText}`}>AFFILIATE DASHBOARD</p>
-          <h1 className="mt-3 font-display text-3xl text-slate-100 sm:text-4xl">Welcome to PixieDVC Partners</h1>
-          <p className="mt-2 text-sm text-slate-300">Your application is currently under review.</p>
-        </div>
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-700 bg-slate-950/50 px-4 py-3">
-          <span className={`flex h-9 w-9 items-center justify-center rounded-full border ${goldBorder} ${goldText}`}>
-            <Clock3 aria-hidden="true" className="h-4 w-4" />
-          </span>
-          <div>
-            <p className={`text-[0.68rem] font-semibold uppercase tracking-[0.28em] ${goldText}`}>STATUS</p>
-            <p className="mt-1 text-sm font-semibold text-slate-100">Under Review</p>
-          </div>
-        </div>
-      </header>
-
-      <section className={`${panel} flex flex-col gap-5 bg-slate-950/50 px-8 py-7 sm:flex-row sm:items-center sm:justify-between`}>
-        <div className="max-w-3xl">
-          <p className={`text-xs uppercase tracking-[0.3em] ${goldText}`}>APPLICATION STATUS</p>
-          <h2 className="mt-3 text-2xl font-semibold text-slate-100">Under Review</h2>
-          <p className="mt-3 text-sm leading-relaxed text-slate-300">
-            We’re reviewing your partner application. While you wait, you can review the information below and prepare for when your account is approved.
-          </p>
-        </div>
-        <ClipboardCheck aria-hidden="true" className="hidden h-16 w-16 shrink-0 text-[#d6b45a]/75 sm:block" strokeWidth={1.5} />
-      </section>
-
-      <section className="space-y-3">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-100 sm:text-2xl">While you wait, get ready for launch</h2>
-          <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-400">
-            Use this time to understand the opportunity and think about how PixieDVC could fit naturally into your content.
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {launchCards.map((card) => (
-            <article key={card.title} className={`${compactPanel} p-5`}>
-              <span
-                className={`inline-flex rounded-full border px-2.5 py-1 text-[0.65rem] font-semibold tracking-[0.16em] ${
-                  card.badge === "LOCKED"
-                    ? "border-slate-700 text-slate-300"
-                    : `${goldBorder} ${goldText} ${goldBg}`
-                }`}
-              >
-                {card.badge}
-              </span>
-              <h3 className="mt-4 text-base font-semibold text-slate-100">{card.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-300">{card.body}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-100 sm:text-2xl">Your Partner Journey</h2>
-          <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-400">
-            Here’s where you are in the partner approval process.
-          </p>
-        </div>
-        <div className={`${panel} p-5 sm:p-6`}>
-          <ol className="grid gap-5 md:grid-cols-4">
-            {progressItems.map((item, index) => {
-              const isCurrent = item.state === "current";
-              const isCompleted = item.state === "completed";
-              const isActiveConnector = index === 0;
-              const label =
-                item.state === "current"
-                  ? "Current"
-                  : item.state === "completed"
-                    ? "Completed"
-                    : "Pending";
-
-              return (
-                <li
-                  key={item.label}
-                  className="relative flex gap-3 md:block"
-                >
-                  <div className="flex flex-col items-center md:flex-row">
-                    <span
-                      className={`z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
-                        isCurrent || isCompleted
-                          ? `${goldBorder} ${goldBg} ${goldText}`
-                          : "border-slate-600 bg-slate-900/60 text-slate-500"
-                      }`}
-                    >
-                      {isCompleted ? <CheckCircle2 aria-hidden="true" className="h-4 w-4" /> : index + 1}
-                    </span>
-                    {index < progressItems.length - 1 ? (
-                      <span
-                        className={`h-full w-px md:h-px md:flex-1 ${
-                          isActiveConnector ? "bg-[#d6b45a]/50" : "bg-slate-700/70"
-                        }`}
-                        aria-hidden="true"
-                      />
-                    ) : null}
-                  </div>
-                  <div className="pb-2 md:mt-3 md:pb-0">
-                    <p className={`text-sm font-semibold ${isCurrent || isCompleted ? "text-slate-100" : "text-slate-400"}`}>
-                      {item.label}
-                    </p>
-                    <p className={`mt-1 text-xs leading-relaxed ${isCurrent || isCompleted ? "text-slate-300" : "text-slate-500"}`}>
-                      {item.body}
-                    </p>
-                    <p className={`mt-2 text-[0.65rem] font-semibold uppercase tracking-[0.18em] ${isCurrent ? goldText : "text-slate-500"}`}>
-                      {label}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
-      </section>
-    </div>
-  );
-}
 
 export default async function AffiliateDashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -312,13 +70,21 @@ export default async function AffiliateDashboardPage() {
   const isAdmin = role === "admin";
   const hasAffiliateRole = role === "affiliate";
 
-  const affiliate = await getAffiliateForUser(user.id, user.email);
-  if (!affiliate && !isAdmin && !hasAffiliateRole) {
-    const pendingApplication = await getPendingAffiliateApplicationForUser(user.id, user.email);
-    if (pendingApplication?.id) {
-      return <UnderReviewDashboard />;
-    }
+  let affiliate = await getAffiliateForUser(user.id, user.email);
 
+  if (!isAdmin) {
+    const applicationAccess = await ensureAffiliateForApplicationUser(user.id, user.email, affiliate);
+    if (applicationAccess.blocked) {
+      redirect(`/affiliate/login?redirect=${encodeURIComponent("/affiliate/dashboard")}&error=role`);
+    }
+    affiliate = applicationAccess.affiliate;
+  }
+
+  if (!affiliate && !isAdmin && !hasAffiliateRole) {
+    redirect(`/affiliate/login?redirect=${encodeURIComponent("/affiliate/dashboard")}&error=role`);
+  }
+
+  if (affiliate && !isAdmin && isBlockedAffiliateStatus(affiliate.status)) {
     redirect(`/affiliate/login?redirect=${encodeURIComponent("/affiliate/dashboard")}&error=role`);
   }
 
@@ -400,15 +166,6 @@ export default async function AffiliateDashboardPage() {
           </div>
         </div>
       </header>
-
-      {affiliate.status === "pending_review" ? (
-        <Card surface="dark" className={`${affiliateCard2} border-[#D4AF37]/30 shadow-[0_12px_32px_rgba(0,0,0,0.25)]`}>
-          <p className="text-sm font-semibold text-[#D4AF37]">
-            Your account is active. Our team may review your promotional channels to ensure alignment with PixieDVC
-            standards.
-          </p>
-        </Card>
-      ) : null}
 
       <section className="space-y-4">
         <div className="grid gap-4 md:grid-cols-3">
