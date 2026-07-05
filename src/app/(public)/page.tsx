@@ -72,7 +72,15 @@ const foundingOwnerPromo = {
     "Partner with PixieDVC for our July–August launch and earn enhanced payout rates for 2 years.",
   body:
     "A streamlined owner experience for renting DVC points and confirmed reservations, with added launch benefits for early partners.",
-  ctaNote: "Available to approved owners joining during the July–August launch.",
+  benefits: [
+    "+$2/pt vs standard payouts",
+    "Premium owner visibility",
+    "Founding Owner status",
+    "Early access to Ready Stay",
+    "Concierge-matched reservations",
+  ],
+  ctaLabel: "Apply as DVC Owner",
+  ctaNote: "Available to qualifying owners who join during the July–August 2026 launch.",
 };
 
 export default async function Home() {
@@ -180,7 +188,7 @@ export default async function Home() {
                       <p className="text-[11px] uppercase tracking-[0.22em] text-white/58">Founder positioning</p>
                       <p className="mt-2 text-xl font-semibold text-white">Concierge-supported from application through first bookings</p>
                     </div>
-                    <div className="inline-flex h-[34px] items-center justify-center rounded-full border border-[#D6B45A]/55 bg-[#D6B45A]/10 px-[18px] text-[11px] font-semibold uppercase tracking-[0.22em] text-[#D6B45A] shadow-[0_10px_24px_rgba(2,6,23,0.18)]">
+                    <div className="inline-flex h-[34px] shrink-0 items-center justify-center whitespace-nowrap rounded-full border border-[#D6B45A]/55 bg-[#D6B45A]/10 px-[18px] text-[11px] font-semibold uppercase tracking-[0.18em] text-[#D6B45A] shadow-[0_10px_24px_rgba(2,6,23,0.18)]">
                       {foundingOwnerPromo.badge}
                     </div>
                   </div>
@@ -208,12 +216,18 @@ export default async function Home() {
                 {foundingOwnerPromo.body}
               </p>
 
+              <ul className="mt-8 space-y-3 text-[15px] leading-7 text-[#24334f]">
+                {foundingOwnerPromo.benefits.map((benefit) => (
+                  <li key={benefit}>• {benefit}</li>
+                ))}
+              </ul>
+
               <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
                 <Link
                   href="/owners"
-                  className="inline-flex items-center justify-center rounded-full border border-[#263d68]/55 bg-[linear-gradient(135deg,#0B1B3A_0%,#102C5F_55%,#173F78_100%)] px-6 py-2.5 text-sm font-semibold !text-white shadow-[0_14px_30px_rgba(15,33,72,0.24)] transition duration-200 hover:-translate-y-[1px] hover:bg-[linear-gradient(135deg,#10264F_0%,#173E7A_55%,#1E5598_100%)] hover:shadow-[0_18px_38px_rgba(15,33,72,0.28)]"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-full border border-[#263d68]/55 bg-[linear-gradient(135deg,#0B1B3A_0%,#102C5F_55%,#173F78_100%)] px-6 py-2.5 text-sm font-semibold !text-white shadow-[0_14px_30px_rgba(15,33,72,0.24)] transition duration-200 hover:-translate-y-[1px] hover:bg-[linear-gradient(135deg,#10264F_0%,#173E7A_55%,#1E5598_100%)] hover:shadow-[0_18px_38px_rgba(15,33,72,0.28)]"
                 >
-                  Apply as an Owner
+                  {foundingOwnerPromo.ctaLabel}
                 </Link>
                 <p className="text-sm text-[#6a7891]">
                   {foundingOwnerPromo.ctaNote}
