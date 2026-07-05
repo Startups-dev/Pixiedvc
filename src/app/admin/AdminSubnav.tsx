@@ -6,6 +6,7 @@ type AdminSubnavProps = {
     | 'ledger'
     | 'affiliates'
     | 'affiliate-applications'
+    | 'analytics'
     | 'platform-tools'
     | 'liquidation-opportunities';
 };
@@ -15,6 +16,7 @@ const items = [
   { key: 'matching', label: 'Matching', href: '/admin/matching' },
   { key: 'affiliates', label: 'Affiliates', href: '/admin/affiliates' },
   { key: 'affiliate-applications', label: 'Affiliate Applications', href: '/admin/affiliates/applications' },
+  { key: 'analytics', label: 'Analytics', href: '/admin/analytics' },
   { key: 'ledger', label: 'Finance Ledger', href: '/admin/reports/ledger' },
   { key: 'liquidation-opportunities', label: 'Liquidation Opportunities', href: '/admin/liquidation-opportunities' },
   { key: 'platform-tools', label: 'Platform Tools', href: '/admin/platform-tools' },

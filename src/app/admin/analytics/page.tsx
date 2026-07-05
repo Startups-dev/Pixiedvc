@@ -1,5 +1,6 @@
 import { requireAdminUser } from "@/lib/admin";
 import { getAnalyticsOverview } from "@/lib/analytics/server";
+import AdminSubnav from "../AdminSubnav";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,7 @@ export default async function AdminAnalyticsPage() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(30,41,59,0.5),_rgba(2,6,23,0.95)_50%)] text-slate-100">
       <div className="mx-auto max-w-7xl space-y-8 px-6 py-12">
+        <AdminSubnav current="analytics" />
         <header className="space-y-3">
           <p className="text-xs uppercase tracking-[0.32em] text-slate-400">Admin · Analytics</p>
           <h1 className="text-3xl font-semibold text-slate-50">Visitor Analytics</h1>
