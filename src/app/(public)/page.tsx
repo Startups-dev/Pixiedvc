@@ -59,6 +59,20 @@ const resortShowcase = [
 // Launch Phase: Testimonials temporarily hidden. Re-enable when sufficient verified reviews are available.
 const SHOW_HOME_STORIES_FOR_LAUNCH = false;
 
+const foundingOwnerPromo = {
+  windowStart: "2026-07-01",
+  windowEnd: "2026-08-31",
+  displayLabel: "July–August Launch",
+  monthLabel: "July–August",
+  badge: "July–August Only",
+  offer: "+$2/pt",
+  offerDescription: "+$2/pt above standard payout rates",
+  duration: "first 2 years",
+  headline:
+    "Join PixieDVC during our July–August launch and lock in boosted payout rates for your first 2 years.",
+  ctaNote: "Available to approved owners joining during the July–August launch.",
+};
+
 export default async function Home() {
   noStore();
   let shouldShowNewsletterSignup = true;
@@ -128,7 +142,7 @@ export default async function Home() {
             <p className="text-sm leading-6 text-white/86">
               <span className="font-semibold text-white">Founding Owner Launch</span>
               {" — "}
-              Join during June and receive +$2/pt above standard payout rates for your first 2 years.
+              Join during the {foundingOwnerPromo.displayLabel} and receive {foundingOwnerPromo.offerDescription} for your {foundingOwnerPromo.duration}.
             </p>
             <Link
               href="/owners"
@@ -149,8 +163,8 @@ export default async function Home() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="rounded-[26px] border border-white/10 bg-white/[0.06] p-5 backdrop-blur-sm">
                     <p className="text-[11px] uppercase tracking-[0.22em] text-white/58">Boosted launch payout</p>
-                    <p className="mt-3 text-3xl font-semibold text-white">+$2/pt</p>
-                    <p className="mt-2 text-sm leading-6 text-white/72">Above standard payout rates for your first 2 years.</p>
+                    <p className="mt-3 text-3xl font-semibold text-white">{foundingOwnerPromo.offer}</p>
+                    <p className="mt-2 text-sm leading-6 text-white/72">Above standard payout rates for your {foundingOwnerPromo.duration}.</p>
                   </div>
                   <div className="rounded-[26px] border border-white/10 bg-white/[0.06] p-5 backdrop-blur-sm">
                     <p className="text-[11px] uppercase tracking-[0.22em] text-white/58">Founder access</p>
@@ -165,7 +179,7 @@ export default async function Home() {
                       <p className="mt-2 text-xl font-semibold text-white">Concierge-supported from application through first bookings</p>
                     </div>
                     <div className="rounded-full border border-white/14 bg-white/[0.08] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/78">
-                      June only
+                      {foundingOwnerPromo.badge}
                     </div>
                   </div>
                   <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -186,14 +200,14 @@ export default async function Home() {
             <div className="order-1 lg:order-2">
               <p className="text-xs uppercase tracking-[0.28em] text-[#5c6f98]">Founding Owner Launch</p>
               <h2 className="mt-4 max-w-[15ch] text-4xl font-semibold leading-[1.04] text-[#0F2148] sm:text-5xl">
-                Join PixieDVC during our June launch and lock in boosted payout rates for your first 2 years.
+                {foundingOwnerPromo.headline}
               </h2>
               <p className="mt-5 max-w-[58ch] text-[16px] leading-8 text-[#53627e]">
                 Built for owners who want a calmer, more premium way to place points and confirmed reservations with concierge support and stronger launch visibility.
               </p>
 
               <ul className="mt-8 space-y-3 text-[15px] leading-7 text-[#24334f]">
-                <li>• +$2/pt above standard payout rates</li>
+                <li>• {foundingOwnerPromo.offerDescription}</li>
                 <li>• Priority owner visibility</li>
                 <li>• Founding Owner status</li>
                 <li>• Early access to Ready Stay opportunities</li>
@@ -208,7 +222,7 @@ export default async function Home() {
                   Apply as an Owner
                 </Link>
                 <p className="text-sm text-[#6a7891]">
-                  Available to approved owners joining during June only.
+                  {foundingOwnerPromo.ctaNote}
                 </p>
               </div>
             </div>
