@@ -49,6 +49,22 @@ function statusChip(status: string) {
   return "border border-sky-400/30 bg-sky-400/10 text-sky-200";
 }
 
+function logAffiliateDashboardRedirect(
+  branch: string,
+  details: {
+    userId?: string | null;
+    email?: string | null;
+    affiliateStatus?: string | null;
+  },
+) {
+  console.info("[affiliate-access]", {
+    event: "dashboard_redirect",
+    redirectBranch: branch,
+    userId: details.userId ?? null,
+    normalizedEmail: details.email?.trim().toLowerCase() ?? null,
+    existingAffiliateStatus: details.affiliateStatus ?? null,
+  });
+}
 
 export default async function AffiliateDashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -75,16 +91,31 @@ export default async function AffiliateDashboardPage() {
   if (!isAdmin) {
     const applicationAccess = await ensureAffiliateForApplicationUser(user.id, user.email, affiliate);
     if (applicationAccess.blocked) {
+      logAffiliateDashboardRedirect("application_access_blocked", {
+        userId: user.id,
+        email: user.email,
+        affiliateStatus: affiliate?.status ?? null,
+      });
       redirect(`/affiliate/login?redirect=${encodeURIComponent("/affiliate/dashboard")}&error=role`);
     }
     affiliate = applicationAccess.affiliate;
   }
 
   if (!affiliate && !isAdmin && !hasAffiliateRole) {
+    logAffiliateDashboardRedirect("no_affiliate_after_self_heal", {
+      userId: user.id,
+      email: user.email,
+      affiliateStatus: null,
+    });
     redirect(`/affiliate/login?redirect=${encodeURIComponent("/affiliate/dashboard")}&error=role`);
   }
 
   if (affiliate && !isAdmin && isBlockedAffiliateStatus(affiliate.status)) {
+    logAffiliateDashboardRedirect("blocked_affiliate_status", {
+      userId: user.id,
+      email: user.email,
+      affiliateStatus: affiliate.status,
+    });
     redirect(`/affiliate/login?redirect=${encodeURIComponent("/affiliate/dashboard")}&error=role`);
   }
 

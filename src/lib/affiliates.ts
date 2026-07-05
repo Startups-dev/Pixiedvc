@@ -114,6 +114,42 @@ function isHardBlockedAffiliateStatus(status: string | null | undefined) {
   return ["suspended", "rejected", "declined", "denied"].includes(String(status ?? "").toLowerCase());
 }
 
+function logAffiliateAccessEvent(
+  event: string,
+  details: {
+    userId?: string | null;
+    normalizedEmail?: string | null;
+    applicationId?: string | null;
+    applicationStatus?: string | null;
+    existingAffiliateStatus?: string | null;
+    errorCode?: string | null;
+    errorMessage?: string | null;
+    redirectBranch?: string | null;
+  },
+) {
+  console.info("[affiliate-access]", {
+    event,
+    userId: details.userId ?? null,
+    normalizedEmail: details.normalizedEmail ?? null,
+    applicationId: details.applicationId ?? null,
+    applicationStatus: details.applicationStatus ?? null,
+    existingAffiliateStatus: details.existingAffiliateStatus ?? null,
+    errorCode: details.errorCode ?? null,
+    errorMessage: details.errorMessage ?? null,
+    redirectBranch: details.redirectBranch ?? null,
+  });
+}
+
+function isAuthUserLinkInsertError(error: { code?: string | null; message?: string | null; details?: string | null } | null) {
+  const text = `${error?.code ?? ""} ${error?.message ?? ""} ${error?.details ?? ""}`.toLowerCase();
+  return (
+    text.includes("auth_user_id") ||
+    text.includes("foreign key") ||
+    text.includes("violates foreign key constraint") ||
+    text.includes("affiliates_auth_user_id")
+  );
+}
+
 async function ensureUniqueAffiliateSlug(client: NonNullable<ReturnType<typeof getSupabaseAdminClient>>, base: string) {
   const safeBase = normalizeAffiliateSlug(base) || "affiliate";
   let candidate = safeBase;
@@ -187,6 +223,12 @@ export async function ensureAffiliateForApplicationUser(
   const normalizedEmail = email?.trim().toLowerCase() ?? "";
 
   if (!admin || !normalizedEmail) {
+    logAffiliateAccessEvent("self_heal_skipped", {
+      userId,
+      normalizedEmail,
+      existingAffiliateStatus: existingAffiliate?.status ?? null,
+      redirectBranch: !admin ? "missing_admin_client" : "missing_email",
+    });
     return { affiliate: existingAffiliate ?? null, blocked: false };
   }
 
@@ -221,15 +263,46 @@ export async function ensureAffiliateForApplicationUser(
       : byUser ?? byEmail;
 
   if (application && isRejectedApplicationStatus(application.status) && !isActiveAffiliateStatus(existingAffiliate?.status)) {
+    logAffiliateAccessEvent("application_blocked", {
+      userId,
+      normalizedEmail,
+      applicationId: application.id,
+      applicationStatus: application.status,
+      existingAffiliateStatus: existingAffiliate?.status ?? null,
+      redirectBranch: "rejected_application",
+    });
     return { affiliate: null, blocked: true };
   }
 
   if (!application || !isEligibleApplicationStatus(application.status)) {
+    logAffiliateAccessEvent("application_not_eligible", {
+      userId,
+      normalizedEmail,
+      applicationId: application?.id ?? null,
+      applicationStatus: application?.status ?? null,
+      existingAffiliateStatus: existingAffiliate?.status ?? null,
+      redirectBranch: application ? "ineligible_application_status" : "no_application",
+    });
     return { affiliate: existingAffiliate ?? null, blocked: false };
   }
 
   if (canLinkApplicationAuthUser && application.auth_user_id !== userId) {
-    await admin.from("affiliate_applications").update({ auth_user_id: userId }).eq("id", application.id);
+    const { error: applicationLinkError } = await admin
+      .from("affiliate_applications")
+      .update({ auth_user_id: userId })
+      .eq("id", application.id);
+
+    if (applicationLinkError) {
+      logAffiliateAccessEvent("application_link_failed", {
+        userId,
+        normalizedEmail,
+        applicationId: application.id,
+        applicationStatus: application.status,
+        existingAffiliateStatus: existingAffiliate?.status ?? null,
+        errorCode: applicationLinkError.code ?? null,
+        errorMessage: applicationLinkError.message ?? null,
+      });
+    }
   }
 
   const existingByUser = await admin
@@ -250,22 +323,64 @@ export async function ensureAffiliateForApplicationUser(
 
   if (existingByEmail) {
     if (isHardBlockedAffiliateStatus(existingByEmail.status)) {
+      logAffiliateAccessEvent("affiliate_blocked", {
+        userId,
+        normalizedEmail,
+        applicationId: application.id,
+        applicationStatus: application.status,
+        existingAffiliateStatus: existingByEmail.status,
+        redirectBranch: "blocked_affiliate_status",
+      });
       return { affiliate: null, blocked: true };
     }
 
     if (!existingByEmail.auth_user_id) {
-      await admin.from("affiliates").update({ auth_user_id: userId }).eq("id", existingByEmail.id);
+      const { error: affiliateLinkError } = await admin
+        .from("affiliates")
+        .update({ auth_user_id: userId })
+        .eq("id", existingByEmail.id);
+
+      if (affiliateLinkError) {
+        logAffiliateAccessEvent("affiliate_link_failed", {
+          userId,
+          normalizedEmail,
+          applicationId: application.id,
+          applicationStatus: application.status,
+          existingAffiliateStatus: existingByEmail.status,
+          errorCode: affiliateLinkError.code ?? null,
+          errorMessage: affiliateLinkError.message ?? null,
+        });
+      }
     }
 
     if (String(existingByEmail.status ?? "").toLowerCase() === "pending_review") {
-      const { data: activatedAffiliate } = await admin
+      const { data: activatedAffiliate, error: activationError } = await admin
         .from("affiliates")
         .update({ status: "active" })
         .eq("id", existingByEmail.id)
         .select(AFFILIATE_SELECT)
         .single();
 
+      if (activationError) {
+        logAffiliateAccessEvent("affiliate_activation_failed", {
+          userId,
+          normalizedEmail,
+          applicationId: application.id,
+          applicationStatus: application.status,
+          existingAffiliateStatus: existingByEmail.status,
+          errorCode: activationError.code ?? null,
+          errorMessage: activationError.message ?? null,
+        });
+      }
+
       if (activatedAffiliate) {
+        logAffiliateAccessEvent("affiliate_activation_succeeded", {
+          userId,
+          normalizedEmail,
+          applicationId: application.id,
+          applicationStatus: application.status,
+          existingAffiliateStatus: existingByEmail.status,
+        });
         return { affiliate: mapAffiliateRow(activatedAffiliate as AffiliateRow), blocked: false };
       }
     }
@@ -276,31 +391,96 @@ export async function ensureAffiliateForApplicationUser(
   const displayName = application.display_name?.trim() || normalizedEmail.split("@")[0] || "Affiliate";
   const slug = await ensureUniqueAffiliateSlug(admin, displayName);
   const socialLinks = Array.isArray(application.social_links) ? application.social_links : [];
+  const affiliateInsertPayload = {
+    display_name: displayName,
+    name: displayName,
+    email: normalizedEmail,
+    slug,
+    status: "active",
+    tier: "basic",
+    commission_rate: 0.06,
+    website: application.website ?? null,
+    social_links: socialLinks,
+    traffic_estimate: application.traffic_estimate ?? null,
+    promotion_description: application.promotion_description ?? null,
+    review_notes: null,
+    suspend_reason: null,
+  };
 
   const { data: insertedAffiliate, error: insertError } = await admin
     .from("affiliates")
     .insert({
+      ...affiliateInsertPayload,
       auth_user_id: userId,
-      display_name: displayName,
-      name: displayName,
-      email: normalizedEmail,
-      slug,
-      status: "active",
-      tier: "basic",
-      commission_rate: 0.06,
-      website: application.website ?? null,
-      social_links: socialLinks,
-      traffic_estimate: application.traffic_estimate ?? null,
-      promotion_description: application.promotion_description ?? null,
-      review_notes: null,
-      suspend_reason: null,
     })
     .select(AFFILIATE_SELECT)
     .single();
 
+  if (insertError) {
+    logAffiliateAccessEvent("affiliate_insert_failed", {
+      userId,
+      normalizedEmail,
+      applicationId: application.id,
+      applicationStatus: application.status,
+      existingAffiliateStatus: existingAffiliate?.status ?? null,
+      errorCode: insertError.code ?? null,
+      errorMessage: insertError.message ?? null,
+    });
+  }
+
+  if (insertError && isAuthUserLinkInsertError(insertError)) {
+    const { data: emailOnlyAffiliate, error: emailOnlyInsertError } = await admin
+      .from("affiliates")
+      .insert(affiliateInsertPayload)
+      .select(AFFILIATE_SELECT)
+      .single();
+
+    if (emailOnlyInsertError) {
+      logAffiliateAccessEvent("affiliate_email_only_insert_failed", {
+        userId,
+        normalizedEmail,
+        applicationId: application.id,
+        applicationStatus: application.status,
+        existingAffiliateStatus: existingAffiliate?.status ?? null,
+        errorCode: emailOnlyInsertError.code ?? null,
+        errorMessage: emailOnlyInsertError.message ?? null,
+      });
+      return { affiliate: existingAffiliate ?? null, blocked: false };
+    }
+
+    if (emailOnlyAffiliate) {
+      logAffiliateAccessEvent("affiliate_email_only_insert_succeeded", {
+        userId,
+        normalizedEmail,
+        applicationId: application.id,
+        applicationStatus: application.status,
+        existingAffiliateStatus: existingAffiliate?.status ?? null,
+      });
+      return { affiliate: mapAffiliateRow(emailOnlyAffiliate as AffiliateRow), blocked: false };
+    }
+  }
+
   if (insertError || !insertedAffiliate) {
+    logAffiliateAccessEvent("affiliate_insert_unusable", {
+      userId,
+      normalizedEmail,
+      applicationId: application.id,
+      applicationStatus: application.status,
+      existingAffiliateStatus: existingAffiliate?.status ?? null,
+      errorCode: insertError?.code ?? null,
+      errorMessage: insertError?.message ?? null,
+      redirectBranch: "insert_failed_no_affiliate",
+    });
     return { affiliate: existingAffiliate ?? null, blocked: false };
   }
+
+  logAffiliateAccessEvent("affiliate_insert_succeeded", {
+    userId,
+    normalizedEmail,
+    applicationId: application.id,
+    applicationStatus: application.status,
+    existingAffiliateStatus: existingAffiliate?.status ?? null,
+  });
 
   return { affiliate: mapAffiliateRow(insertedAffiliate as AffiliateRow), blocked: false };
 }
