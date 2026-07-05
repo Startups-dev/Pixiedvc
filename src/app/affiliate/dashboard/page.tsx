@@ -120,54 +120,85 @@ async function getPendingAffiliateApplicationForUser(userId: string, email?: str
 function UnderReviewDashboard() {
   const launchCards = [
     {
-      title: "Learn how PixieDVC works",
-      body: "Understand how owners rent their points, how guests book stays, and where partners fit into the process.",
+      title: "Understand the owner problem",
+      body: "Many DVC owners have unused points and need a simpler, more guided way to rent them safely.",
+      badge: "Preparation",
     },
     {
-      title: "Review the partner playbook",
-      body: "Get familiar with our messaging, positioning, and best practices before your referral tools unlock.",
+      title: "Think about your audience",
+      body: "Consider which owners, Disney travelers, or DVC-curious followers would find PixieDVC useful.",
+      badge: "Preparation",
     },
     {
-      title: "Prepare your audience",
-      body: "Start thinking about which DVC owners in your community would benefit from a simpler way to rent their points.",
+      title: "Prepare your messaging",
+      body: "Start planning how you would explain PixieDVC in a helpful, trustworthy, non-salesy way.",
+      badge: "Preparation",
     },
     {
-      title: "Approval unlocks your tools",
-      body: "Once approved, your referral links, tracking, campaign resources, and payout information will become available.",
+      title: "Tools unlock after approval",
+      body: "Referral links, tracking, campaign resources, and commission information become available after approval.",
+      badge: "Locked",
     },
   ];
 
   const progressItems = [
-    { label: "Application Submitted", state: "completed" },
-    { label: "Account Created", state: "completed" },
-    { label: "Under Review", state: "current" },
-    { label: "Approved", state: "pending" },
-    { label: "First Owner Referred", state: "pending" },
-    { label: "First Commission", state: "pending" },
+    {
+      label: "Application Submitted",
+      body: "Your application has been received.",
+      state: "completed",
+    },
+    {
+      label: "Under Review",
+      body: "PixieDVC is reviewing your fit.",
+      state: "current",
+    },
+    {
+      label: "Approved",
+      body: "Your partner tools unlock.",
+      state: "pending",
+    },
+    {
+      label: "Start Referring",
+      body: "Begin sharing PixieDVC with your audience.",
+      state: "pending",
+    },
   ];
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-6 py-14">
       <header className={`rounded-3xl border border-white/15 bg-gradient-to-br from-[#0f172a] via-[#111827] to-[#0b1224] p-8 shadow-[0_22px_60px_rgba(2,6,23,0.45)]`}>
-        <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Affiliate Dashboard</p>
+        <p className="text-xs uppercase tracking-[0.3em] text-[#D4AF37]">Affiliate Dashboard</p>
         <h1 className="mt-4 font-display text-4xl text-slate-100">Welcome to PixieDVC Partners</h1>
+        <p className="mt-3 text-sm text-slate-300">Your application is currently under review.</p>
       </header>
 
       <Card surface="dark" className={`${affiliateCard} border-white/15 bg-[#0f172a]`}>
-        <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Application Status</p>
+        <p className="text-xs uppercase tracking-[0.3em] text-[#D4AF37]">Application Status</p>
         <p className="mt-3 text-2xl font-semibold text-slate-100">Under Review</p>
-        <p className={`mt-3 text-sm ${affiliateTextMuted}`}>
-          We’re reviewing your partner application. While you wait, you can explore the dashboard and prepare your account.
+        <p className="mt-3 text-sm leading-relaxed text-slate-300">
+          We’re reviewing your partner application. While you wait, you can review the information below and prepare for when your account is approved.
         </p>
       </Card>
 
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold text-slate-100">While you wait, get ready for launch</h2>
+        <p className="max-w-3xl text-sm leading-relaxed text-slate-300">
+          Use this time to understand the opportunity and think about how PixieDVC could fit naturally into your content.
+        </p>
         <div className="grid gap-4 md:grid-cols-2">
           {launchCards.map((card) => (
             <Card key={card.title} surface="dark" className={`${affiliateCard} border-white/15 bg-[#0f172a]`}>
+              <span
+                className={`inline-flex rounded-full border px-3 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] ${
+                  card.badge === "Locked"
+                    ? "border-slate-400/25 text-slate-400"
+                    : "border-[#D4AF37]/35 text-[#D4AF37]"
+                }`}
+              >
+                {card.badge}
+              </span>
               <h3 className="text-lg font-semibold text-slate-100">{card.title}</h3>
-              <p className={`mt-2 text-sm leading-relaxed ${affiliateTextMuted}`}>{card.body}</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-300">{card.body}</p>
             </Card>
           ))}
         </div>
@@ -175,10 +206,14 @@ function UnderReviewDashboard() {
 
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold text-slate-100">Your Partner Journey</h2>
+        <p className="max-w-3xl text-sm leading-relaxed text-slate-300">
+          Here’s where you are in the partner approval process.
+        </p>
         <Card surface="dark" className={`${affiliateCard} border-white/15 bg-[#0f172a]`}>
-          <ol className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <ol className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             {progressItems.map((item) => {
-              const isPending = item.state === "pending";
+              const isCurrent = item.state === "current";
+              const isCompleted = item.state === "completed";
               const label =
                 item.state === "current"
                   ? "Current"
@@ -190,13 +225,16 @@ function UnderReviewDashboard() {
                 <li
                   key={item.label}
                   className={`rounded-2xl border p-4 ${
-                    isPending
-                      ? "border-white/10 bg-[#0b1224] text-slate-500"
-                      : "border-emerald-400/20 bg-emerald-400/10 text-slate-100"
+                    isCurrent
+                      ? "border-[#D4AF37]/40 bg-[#D4AF37]/10 text-slate-100"
+                      : isCompleted
+                        ? "border-white/15 bg-white/[0.03] text-slate-100"
+                        : "border-slate-400/20 bg-[#0b1224] text-slate-400"
                   }`}
                 >
                   <p className="text-sm font-semibold">{item.label}</p>
-                  <p className={`mt-2 text-xs uppercase tracking-[0.2em] ${isPending ? "text-slate-500" : "text-emerald-300"}`}>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-300">{item.body}</p>
+                  <p className={`mt-3 text-xs uppercase tracking-[0.2em] ${isCurrent ? "text-[#D4AF37]" : "text-slate-400"}`}>
                     {label}
                   </p>
                 </li>
@@ -244,7 +282,7 @@ export default async function AffiliateDashboardPage() {
       <div className="mx-auto max-w-4xl px-6 py-20">
         <Card surface="dark" className={`space-y-4 ${affiliateCard}`}>
           <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Affiliate Portal</p>
-          <h1 className="font-display text-3xl text-slate-500">Profile not found</h1>
+          <h1 className="font-display text-3xl text-slate-100">Profile not found</h1>
           <p className={`text-sm ${affiliateTextMuted}`}>
             We couldn’t find an affiliate profile linked to this email yet. Our concierge team can help get you set up.
           </p>

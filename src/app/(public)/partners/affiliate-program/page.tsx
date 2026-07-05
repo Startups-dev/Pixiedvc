@@ -8,7 +8,6 @@ import {
   affiliateCard,
   affiliateCard2,
   affiliateInput,
-  affiliateLink,
   affiliatePrimaryButton,
   affiliateTextMuted,
 } from "@/lib/affiliate-theme";
@@ -35,10 +34,26 @@ const initialForm: ApplyForm = {
 };
 
 const benefits = [
-  { icon: Sparkles, title: "Helpful partner ecosystem", copy: "Introduce owners to PixieDVC in a trustworthy way." },
-  { icon: BookOpen, title: "Partner resources", copy: "Learn how the program works before your tools unlock." },
-  { icon: Users, title: "Audience-ready positioning", copy: "Prepare helpful PixieDVC messaging for your community." },
-  { icon: ShieldCheck, title: "Luxury positioning", copy: "Premium partner ecosystem without discount-brand feel." },
+  {
+    icon: Users,
+    title: "Serve your audience",
+    copy: "Introduce DVC owners to a simpler, more guided way to rent their unused points.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Protect your reputation",
+    copy: "PixieDVC is built around verified owners, clear communication, and a concierge-style booking experience.",
+  },
+  {
+    icon: BookOpen,
+    title: "Create useful content",
+    copy: "Turn DVC education, owner tips, and Disney travel planning into helpful partner content.",
+  },
+  {
+    icon: Sparkles,
+    title: "Grow with the program",
+    copy: "Approved partners unlock referral tools, tracking, resources, and commission opportunities as the program expands.",
+  },
 ];
 
 const faqs = [
@@ -259,11 +274,11 @@ export default function AffiliateProgramPage() {
         <div>
           <p className={`mb-4 text-xs uppercase tracking-[0.24em] ${affiliateTextMuted}`}>
             Already an affiliate?{" "}
-            <Link href="/affiliate/login" className={`font-semibold ${affiliateLink}`}>
+            <Link href="/affiliate/login" className="font-semibold text-[#D4AF37] hover:underline">
               Sign in here
             </Link>
           </p>
-          <h1 className="text-5xl font-semibold tracking-tight md:text-6xl" style={{ color: "#64748b" }}>
+          <h1 className="text-5xl font-semibold tracking-tight text-slate-100 md:text-6xl">
             Partner With PixieDVC
           </h1>
           <p className={`mt-6 max-w-xl text-lg leading-relaxed ${affiliateTextMuted}`}>
@@ -279,7 +294,7 @@ export default function AffiliateProgramPage() {
           </button>
           <Link
             href="/affiliate/login"
-            className="ml-3 inline-flex items-center rounded-xl border border-white/10 px-6 py-3 text-sm font-semibold text-slate-500 transition hover:bg-white/5"
+            className="ml-3 inline-flex items-center rounded-xl border border-white/10 px-6 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-slate-100"
           >
             Existing Affiliate Login
           </Link>
@@ -298,9 +313,12 @@ export default function AffiliateProgramPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-6 py-20">
-        <h2 className="text-3xl font-semibold tracking-tight text-slate-500 md:text-4xl" style={{ color: "#64748b" }}>
-          Why Join
+        <h2 className="text-3xl font-semibold tracking-tight text-slate-100 md:text-4xl">
+          Why Creators Partner With PixieDVC
         </h2>
+        <p className={`mt-4 max-w-3xl text-base leading-relaxed ${affiliateTextMuted}`}>
+          PixieDVC gives Disney-focused creators a premium way to help DVC owners rent their points with confidence.
+        </p>
         <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           {benefits.map((benefit) => {
             const Icon = benefit.icon;
@@ -310,23 +328,22 @@ export default function AffiliateProgramPage() {
                 className={`${affiliateCard} p-6`}
               >
                 <Icon className="h-5 w-5 text-[#D4AF37]" />
-                <h3 className="mt-4 text-lg font-semibold text-slate-500" style={{ color: "#64748b" }}>
+                <h3 className="mt-4 text-lg font-semibold text-slate-100">
                   {benefit.title}
                 </h3>
-                <p className={`mt-2 text-sm leading-relaxed ${affiliateTextMuted}`}>{benefit.copy}</p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-300">{benefit.copy}</p>
               </article>
             );
           })}
         </div>
         <p className={`mt-8 max-w-4xl text-sm leading-relaxed ${affiliateTextMuted}`}>
-          We selectively partner with Disney-focused creators, travel planners, and community leaders to maintain
-          quality and brand integrity.
+          PixieDVC reviews partner applications to keep the program aligned with trusted Disney travel voices.
         </p>
       </section>
 
       <section ref={applyRef} id="affiliate-application" className="mx-auto max-w-7xl px-6 py-20">
         <div className="max-w-3xl">
-          <h2 className="text-3xl font-semibold tracking-tight text-slate-500 md:text-4xl" style={{ color: "#64748b" }}>
+          <h2 className="text-3xl font-semibold tracking-tight text-slate-100 md:text-4xl">
             Apply to Become a PixieDVC Affiliate
           </h2>
         </div>
@@ -334,7 +351,7 @@ export default function AffiliateProgramPage() {
         {applicationStep === "received" ? (
           <div className={`mt-10 rounded-3xl p-8 ${affiliateCard}`}>
             <div className="max-w-2xl space-y-4">
-              <h3 className="text-2xl font-semibold text-slate-500" style={{ color: "#64748b" }}>
+              <h3 className="text-2xl font-semibold text-slate-100">
                 Application received!
               </h3>
               <p className={`text-sm leading-relaxed ${affiliateTextMuted}`}>
@@ -352,7 +369,7 @@ export default function AffiliateProgramPage() {
         ) : applicationStep === "account" ? (
           <form onSubmit={handleCreateAccount} className={`mt-10 rounded-3xl p-8 ${affiliateCard}`}>
             <div className="max-w-2xl space-y-5">
-              <h3 className="text-2xl font-semibold text-slate-500" style={{ color: "#64748b" }}>
+              <h3 className="text-2xl font-semibold text-slate-100">
                 Create Your Partner Account
               </h3>
               <p className={`text-sm ${affiliateTextMuted}`}>
@@ -464,7 +481,7 @@ export default function AffiliateProgramPage() {
                   </p>
                 </div>
               ) : accountMessage ? (
-                <p className={`text-sm ${accountStatus === "error" ? "text-red-400" : "text-emerald-400"}`}>
+                <p className={`text-sm ${accountStatus === "error" ? "text-red-400" : "text-[#D4AF37]"}`}>
                   {accountMessage}
                 </p>
               ) : null}
@@ -543,7 +560,7 @@ export default function AffiliateProgramPage() {
             />
             <span>
               I have read and agree to the PixieDVC Affiliate Agreement.{" "}
-              <Link href="/affiliate/agreement" target="_blank" className={`font-semibold ${affiliateLink}`}>
+              <Link href="/affiliate/agreement" target="_blank" className="font-semibold text-[#D4AF37] hover:underline">
                 Read agreement
               </Link>
             </span>
@@ -558,11 +575,11 @@ export default function AffiliateProgramPage() {
           </button>
 
           {message ? (
-            <p className={`mt-2 text-sm ${status === "error" ? "text-red-400" : "text-emerald-400"}`}>{message}</p>
+            <p className={`mt-2 text-sm ${status === "error" ? "text-red-400" : "text-[#D4AF37]"}`}>{message}</p>
           ) : null}
           {referralLink ? (
             <p className={`mt-2 text-sm ${affiliateTextMuted}`}>
-              Your referral link is ready: <span className="font-semibold text-slate-500">{referralLink}</span>
+              Your referral link is ready: <span className="font-semibold text-slate-100">{referralLink}</span>
             </p>
           ) : null}
           </form>
@@ -570,7 +587,7 @@ export default function AffiliateProgramPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-6 py-20">
-        <h2 className="text-3xl font-semibold tracking-tight text-slate-500 md:text-4xl" style={{ color: "#64748b" }}>
+        <h2 className="text-3xl font-semibold tracking-tight text-slate-100 md:text-4xl">
           What Happens Next
         </h2>
         <p className={`mt-6 max-w-3xl text-sm leading-relaxed ${affiliateTextMuted}`}>
@@ -579,13 +596,13 @@ export default function AffiliateProgramPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-6 py-20">
-        <h2 className="text-3xl font-semibold tracking-tight text-slate-500 md:text-4xl" style={{ color: "#64748b" }}>
+        <h2 className="text-3xl font-semibold tracking-tight text-slate-100 md:text-4xl">
           FAQ
         </h2>
         <div className="mt-10 grid gap-4">
           {faqs.map((item) => (
             <article key={item.q} className={`${affiliateCard} p-6`}>
-              <h3 className="text-base font-semibold text-slate-500" style={{ color: "#64748b" }}>
+              <h3 className="text-base font-semibold text-slate-100">
                 {item.q}
               </h3>
               <p className={`mt-2 text-sm leading-relaxed ${affiliateTextMuted}`}>{item.a}</p>
