@@ -12,6 +12,7 @@ import {
   affiliatePrimaryButton,
   affiliateTextMuted,
 } from "@/lib/affiliate-theme";
+import { getClientAppUrl } from "@/lib/app-url";
 import { createClient } from "@/lib/supabase";
 
 type ApplyForm = {
@@ -150,12 +151,15 @@ export default function AffiliateProgramPage() {
       return;
     }
 
+    const emailRedirectTo = getClientAppUrl(
+      `/auth/callback?next=${encodeURIComponent("/affiliate/login")}`,
+    );
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password: accountForm.password,
       options: {
-        emailRedirectTo:
-          `${window.location.origin}/auth/callback?next=${encodeURIComponent("/affiliate/dashboard")}`,
+        ...(emailRedirectTo ? { emailRedirectTo } : {}),
       },
     });
 

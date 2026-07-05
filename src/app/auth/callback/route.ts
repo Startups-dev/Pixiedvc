@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     }
     if (resolvedUser && safeNext.startsWith("/affiliate/login")) {
       const affiliateLoginUrl = new URL(safeNext, safeOrigin);
-      affiliateLoginUrl.searchParams.set("verified", "1");
+      affiliateLoginUrl.searchParams.set("confirmed", "1");
       return NextResponse.redirect(affiliateLoginUrl);
     }
     return NextResponse.redirect(new URL(safeNext, safeOrigin));

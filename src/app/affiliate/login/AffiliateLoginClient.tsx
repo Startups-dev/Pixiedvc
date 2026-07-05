@@ -25,7 +25,7 @@ export default function AffiliateLoginClient() {
   const redirectTo = allowedRedirects.has(rawRedirect) ? rawRedirect : "/affiliate/dashboard";
   const roleError = searchParams.get("error") === "role";
   const sessionError = searchParams.get("error") === "session";
-  const verified = searchParams.get("verified") === "1";
+  const confirmed = searchParams.get("confirmed") === "1" || searchParams.get("verified") === "1";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -97,7 +97,7 @@ export default function AffiliateLoginClient() {
 
       const { data } = await supabase.auth.getUser();
       if (!isMounted) return;
-      if (data.user && mode !== "update") {
+      if (data.user && mode !== "update" && !confirmed) {
         redirectAfterAuth();
         return;
       }
@@ -107,7 +107,7 @@ export default function AffiliateLoginClient() {
     return () => {
       isMounted = false;
     };
-  }, [mode, redirectAfterAuth, redirectTo, router, searchParams, supabase]);
+  }, [confirmed, mode, redirectAfterAuth, redirectTo, router, searchParams, supabase]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -295,9 +295,9 @@ export default function AffiliateLoginClient() {
             Sign-in session could not be established. Please sign in again.
           </p>
         ) : null}
-        {verified && !message ? (
+        {confirmed && !message ? (
           <p className="text-sm text-emerald-400">
-            Email confirmed. Sign in to continue.
+            Email confirmed. You can now sign in to your partner account.
           </p>
         ) : null}
 
