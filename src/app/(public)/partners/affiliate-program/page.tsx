@@ -12,7 +12,6 @@ import {
   affiliatePrimaryButton,
   affiliateTextMuted,
 } from "@/lib/affiliate-theme";
-import { getClientAppUrl } from "@/lib/app-url";
 import { createClient } from "@/lib/supabase";
 
 type ApplyForm = {
@@ -60,6 +59,24 @@ const faqs = [
     a: "You can learn how PixieDVC works, review partner resources, prepare your audience, and see what becomes available as your account moves forward.",
   },
 ];
+
+function getAffiliateConfirmationRedirectUrl() {
+  const configuredAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  const fallbackAppUrl =
+    process.env.NODE_ENV !== "production" && typeof window !== "undefined"
+      ? window.location.origin
+      : "";
+  const appUrl = configuredAppUrl || fallbackAppUrl;
+
+  if (!appUrl) return null;
+
+  try {
+    const parsed = new URL(appUrl);
+    return `${parsed.origin}/auth/callback?next=/affiliate/login`;
+  } catch {
+    return null;
+  }
+}
 
 export default function AffiliateProgramPage() {
   const applyRef = useRef<HTMLElement | null>(null);
@@ -151,15 +168,19 @@ export default function AffiliateProgramPage() {
       return;
     }
 
-    const emailRedirectTo = getClientAppUrl(
-      `/auth/callback?next=${encodeURIComponent("/affiliate/login")}`,
-    );
+    const emailRedirectTo = getAffiliateConfirmationRedirectUrl();
+
+    if (!emailRedirectTo) {
+      setAccountStatus("error");
+      setAccountMessage("Unable to create partner account");
+      return;
+    }
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password: accountForm.password,
       options: {
-        ...(emailRedirectTo ? { emailRedirectTo } : {}),
+        emailRedirectTo,
       },
     });
 
