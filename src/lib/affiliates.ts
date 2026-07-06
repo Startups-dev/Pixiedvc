@@ -393,7 +393,6 @@ export async function ensureAffiliateForApplicationUser(
   const socialLinks = Array.isArray(application.social_links) ? application.social_links : [];
   const affiliateInsertPayload = {
     display_name: displayName,
-    name: displayName,
     email: normalizedEmail,
     slug,
     status: "active",
