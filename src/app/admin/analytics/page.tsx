@@ -5,9 +5,11 @@ import AdminSubnav from "../AdminSubnav";
 export const dynamic = "force-dynamic";
 
 const numberFormatter = new Intl.NumberFormat("en-US");
+const analyticsTimeZone = process.env.APP_TIMEZONE || "America/New_York";
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
   timeStyle: "short",
+  timeZone: analyticsTimeZone,
 });
 
 function formatDuration(seconds: number) {
@@ -74,9 +76,9 @@ export default async function AdminAnalyticsPage() {
             hint="Unique anonymous visitors"
           />
           <SummaryCard
-            label="Visitors This Week"
+            label="Visitors Last 7 Days"
             value={numberFormatter.format(overview.metrics.visitorsWeek)}
-            hint="Monday through today"
+            hint="Trailing 7 days"
           />
           <SummaryCard
             label="Visitors This Month"
@@ -97,9 +99,9 @@ export default async function AdminAnalyticsPage() {
             hint="All tracked public routes"
           />
           <SummaryCard
-            label="Pageviews This Week"
+            label="Pageviews Last 7 Days"
             value={numberFormatter.format(overview.metrics.pageviewsWeek)}
-            hint="Monday through today"
+            hint="Trailing 7 days"
           />
           <SummaryCard
             label="Pageviews This Month"

@@ -72,20 +72,69 @@ export type AnalyticsOverview = {
   }>;
 };
 
-function startOfDay(date: Date) {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+const ANALYTICS_TIME_ZONE = process.env.APP_TIMEZONE || "America/New_York";
+
+function getTimeZoneDateParts(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+
+  const getPart = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? 0);
+  const hour = getPart("hour");
+
+  return {
+    year: getPart("year"),
+    month: getPart("month"),
+    day: getPart("day"),
+    hour: hour === 24 ? 0 : hour,
+    minute: getPart("minute"),
+    second: getPart("second"),
+  };
 }
 
-function startOfWeek(date: Date) {
-  const day = date.getUTCDay();
-  const diff = day === 0 ? 6 : day - 1;
-  const start = startOfDay(date);
-  start.setUTCDate(start.getUTCDate() - diff);
-  return start;
+function getTimeZoneOffsetMs(date: Date, timeZone: string) {
+  const parts = getTimeZoneDateParts(date, timeZone);
+  const localAsUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+  return localAsUtc - date.getTime();
 }
 
-function startOfMonth(date: Date) {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+function zonedLocalTimeToUtc(
+  timeZone: string,
+  input: { year: number; month: number; day: number; hour?: number; minute?: number; second?: number },
+) {
+  const utcGuess = new Date(
+    Date.UTC(input.year, input.month - 1, input.day, input.hour ?? 0, input.minute ?? 0, input.second ?? 0),
+  );
+  return new Date(utcGuess.getTime() - getTimeZoneOffsetMs(utcGuess, timeZone));
+}
+
+function startOfDay(date: Date, timeZone = ANALYTICS_TIME_ZONE) {
+  const parts = getTimeZoneDateParts(date, timeZone);
+  return zonedLocalTimeToUtc(timeZone, {
+    year: parts.year,
+    month: parts.month,
+    day: parts.day,
+  });
+}
+
+function startOfMonth(date: Date, timeZone = ANALYTICS_TIME_ZONE) {
+  const parts = getTimeZoneDateParts(date, timeZone);
+  return zonedLocalTimeToUtc(timeZone, {
+    year: parts.year,
+    month: parts.month,
+    day: 1,
+  });
+}
+
+function startOfTrailingDays(date: Date, days: number) {
+  return new Date(date.getTime() - days * 24 * 60 * 60 * 1000);
 }
 
 function extractLocation(headers: Headers) {
@@ -332,7 +381,7 @@ export async function getAnalyticsOverview() {
   const client = await getAnalyticsWriter();
   const now = new Date();
   const todayIso = startOfDay(now).toISOString();
-  const weekIso = startOfWeek(now).toISOString();
+  const trailingSevenDaysIso = startOfTrailingDays(now, 7).toISOString();
   const monthIso = startOfMonth(now).toISOString();
   const avgWindowIso = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -350,10 +399,10 @@ export async function getAnalyticsOverview() {
     recentSessionRows,
   ] = await Promise.all([
     countDistinctVisitorsSince(client, todayIso),
-    countDistinctVisitorsSince(client, weekIso),
+    countDistinctVisitorsSince(client, trailingSevenDaysIso),
     countDistinctVisitorsSince(client, monthIso),
     countPageviewsSince(client, todayIso),
-    countPageviewsSince(client, weekIso),
+    countPageviewsSince(client, trailingSevenDaysIso),
     countPageviewsSince(client, monthIso),
     client
       .from("visitor_sessions")
