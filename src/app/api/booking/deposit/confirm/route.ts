@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { ensureAffiliateConversionForBooking } from "@/lib/affiliate-conversions";
 
 export async function GET(request: Request) {
   const secretKey = process.env.STRIPE_SECRET_KEY ?? "";
@@ -59,6 +60,12 @@ export async function GET(request: Request) {
           booking_request_id: bookingId,
         });
       }
+
+      await ensureAffiliateConversionForBooking({
+        bookingRequestId: bookingId,
+        source: "deposit_confirm",
+        client: supabase,
+      });
 
       // Enrollment is explicit (user-driven) and no longer automatic here.
     }

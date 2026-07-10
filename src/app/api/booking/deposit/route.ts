@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { ensureAffiliateConversionForBooking } from "@/lib/affiliate-conversions";
 
 type DepositRequest = {
   bookingId?: string;
@@ -172,6 +173,12 @@ export async function GET(request: Request) {
           updated_at: new Date().toISOString(),
         })
         .eq("id", bookingId);
+
+      await ensureAffiliateConversionForBooking({
+        bookingRequestId: bookingId,
+        source: "deposit_success",
+        client: supabase,
+      });
     }
 
     if (process.env.NODE_ENV !== "production") {

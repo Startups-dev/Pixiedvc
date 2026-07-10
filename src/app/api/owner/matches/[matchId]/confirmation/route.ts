@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { ensureAffiliateConversionForBooking } from "@/lib/affiliate-conversions";
 import { calculatePayoutAmountCents } from "@/lib/owner-portal";
 import { ensureRentalForMatch } from "@/lib/rentals/ensureRentalForMatch";
 import { ensureGuestAgreementForBooking } from "@/server/contracts";
@@ -277,6 +278,14 @@ export async function POST(
       }
     }
   }
+
+  await ensureAffiliateConversionForBooking({
+    bookingRequestId: match.booking_id,
+    source: "owner_match_confirmation",
+    rentalId: rentalRow.rentalId,
+    confirmedAt: milestoneTime,
+    client: adminClient,
+  });
 
   return NextResponse.json({ ok: true, rentalSaved: true, contract: contractWarning });
 }

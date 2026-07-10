@@ -2,6 +2,7 @@
 
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
+import { ensureAffiliateConversionForBooking } from '@/lib/affiliate-conversions';
 import { redirect } from 'next/navigation';
 import { sendReadyStayLinkReadyEmail } from '@/lib/email';
 import { getAppUrl } from '@/lib/app-url';
@@ -223,6 +224,13 @@ export async function confirmReadyStayTransferInline(input: {
       notifyError,
     });
   }
+
+  await ensureAffiliateConversionForBooking({
+    bookingRequestId: linkedBookingRequestId,
+    source: 'ready_stay_transfer',
+    confirmedAt: nowIso,
+    client: adminClient,
+  });
 
   return { ok: true };
 }

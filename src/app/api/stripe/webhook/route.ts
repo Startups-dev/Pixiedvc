@@ -4,6 +4,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { sendReadyStayBookingPackageToOwner } from "@/lib/email";
 import { getAppUrl } from "@/lib/app-url";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { ensureAffiliateConversionForBooking } from "@/lib/affiliate-conversions";
 
 type StripeEvent = {
   id: string;
@@ -133,6 +134,12 @@ export async function POST(request: Request) {
             })
             .eq("id", bookingId)
             .eq("status", "draft");
+
+          await ensureAffiliateConversionForBooking({
+            bookingRequestId: bookingId,
+            source: "stripe_deposit",
+            client: supabase,
+          });
         }
 
         if (paymentType === "full") {
@@ -216,6 +223,12 @@ export async function POST(request: Request) {
           if (process.env.NODE_ENV !== "production") {
             console.info(`[stripe] booking_requests marked paid bookingId=${bookingId}`);
           }
+
+          await ensureAffiliateConversionForBooking({
+            bookingRequestId: bookingId,
+            source: "stripe_full_payment",
+            client: supabase,
+          });
 
           let readyStayIdMarked: string | null = null;
           if (readyStayIdFromMetadata) {

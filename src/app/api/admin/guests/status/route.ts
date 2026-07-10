@@ -3,6 +3,8 @@ import { cookies } from 'next/headers';
 
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { emailIsAllowedForAdmin } from '@/lib/admin-emails';
+import { getSupabaseAdminClient } from '@/lib/supabase-admin';
+import { ensureAffiliateConversionForBooking } from '@/lib/affiliate-conversions';
 
 const ALLOWED_STATUSES = [
   'draft',
@@ -58,6 +60,15 @@ export async function POST(request: Request) {
     from_status: existing.status ?? null,
     to_status: status,
   });
+
+  if (status === 'confirmed') {
+    const adminClient = getSupabaseAdminClient() ?? supabase;
+    await ensureAffiliateConversionForBooking({
+      bookingRequestId: requestId,
+      source: 'admin_manual_status',
+      client: adminClient,
+    });
+  }
 
   return NextResponse.json({ ok: true });
 }

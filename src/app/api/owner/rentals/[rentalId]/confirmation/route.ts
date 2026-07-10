@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { ensureAffiliateConversionForBooking } from "@/lib/affiliate-conversions";
 import { calculatePayoutAmountCents } from "@/lib/owner-portal";
 import { ensureGuestAgreementForBooking } from "@/server/contracts";
 
@@ -120,6 +121,16 @@ export async function POST(
         console.error("Failed to generate guest agreement", contractError);
       }
     }
+  }
+
+  if (rental.booking_request_id) {
+    await ensureAffiliateConversionForBooking({
+      bookingRequestId: rental.booking_request_id,
+      source: "owner_rental_confirmation",
+      rentalId,
+      confirmedAt: new Date().toISOString(),
+      client,
+    });
   }
 
   await client
