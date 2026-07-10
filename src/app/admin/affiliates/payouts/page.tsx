@@ -17,12 +17,12 @@ export default async function AdminAffiliatePayoutsPage() {
 
   const { data: payoutRuns } = await supabase
     .from("affiliate_payout_runs")
-    .select("id, period_start, period_end, status, notes, created_at, paid_at")
+    .select("id, period_start, period_end, status, notes, created_at, paid_at, created_by, paid_by, payment_method, payment_reference, payment_notes, voided_by, voided_at, void_reason")
     .order("created_at", { ascending: false });
 
   const { data: payoutItems } = await supabase
     .from("affiliate_payout_items")
-    .select("id, payout_run_id, affiliate_id, amount_usd, booking_count, booking_request_ids, status, paid_at, payout_reference, created_at")
+    .select("id, payout_run_id, affiliate_id, conversion_id, booking_request_id, booking_amount_usd, commission_rate, commission_amount_usd, original_amount_usd, amount_usd, booking_count, booking_request_ids, status, paid_at, paid_by, payment_method, payment_reference, payment_notes, payout_reference, voided_by, voided_at, void_reason, adjusted_by, adjusted_at, adjustment_reason, created_at")
     .order("created_at", { ascending: false });
 
   return (

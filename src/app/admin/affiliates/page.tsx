@@ -34,7 +34,7 @@ export default async function AdminAffiliatesPage() {
   const { data: conversions } = await supabase
     .from("affiliate_conversions")
     .select(
-      "id, status, booking_amount_usd, commission_rate, commission_amount_usd, confirmed_at, created_at, affiliate:affiliates(display_name)",
+      "id, status, booking_amount_usd, commission_rate, commission_amount_usd, confirmed_at, created_at, reviewed_by, reviewed_at, review_notes, voided_by, voided_at, void_reason, affiliate:affiliates(display_name)",
     )
     .order("created_at", { ascending: false })
     .limit(50);
@@ -73,7 +73,7 @@ export default async function AdminAffiliatesPage() {
         </Card>
 
         <Card surface="dark" className="border border-[#3a3a3a] bg-[#2f2f2f]">
-          <AdminAffiliateConversionsClient conversions={(conversions ?? []) as AffiliateConversionRow[]} />
+          <AdminAffiliateConversionsClient conversions={(conversions ?? []) as unknown as AffiliateConversionRow[]} />
         </Card>
       </div>
     </main>

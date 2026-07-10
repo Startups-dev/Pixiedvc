@@ -491,7 +491,7 @@ export async function getAffiliatePayoutSummary(affiliateId: string) {
     .from("affiliate_payout_items")
     .select("amount_usd")
     .eq("affiliate_id", affiliateId)
-    .eq("status", "scheduled");
+    .in("status", ["pending", "scheduled"]);
 
   const lastPaidPromise = supabase
     .from("affiliate_payout_items")

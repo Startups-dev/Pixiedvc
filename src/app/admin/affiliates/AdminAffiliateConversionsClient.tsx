@@ -10,6 +10,12 @@ export type AffiliateConversionRow = {
   commission_amount_usd: number | null;
   confirmed_at: string | null;
   created_at: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_notes: string | null;
+  voided_by: string | null;
+  voided_at: string | null;
+  void_reason: string | null;
   affiliate: { display_name: string } | null;
 };
 
@@ -24,7 +30,17 @@ export default function AdminAffiliateConversionsClient({
 }) {
   const [savingId, setSavingId] = useState<string | null>(null);
 
-  async function handleSave(id: string, status: string, bookingAmount: string) {
+  async function handleSave(
+    id: string,
+    status: string,
+    bookingAmount: string,
+    reviewNotes: string,
+    voidReason: string,
+  ) {
+    if (status === "void" && !voidReason.trim()) {
+      alert("Void reason is required.");
+      return;
+    }
     setSavingId(id);
     const response = await fetch("/api/admin/affiliates/conversions", {
       method: "PATCH",
@@ -33,6 +49,8 @@ export default function AdminAffiliateConversionsClient({
         id,
         status,
         booking_amount_usd: bookingAmount ? Number(bookingAmount) : null,
+        review_notes: reviewNotes.trim() || null,
+        void_reason: voidReason.trim() || null,
       }),
     });
     setSavingId(null);
@@ -72,13 +90,21 @@ function ConversionRow({
   savingId,
 }: {
   conversion: AffiliateConversionRow;
-  onSave: (id: string, status: string, bookingAmount: string) => void;
+  onSave: (
+    id: string,
+    status: string,
+    bookingAmount: string,
+    reviewNotes: string,
+    voidReason: string,
+  ) => void;
   savingId: string | null;
 }) {
   const [status, setStatus] = useState(conversion.status);
   const [bookingAmount, setBookingAmount] = useState(
     conversion.booking_amount_usd ? String(conversion.booking_amount_usd) : "",
   );
+  const [reviewNotes, setReviewNotes] = useState(conversion.review_notes ?? "");
+  const [voidReason, setVoidReason] = useState(conversion.void_reason ?? "");
 
   return (
     <div className="rounded-2xl border border-[#3a3a3a] bg-[#212121] p-4">
@@ -93,6 +119,16 @@ function ConversionRow({
           <p className="text-xs text-[#8e8ea0]">
             Commission {Math.round(conversion.commission_rate * 100)}%
           </p>
+          {conversion.reviewed_at ? (
+            <p className="text-xs text-[#8e8ea0]">
+              Reviewed {new Date(conversion.reviewed_at).toLocaleString()} by {conversion.reviewed_by ?? "admin"}
+            </p>
+          ) : null}
+          {conversion.voided_at ? (
+            <p className="text-xs text-[#8e8ea0]">
+              Voided {new Date(conversion.voided_at).toLocaleString()} by {conversion.voided_by ?? "admin"}
+            </p>
+          ) : null}
         </div>
         <span className="rounded-full border border-[#3a3a3a] bg-[#2a2a2a] px-3 py-1 text-xs uppercase tracking-[0.2em] text-[#b4b4b4]">
           {conversion.status}
@@ -118,20 +154,40 @@ function ConversionRow({
           >
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
-            <option value="paid">Paid</option>
             <option value="void">Void</option>
           </select>
         </label>
         <div className="flex items-end">
           <button
             type="button"
-            onClick={() => onSave(conversion.id, status, bookingAmount)}
+            onClick={() => onSave(conversion.id, status, bookingAmount, reviewNotes, voidReason)}
             className="rounded-full bg-[#10a37f] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0d8c6d]"
             disabled={savingId === conversion.id}
           >
             {savingId === conversion.id ? "Saving…" : "Save"}
           </button>
         </div>
+      </div>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">
+          Review notes
+          <textarea
+            value={reviewNotes}
+            onChange={(event) => setReviewNotes(event.target.value)}
+            className="min-h-20 rounded-xl border border-[#3a3a3a] bg-[#2a2a2a] px-3 py-2 text-sm normal-case tracking-normal text-[#ececec] placeholder:text-[#8e8ea0]"
+            placeholder="Optional notes for approval review"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">
+          Void reason
+          <textarea
+            value={voidReason}
+            onChange={(event) => setVoidReason(event.target.value)}
+            className="min-h-20 rounded-xl border border-[#3a3a3a] bg-[#2a2a2a] px-3 py-2 text-sm normal-case tracking-normal text-[#ececec] placeholder:text-[#8e8ea0]"
+            placeholder="Required when status is Void"
+          />
+        </label>
       </div>
 
       {conversion.commission_amount_usd ? (

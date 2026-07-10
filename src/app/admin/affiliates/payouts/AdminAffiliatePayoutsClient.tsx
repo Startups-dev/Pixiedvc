@@ -20,25 +20,50 @@ export type PayoutRunRow = {
   notes: string | null;
   created_at: string;
   paid_at: string | null;
+  created_by: string | null;
+  paid_by: string | null;
+  payment_method: string | null;
+  payment_reference: string | null;
+  payment_notes: string | null;
+  voided_by: string | null;
+  voided_at: string | null;
+  void_reason: string | null;
 };
 
 export type PayoutItemRow = {
   id: string;
   payout_run_id: string;
   affiliate_id: string;
+  conversion_id: string | null;
+  booking_request_id: string | null;
+  booking_amount_usd: number | null;
+  commission_rate: number | null;
+  commission_amount_usd: number | null;
+  original_amount_usd: number | null;
   amount_usd: number;
   booking_count: number;
   booking_request_ids: string[];
   status: string;
   paid_at: string | null;
+  paid_by: string | null;
+  payment_method: string | null;
+  payment_reference: string | null;
+  payment_notes: string | null;
   payout_reference: string | null;
+  voided_by: string | null;
+  voided_at: string | null;
+  void_reason: string | null;
+  adjusted_by: string | null;
+  adjusted_at: string | null;
+  adjustment_reason: string | null;
   created_at: string;
 };
 
 type PaidModalState = {
   item: PayoutItemRow;
+  method: string;
   reference: string;
-  paidDate: string;
+  notes: string;
 };
 
 function formatCurrency(value: number) {
@@ -113,56 +138,100 @@ export default function AdminAffiliatePayoutsClient({
   };
 
   const handleMarkRunPaid = async (runId: string) => {
-    if (!confirm("Mark this payout run as paid? This will not update individual items.")) {
+    const method = prompt("Payment method for this run:", "manual");
+    if (method === null) {
       return;
     }
+    const reference = prompt("Payment reference for this run (optional):", "") ?? "";
+    const notes = prompt("Payment notes for this run (optional):", "") ?? "";
 
     const response = await fetch("/api/admin/affiliates/payouts", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "mark_run_paid", run_id: runId }),
+      body: JSON.stringify({
+        action: "mark_run_paid",
+        run_id: runId,
+        payment_method: method.trim() || "manual",
+        payment_reference: reference.trim() || null,
+        payment_notes: notes.trim() || null,
+      }),
     });
 
     if (response.ok) {
       window.location.reload();
+    } else {
+      const payload = await response.json().catch(() => ({}));
+      alert(payload?.error ?? "Unable to mark run paid.");
     }
   };
 
   const handleVoidItem = async (itemId: string) => {
-    if (!confirm("Void this payout item?")) {
+    const reason = prompt("Reason for voiding this payout item:");
+    if (!reason?.trim()) {
       return;
     }
 
     const response = await fetch("/api/admin/affiliates/payouts", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "void_item", item_id: itemId }),
+      body: JSON.stringify({ action: "void_item", item_id: itemId, void_reason: reason.trim() }),
     });
 
     if (response.ok) {
       window.location.reload();
+    } else {
+      const payload = await response.json().catch(() => ({}));
+      alert(payload?.error ?? "Unable to void payout item.");
+    }
+  };
+
+  const handleAdjustItem = async (item: PayoutItemRow) => {
+    const amount = prompt("Adjusted payout amount (USD):", String(Number(item.amount_usd ?? 0)));
+    if (!amount) return;
+    const reason = prompt("Reason for adjustment:");
+    if (!reason?.trim()) return;
+
+    const response = await fetch("/api/admin/affiliates/payouts", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "adjust_item",
+        item_id: item.id,
+        amount_usd: Number(amount),
+        adjustment_reason: reason.trim(),
+      }),
+    });
+
+    if (response.ok) {
+      window.location.reload();
+    } else {
+      const payload = await response.json().catch(() => ({}));
+      alert(payload?.error ?? "Unable to adjust payout item.");
     }
   };
 
   const handleMarkPaid = (item: PayoutItemRow) => {
-    const today = new Date();
-    const paidDate = today.toISOString().slice(0, 10);
-    setPaidModal({ item, reference: item.payout_reference ?? "", paidDate });
+    setPaidModal({
+      item,
+      method: item.payment_method ?? "manual",
+      reference: item.payment_reference ?? item.payout_reference ?? "",
+      notes: item.payment_notes ?? "",
+    });
   };
 
   const submitMarkPaid = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!paidModal) return;
 
-    const paidAt = paidModal.paidDate ? new Date(`${paidModal.paidDate}T00:00:00Z`).toISOString() : null;
     const response = await fetch("/api/admin/affiliates/payouts", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action: "mark_item_paid",
         item_id: paidModal.item.id,
-        payout_reference: paidModal.reference.trim() || null,
-        paid_at: paidAt,
+        payment_method: paidModal.method.trim() || "manual",
+        payment_reference: paidModal.reference.trim() || null,
+        payment_notes: paidModal.notes.trim() || null,
       }),
     });
 
@@ -176,7 +245,7 @@ export default function AdminAffiliatePayoutsClient({
     const items = itemsByRun.get(runId) ?? [];
     if (items.length === 0) return;
 
-    const header = ["affiliate", "payout_email", "amount", "booking_count", "reference"];
+    const header = ["affiliate", "payout_email", "booking_request_id", "booking_amount", "commission_rate", "commission_amount", "amount", "status", "reference"];
     const rows = items.map((item) => {
       const affiliate = affiliateLookup.get(item.affiliate_id);
       const display = affiliate?.display_name ?? "Affiliate";
@@ -186,9 +255,13 @@ export default function AdminAffiliatePayoutsClient({
       return [
         label,
         affiliate?.payout_email ?? "",
+        item.booking_request_id ?? item.booking_request_ids?.[0] ?? "",
+        String(Number(item.booking_amount_usd ?? 0)),
+        String(Number(item.commission_rate ?? affiliate?.commission_rate ?? 0)),
+        String(Number(item.commission_amount_usd ?? item.amount_usd ?? 0)),
         String(Number(item.amount_usd ?? 0)),
-        String(item.booking_count ?? 0),
-        item.payout_reference ?? "",
+        item.status ?? "",
+        item.payment_reference ?? item.payout_reference ?? "",
       ];
     });
 
@@ -236,7 +309,7 @@ export default function AdminAffiliatePayoutsClient({
           </label>
         </div>
         <p className="text-xs text-slate-600">
-          Uses booking_requests.created_at with status confirmed when available. Referral codes are matched to affiliates by referral_code or slug.
+          Uses approved affiliate conversions and creates one audited payout item per conversion.
         </p>
         <button
           type="submit"
@@ -268,7 +341,16 @@ export default function AdminAffiliatePayoutsClient({
                     <p className="text-base font-semibold text-slate-900">
                       {new Date(run.period_start).toLocaleDateString()} – {new Date(run.period_end).toLocaleDateString()}
                     </p>
+                    <p className="text-xs text-slate-500">
+                      Created by {run.created_by ?? "admin"}
+                      {run.paid_at ? ` · Paid ${new Date(run.paid_at).toLocaleString()} by ${run.paid_by ?? "admin"}` : ""}
+                    </p>
                     {run.notes ? <p className="text-xs text-slate-600">{run.notes}</p> : null}
+                    {run.payment_method || run.payment_reference ? (
+                      <p className="text-xs text-slate-500">
+                        {run.payment_method ?? "manual"} {run.payment_reference ? `· ${run.payment_reference}` : ""}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button
@@ -316,8 +398,8 @@ export default function AdminAffiliatePayoutsClient({
                           const affiliate = affiliateLookup.get(item.affiliate_id);
                           const referralLabel = affiliate?.referral_code ?? affiliate?.slug ?? "";
                           const displayName = affiliate?.display_name ?? "Affiliate";
-                          const commissionRate = Number(affiliate?.commission_rate ?? 0);
-                          const totalBooking = amountUnavailable || commissionRate <= 0 ? null : Number(item.amount_usd ?? 0) / commissionRate;
+                          const commissionRate = Number(item.commission_rate ?? affiliate?.commission_rate ?? 0);
+                          const totalBooking = item.booking_amount_usd == null ? null : Number(item.booking_amount_usd);
 
                           return (
                             <tr key={item.id} className="border-b border-slate-100">
@@ -326,7 +408,10 @@ export default function AdminAffiliatePayoutsClient({
                                 <p className="text-xs text-slate-400">{referralLabel}</p>
                               </td>
                               <td className="px-2 py-2">{affiliate?.payout_email ?? "—"}</td>
-                              <td className="px-2 py-2">{item.booking_count}</td>
+                              <td className="px-2 py-2">
+                                <p>{item.booking_count}</p>
+                                <p className="text-[10px] text-slate-400">{item.booking_request_id ?? item.booking_request_ids?.[0] ?? "—"}</p>
+                              </td>
                               <td className="px-2 py-2">
                                 {totalBooking === null ? "—" : formatCurrency(totalBooking)}
                               </td>
@@ -336,6 +421,21 @@ export default function AdminAffiliatePayoutsClient({
                                 <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-600">
                                   {item.status}
                                 </span>
+                                {item.paid_at ? (
+                                  <p className="mt-1 text-[10px] text-slate-400">
+                                    Paid {new Date(item.paid_at).toLocaleString()} by {item.paid_by ?? "admin"}
+                                  </p>
+                                ) : null}
+                                {item.adjusted_at ? (
+                                  <p className="mt-1 text-[10px] text-slate-400">
+                                    Adjusted by {item.adjusted_by ?? "admin"}: {item.adjustment_reason}
+                                  </p>
+                                ) : null}
+                                {item.voided_at ? (
+                                  <p className="mt-1 text-[10px] text-slate-400">
+                                    Voided by {item.voided_by ?? "admin"}: {item.void_reason}
+                                  </p>
+                                ) : null}
                               </td>
                               <td className="px-2 py-2">
                                 <div className="flex flex-wrap gap-2">
@@ -345,6 +445,13 @@ export default function AdminAffiliatePayoutsClient({
                                     className="text-xs font-semibold text-emerald-700 hover:underline"
                                   >
                                     Mark paid
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAdjustItem(item)}
+                                    className="text-xs font-semibold text-slate-700 hover:underline"
+                                  >
+                                    Adjust
                                   </button>
                                   <button
                                     type="button"
@@ -374,6 +481,14 @@ export default function AdminAffiliatePayoutsClient({
             <h3 className="text-lg font-semibold text-slate-900">Mark payout as paid</h3>
             <form onSubmit={submitMarkPaid} className="mt-4 space-y-3 text-sm">
               <label className="flex flex-col gap-1">
+                Payment method
+                <input
+                  value={paidModal.method}
+                  onChange={(event) => setPaidModal({ ...paidModal, method: event.target.value })}
+                  className="rounded-2xl border border-slate-200 px-3 py-2"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
                 Reference (optional)
                 <input
                   value={paidModal.reference}
@@ -382,11 +497,10 @@ export default function AdminAffiliatePayoutsClient({
                 />
               </label>
               <label className="flex flex-col gap-1">
-                Paid date
-                <input
-                  type="date"
-                  value={paidModal.paidDate}
-                  onChange={(event) => setPaidModal({ ...paidModal, paidDate: event.target.value })}
+                Notes (optional)
+                <textarea
+                  value={paidModal.notes}
+                  onChange={(event) => setPaidModal({ ...paidModal, notes: event.target.value })}
                   className="rounded-2xl border border-slate-200 px-3 py-2"
                 />
               </label>

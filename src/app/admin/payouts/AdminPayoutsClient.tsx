@@ -2,6 +2,10 @@
 
 import { useMemo, useState } from "react";
 
+// Deprecated legacy affiliate payout client. The active /admin/payouts page
+// now renders owner payout_ledger rows, and affiliate payouts are managed via
+// /admin/affiliates/payouts using affiliate_payout_runs/items.
+
 export type AffiliateOption = {
   id: string;
   display_name: string;
