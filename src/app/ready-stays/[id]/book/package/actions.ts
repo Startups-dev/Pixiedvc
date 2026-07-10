@@ -6,6 +6,7 @@ import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
 import { isAdminOrPublicReadyStayRow } from "@/lib/ready-stays/visibility";
 import { getCurrentUserAdminState } from "@/lib/admin";
 import { ensureGuestAgreementForBooking } from "@/server/contracts";
+import { attachBookingAttribution } from "@/lib/booking-attribution";
 
 export async function continueReadyStayToAgreement(input: {
   readyStayId: string;
@@ -77,6 +78,8 @@ export async function continueReadyStayToAgreement(input: {
     })
     .eq("id", input.bookingId)
     .or(`renter_id.eq.${user.id},renter_id.is.null`);
+
+  await attachBookingAttribution(input.bookingId, { source: "guest_package", client: adminClient });
 
   await adminClient
     .from("ready_stays")
@@ -219,6 +222,8 @@ export async function saveReadyStayTravelerDetails(input: {
   if (error) {
     throw new Error(error.message);
   }
+
+  await attachBookingAttribution(input.bookingId, { source: "guest_package", client: adminClient });
 }
 
 export async function saveReadyStayGuestRoster(input: {

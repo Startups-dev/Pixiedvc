@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import StayBuilderClient from './stay-builder-client';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { getCanonicalResorts } from '@/lib/resorts/getResorts';
+import { attachBookingAttribution } from '@/lib/booking-attribution';
 
 type GuestRow = {
   id: string;
@@ -48,6 +49,14 @@ export default async function StayBuilderPage() {
       )
       .single();
     draft = inserted;
+
+    if (inserted?.id) {
+      await attachBookingAttribution(inserted.id, {
+        source: 'stay_builder',
+        cookieStore,
+        client: supabase,
+      });
+    }
   }
 
   const resorts = await getCanonicalResorts(supabase, {

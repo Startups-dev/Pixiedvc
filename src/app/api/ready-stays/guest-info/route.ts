@@ -8,6 +8,7 @@ import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
 import { getCurrentUserAdminState } from "@/lib/admin";
 import { isAdminOrPublicReadyStayRow } from "@/lib/ready-stays/visibility";
 import { ensureGuestAgreementForBooking } from "@/server/contracts";
+import { attachBookingAttribution } from "@/lib/booking-attribution";
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -200,6 +201,8 @@ export async function POST(request: Request) {
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 400 });
   }
+
+  await attachBookingAttribution(bookingId, { source: "guest_package", client: adminClient });
 
   await adminClient
     .from("ready_stays")

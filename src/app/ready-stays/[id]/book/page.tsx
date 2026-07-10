@@ -6,6 +6,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
 import { isAdminOrPublicReadyStayRow } from "@/lib/ready-stays/visibility";
 import { getCurrentUserAdminState } from "@/lib/admin";
+import { attachBookingAttribution } from "@/lib/booking-attribution";
 import { Card } from "@pixiedvc/design-system";
 
 
@@ -62,6 +63,7 @@ export default async function ReadyStayBookPage({
         .eq("id", stay.lock_session_id)
         .maybeSingle();
       if (existingBooking?.id && existingBooking.renter_id === user.id) {
+        await attachBookingAttribution(existingBooking.id, { source: "ready_stay", client: adminClient });
         redirect(`/ready-stays/${params.id}/book/package?lock=${encodeURIComponent(existingBooking.id)}`);
       }
     }
@@ -73,6 +75,7 @@ export default async function ReadyStayBookPage({
           .eq("id", stay.booking_request_id)
           .maybeSingle();
         if (linkedBooking?.id && linkedBooking.renter_id === user.id) {
+          await attachBookingAttribution(linkedBooking.id, { source: "ready_stay", client: adminClient });
           redirect(`/ready-stays/${params.id}/book/package?lock=${encodeURIComponent(linkedBooking.id)}`);
         }
       }
@@ -82,6 +85,7 @@ export default async function ReadyStayBookPage({
         .eq("id", stay.lock_session_id)
         .maybeSingle();
       if (lockBooking?.id && lockBooking.renter_id === user.id) {
+        await attachBookingAttribution(lockBooking.id, { source: "ready_stay", client: adminClient });
         redirect(`/ready-stays/${params.id}/book?lock=${encodeURIComponent(stay.lock_session_id)}`);
       }
       if (!lockBooking?.id) {
@@ -228,6 +232,7 @@ export default async function ReadyStayBookPage({
       if (existingActiveBooking?.id) {
         lockSessionId = existingActiveBooking.id;
         bookingError = null;
+        await attachBookingAttribution(existingActiveBooking.id, { source: "ready_stay", client: adminClient });
         const lockRefreshUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString();
         await adminClient
           .from("ready_stays")
@@ -238,6 +243,12 @@ export default async function ReadyStayBookPage({
   }
 
   const bookingId = lockSessionId;
+
+  if (existingBookingRequest?.id) {
+    await attachBookingAttribution(existingBookingRequest.id, { source: "ready_stay", client: adminClient });
+  } else if (!bookingError) {
+    await attachBookingAttribution(bookingId, { source: "ready_stay", client: adminClient });
+  }
 
   if (bookingError) {
     const rawError = bookingError as unknown as Record<string, unknown>;

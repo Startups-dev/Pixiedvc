@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { attachBookingAttribution } from "@/lib/booking-attribution";
 
 type TripPayload = {
   resortId?: string;
@@ -317,6 +318,11 @@ export async function POST(request: Request) {
             signature,
           });
         }
+        await attachBookingAttribution(existing.id, {
+          source: "booking_api",
+          referralCode: payload.referral_code,
+          client: supabase,
+        });
         return NextResponse.json({ bookingId: existing.id });
       }
     }
@@ -361,7 +367,6 @@ export async function POST(request: Request) {
       guest_profile_complete_at: hasGuestProfile ? nowIso : null,
       guest_agreement_accepted_at: agreementAccepted ? nowIso : null,
       updated_at: nowIso,
-      referral_code: payload.referral_code ?? null,
     };
 
     const bookingInsert = supportsBuildingPreference
@@ -414,6 +419,11 @@ export async function POST(request: Request) {
               signature,
             });
           }
+          await attachBookingAttribution(retryExisting.id, {
+            source: "booking_api",
+            referralCode: payload.referral_code,
+            client: supabase,
+          });
           return NextResponse.json({ bookingId: retryExisting.id });
         }
       }
@@ -433,6 +443,12 @@ export async function POST(request: Request) {
         signature,
       });
     }
+
+    await attachBookingAttribution(booking.id, {
+      source: "booking_api",
+      referralCode: payload.referral_code,
+      client: supabase,
+    });
 
     const adultGuests = guest.adultGuests ?? [];
     const childGuests = guest.childGuests ?? [];

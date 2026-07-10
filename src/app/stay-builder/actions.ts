@@ -1,10 +1,8 @@
 'use server';
 
-import { cookies } from 'next/headers';
 import { supabaseServer } from '@/lib/supabase-server';
 import { sendBookingConfirmationEmail } from '@/lib/email';
-import { attachAffiliateLead } from '@/lib/affiliate-leads';
-import { getAffiliateRef } from '@/lib/affiliate-cookies';
+import { attachBookingAttribution } from '@/lib/booking-attribution';
 import { resolveCalculatorCode } from '@/lib/resort-calculator';
 import { quoteStay } from 'pixiedvc-calculator/engine/calc';
 import type { RoomCode, ViewCode } from 'pixiedvc-calculator/engine/types';
@@ -212,7 +210,6 @@ export async function saveGuestRoster(input: {
 
 export async function submitStayRequest(input: { bookingId: string; acceptTerms: boolean; acknowledgeInsurance: boolean }) {
   const sb = await supabaseServer();
-  const cookieStore = await cookies();
   const {
     data: { user },
   } = await sb.auth.getUser();
@@ -240,25 +237,7 @@ export async function submitStayRequest(input: { bookingId: string; acceptTerms:
     throw new Error(error.message);
   }
 
-  const referralCode = getAffiliateRef(cookieStore);
-  if (referralCode) {
-    try {
-      await sb
-        .from('booking_requests')
-        .update({
-          referral_code: referralCode,
-          referral_set_at: null,
-          referral_landing: null,
-        })
-        .eq('id', input.bookingId)
-        .eq('renter_id', user.id)
-        .is('referral_code', null);
-    } catch (err) {
-      console.warn('[referral] Unable to save referral_code on booking_requests', err);
-    }
-  }
-
-  await attachAffiliateLead(input.bookingId);
+  await attachBookingAttribution(input.bookingId, { source: 'stay_builder', client: sb });
 
   const { data: booking, error: bookingError } = await sb
     .from('booking_requests')
