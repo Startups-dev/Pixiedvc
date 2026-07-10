@@ -29,6 +29,10 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 - Use `PrimaryCtaLink` for all primary CTAs.
 
+## Pixie Development
+
+- Read `docs/pixie-development-bible.md` and `docs/pixie-progress-log.md` before any Pixie implementation work.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
