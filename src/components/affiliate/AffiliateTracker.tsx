@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { getOrCreateAnalyticsIdentity } from "@/lib/analytics/client";
+import { getUtmParams } from "@/lib/analytics/shared";
 
 export default function AffiliateTracker() {
   const searchParams = useSearchParams();
@@ -22,13 +24,22 @@ export default function AffiliateTracker() {
         sessionStorage.setItem(storageKey, id);
         return id;
       })();
+    const { visitorId, sessionId } = getOrCreateAnalyticsIdentity();
+    const utm = getUtmParams(searchParams);
 
     fetch("/api/affiliates/track", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ ref, path: pathname, click_id: clickId }),
+      body: JSON.stringify({
+        ref,
+        path: pathname,
+        click_id: clickId,
+        visitor_id: visitorId,
+        visitor_session_id: sessionId,
+        ...utm,
+      }),
     }).catch(() => undefined);
   }, [searchParams, pathname]);
 

@@ -267,6 +267,21 @@ async function findOrCreateSession(input: {
   return updated;
 }
 
+export async function ensureAnalyticsSession(input: {
+  visitorId: string;
+  sessionId: string;
+  path: string;
+  referrer: string | null;
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+  utmTerm: string | null;
+  utmContent: string | null;
+  headers: Headers;
+}) {
+  return findOrCreateSession(input);
+}
+
 export async function recordPageview(request: Request) {
   const payload = sanitizeAnalyticsPageviewPayload(await request.json().catch(() => null));
   if (!payload || !shouldTrackPath(payload.path)) {

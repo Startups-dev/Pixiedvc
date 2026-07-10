@@ -2,12 +2,16 @@ import type { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension
 
 export const AFFILIATE_COOKIE = "px_aff";
 export const AFFILIATE_CLICK_COOKIE = "px_aff_click";
+export const AFFILIATE_VISITOR_COOKIE = "px_aff_visitor";
+export const AFFILIATE_SESSION_COOKIE = "px_aff_session";
 export const AFFILIATE_COOKIE_MAX_AGE = 60 * 60 * 24 * 90;
 const LEGACY_AFFILIATE_COOKIE = "pixiedvc_ref";
 
 export type AffiliateCookiePayload = {
   affiliateRef: string;
   clickId?: string;
+  visitorId?: string;
+  visitorSessionId?: string;
 };
 
 function getBrowserCookie(name: string): string | null {
@@ -54,5 +58,7 @@ export function readAffiliateCookies(cookieStore: ReadonlyRequestCookies): Affil
     return null;
   }
   const clickId = cookieStore.get(AFFILIATE_CLICK_COOKIE)?.value;
-  return { affiliateRef, clickId };
+  const visitorId = cookieStore.get(AFFILIATE_VISITOR_COOKIE)?.value;
+  const visitorSessionId = cookieStore.get(AFFILIATE_SESSION_COOKIE)?.value;
+  return { affiliateRef, clickId, visitorId, visitorSessionId };
 }

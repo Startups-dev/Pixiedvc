@@ -1,11 +1,27 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 
-import { AFFILIATE_COOKIE, AFFILIATE_CLICK_COOKIE, AFFILIATE_COOKIE_MAX_AGE } from "@/lib/affiliate-cookies";
+import {
+  AFFILIATE_CLICK_COOKIE,
+  AFFILIATE_COOKIE,
+  AFFILIATE_COOKIE_MAX_AGE,
+  AFFILIATE_SESSION_COOKIE,
+  AFFILIATE_VISITOR_COOKIE,
+} from "@/lib/affiliate-cookies";
+import { recordAffiliateClickAttribution } from "@/lib/affiliate-attribution";
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => null)) as { ref?: string; path?: string; click_id?: string } | null;
+  const body = (await request.json().catch(() => null)) as {
+    ref?: string;
+    path?: string;
+    click_id?: string;
+    visitor_id?: string;
+    visitor_session_id?: string;
+    utmSource?: string | null;
+    utmMedium?: string | null;
+    utmCampaign?: string | null;
+    utmTerm?: string | null;
+    utmContent?: string | null;
+  } | null;
   const ref = body?.ref?.trim();
   const clickId = body?.click_id?.trim();
   if (!ref) {
@@ -15,32 +31,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
 
-  const supabase = createRouteHandlerClient({ cookies });
-  const { data, error } = await supabase.rpc("resolve_affiliate", { slug_or_code: ref });
+  const result = await recordAffiliateClickAttribution({
+    ref,
+    clickId,
+    visitorId: body?.visitor_id,
+    visitorSessionId: body?.visitor_session_id,
+    landingPath: body?.path,
+    referrer: request.headers.get("referer"),
+    userAgent: request.headers.get("user-agent"),
+    utmSource: body?.utmSource ?? null,
+    utmMedium: body?.utmMedium ?? null,
+    utmCampaign: body?.utmCampaign ?? null,
+    utmTerm: body?.utmTerm ?? null,
+    utmContent: body?.utmContent ?? null,
+    headers: request.headers,
+  });
 
-  if (error || !data || data.length === 0) {
+  if (!result.ok && result.status === 404) {
     return NextResponse.json({ ok: false }, { status: 404 });
   }
 
-  const affiliateId = data[0].affiliate_id as string;
-  const userAgent = request.headers.get("user-agent");
-  const referrer = request.headers.get("referer");
-
-  const { error: clickError } = await supabase
-    .from("affiliate_clicks")
-    .upsert(
-      {
-        affiliate_id: affiliateId,
-        click_id: clickId,
-        clicked_at: new Date().toISOString(),
-        landing_path: body?.path ?? "/",
-        referrer,
-        user_agent: userAgent,
-      },
-      { onConflict: "click_id", ignoreDuplicates: true },
-    );
-
-  if (clickError) {
+  if (!result.ok) {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
 
@@ -53,6 +64,20 @@ export async function POST(request: Request) {
     secure: process.env.NODE_ENV === "production",
   });
   response.cookies.set(AFFILIATE_CLICK_COOKIE, clickId, {
+    path: "/",
+    maxAge: AFFILIATE_COOKIE_MAX_AGE,
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
+  response.cookies.set(AFFILIATE_VISITOR_COOKIE, result.visitorId, {
+    path: "/",
+    maxAge: AFFILIATE_COOKIE_MAX_AGE,
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
+  response.cookies.set(AFFILIATE_SESSION_COOKIE, result.visitorSessionId, {
     path: "/",
     maxAge: AFFILIATE_COOKIE_MAX_AGE,
     httpOnly: true,
