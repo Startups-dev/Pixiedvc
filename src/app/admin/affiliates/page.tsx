@@ -57,15 +57,29 @@ export default async function AdminAffiliatesPage() {
           <p className="text-sm text-[#b4b4b4]">
             Create new affiliates, update tiers, and manage referral slugs.
           </p>
-          <Link
-            href="/admin/affiliates/applications"
-            className="inline-flex items-center gap-2 rounded-full border border-[#3a3a3a] bg-[#212121] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#b4b4b4] hover:bg-[#171717] hover:text-[#ececec]"
-          >
-            Review Applications
-            <span className="rounded-full border border-[#3a3a3a] bg-[#2a2a2a] px-2 py-0.5 text-[10px] text-[#ececec]">
-              {pendingApplicationsCount ?? 0}
-            </span>
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/admin/affiliates/applications"
+              className="inline-flex items-center gap-2 rounded-full border border-[#3a3a3a] bg-[#212121] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#b4b4b4] hover:bg-[#171717] hover:text-[#ececec]"
+            >
+              Review Applications
+              <span className="rounded-full border border-[#3a3a3a] bg-[#2a2a2a] px-2 py-0.5 text-[10px] text-[#ececec]">
+                {pendingApplicationsCount ?? 0}
+              </span>
+            </Link>
+            <Link
+              href="/admin/analytics?tab=affiliates"
+              className="inline-flex items-center gap-2 rounded-full border border-[#3a3a3a] bg-[#212121] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#b4b4b4] hover:bg-[#171717] hover:text-[#ececec]"
+            >
+              Affiliate Analytics
+            </Link>
+            <Link
+              href="/admin/affiliates/payouts"
+              className="inline-flex items-center gap-2 rounded-full border border-[#3a3a3a] bg-[#212121] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#b4b4b4] hover:bg-[#171717] hover:text-[#ececec]"
+            >
+              Payout Runs
+            </Link>
+          </div>
         </header>
 
         <Card surface="dark" className="border border-[#3a3a3a] bg-[#2f2f2f]">

@@ -105,6 +105,12 @@ const SECTIONS: QuickLinkSection[] = [
         href: '/admin/affiliates/applications',
       },
       {
+        id: 'affiliate-analytics',
+        title: 'Affiliate Analytics',
+        description: 'Review affiliate traffic, conversions, and performance.',
+        href: '/admin/analytics?tab=affiliates',
+      },
+      {
         id: 'partner-applications',
         title: 'Partner Applications',
         description: 'Review inbound advisor, affiliate, and service partner forms.',
