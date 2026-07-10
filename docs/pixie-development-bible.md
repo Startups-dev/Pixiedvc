@@ -515,6 +515,21 @@ Append architectural decisions here when they are made.
 - Existing Ready Stay and booking flows must be reused.
 - A progress log must be updated after each implementation phase.
 
+### 2026-07-10: Phase 1 planner-state foundation
+
+- `PixieTripState` schema version starts at `1`.
+- Local draft version starts at `1`.
+- Anonymous local draft key is `pixiedvc:pixie:draft:v1`.
+- The canonical planner state is valid when empty and progressively completed.
+- Dates are stored as `YYYY-MM-DD` date-only strings; trusted code derives nights using UTC day math.
+- The maximum trip duration for planner state is 30 nights.
+- Maximum party size and maximum individual traveller count are 12.
+- Budget preferences use integer cents in `amountCents`; they are preferences, not authoritative pricing.
+- `booking_ready` means ready to prepare a booking draft handoff only. Authentication, explicit confirmation, and booking-form details are still required.
+- Generated/trusted fields are present in state as placeholders but are not directly patchable by client/model patches.
+- Traveller edits use explicit operations, not whole-array replacement.
+- Unknown state fields are rejected, including sensitive extras such as prompts, API keys, auth tokens, and payment data.
+
 ## 20. How Codex Must Operate
 
 Every future Pixie prompt must begin with this workflow:
