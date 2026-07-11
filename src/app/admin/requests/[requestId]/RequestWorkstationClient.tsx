@@ -14,6 +14,9 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Cancelled',
 };
 
+const AFFILIATE_TEST_REQUEST_ID = 'b524b3d7-3994-4176-b2fe-9a23c51a0f4c';
+const AFFILIATE_TEST_CONFIRMATION_PHRASE = 'SIMULATE AFFILIATE CONVERSION';
+
 export type ActivityEntry = {
   id: string;
   kind: 'note' | 'status_change' | 'availability';
@@ -85,6 +88,10 @@ export default function RequestWorkstationClient({ request }: { request: Request
   const router = useRouter();
   const [availabilityNote, setAvailabilityNote] = useState('');
   const [updatingAvailability, setUpdatingAvailability] = useState(false);
+  const [affiliateTestPhrase, setAffiliateTestPhrase] = useState('');
+  const [affiliateTestSubmitting, setAffiliateTestSubmitting] = useState<'simulate' | 'reset' | null>(null);
+  const [affiliateTestMessage, setAffiliateTestMessage] = useState<string | null>(null);
+  const [affiliateTestError, setAffiliateTestError] = useState<string | null>(null);
 
   async function confirmAvailability() {
     setUpdatingAvailability(true);
@@ -103,6 +110,38 @@ export default function RequestWorkstationClient({ request }: { request: Request
       return;
     }
     setAvailabilityNote('');
+    router.refresh();
+  }
+
+  async function runAffiliateTestAction(action: 'simulate' | 'reset') {
+    setAffiliateTestSubmitting(action);
+    setAffiliateTestMessage(null);
+    setAffiliateTestError(null);
+
+    const response = await fetch('/api/admin/affiliate-conversion-test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requestId: request.id,
+        confirmationPhrase: affiliateTestPhrase,
+        action,
+      }),
+    });
+
+    const data = (await response.json().catch(() => ({}))) as { message?: string; error?: string };
+    setAffiliateTestSubmitting(null);
+
+    if (!response.ok || data.error) {
+      setAffiliateTestError(data.error ?? 'Affiliate test action failed.');
+      return;
+    }
+
+    setAffiliateTestMessage(
+      data.message ??
+        (action === 'simulate'
+          ? 'Test conversion created or confirmed. No payment was processed.'
+          : 'Affiliate test simulation reset.'),
+    );
     router.refresh();
   }
 
@@ -272,6 +311,64 @@ export default function RequestWorkstationClient({ request }: { request: Request
             </p>
           )}
         </div>
+
+        {request.id === AFFILIATE_TEST_REQUEST_ID ? (
+          <div className="rounded-3xl border border-amber-500/30 bg-[#151922] p-6 text-[#e6e8ec]">
+            <p className="text-xs uppercase tracking-[0.3em] text-amber-300">Affiliate Test Tools</p>
+            <h2 className="mt-2 text-lg font-semibold">Simulate affiliate conversion eligibility</h2>
+            <p className="mt-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">
+              Test only. No payment will be processed.
+            </p>
+            <p className="mt-3 text-sm text-[#9aa3b2]">
+              This temporary tool is restricted to this test request. It sets only the canonical fields required by
+              the affiliate conversion engine, then invokes the real Phase 3 helper.
+            </p>
+            <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.25em] text-[#9aa3b2]">
+              Confirmation phrase
+            </label>
+            <input
+              type="text"
+              value={affiliateTestPhrase}
+              onChange={(event) => setAffiliateTestPhrase(event.target.value)}
+              placeholder={AFFILIATE_TEST_CONFIRMATION_PHRASE}
+              className="mt-2 w-full rounded-2xl border border-[#23293a] bg-[#0f1115] px-4 py-3 text-sm text-[#e6e8ec] placeholder:text-[#6b7280]"
+            />
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => runAffiliateTestAction('simulate')}
+                disabled={
+                  affiliateTestPhrase !== AFFILIATE_TEST_CONFIRMATION_PHRASE ||
+                  affiliateTestSubmitting !== null
+                }
+                className="rounded-full bg-amber-300 px-4 py-2 text-sm font-semibold text-[#0f1115] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {affiliateTestSubmitting === 'simulate' ? 'Simulating…' : 'Simulate Confirmed Booking'}
+              </button>
+              <button
+                type="button"
+                onClick={() => runAffiliateTestAction('reset')}
+                disabled={
+                  affiliateTestPhrase !== AFFILIATE_TEST_CONFIRMATION_PHRASE ||
+                  affiliateTestSubmitting !== null
+                }
+                className="rounded-full border border-[#3a3a3a] px-4 py-2 text-sm font-semibold text-[#e6e8ec] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {affiliateTestSubmitting === 'reset' ? 'Resetting…' : 'Reset Affiliate Test'}
+              </button>
+            </div>
+            {affiliateTestMessage ? (
+              <p className="mt-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+                {affiliateTestMessage}
+              </p>
+            ) : null}
+            {affiliateTestError ? (
+              <p className="mt-4 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-100">
+                {affiliateTestError}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="rounded-3xl border border-[#23293a] bg-[#151922] p-6 text-[#e6e8ec]">
           <h2 className="text-lg font-semibold">Activity</h2>
