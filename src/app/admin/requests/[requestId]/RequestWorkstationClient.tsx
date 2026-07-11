@@ -57,6 +57,28 @@ export type RequestDetailRecord = {
     age: number | null;
   }[];
   activity: ActivityEntry[];
+  affiliateAttribution: {
+    affiliateId: string | null;
+    affiliateClickId: string | null;
+    visitorSessionRowId: string | null;
+    visitorSessionId: string | null;
+    visitorId: string | null;
+    attributionSource: string | null;
+    referralCode: string | null;
+    utmSource: string | null;
+    utmMedium: string | null;
+    utmCampaign: string | null;
+    utmTerm: string | null;
+    utmContent: string | null;
+    affiliate: {
+      id: string;
+      displayName: string | null;
+      email: string | null;
+      slug: string | null;
+      status: string | null;
+      tier: string | null;
+    } | null;
+  };
 };
 
 export default function RequestWorkstationClient({ request }: { request: RequestDetailRecord }) {
@@ -202,6 +224,56 @@ export default function RequestWorkstationClient({ request }: { request: Request
         </div>
 
         <div className="rounded-3xl border border-[#23293a] bg-[#151922] p-6 text-[#e6e8ec]">
+          <p className="text-xs uppercase tracking-[0.3em] text-[#9aa3b2]">Affiliate Attribution</p>
+          {request.affiliateAttribution.affiliateId ? (
+            <>
+              <div className="mt-4 rounded-2xl border border-[#23293a] bg-[#0f1115] p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-[#9aa3b2]">Affiliate</p>
+                {request.affiliateAttribution.affiliate ? (
+                  <Link
+                    href={`/admin/affiliates/${request.affiliateAttribution.affiliate.id}/analytics`}
+                    className="mt-1 inline-flex text-lg font-semibold text-[#e6e8ec] hover:text-[#d6b45a]"
+                  >
+                    {request.affiliateAttribution.affiliate.displayName ?? request.affiliateAttribution.affiliate.email ?? 'Affiliate'}
+                  </Link>
+                ) : (
+                  <p className="mt-1 text-lg font-semibold">Unknown affiliate</p>
+                )}
+                <p className="mt-1 text-xs text-[#9aa3b2]">
+                  {request.affiliateAttribution.affiliate?.email ?? 'No affiliate email loaded'}
+                </p>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <AttributionStat
+                  label="Referral slug"
+                  value={request.affiliateAttribution.affiliate?.slug ?? request.affiliateAttribution.referralCode}
+                  prominent
+                />
+                <AttributionStat label="Affiliate status" value={formatAffiliateStatus(request.affiliateAttribution)} />
+                <AttributionStat label="Attribution source" value={request.affiliateAttribution.attributionSource} />
+                <AttributionStat label="Click ID" value={request.affiliateAttribution.affiliateClickId} muted />
+                <AttributionStat label="Visitor ID" value={request.affiliateAttribution.visitorId} muted />
+                <AttributionStat
+                  label="Session ID"
+                  value={request.affiliateAttribution.visitorSessionId ?? request.affiliateAttribution.visitorSessionRowId}
+                  muted
+                />
+                <AttributionStat label="UTM source" value={request.affiliateAttribution.utmSource} />
+                <AttributionStat label="UTM medium" value={request.affiliateAttribution.utmMedium} />
+                <AttributionStat label="UTM campaign" value={request.affiliateAttribution.utmCampaign} />
+                <AttributionStat label="UTM term" value={request.affiliateAttribution.utmTerm} />
+                <AttributionStat label="UTM content" value={request.affiliateAttribution.utmContent} />
+              </div>
+            </>
+          ) : (
+            <p className="mt-4 rounded-2xl border border-[#23293a] bg-[#0f1115] p-4 text-sm text-[#9aa3b2]">
+              Not attributed
+            </p>
+          )}
+        </div>
+
+        <div className="rounded-3xl border border-[#23293a] bg-[#151922] p-6 text-[#e6e8ec]">
           <h2 className="text-lg font-semibold">Activity</h2>
           <div className="mt-4 space-y-3">
             {request.activity.length === 0 ? (
@@ -256,6 +328,40 @@ function SummaryStat({ label, value }: { label: string; value: React.ReactNode }
       <p className="text-base font-semibold">{value}</p>
     </div>
   );
+}
+
+function AttributionStat({
+  label,
+  value,
+  muted = false,
+  prominent = false,
+}: {
+  label: string;
+  value: React.ReactNode;
+  muted?: boolean;
+  prominent?: boolean;
+}) {
+  return (
+    <div className="rounded-2xl border border-[#23293a] bg-[#0f1115] p-3 text-sm">
+      <p className="text-xs uppercase tracking-[0.2em] text-[#9aa3b2]">{label}</p>
+      <p
+        className={`break-all ${
+          prominent
+            ? 'text-base font-semibold text-[#e6e8ec]'
+            : muted
+              ? 'text-xs font-medium text-[#9aa3b2]'
+              : 'text-base font-semibold text-[#e6e8ec]'
+        }`}
+      >
+        {value || '—'}
+      </p>
+    </div>
+  );
+}
+
+function formatAffiliateStatus(attribution: RequestDetailRecord['affiliateAttribution']) {
+  const parts = [attribution.affiliate?.status, attribution.affiliate?.tier].filter(Boolean);
+  return parts.length ? parts.join(' · ') : null;
 }
 
 function formatAddress(request: Pick<RequestDetailRecord, 'addressLine1' | 'addressLine2' | 'city' | 'state' | 'postalCode'>) {
