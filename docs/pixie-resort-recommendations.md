@@ -4,6 +4,11 @@ This document describes the deterministic Walt Disney World DVC resort recommend
 
 Permanent product and architecture rules remain in `docs/pixie-development-bible.md`. Planner-state rules remain in `docs/pixie-planner-state.md`.
 
+Pricing authority and resort identifier details are reconciled in:
+
+- `docs/pixie-pricing-authority.md`
+- `docs/pixie-resort-identifier-matrix.md`
+
 ## Scope
 
 Phase 2 creates trusted recommendation primitives only:
@@ -187,13 +192,16 @@ Current verified runtime source:
 - Calculator resort category.
 - Calculator booking-window tier policy.
 
-The installed runtime currently exposes legacy pricing categories:
+Current custom-request calculator categories:
 
-- `PREMIUM`: 2500 cents per point outside seven months, downgraded to `REGULAR` inside seven months.
-- `REGULAR`: 2300 cents per point.
-- `ADVANTAGE`: 2000 cents per point.
+- `PREMIER_ACCESS`: 2900 cents per point outside seven months.
+- `PRIORITY_ACCESS`: 2600 cents per point outside seven months.
+- `SELECT_ACCESS`: 2400 cents per point.
+- `VALUE_ACCESS`: 2200 cents per point.
 
-The TypeScript source in the calculator package also contains newer access-category names. The adapter supports both shapes, but the source/dist mismatch should be resolved before Pixie pricing is promoted as a public source of truth.
+`PREMIER_ACCESS` and `PRIORITY_ACCESS` estimate at `SELECT_ACCESS` inside seven calendar months before check-in. `SELECT_ACCESS` and `VALUE_ACCESS` stay fixed.
+
+Phase 2.5 reconciled the stale package output so source and `dist` use the same Access-tier categories and rates. Pixie now fails closed if stale legacy categories such as `PREMIUM`, `REGULAR`, or `ADVANTAGE` reappear.
 
 The adapter:
 
@@ -203,6 +211,7 @@ The adapter:
 - Does not use Ready Stay owner payout as guest pricing.
 - Does not duplicate Ready Stay-specific fee logic.
 - Returns unsupported when the pricing category cannot be evaluated confidently.
+- Separates custom-request estimates from Ready Stay listing prices through `pricingContext`.
 
 ## Reason Codes
 
@@ -289,8 +298,8 @@ Pixie should say when exact-date pricing was used, when pricing is unavailable, 
 
 - `public.resorts` may contain operational aliases and database identifiers that differ from calculator identifiers. Pixie Phase 2 deliberately keeps database IDs out of local recommendations.
 - Fort Wilderness Cabins need calculator resort metadata before recommendation support.
-- The installed calculator package runtime and TypeScript source currently differ in pricing-category naming and rates.
 - Existing migrations include a Kidani `KV` calculator-code reference, while the calculator uses `AKV` for Animal Kingdom Villas. Pixie treats AKV as the supported calculator identity for Phase 2.
+- Bare `kidani`, `jambo`, and `KV` are ambiguous identifiers. Full AKV slugs can resolve to umbrella `akv`, but building-specific booking/matching must use dedicated metadata in later phases.
 - The adapter does not yet model room view preferences as first-class Pixie state.
 - The adapter does not calculate park tickets, dining, flights, total vacation cost, or Ready Stay-specific pricing.
 

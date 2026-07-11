@@ -30,7 +30,12 @@ const SEEDS: ResortSeed[] = [
   {
     id: "akv",
     slug: "animal-kingdom-villas",
-    aliases: ["animal-kingdom-jambo", "animal-kingdom-kidani"],
+    aliases: [
+      "animal-kingdom-jambo",
+      "animal-kingdom-kidani",
+      "disney-s-animal-kingdom-villas-jambo-house",
+      "disney-s-animal-kingdom-villas-kidani-village",
+    ],
     calculatorCode: "AKV",
     displayName: "Animal Kingdom Villas",
     shortName: "Animal Kingdom Villas",

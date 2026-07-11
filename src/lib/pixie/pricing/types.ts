@@ -2,6 +2,7 @@ import type { PixieResortId, PixieRoomTypeId } from "@/lib/pixie/resorts/types";
 
 export type PixieCalculatorStatus = "estimated" | "unsupported" | "not_requested";
 export type PixiePricingStatus = "estimated" | "unsupported" | "not_requested";
+export type PixiePricingContext = "custom_request_estimate" | "ready_stay_listing_price";
 
 export type PixieDvcPointsEstimate =
   | {
@@ -33,29 +34,52 @@ export type PixieDvcPointsEstimate =
         | "calculator_error";
     };
 
-export type PixieGuestPriceEstimate =
+export type PixieGuestPriceResult =
   | {
       supported: true;
+      pricingContext: "custom_request_estimate";
       estimatedTotalCents: number;
-      estimatedRatePerPointCents: number;
+      ratePerPointCents: number;
       currency: "USD";
       pricingCategory: string;
-      pricingSource: string;
-      estimateDisclaimerKey: "custom_request_estimate_not_confirmed";
+      source: string;
+      sourceVersion: string;
+      estimateStatus: "estimate";
+      warnings: string[];
+    }
+  | {
+      supported: true;
+      pricingContext: "ready_stay_listing_price";
+      confirmedListingTotalCents: number;
+      ratePerPointCents: number;
+      currency: "USD";
+      pricingCategory: "ready_stay_listing";
+      source: string;
+      sourceVersion: string;
+      estimateStatus: "listing_price";
+      readyStayId: string;
       warnings: string[];
     }
   | {
       supported: false;
+      pricingContext: PixiePricingContext;
       estimatedTotalCents?: undefined;
-      estimatedRatePerPointCents?: undefined;
+      confirmedListingTotalCents?: undefined;
+      ratePerPointCents?: undefined;
       currency: "USD";
       pricingCategory?: string;
-      pricingSource: string;
-      estimateDisclaimerKey: "pricing_unavailable";
+      source: string;
+      sourceVersion: string;
+      estimateStatus: "unsupported";
       warnings: string[];
       unsupportedReason:
+        | "invalid_pricing_context"
         | "missing_points"
+        | "missing_listing"
         | "unknown_resort"
         | "unsupported_pricing_category"
-        | "invalid_dates";
+        | "invalid_dates"
+        | "ambiguous_pricing_source";
     };
+
+export type PixieGuestPriceEstimate = PixieGuestPriceResult;

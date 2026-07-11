@@ -62,14 +62,14 @@ describe("Pixie resort scoring", () => {
 
   it("budget fit preserves integer cents and labels over-budget conservatively", () => {
     const trip = state({ dates: { arrivalDate: "2027-09-07", departureDate: "2027-09-09" }, party: { adults: 2 }, budget: { amountCents: 10000, currency: "USD", budgetType: "accommodation_only" } });
-    const price = estimateGuestAccommodationPrice({ resortId: "blt", points: 100, arrivalDate: "2027-09-07", bookingDate: "2027-01-01" });
-    expect(price.supported && price.estimatedTotalCents).toBe(230000);
+    const price = estimateGuestAccommodationPrice({ pricingContext: "custom_request_estimate", resortId: "blt", points: 100, arrivalDate: "2027-09-07", bookingDate: "2027-01-01" });
+    expect(price.supported && price.pricingContext === "custom_request_estimate" && price.estimatedTotalCents).toBe(240000);
     expect(evaluateBudgetFit(trip, price)).toBe("likely_over_budget");
   });
 
   it("total-trip budget is not treated as accommodation budget", () => {
     const trip = state({ party: { adults: 2 }, budget: { amountCents: 500000, currency: "USD", budgetType: "total_trip" } });
-    const price = estimateGuestAccommodationPrice({ resortId: "okw", points: 100, arrivalDate: "2027-09-07" });
+    const price = estimateGuestAccommodationPrice({ pricingContext: "custom_request_estimate", resortId: "okw", points: 100, arrivalDate: "2027-09-07" });
     expect(evaluateBudgetFit(trip, price)).toBe("cannot_evaluate");
   });
 });

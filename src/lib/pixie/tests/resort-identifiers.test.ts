@@ -25,12 +25,12 @@ describe("Pixie resort identifiers", () => {
   });
 
   it("rejects unknown resort identifiers safely", () => {
-    expect(resolvePixieResortId("made-up-resort")).toMatchObject({ ok: false, code: "unknown_identifier" });
+    expect(resolvePixieResortId("made-up-resort")).toMatchObject({ ok: false, code: "unknown_resort_identifier" });
   });
 
   it("rejects non-WDW resort identifiers", () => {
-    expect(resolvePixieResortId("AUL")).toMatchObject({ ok: false, code: "non_wdw_resort" });
-    expect(resolvePixieResortId("vero-beach")).toMatchObject({ ok: false, code: "non_wdw_resort" });
+    expect(resolvePixieResortId("AUL")).toMatchObject({ ok: false, code: "unsupported_non_wdw_resort" });
+    expect(resolvePixieResortId("vero-beach")).toMatchObject({ ok: false, code: "unsupported_non_wdw_resort" });
   });
 
   it("rejects unsupported WDW identifiers", () => {
@@ -41,6 +41,15 @@ describe("Pixie resort identifiers", () => {
     const resolved = resolvePixieResortId("Bay Lake Tower at Disney's Contemporary Resort");
     expect(resolved).toMatchObject({ ok: true, resort: { id: "blt", slug: "bay-lake-tower" } });
     expect(getPixieResortById("Bay Lake Tower at Disney's Contemporary Resort")).toBeNull();
+  });
+
+  it("fails closed for bare AKV building aliases and historical KV code", () => {
+    expect(resolvePixieResortId("AKV")).toMatchObject({ ok: true, resort: { id: "akv" } });
+    expect(resolvePixieResortId("animal-kingdom-kidani")).toMatchObject({ ok: true, resort: { id: "akv" } });
+    expect(resolvePixieResortId("animal-kingdom-jambo")).toMatchObject({ ok: true, resort: { id: "akv" } });
+    expect(resolvePixieResortId("kidani")).toMatchObject({ ok: false, code: "ambiguous_resort_identifier" });
+    expect(resolvePixieResortId("jambo")).toMatchObject({ ok: false, code: "ambiguous_resort_identifier" });
+    expect(resolvePixieResortId("KV")).toMatchObject({ ok: false, code: "ambiguous_resort_identifier" });
   });
 
   it("gets resorts by canonical slug only inside the WDW catalog", () => {

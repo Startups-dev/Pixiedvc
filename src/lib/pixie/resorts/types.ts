@@ -71,10 +71,13 @@ export type PixieResortCatalogItem = {
 };
 
 export type PixieIdentifierErrorCode =
-  | "unknown_identifier"
-  | "ambiguous_identifier"
-  | "non_wdw_resort"
-  | "unsupported_resort";
+  | "unknown_resort_identifier"
+  | "ambiguous_resort_identifier"
+  | "unsupported_non_wdw_resort"
+  | "unsupported_resort"
+  | "booking_mapping_unverified"
+  | "database_mapping_unverified"
+  | "calculator_mapping_unverified";
 
 export type PixieIdentifierResult =
   | { ok: true; resort: PixieResortCatalogItem }

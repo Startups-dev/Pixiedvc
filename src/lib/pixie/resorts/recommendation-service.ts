@@ -163,6 +163,7 @@ export function recommendPixieResorts(tripState: unknown, options: { now?: strin
     const price =
       points?.supported === true
         ? estimateGuestAccommodationPrice({
+            pricingContext: "custom_request_estimate",
             resortId: resort.id,
             points: points.totalPoints,
             arrivalDate: state.dates.arrivalDate,
@@ -215,7 +216,7 @@ export function recommendPixieResorts(tripState: unknown, options: { now?: strin
     generatedAt: options.now ?? new Date().toISOString(),
     scoringVersion: PIXIE_SCORING_VERSION,
     catalogVersion: PIXIE_RESORT_CATALOG_VERSION,
-    pricingVersion: "2026-07-10.phase2",
+    pricingVersion: "2026-07-10.phase2.5",
     calculatorCoverage: {
       supportedYears: PIXIE_SUPPORTED_CALCULATOR_YEARS,
     },

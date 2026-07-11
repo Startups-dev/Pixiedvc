@@ -48,7 +48,7 @@ function priorityParks(state: PixieTripState) {
 export function evaluateBudgetFit(state: PixieTripState, price: PixieGuestPriceEstimate | null): PixieBudgetFit {
   const budget = state.budget;
   if (budget.amountCents === undefined || budget.budgetType === "unknown") return "budget_context_missing";
-  if (!price?.supported || price.estimatedTotalCents === undefined) return "cannot_evaluate";
+  if (!price?.supported || price.pricingContext !== "custom_request_estimate" || price.estimatedTotalCents === undefined) return "cannot_evaluate";
   if (budget.budgetType === "total_trip") return "cannot_evaluate";
 
   const comparableBudget =

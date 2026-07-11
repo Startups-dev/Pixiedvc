@@ -26,11 +26,13 @@ Phase 1 planner-state foundation is complete. Pixie now has typed, deterministic
 
 Phase 2 deterministic resort recommendation foundation is complete. Pixie now has a Walt Disney World DVC resort allowlist, identifier adapters, room-capacity handling, deterministic eligibility/scoring, point-estimation adapters, guest accommodation estimate adapters, typed recommendation output, tests, and recommendation documentation.
 
+Phase 2.5 pricing and resort-identity reconciliation is complete. Pixie now has an explicit pricing authority map, synchronized calculator source/package output, pricing-context separation, hardened AKV/Kidani/Jambo identifier behavior, and regression tests for source/runtime drift.
+
 Pixie still has no frontend, AI calls, persistence, migrations, Ready Stay matching, booking conversion, voice, avatar, or deployment.
 
 ## Current Phase
 
-Phase 2: Deterministic Walt Disney World resort recommendation foundation.
+Phase 2.5: Pricing and resort-identity reconciliation.
 
 Approved implementation order from the development bible:
 
@@ -47,7 +49,7 @@ Approved implementation order from the development bible:
 11. Analytics.
 12. Production hardening.
 
-Phase 1 and Phase 2 are complete. The next approved implementation phase is deterministic Ready Stay matching.
+Phase 1, Phase 2, and Phase 2.5 are complete. The next approved implementation phase is deterministic Ready Stay matching.
 
 ## Completed Work
 
@@ -130,6 +132,33 @@ Not implemented in this phase:
 - Booking conversion.
 - Voice or avatar.
 
+### 2026-07-11: Phase 2.5 pricing and resort-identity reconciliation completed
+
+Implemented:
+
+- Audited calculator source, package export, dist output, tests, Next aliases, Docker build path, and Cloud Run runtime expectations.
+- Rebuilt and synchronized calculator generated output with source Access-tier pricing.
+- Fixed a calculator declaration-build type mismatch in `quoteStay`.
+- Unignored generated calculator package entry files so source/package output can be versioned together.
+- Added calculator package tests comparing source and generated output rates/categories.
+- Added Pixie production import-path tests for `pixiedvc-calculator`.
+- Added explicit Pixie pricing contexts: `custom_request_estimate` and `ready_stay_listing_price`.
+- Added a Ready Stay listing-price contract without implementing Ready Stay matching.
+- Hardened Pixie pricing to reject stale legacy categories.
+- Hardened resort identifier errors and AKV/Kidani/Jambo handling.
+- Documented pricing authority and resort identifier matrix.
+
+Not implemented in this phase:
+
+- Ready Stay matching.
+- AI orchestration or model-provider calls.
+- Chat route.
+- `/pixie` frontend.
+- Database persistence.
+- Database migrations.
+- Booking conversion or checkout changes.
+- Voice or avatar.
+
 ## Architecture Decisions
 
 - Pixie lives inside the existing PixieDVC production repository.
@@ -165,6 +194,14 @@ Not implemented in this phase:
 - Point estimates reject unsupported years before calculator fallback behavior can hide missing charts.
 - Guest accommodation estimates use the installed calculator package pricing policy and are labelled as estimates.
 - Ready Stay owner payout and Ready Stay fee logic are not used for custom Pixie guest accommodation estimates.
+- Custom request guest estimates now use Access-tier calculator pricing: Premier Access, Priority Access, Select Access, and Value Access.
+- Legacy calculator categories `PREMIUM`, `REGULAR`, and `ADVANTAGE` are treated as stale and unsupported by Pixie pricing.
+- Pixie price results include `pricingContext`, `source`, `sourceVersion`, and `estimateStatus`.
+- Ready Stay listing prices are listing-specific and separate from custom-request estimates.
+- Owner payout and founding-owner bonus rates must never be exposed as guest pricing.
+- Calculator source and package generated output must stay synchronized through tests.
+- Animal Kingdom Villas canonical Pixie identity is `akv` / `animal-kingdom-villas` / `AKV`.
+- Kidani and Jambo are AKV sub-property/building preferences; bare `kidani`, `jambo`, and historical `KV` fail closed as ambiguous.
 
 ## Files Added
 
@@ -212,6 +249,16 @@ Phase 2 resort recommendation foundation:
 - `src/lib/pixie/tests/resort-scoring.test.ts`
 - `src/lib/pixie/tests/room-types.test.ts`
 
+Phase 2.5 pricing and identity reconciliation:
+
+- `docs/pixie-pricing-authority.md`
+- `docs/pixie-resort-identifier-matrix.md`
+- `packages/pixiedvc-calculator/dist/index.d.ts`
+- `packages/pixiedvc-calculator/dist/index.js`
+- `packages/pixiedvc-calculator/dist/index.js.map`
+- `packages/pixiedvc-calculator/test/pricing-contract.test.ts`
+- `src/lib/pixie/tests/pricing-authority.test.ts`
+
 ## Files Modified
 
 Documentation reference:
@@ -227,6 +274,25 @@ Phase 2 documentation updates:
 
 - `docs/pixie-development-bible.md`
 - `docs/pixie-progress-log.md`
+
+Phase 2.5 updates:
+
+- `docs/pixie-development-bible.md`
+- `docs/pixie-progress-log.md`
+- `docs/pixie-resort-recommendations.md`
+- `packages/pixiedvc-calculator/.gitignore`
+- `packages/pixiedvc-calculator/src/engine/calc.ts`
+- `src/lib/pixie/pricing/guest-price-adapter.ts`
+- `src/lib/pixie/pricing/types.ts`
+- `src/lib/pixie/resorts/catalog.ts`
+- `src/lib/pixie/resorts/identifiers.ts`
+- `src/lib/pixie/resorts/recommendation-service.ts`
+- `src/lib/pixie/resorts/scoring.ts`
+- `src/lib/pixie/resorts/types.ts`
+- `src/lib/pixie/tests/guest-price-adapter.test.ts`
+- `src/lib/pixie/tests/points-adapter.test.ts`
+- `src/lib/pixie/tests/resort-identifiers.test.ts`
+- `src/lib/pixie/tests/resort-scoring.test.ts`
 
 ## Database Migrations
 
@@ -263,6 +329,15 @@ Targeted Pixie validation should run before broad repository validation.
 - `pnpm run lint`: failed on existing repository lint issues. No `src/lib/pixie` lint errors were visible in the final run. Existing examples include calculator `any` usage, CommonJS script imports, `TestimonialsSection` hook-order violations, unescaped entities, owner/dashboard `any` usage, and image/useEffect warnings.
 - `pnpm run build`: first sandboxed run failed with Turbopack `Operation not permitted` while creating a process/binding an internal port. Escalated rerun succeeded. Next emitted existing `themeColor` metadata warnings and skipped lint/type validation.
 
+### 2026-07-11 Phase 2.5 Validation
+
+- `pnpm --dir packages/pixiedvc-calculator run build`: passed after a minimal type fix in `src/engine/calc.ts`. Warning: duplicate root `baseUrl`.
+- `pnpm exec vitest run src/lib/pixie/tests`: passed. 13 test files, 126 tests.
+- `pnpm --dir packages/pixiedvc-calculator exec vitest run`: passed. 2 test files, 13 tests.
+- `pnpm run lint`: failed on existing repository lint issues. No `src/lib/pixie` errors were reported. The modified calculator engine errors were removed; remaining calculator lint errors are in the pre-existing calculator UI.
+- `pnpm exec tsc --noEmit --pretty false`: failed on existing repository type issues. No `src/lib/pixie` errors were visible in the final run.
+- `pnpm run build`: passed when run outside the sandbox. Next emitted existing metadata `themeColor` warnings and skipped lint/type validation.
+
 ## Known Issues
 
 - The repository has an OpenAI helper at `src/lib/ai/openai.ts`, but the main support chat route currently uses Gemini.
@@ -274,10 +349,10 @@ Targeted Pixie validation should run before broad repository validation.
 - The exact canonical room-type identifier set remains unresolved; Phase 1 uses opaque `selectedRoomType` strings until the recommendation/booking boundary confirms canonical IDs.
 - The exact WDW DVC resort allowlist should be verified against current canonical resort data before resort scoring begins.
 - `booking_ready` currently means ready for a booking draft handoff, not ready to submit a booking without authentication and booking-form details.
-- The installed `pixiedvc-calculator` runtime output and TypeScript source differ in pricing-category naming and rates. Pixie Phase 2 supports both shapes, but the calculator package should be rebuilt or reconciled before public pricing language depends on it.
+- Calculator source and package generated output were reconciled in Phase 2.5. Future drift is covered by tests, but package output must be regenerated when calculator source pricing changes.
 - Fort Wilderness Cabins have chart/fallback traces but no calculator resort metadata, so Pixie excludes them.
-- A migration references Kidani as calculator code `KV`, while the calculator package uses `AKV` for Animal Kingdom Villas. Pixie Phase 2 uses `AKV`.
-- Cross-year point estimates can fail when one side of the chart range is missing; the adapter surfaces this as unsupported rather than estimating.
+- A migration references Kidani as calculator code `KV`, while the calculator package uses `AKV` for Animal Kingdom Villas. Pixie Phase 2.5 treats `KV` as ambiguous and uses `AKV` only for umbrella Animal Kingdom Villas.
+- Cross-year point estimates can fail when chart data is missing; the adapter surfaces unsupported calculator errors rather than estimating. The previously observed BLT 2026/2027 gap no longer reproduces after calculator output synchronization.
 
 ## Future Work
 
@@ -297,7 +372,6 @@ Future phases:
 - Which model provider should Pixie use first: OpenAI, Gemini, or a provider abstraction with one configured default?
 - What is the exact WDW DVC resort allowlist for v1, including whether Fort Wilderness cabins should be included in Phase 2 scoring?
 - Should Fort Wilderness Cabins be added after calculator metadata is completed?
-- Should the calculator package runtime be rebuilt to match its TypeScript source before Pixie pricing is user-facing?
 - What final room/view mapping should booking conversion use when Pixie moves from recommendation to booking draft?
 - Should Pixie hide or alter the global support widget on `/pixie`?
 - What retention policy should apply to saved Pixie conversations and plans?

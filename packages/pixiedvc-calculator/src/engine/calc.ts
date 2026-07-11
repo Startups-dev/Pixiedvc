@@ -1,6 +1,6 @@
 // src/engine/calc.ts
 import { addDays, differenceInMonths, formatISO, isWithinInterval, parseISO } from "./date-utils";
-import type { QuoteInput, QuoteResult, ResortYearChart, RoomCode, ViewCode } from "./types";
+import type { QuoteInput, QuoteResult, ResortYearChart, RoomCode, TravelPeriod, ViewCode } from "./types";
 import { loadResortYearChart, Resorts } from "./charts";
 import { RATE_BY_CATEGORY, SERVICE_FEE_PCT, TIER_DISPLAY_NAMES } from "./rates";
 
@@ -34,12 +34,6 @@ function calculatePricePerPoint(resortCode: string, checkInDate: string, booking
   };
 }
 
-function findResortCategory(resortCode: string) {
-  const meta = Resorts.find(r => r.code === resortCode);
-  if (!meta) throw new Error(`Unknown resort ${resortCode}`);
-  return { meta, ppp: RATE_BY_CATEGORY[meta.category] };
-}
-
 function periodForDate(chart: ResortYearChart, iso: string) {
   const d = parseISO(iso);
   for (const p of chart.periods) {
@@ -51,7 +45,7 @@ function periodForDate(chart: ResortYearChart, iso: string) {
   return null;
 }
 
-function pointsForNight(period: any, room: string, view: string, iso: string) {
+function pointsForNight(period: TravelPeriod, room: RoomCode, view: ViewCode, iso: string) {
   if (!period) return 0;
   const rate = period.points?.[room]?.[view];
   if (!rate) return 0;
@@ -75,7 +69,7 @@ export function quoteStay(input: QuoteInput): QuoteResult {
     const chartYear = Number(iso.slice(0, 4));
     let chart = chartCache.get(chartYear);
     if (!chart) {
-      chart = loadResortYearChart(resortCode, chartYear);
+      chart = loadResortYearChart(resortCode, chartYear) ?? undefined;
       if (!chart) {
         throw new Error(`No chart for ${resortCode} in ${chartYear}`);
       }
@@ -113,7 +107,7 @@ export function quoteStay(input: QuoteInput): QuoteResult {
 export async function quoteAllResorts(params: Omit<QuoteInput, "resortCode" | "room" | "view"> & {
   roomViews: Partial<Record<string, { room: RoomCode; view: ViewCode }[]>>;
 }) {
-  const results: Record<string, any> = {};
+  const results: Record<string, Partial<Record<RoomCode, QuoteResult>>> = {};
   for (const r of Resorts) {
     const combos = params.roomViews[r.code] ?? [{ room: "STUDIO", view: "S" }];
     results[r.code] = {};

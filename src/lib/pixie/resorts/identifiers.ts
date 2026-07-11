@@ -31,27 +31,35 @@ function matchesResort(resort: PixieResortCatalogItem, normalized: string) {
 export function resolvePixieResortId(input: string | null | undefined): PixieIdentifierResult {
   const normalized = normalizeIdentifier(input);
   if (!normalized) {
-    return { ok: false, code: "unknown_identifier", input: "", message: "Resort identifier is required." };
+    return { ok: false, code: "unknown_resort_identifier", input: "", message: "Resort identifier is required." };
   }
 
   const upper = normalized.toUpperCase();
+  if (upper === "KV" || normalized === "kidani" || normalized === "jambo") {
+    return {
+      ok: false,
+      code: "ambiguous_resort_identifier",
+      input: normalized,
+      message: "Kidani and Jambo are AKV building preferences in Pixie, not standalone trusted resort identities.",
+    };
+  }
   if ((PIXIE_NON_WDW_CALCULATOR_CODES as readonly string[]).includes(upper)) {
-    return { ok: false, code: "non_wdw_resort", input: normalized, message: "Pixie v1 supports Walt Disney World DVC resorts only." };
+    return { ok: false, code: "unsupported_non_wdw_resort", input: normalized, message: "Pixie v1 supports Walt Disney World DVC resorts only." };
   }
   if (PIXIE_UNSUPPORTED_WDW_RESORTS.some((item) => item.slug === normalized || item.calculatorCode.toLowerCase() === normalized)) {
     return { ok: false, code: "unsupported_resort", input: normalized, message: "This WDW resort is not fully supported by calculator metadata yet." };
   }
   const fallbackCode = FALLBACK_CALC_CODE_BY_SLUG[canonicalizeResortSlug(normalized)];
   if (fallbackCode && (PIXIE_NON_WDW_CALCULATOR_CODES as readonly string[]).includes(fallbackCode)) {
-    return { ok: false, code: "non_wdw_resort", input: normalized, message: "Pixie v1 supports Walt Disney World DVC resorts only." };
+    return { ok: false, code: "unsupported_non_wdw_resort", input: normalized, message: "Pixie v1 supports Walt Disney World DVC resorts only." };
   }
 
   const matches = PIXIE_WDW_RESORT_CATALOG.filter((resort) => matchesResort(resort, normalized));
   if (matches.length === 1) return { ok: true, resort: matches[0] };
   if (matches.length > 1) {
-    return { ok: false, code: "ambiguous_identifier", input: normalized, message: "Resort identifier matched more than one Pixie resort." };
+    return { ok: false, code: "ambiguous_resort_identifier", input: normalized, message: "Resort identifier matched more than one Pixie resort." };
   }
-  return { ok: false, code: "unknown_identifier", input: normalized, message: "Unknown Pixie resort identifier." };
+  return { ok: false, code: "unknown_resort_identifier", input: normalized, message: "Unknown Pixie resort identifier." };
 }
 
 export function getPixieResortById(id: PixieResortId | string | null | undefined) {

@@ -43,11 +43,12 @@ describe("Pixie DVC points adapter", () => {
     expect(result.supported && result.totalPoints).toBe(expected.totalPoints);
   });
 
-  it("cross-year unsupported chart gaps fail clearly where calculator data is incomplete", () => {
+  it("cross-year calculation matches synchronized calculator behavior where chart data exists", () => {
     const result = estimateDvcPoints({ resortId: "blt", roomTypeId: "studio", arrivalDate: "2026-12-31", departureDate: "2027-01-02" });
-    expect(result.supported).toBe(false);
-    if (!result.supported) {
-      expect(result.errorReason).toBe("calculator_error");
+    const expected = quoteStay({ resortCode: "BLT", room: "STUDIO", view: "S", checkIn: "2026-12-31", nights: 2 });
+    expect(result.supported).toBe(true);
+    if (result.supported) {
+      expect(result.totalPoints).toBe(expected.totalPoints);
       expect(result.calculatorYears).toEqual([2026, 2027]);
     }
   });

@@ -543,6 +543,19 @@ Append architectural decisions here when they are made.
 - Ready Stay owner payout and Ready Stay-specific pricing fees are not the source of truth for custom Pixie accommodation estimates.
 - Deterministic reason codes and scoring breakdowns are the source of recommendation explanations; AI may later rephrase but must not change facts, scores, capacity, points, prices, or eligibility.
 
+### 2026-07-11: Phase 2.5 pricing and resort identity reconciliation
+
+- Custom request guest estimates use the calculator Access-tier pricing model: `PREMIER_ACCESS`, `PRIORITY_ACCESS`, `SELECT_ACCESS`, and `VALUE_ACCESS`.
+- The stale legacy calculator categories `PREMIUM`, `REGULAR`, and `ADVANTAGE` are not accepted by Pixie pricing; their appearance is treated as an ambiguous pricing source.
+- Calculator source and package export output must remain synchronized; generated package entry files are versioned and tested against source.
+- Pixie price results must include `pricingContext`, `source`, `sourceVersion`, and `estimateStatus`.
+- `custom_request_estimate` and `ready_stay_listing_price` are separate pricing contexts. They must not be substituted for each other.
+- Ready Stay listing prices come from actual Ready Stay listing fields and are listing-specific.
+- Owner payout rates and founding-owner promotional owner bonuses are never guest pricing.
+- Animal Kingdom Villas uses canonical Pixie resort ID `akv`, canonical slug `animal-kingdom-villas`, and calculator code `AKV`.
+- Kidani and Jambo are AKV sub-property/building preferences, not standalone Pixie resort IDs.
+- Historical `KV`, bare `kidani`, and bare `jambo` are ambiguous Pixie resort identifiers and must fail closed.
+
 ## 20. How Codex Must Operate
 
 Every future Pixie prompt must begin with this workflow:
