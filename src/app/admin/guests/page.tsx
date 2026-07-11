@@ -24,7 +24,27 @@ type RequestRow = {
   availability_checked_at: string | null;
   lead_guest_name: string | null;
   lead_guest_email: string | null;
+  affiliate_id: string | null;
+  affiliate_click_id: string | null;
+  visitor_session_row_id: string | null;
+  visitor_session_id: string | null;
+  visitor_id: string | null;
+  attribution_source: string | null;
+  referral_code: string | null;
+  referral_utm_source: string | null;
+  referral_utm_medium: string | null;
+  referral_utm_campaign: string | null;
+  referral_utm_term: string | null;
+  referral_utm_content: string | null;
   primary_resort?: { name: string | null } | null;
+  affiliate?: {
+    id: string;
+    display_name: string | null;
+    email: string | null;
+    slug: string | null;
+    status: string | null;
+    tier: string | null;
+  } | null;
 };
 
 type ActivityRow = {
@@ -54,7 +74,7 @@ export default async function AdminGuestsPage() {
   const { data: requestRows, error } = await supabase
     .from('booking_requests')
     .select(
-      'id, renter_id, status, created_at, updated_at, check_in, check_out, primary_room, secondary_resort_id, tertiary_resort_id, adults, youths, total_points, max_price_per_point, availability_status, availability_checked_at, lead_guest_name, lead_guest_email, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)',
+      'id, renter_id, status, created_at, updated_at, check_in, check_out, primary_room, secondary_resort_id, tertiary_resort_id, adults, youths, total_points, max_price_per_point, availability_status, availability_checked_at, lead_guest_name, lead_guest_email, affiliate_id, affiliate_click_id, visitor_session_row_id, visitor_session_id, visitor_id, attribution_source, referral_code, referral_utm_source, referral_utm_medium, referral_utm_campaign, referral_utm_term, referral_utm_content, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name), affiliate:affiliates!booking_requests_affiliate_id_fkey(id, display_name, email, slug, status, tier)',
     )
     .order('created_at', { ascending: false })
     .limit(75);
@@ -214,6 +234,30 @@ export default async function AdminGuestsPage() {
       renterId: row.renter_id,
       renterName: row.lead_guest_name ?? renter?.display_name ?? null,
       renterEmail: row.lead_guest_email ?? renter?.email ?? null,
+      affiliateAttribution: {
+        affiliateId: row.affiliate_id,
+        affiliateClickId: row.affiliate_click_id,
+        visitorSessionRowId: row.visitor_session_row_id,
+        visitorSessionId: row.visitor_session_id,
+        visitorId: row.visitor_id,
+        attributionSource: row.attribution_source,
+        referralCode: row.referral_code,
+        utmSource: row.referral_utm_source,
+        utmMedium: row.referral_utm_medium,
+        utmCampaign: row.referral_utm_campaign,
+        utmTerm: row.referral_utm_term,
+        utmContent: row.referral_utm_content,
+        affiliate: row.affiliate
+          ? {
+              id: row.affiliate.id,
+              displayName: row.affiliate.display_name,
+              email: row.affiliate.email,
+              slug: row.affiliate.slug,
+              status: row.affiliate.status,
+              tier: row.affiliate.tier,
+            }
+          : null,
+      },
       activity: activityMap.get(row.id) ?? [],
     };
   });

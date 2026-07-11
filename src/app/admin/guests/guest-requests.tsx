@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export type GuestRequestRecord = {
@@ -21,6 +22,28 @@ export type GuestRequestRecord = {
   renterId: string | null;
   renterName: string | null;
   renterEmail: string | null;
+  affiliateAttribution: {
+    affiliateId: string | null;
+    affiliateClickId: string | null;
+    visitorSessionRowId: string | null;
+    visitorSessionId: string | null;
+    visitorId: string | null;
+    attributionSource: string | null;
+    referralCode: string | null;
+    utmSource: string | null;
+    utmMedium: string | null;
+    utmCampaign: string | null;
+    utmTerm: string | null;
+    utmContent: string | null;
+    affiliate: {
+      id: string;
+      displayName: string | null;
+      email: string | null;
+      slug: string | null;
+      status: string | null;
+      tier: string | null;
+    } | null;
+  };
   activity: ActivityEntry[];
 };
 
@@ -404,6 +427,12 @@ export default function GuestRequestBoard({
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-[#ececec]">Actions</p>
                 <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={`/admin/requests/${selected.id}`}
+                    className="rounded-full border border-[#3a3a3a] bg-[#212121] px-4 py-2 text-sm font-semibold text-[#ececec] hover:bg-[#171717]"
+                  >
+                    Open full request
+                  </Link>
                   <button
                     type="button"
                     onClick={promoteToMatching}
@@ -413,6 +442,71 @@ export default function GuestRequestBoard({
                     {promoting ? 'Saving…' : 'Promote to matching tool'}
                   </button>
                 </div>
+              </div>
+
+              <div className="space-y-3 rounded-2xl border border-[#3a3a3a] bg-[#212121] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#8e8ea0]">
+                  Affiliate Attribution
+                </p>
+                {selected.affiliateAttribution.affiliateId ? (
+                  <>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">Affiliate</p>
+                      {selected.affiliateAttribution.affiliate ? (
+                        <Link
+                          href={`/admin/affiliates/${selected.affiliateAttribution.affiliate.id}/analytics`}
+                          className="mt-1 inline-flex text-base font-semibold text-[#ececec] hover:text-[#d6b45a]"
+                        >
+                          {selected.affiliateAttribution.affiliate.displayName ??
+                            selected.affiliateAttribution.affiliate.email ??
+                            'Affiliate'}
+                        </Link>
+                      ) : (
+                        <p className="mt-1 text-base font-semibold text-[#ececec]">Unknown affiliate</p>
+                      )}
+                      <p className="mt-1 text-xs text-[#8e8ea0]">
+                        {selected.affiliateAttribution.affiliate?.email ?? 'No affiliate email loaded'}
+                      </p>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <AttributionStat
+                        label="Referral slug"
+                        value={
+                          selected.affiliateAttribution.affiliate?.slug ??
+                          selected.affiliateAttribution.referralCode
+                        }
+                        prominent
+                      />
+                      <AttributionStat
+                        label="Status"
+                        value={
+                          selected.affiliateAttribution.affiliate?.status ??
+                          (selected.affiliateAttribution.affiliateId ? 'Affiliate linked' : null)
+                        }
+                      />
+                      <AttributionStat label="Source" value={selected.affiliateAttribution.attributionSource} />
+                      <AttributionStat label="Click ID" value={selected.affiliateAttribution.affiliateClickId} muted />
+                      <AttributionStat label="Visitor ID" value={selected.affiliateAttribution.visitorId} muted />
+                      <AttributionStat
+                        label="Session ID"
+                        value={
+                          selected.affiliateAttribution.visitorSessionId ??
+                          selected.affiliateAttribution.visitorSessionRowId
+                        }
+                        muted
+                      />
+                      <AttributionStat label="UTM source" value={selected.affiliateAttribution.utmSource} />
+                      <AttributionStat label="UTM medium" value={selected.affiliateAttribution.utmMedium} />
+                      <AttributionStat label="UTM campaign" value={selected.affiliateAttribution.utmCampaign} />
+                      <AttributionStat label="UTM term" value={selected.affiliateAttribution.utmTerm} />
+                      <AttributionStat label="UTM content" value={selected.affiliateAttribution.utmContent} />
+                    </div>
+                  </>
+                ) : (
+                  <p className="rounded-2xl border border-[#3a3a3a] bg-[#2f2f2f] p-3 text-sm text-[#8e8ea0]">
+                    Not attributed
+                  </p>
+                )}
               </div>
 
               <form onSubmit={handleAddNote} className="space-y-2">
@@ -494,6 +588,35 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl border border-[#3a3a3a] bg-[#212121] p-3 text-sm text-[#8e8ea0]">
       <p className="text-xs uppercase tracking-[0.2em]">{label}</p>
       <p className="text-base font-semibold text-[#ececec]">{value}</p>
+    </div>
+  );
+}
+
+function AttributionStat({
+  label,
+  value,
+  muted = false,
+  prominent = false,
+}: {
+  label: string;
+  value: string | null;
+  muted?: boolean;
+  prominent?: boolean;
+}) {
+  return (
+    <div className="rounded-2xl border border-[#3a3a3a] bg-[#2f2f2f] p-3 text-sm">
+      <p className="text-xs uppercase tracking-[0.2em] text-[#8e8ea0]">{label}</p>
+      <p
+        className={`mt-1 break-words ${
+          prominent
+            ? 'font-semibold text-[#ececec]'
+            : muted
+              ? 'font-mono text-xs text-[#8e8ea0]'
+              : 'text-[#b4b4b4]'
+        }`}
+      >
+        {value || '—'}
+      </p>
     </div>
   );
 }
