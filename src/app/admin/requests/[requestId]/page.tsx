@@ -27,7 +27,27 @@ type RequestRow = {
   country: string | null;
   requires_accessibility: boolean | null;
   comments: string | null;
+  affiliate_id: string | null;
+  affiliate_click_id: string | null;
+  visitor_session_row_id: string | null;
+  visitor_session_id: string | null;
+  visitor_id: string | null;
+  attribution_source: string | null;
+  referral_code: string | null;
+  referral_utm_source: string | null;
+  referral_utm_medium: string | null;
+  referral_utm_campaign: string | null;
+  referral_utm_term: string | null;
+  referral_utm_content: string | null;
   primary_resort?: { name: string | null } | null;
+  affiliate?: {
+    id: string;
+    display_name: string | null;
+    email: string | null;
+    slug: string | null;
+    status: string | null;
+    tier: string | null;
+  } | null;
 };
 
 type GuestRow = {
@@ -65,7 +85,7 @@ export default async function AdminRequestWorkstation({ params }: { params: Prom
   const { data: requestRow } = await supabase
     .from('booking_requests')
     .select(
-      'id, status, availability_status, availability_checked_at, check_in, check_out, primary_room, max_price_per_point, adults, youths, lead_guest_name, lead_guest_email, lead_guest_phone, phone, address_line1, address_line2, city, state, postal_code, country, requires_accessibility, comments, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)',
+      'id, status, availability_status, availability_checked_at, check_in, check_out, primary_room, max_price_per_point, adults, youths, lead_guest_name, lead_guest_email, lead_guest_phone, phone, address_line1, address_line2, city, state, postal_code, country, requires_accessibility, comments, affiliate_id, affiliate_click_id, visitor_session_row_id, visitor_session_id, visitor_id, attribution_source, referral_code, referral_utm_source, referral_utm_medium, referral_utm_campaign, referral_utm_term, referral_utm_content, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name), affiliate:affiliates!booking_requests_affiliate_id_fkey(id, display_name, email, slug, status, tier)',
     )
     .eq('id', requestId)
     .maybeSingle();
@@ -118,32 +138,58 @@ export default async function AdminRequestWorkstation({ params }: { params: Prom
     };
   });
 
+  const row = requestRow as unknown as RequestRow;
+
   const request: RequestDetailRecord = {
-    id: requestRow.id,
-    status: requestRow.status,
-    availabilityStatus: requestRow.availability_status ?? null,
-    availabilityCheckedAt: requestRow.availability_checked_at ?? null,
-    resortName: requestRow.primary_resort?.name ?? null,
-    checkIn: requestRow.check_in,
-    checkOut: requestRow.check_out,
-    roomType: requestRow.primary_room,
-    partySize: partyLabel(requestRow.adults, requestRow.youths),
-    maxPrice: requestRow.max_price_per_point ? `$${requestRow.max_price_per_point.toFixed(2)}` : 'No max',
-    renterName: requestRow.lead_guest_name,
-    renterEmail: requestRow.lead_guest_email,
-    renterPhone: requestRow.lead_guest_phone ?? requestRow.phone ?? null,
-    addressLine1: requestRow.address_line1,
-    addressLine2: requestRow.address_line2,
-    city: requestRow.city,
-    state: requestRow.state,
-    postalCode: requestRow.postal_code,
-    country: requestRow.country,
-    requiresAccessibility: requestRow.requires_accessibility ?? null,
-    specialNotes: requestRow.comments ?? null,
-    resortLabel: requestRow.primary_resort?.name ?? null,
-    roomTypeLabel: requestRow.primary_room ?? null,
+    id: row.id,
+    status: row.status,
+    availabilityStatus: row.availability_status ?? null,
+    availabilityCheckedAt: row.availability_checked_at ?? null,
+    resortName: row.primary_resort?.name ?? null,
+    checkIn: row.check_in,
+    checkOut: row.check_out,
+    roomType: row.primary_room,
+    partySize: partyLabel(row.adults, row.youths),
+    maxPrice: row.max_price_per_point ? `$${row.max_price_per_point.toFixed(2)}` : 'No max',
+    renterName: row.lead_guest_name,
+    renterEmail: row.lead_guest_email,
+    renterPhone: row.lead_guest_phone ?? row.phone ?? null,
+    addressLine1: row.address_line1,
+    addressLine2: row.address_line2,
+    city: row.city,
+    state: row.state,
+    postalCode: row.postal_code,
+    country: row.country,
+    requiresAccessibility: row.requires_accessibility ?? null,
+    specialNotes: row.comments ?? null,
+    resortLabel: row.primary_resort?.name ?? null,
+    roomTypeLabel: row.primary_room ?? null,
     guests: (guestRows as GuestRow[] | null) ?? [],
     activity,
+    affiliateAttribution: {
+      affiliateId: row.affiliate_id,
+      affiliateClickId: row.affiliate_click_id,
+      visitorSessionRowId: row.visitor_session_row_id,
+      visitorSessionId: row.visitor_session_id,
+      visitorId: row.visitor_id,
+      attributionSource: row.attribution_source,
+      referralCode: row.referral_code,
+      utmSource: row.referral_utm_source,
+      utmMedium: row.referral_utm_medium,
+      utmCampaign: row.referral_utm_campaign,
+      utmTerm: row.referral_utm_term,
+      utmContent: row.referral_utm_content,
+      affiliate: row.affiliate
+        ? {
+            id: row.affiliate.id,
+            displayName: row.affiliate.display_name,
+            email: row.affiliate.email,
+            slug: row.affiliate.slug,
+            status: row.affiliate.status,
+            tier: row.affiliate.tier,
+          }
+        : null,
+    },
   };
 
   return <RequestWorkstationClient request={request} />;
