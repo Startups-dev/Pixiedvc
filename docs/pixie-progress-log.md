@@ -30,11 +30,13 @@ Phase 2.5 pricing and resort-identity reconciliation is complete. Pixie now has 
 
 Phase 3 deterministic Ready Stay matching foundation is complete. Pixie now has a read-only public-visible Ready Stay adapter, exact/flexible/near/partial date matching, capacity-safe filtering, listing-specific price handling, AKV sub-property handling, deterministic scoring, grouped match output, stale-inventory warnings, and tests.
 
-Pixie still has no frontend, AI calls, persistence, migrations, booking conversion, voice, avatar, or deployment.
+Phase 4 server-side AI orchestration foundation is complete. Pixie now has a lightweight provider abstraction, fetch-based OpenAI provider, strict structured model output, safe patch extraction, approved tool registry/executor, orchestration flow, streaming-ready event contract, rate-limit contract, usage metadata, safety limits, and tests.
+
+Pixie still has no frontend, public chat API route, persistence, migrations, booking conversion, voice, avatar, or deployment.
 
 ## Current Phase
 
-Phase 3: Deterministic Ready Stay matching foundation.
+Phase 4: Server-side AI orchestration foundation.
 
 Approved implementation order from the development bible:
 
@@ -51,7 +53,7 @@ Approved implementation order from the development bible:
 11. Analytics.
 12. Production hardening.
 
-Phase 1, Phase 2, Phase 2.5, and Phase 3 are complete. The next approved implementation phase is AI orchestration.
+Phase 1, Phase 2, Phase 2.5, Phase 3, and Phase 4 are complete. The next approved implementation phase is the text-chat API and frontend foundation.
 
 ## Completed Work
 
@@ -188,6 +190,35 @@ Not implemented in this phase:
 - Database migrations.
 - Voice or avatar.
 
+### 2026-07-11: Phase 4 AI orchestration foundation completed
+
+Implemented:
+
+- Lightweight Pixie model-provider interface.
+- Fetch-based OpenAI Responses API provider with strict structured JSON output.
+- Versioned Pixie system prompt.
+- Strict `PixieModelTurnResult` validation.
+- Safe model-proposed `PixieTripPatch` handling through `applyPixieTripPatch`.
+- Approved tool allowlist and registry-backed executor.
+- Deterministic tools for planner status, in-memory patching, resort recommendations, Ready Stay matching, and non-authoritative plan outlines.
+- High-level non-persistent orchestration service.
+- Streaming-ready event contract.
+- Response-builder safeguards for Ready Stay availability language and recheck warnings.
+- Safety limits for message size, recent messages, planner-state size, model output size, timeouts, tool calls, and tool rounds.
+- Provider-independent rate-limit contract with in-memory development/test implementation.
+- Usage metadata aggregation for tokens, model, prompt version, tool rounds, tool calls, and duration.
+- AI orchestration reference documentation.
+
+Not implemented in this phase:
+
+- Public chat API route.
+- `/pixie` frontend.
+- Database persistence.
+- Database migrations.
+- Booking conversion.
+- Ready Stay locking or checkout changes.
+- Payment, email, voice, or avatar.
+
 ## Architecture Decisions
 
 - Pixie lives inside the existing PixieDVC production repository.
@@ -237,6 +268,13 @@ Not implemented in this phase:
 - Ready Stay listing prices are preserved as listing-specific prices and are never custom-request estimates.
 - Ready Stay partial overlaps are alternatives only, not complete stay matches.
 - AKV Kidani/Jambo listing distinctions remain `subProperty` metadata under Pixie resort ID `akv`.
+- Pixie AI uses a provider abstraction and does not depend directly on provider response objects.
+- The initial Pixie OpenAI provider is fetch-based because no `openai` SDK package is currently installed.
+- Pixie AI prompt version is `2026-07-11.phase4`.
+- Pixie AI tool allowlist is `get_planner_status`, `apply_trip_patch`, `recommend_resorts`, `find_ready_stays`, and `generate_plan_outline`.
+- Pixie AI tools are deterministic server-side functions; the model cannot execute arbitrary function names or business logic.
+- Pixie AI has no Supabase write, booking, payment, email, owner, or hidden-inventory tools.
+- Phase 4 memory rate limiting is not production-distributed and must be replaced or backed by a distributed store before launch.
 
 ## Files Added
 
@@ -315,6 +353,37 @@ Phase 3 Ready Stay matching foundation:
 - `src/lib/pixie/tests/ready-stay-scoring.test.ts`
 - `src/lib/pixie/tests/ready-stay-test-helpers.ts`
 
+Phase 4 AI orchestration foundation:
+
+- `docs/pixie-ai-orchestration.md`
+- `src/lib/pixie/ai/errors.ts`
+- `src/lib/pixie/ai/index.ts`
+- `src/lib/pixie/ai/openai-provider.ts`
+- `src/lib/pixie/ai/orchestrator.ts`
+- `src/lib/pixie/ai/prompts.ts`
+- `src/lib/pixie/ai/provider.ts`
+- `src/lib/pixie/ai/rate-limit.ts`
+- `src/lib/pixie/ai/response-builder.ts`
+- `src/lib/pixie/ai/safety.ts`
+- `src/lib/pixie/ai/schemas.ts`
+- `src/lib/pixie/ai/tool-contract.ts`
+- `src/lib/pixie/ai/tool-executor.ts`
+- `src/lib/pixie/ai/tool-registry.ts`
+- `src/lib/pixie/ai/usage.ts`
+- `src/lib/pixie/tools/find-ready-stays.ts`
+- `src/lib/pixie/tools/generate-plan-outline.ts`
+- `src/lib/pixie/tools/get-planner-status.ts`
+- `src/lib/pixie/tools/index.ts`
+- `src/lib/pixie/tools/recommend-resorts.ts`
+- `src/lib/pixie/tools/update-trip-state.ts`
+- `src/lib/pixie/tests/ai-orchestrator.test.ts`
+- `src/lib/pixie/tests/ai-provider.test.ts`
+- `src/lib/pixie/tests/ai-safety.test.ts`
+- `src/lib/pixie/tests/ai-structured-output.test.ts`
+- `src/lib/pixie/tests/ai-tool-contract.test.ts`
+- `src/lib/pixie/tests/ai-tool-executor.test.ts`
+- `src/lib/pixie/tests/ai-usage.test.ts`
+
 ## Files Modified
 
 Documentation reference:
@@ -354,6 +423,13 @@ Phase 3 updates:
 
 - `docs/pixie-development-bible.md`
 - `docs/pixie-progress-log.md`
+
+Phase 4 updates:
+
+- `docs/pixie-development-bible.md`
+- `docs/pixie-progress-log.md`
+- `env-production.example.yaml`
+- `env-staging.example.yaml`
 
 ## Database Migrations
 
@@ -409,6 +485,17 @@ Targeted Pixie validation should run before broad repository validation.
 - `pnpm run build`: passed when run outside the sandbox. Next emitted existing metadata `themeColor` warnings and skipped lint/type validation.
 - `git diff --check`: passed.
 
+### 2026-07-11 Phase 4 Validation
+
+- `pnpm exec vitest run src/lib/pixie/tests`: passed. 26 test files, 186 tests.
+- `pnpm exec vitest run src/lib/pixie/tests src/lib/ready-stays`: passed. 30 test files, 196 tests.
+- `pnpm --dir packages/pixiedvc-calculator exec vitest run`: passed. 2 test files, 13 tests.
+- `pnpm exec eslint src/lib/pixie`: passed.
+- `pnpm run lint`: failed on existing repository lint issues outside the new Pixie AI files. No `src/lib/pixie` lint errors were reported by the targeted Pixie lint run.
+- `pnpm exec tsc --noEmit --pretty false`: failed on existing repository type issues. After fixing Phase 4 typing, no `src/lib/pixie` type errors were visible in the final run.
+- `pnpm run build`: passed when run outside the sandbox. Next emitted existing metadata `themeColor` warnings and skipped lint/type validation.
+- `git diff --check`: passed.
+
 ## Known Issues
 
 - The repository has an OpenAI helper at `src/lib/ai/openai.ts`, but the main support chat route currently uses Gemini.
@@ -426,13 +513,15 @@ Targeted Pixie validation should run before broad repository validation.
 - Cross-year point estimates can fail when chart data is missing; the adapter surfaces unsupported calculator errors rather than estimating. The previously observed BLT 2026/2027 gap no longer reproduces after calculator output synchronization.
 - Phase 3 Ready Stay matching is advisory only; booking action rechecks are still future work and must use existing Ready Stay flow.
 - Room mapping for Ready Stays can be partial when listing room text does not map to a Phase 2 normalized room type.
+- The `openai` npm SDK is not installed. Pixie Phase 4 uses a fetch-based OpenAI Responses API provider and should be revisited if the project later standardizes on the official SDK package.
+- Phase 4 rate limiting is a local/testing contract only; production requires a distributed limiter before public launch.
+- Phase 4 does not estimate model cost because no canonical versioned provider cost table exists.
 
 ## Future Work
 
 Future phases:
 
-- Add AI orchestration behind provider abstraction.
-- Build `/pixie` mobile-first frontend.
+- Add text-chat API route and `/pixie` mobile-first frontend.
 - Add authenticated persistence.
 - Add booking request conversion.
 - Add voice.
@@ -441,7 +530,7 @@ Future phases:
 
 ## Open Questions
 
-- Which model provider should Pixie use first: OpenAI, Gemini, or a provider abstraction with one configured default?
+- Should the repository add the official `openai` npm SDK later, or keep the existing fetch-based OpenAI convention?
 - What is the exact WDW DVC resort allowlist for v1, including whether Fort Wilderness cabins should be included in Phase 2 scoring?
 - Should Fort Wilderness Cabins be added after calculator metadata is completed?
 - What final room/view mapping should booking conversion use when Pixie moves from recommendation to booking draft?
@@ -452,9 +541,9 @@ Future phases:
 
 ## Next Approved Task
 
-Phase 4: AI orchestration.
+Phase 5: Text-chat API and frontend foundation.
 
-The next implementation task should add AI orchestration behind a lightweight provider abstraction. It must use the existing Pixie planner state, resort recommendation service, and Ready Stay matching service as trusted tools. The model may propose and explain, but it must not calculate pricing, points, inventory, availability, or write to Supabase.
+The next implementation task should add the bounded text-chat API route and initial `/pixie` frontend shell using the Phase 4 orchestrator. It must not add persistence, booking conversion, Ready Stay locking, payment, voice, avatar, or deployment.
 
 Before starting any future Pixie task, Codex must read:
 
@@ -465,4 +554,5 @@ Before starting any future Pixie task, Codex must read:
 5. `docs/pixie-pricing-authority.md` when the phase touches prices or Ready Stays
 6. `docs/pixie-resort-identifier-matrix.md` when the phase touches resorts or Ready Stays
 7. `docs/pixie-ready-stay-matching.md` when the phase touches Ready Stay matching
-8. Existing repository files relevant to the requested phase
+8. `docs/pixie-ai-orchestration.md` when the phase touches AI, chat, tools, provider configuration, or streaming
+9. Existing repository files relevant to the requested phase

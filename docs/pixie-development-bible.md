@@ -568,6 +568,17 @@ Append architectural decisions here when they are made.
 - AKV Kidani/Jambo Ready Stay distinctions remain listing `subProperty` metadata under Pixie resort ID `akv`.
 - Partial overlaps are alternatives only and must not be labelled as complete Ready Stay matches.
 
+### 2026-07-11: Phase 4 AI orchestration foundation
+
+- Pixie AI orchestration is server-side and non-persistent until a future route/persistence phase.
+- The repository does not currently install the `openai` npm SDK; Pixie uses a fetch-based OpenAI Responses API provider consistent with existing low-level OpenAI helper patterns.
+- Model output is strict structured JSON and is untrusted until validated with Pixie-owned Zod schemas.
+- The model may propose `PixieTripPatch` and approved tool requests, but deterministic services apply patches and compute facts.
+- Phase 4 approved tools are `get_planner_status`, `apply_trip_patch`, `recommend_resorts`, `find_ready_stays`, and `generate_plan_outline`.
+- No booking, payment, email, database-write, owner, hidden-inventory, or account tools exist in Pixie AI.
+- The in-memory rate limiter is a development/test contract only; a distributed limiter is required before public launch.
+- Usage metadata records tokens and duration when available, but cost estimates are omitted until a versioned cost table is approved.
+
 ## 20. How Codex Must Operate
 
 Every future Pixie prompt must begin with this workflow:
