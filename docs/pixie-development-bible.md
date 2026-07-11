@@ -556,6 +556,18 @@ Append architectural decisions here when they are made.
 - Kidani and Jambo are AKV sub-property/building preferences, not standalone Pixie resort IDs.
 - Historical `KV`, bare `kidani`, and bare `jambo` are ambiguous Pixie resort identifiers and must fail closed.
 
+### 2026-07-11: Phase 3 deterministic Ready Stay matching foundation
+
+- Pixie Ready Stay matching is advisory and read-only.
+- Pixie uses the existing public Ready Stay visibility helper `isPublicReadyStayRow`; it must not expose admin-only inventory.
+- Public-visible Ready Stay listings are the only inventory source for Pixie matching until a future explicit phase changes this.
+- Ready Stay listing prices use the `ready_stay_listing_price` pricing context and are specific to the listing.
+- Pixie Ready Stay matches must always carry a recheck-required inventory disclaimer.
+- Pixie must not say a Ready Stay is confirmed available; future booking actions must recheck visibility, status, locks, price, dates, and room.
+- Ready Stay capacity comes from listing `sleeps`; missing capacity fails closed.
+- AKV Kidani/Jambo Ready Stay distinctions remain listing `subProperty` metadata under Pixie resort ID `akv`.
+- Partial overlaps are alternatives only and must not be labelled as complete Ready Stay matches.
+
 ## 20. How Codex Must Operate
 
 Every future Pixie prompt must begin with this workflow:

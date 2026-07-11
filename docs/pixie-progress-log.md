@@ -28,11 +28,13 @@ Phase 2 deterministic resort recommendation foundation is complete. Pixie now ha
 
 Phase 2.5 pricing and resort-identity reconciliation is complete. Pixie now has an explicit pricing authority map, synchronized calculator source/package output, pricing-context separation, hardened AKV/Kidani/Jambo identifier behavior, and regression tests for source/runtime drift.
 
-Pixie still has no frontend, AI calls, persistence, migrations, Ready Stay matching, booking conversion, voice, avatar, or deployment.
+Phase 3 deterministic Ready Stay matching foundation is complete. Pixie now has a read-only public-visible Ready Stay adapter, exact/flexible/near/partial date matching, capacity-safe filtering, listing-specific price handling, AKV sub-property handling, deterministic scoring, grouped match output, stale-inventory warnings, and tests.
+
+Pixie still has no frontend, AI calls, persistence, migrations, booking conversion, voice, avatar, or deployment.
 
 ## Current Phase
 
-Phase 2.5: Pricing and resort-identity reconciliation.
+Phase 3: Deterministic Ready Stay matching foundation.
 
 Approved implementation order from the development bible:
 
@@ -49,7 +51,7 @@ Approved implementation order from the development bible:
 11. Analytics.
 12. Production hardening.
 
-Phase 1, Phase 2, and Phase 2.5 are complete. The next approved implementation phase is deterministic Ready Stay matching.
+Phase 1, Phase 2, Phase 2.5, and Phase 3 are complete. The next approved implementation phase is AI orchestration.
 
 ## Completed Work
 
@@ -159,6 +161,33 @@ Not implemented in this phase:
 - Booking conversion or checkout changes.
 - Voice or avatar.
 
+### 2026-07-11: Phase 3 deterministic Ready Stay matching foundation completed
+
+Implemented:
+
+- Public-visible Ready Stay read adapter using existing `isPublicReadyStayRow` behavior.
+- Pixie-facing Ready Stay listing normalization with minimum presentation/matching fields only.
+- Exact-date, flexible-date, near-date, and partial-overlap classification.
+- Capacity-safe filtering using listing `sleeps`.
+- Resort, room, AKV Kidani/Jambo sub-property, and preference matching.
+- Listing-specific Ready Stay price handling through the `ready_stay_listing_price` context.
+- Budget fit for accommodation-only and nightly budgets.
+- Deterministic bounded scoring and stable tie-breaking.
+- Grouped match output for exact, flexible, and alternative matches.
+- Stale-inventory/recheck-required warnings on every match.
+- Ready Stay matching reference documentation.
+
+Not implemented in this phase:
+
+- Ready Stay locking or checkout changes.
+- Booking requests or booking conversion.
+- AI orchestration or model-provider calls.
+- Chat route.
+- `/pixie` frontend.
+- Database persistence.
+- Database migrations.
+- Voice or avatar.
+
 ## Architecture Decisions
 
 - Pixie lives inside the existing PixieDVC production repository.
@@ -202,6 +231,12 @@ Not implemented in this phase:
 - Calculator source and package generated output must stay synchronized through tests.
 - Animal Kingdom Villas canonical Pixie identity is `akv` / `animal-kingdom-villas` / `AKV`.
 - Kidani and Jambo are AKV sub-property/building preferences; bare `kidani`, `jambo`, and historical `KV` fail closed as ambiguous.
+- Pixie Ready Stay matching uses `isPublicReadyStayRow`, not admin-or-public visibility.
+- Ready Stay matches are advisory and must carry `recheck_required_before_booking`.
+- Ready Stay capacity comes from listing `sleeps`; missing capacity fails closed.
+- Ready Stay listing prices are preserved as listing-specific prices and are never custom-request estimates.
+- Ready Stay partial overlaps are alternatives only, not complete stay matches.
+- AKV Kidani/Jambo listing distinctions remain `subProperty` metadata under Pixie resort ID `akv`.
 
 ## Files Added
 
@@ -259,6 +294,27 @@ Phase 2.5 pricing and identity reconciliation:
 - `packages/pixiedvc-calculator/test/pricing-contract.test.ts`
 - `src/lib/pixie/tests/pricing-authority.test.ts`
 
+Phase 3 Ready Stay matching foundation:
+
+- `docs/pixie-ready-stay-matching.md`
+- `src/lib/pixie/ready-stays/budget-fit.ts`
+- `src/lib/pixie/ready-stays/capacity.ts`
+- `src/lib/pixie/ready-stays/date-matching.ts`
+- `src/lib/pixie/ready-stays/explanations.ts`
+- `src/lib/pixie/ready-stays/index.ts`
+- `src/lib/pixie/ready-stays/listing-adapter.ts`
+- `src/lib/pixie/ready-stays/matching-service.ts`
+- `src/lib/pixie/ready-stays/scoring.ts`
+- `src/lib/pixie/ready-stays/types.ts`
+- `src/lib/pixie/ready-stays/visibility-adapter.ts`
+- `src/lib/pixie/tests/ready-stay-budget-fit.test.ts`
+- `src/lib/pixie/tests/ready-stay-capacity.test.ts`
+- `src/lib/pixie/tests/ready-stay-date-matching.test.ts`
+- `src/lib/pixie/tests/ready-stay-listing-adapter.test.ts`
+- `src/lib/pixie/tests/ready-stay-matching-service.test.ts`
+- `src/lib/pixie/tests/ready-stay-scoring.test.ts`
+- `src/lib/pixie/tests/ready-stay-test-helpers.ts`
+
 ## Files Modified
 
 Documentation reference:
@@ -293,6 +349,11 @@ Phase 2.5 updates:
 - `src/lib/pixie/tests/points-adapter.test.ts`
 - `src/lib/pixie/tests/resort-identifiers.test.ts`
 - `src/lib/pixie/tests/resort-scoring.test.ts`
+
+Phase 3 updates:
+
+- `docs/pixie-development-bible.md`
+- `docs/pixie-progress-log.md`
 
 ## Database Migrations
 
@@ -338,6 +399,16 @@ Targeted Pixie validation should run before broad repository validation.
 - `pnpm exec tsc --noEmit --pretty false`: failed on existing repository type issues. No `src/lib/pixie` errors were visible in the final run.
 - `pnpm run build`: passed when run outside the sandbox. Next emitted existing metadata `themeColor` warnings and skipped lint/type validation.
 
+### 2026-07-11 Phase 3 Validation
+
+- `pnpm exec vitest run src/lib/pixie/tests`: passed. 19 test files, 161 tests.
+- `pnpm exec vitest run src/lib/ready-stays`: passed. 4 test files, 10 tests.
+- `pnpm exec eslint src/lib/pixie`: passed.
+- `pnpm run lint`: failed on existing repository lint issues outside the new Pixie Ready Stay matching files. No `src/lib/pixie` lint errors were reported by the targeted Pixie lint run.
+- `pnpm exec tsc --noEmit --pretty false`: failed on existing repository type issues. After fixing the Phase 3 pricing-context narrowing, no `src/lib/pixie` type errors were visible in the final run.
+- `pnpm run build`: passed when run outside the sandbox. Next emitted existing metadata `themeColor` warnings and skipped lint/type validation.
+- `git diff --check`: passed.
+
 ## Known Issues
 
 - The repository has an OpenAI helper at `src/lib/ai/openai.ts`, but the main support chat route currently uses Gemini.
@@ -353,12 +424,13 @@ Targeted Pixie validation should run before broad repository validation.
 - Fort Wilderness Cabins have chart/fallback traces but no calculator resort metadata, so Pixie excludes them.
 - A migration references Kidani as calculator code `KV`, while the calculator package uses `AKV` for Animal Kingdom Villas. Pixie Phase 2.5 treats `KV` as ambiguous and uses `AKV` only for umbrella Animal Kingdom Villas.
 - Cross-year point estimates can fail when chart data is missing; the adapter surfaces unsupported calculator errors rather than estimating. The previously observed BLT 2026/2027 gap no longer reproduces after calculator output synchronization.
+- Phase 3 Ready Stay matching is advisory only; booking action rechecks are still future work and must use existing Ready Stay flow.
+- Room mapping for Ready Stays can be partial when listing room text does not map to a Phase 2 normalized room type.
 
 ## Future Work
 
 Future phases:
 
-- Build deterministic Ready Stay matching service.
 - Add AI orchestration behind provider abstraction.
 - Build `/pixie` mobile-first frontend.
 - Add authenticated persistence.
@@ -380,9 +452,9 @@ Future phases:
 
 ## Next Approved Task
 
-Phase 3: Deterministic Ready Stay matching foundation.
+Phase 4: AI orchestration.
 
-The next implementation task should build trusted, non-AI Ready Stay matching against the existing Ready Stay visibility, pricing, capacity, and booking handoff systems. It must reuse existing Ready Stay logic, avoid checkout or lock changes, avoid AI calls, avoid frontend UI, avoid persistence changes, and recheck Ready Stay availability at action time in later phases.
+The next implementation task should add AI orchestration behind a lightweight provider abstraction. It must use the existing Pixie planner state, resort recommendation service, and Ready Stay matching service as trusted tools. The model may propose and explain, but it must not calculate pricing, points, inventory, availability, or write to Supabase.
 
 Before starting any future Pixie task, Codex must read:
 
@@ -390,4 +462,7 @@ Before starting any future Pixie task, Codex must read:
 2. `docs/pixie-progress-log.md`
 3. `docs/pixie-planner-state.md`
 4. `docs/pixie-resort-recommendations.md` when the phase touches resorts, rooms, points, pricing, recommendations, or Ready Stay matching
-5. Existing repository files relevant to the requested phase
+5. `docs/pixie-pricing-authority.md` when the phase touches prices or Ready Stays
+6. `docs/pixie-resort-identifier-matrix.md` when the phase touches resorts or Ready Stays
+7. `docs/pixie-ready-stay-matching.md` when the phase touches Ready Stay matching
+8. Existing repository files relevant to the requested phase
