@@ -530,6 +530,19 @@ Append architectural decisions here when they are made.
 - Traveller edits use explicit operations, not whole-array replacement.
 - Unknown state fields are rejected, including sensitive extras such as prompts, API keys, auth tokens, and payment data.
 
+### 2026-07-10: Phase 2 deterministic resort recommendation foundation
+
+- Pixie v1 resort recommendations use a dedicated Walt Disney World DVC allowlist backed by existing calculator metadata and canonical slug helpers.
+- The canonical Pixie resort identifier is a stable lowercase calculator-code-like ID such as `akv`, `blt`, or `rva`.
+- Booking handoff should use the canonical resort slug as `bookingValue` until booking conversion defines a stronger shared contract.
+- `public.resorts` remains the runtime booking/catalog database authority, but Phase 2 recommendation code does not depend on database IDs or Supabase reads.
+- Fort Wilderness Cabins are excluded until calculator resort metadata includes complete category, room-type, and occupancy support.
+- Room capacity comes from calculator metadata only; Pixie does not guess or default optimistically.
+- Point estimates must go through the calculator adapter and must reject unsupported years before calculator fallback behavior can mask missing charts.
+- Guest accommodation estimates use the installed calculator package pricing policy and are always labelled as estimates.
+- Ready Stay owner payout and Ready Stay-specific pricing fees are not the source of truth for custom Pixie accommodation estimates.
+- Deterministic reason codes and scoring breakdowns are the source of recommendation explanations; AI may later rephrase but must not change facts, scores, capacity, points, prices, or eligibility.
+
 ## 20. How Codex Must Operate
 
 Every future Pixie prompt must begin with this workflow:

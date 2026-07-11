@@ -22,11 +22,15 @@ The architecture audit is complete. The repository has been inspected for releva
 - Existing DVC calculator package.
 - Existing OpenAI helper and Gemini-powered support chat route.
 
-Phase 1 planner-state foundation is complete. Pixie now has typed, deterministic schemas and local-draft utilities, but still has no frontend, AI calls, persistence, migrations, Ready Stay matching, point estimation, pricing, or booking conversion.
+Phase 1 planner-state foundation is complete. Pixie now has typed, deterministic schemas and local-draft utilities.
+
+Phase 2 deterministic resort recommendation foundation is complete. Pixie now has a Walt Disney World DVC resort allowlist, identifier adapters, room-capacity handling, deterministic eligibility/scoring, point-estimation adapters, guest accommodation estimate adapters, typed recommendation output, tests, and recommendation documentation.
+
+Pixie still has no frontend, AI calls, persistence, migrations, Ready Stay matching, booking conversion, voice, avatar, or deployment.
 
 ## Current Phase
 
-Phase 1: Planner schemas and deterministic state foundation.
+Phase 2: Deterministic Walt Disney World resort recommendation foundation.
 
 Approved implementation order from the development bible:
 
@@ -43,7 +47,7 @@ Approved implementation order from the development bible:
 11. Analytics.
 12. Production hardening.
 
-Phase 1 is complete. The next approved implementation phase is the deterministic recommendation engine foundation.
+Phase 1 and Phase 2 are complete. The next approved implementation phase is deterministic Ready Stay matching.
 
 ## Completed Work
 
@@ -99,6 +103,33 @@ Not implemented in this phase:
 - Booking request conversion.
 - Voice or avatar.
 
+### 2026-07-10: Phase 2 resort recommendation foundation completed
+
+Implemented:
+
+- Walt Disney World DVC resort catalog for Pixie v1.
+- Canonical Pixie resort identifiers and identifier resolution.
+- Non-WDW and unsupported WDW resort exclusion handling.
+- Room-type normalization and room-capacity checks from calculator metadata.
+- Hard resort eligibility filtering.
+- Explainable deterministic scoring with centralized weights.
+- Budget compatibility rules for accommodation-only, nightly, total-trip, and unknown budgets.
+- DVC point-estimation adapter over the existing calculator package.
+- Guest accommodation estimate adapter over existing calculator pricing policy.
+- Typed recommendation result including reason codes, tradeoffs, warnings, data quality, scoring version, catalog version, and calculator/pricing status.
+- Resort recommendation reference documentation.
+
+Not implemented in this phase:
+
+- Ready Stay matching.
+- AI orchestration or model-provider calls.
+- Chat route.
+- `/pixie` frontend.
+- Database persistence.
+- Database migrations.
+- Booking conversion.
+- Voice or avatar.
+
 ## Architecture Decisions
 
 - Pixie lives inside the existing PixieDVC production repository.
@@ -124,6 +155,16 @@ Not implemented in this phase:
 - Traveller array edits use explicit operations: `addTraveller`, `updateTraveller`, and `removeTraveller`.
 - Blank preference/interests array entries are accepted at parse time and removed during normalization.
 - Extra unknown/sensitive fields in planner state are rejected rather than silently serialized.
+- Pixie v1 resort recommendations use a dedicated WDW DVC allowlist backed by existing calculator metadata and canonical slug helpers.
+- The canonical Pixie resort identifier is a stable lowercase calculator-code-like ID such as `akv`, `blt`, or `rva`.
+- Booking-form handoff uses the canonical resort slug as the Phase 2 `bookingValue`; booking conversion may refine the final contract later.
+- `public.resorts` remains the runtime booking/catalog database authority, but Phase 2 recommendation code does not require Supabase reads or database resort IDs.
+- Fort Wilderness Cabins are unsupported until calculator resort metadata includes category, room-type, and occupancy support.
+- Non-WDW DVC properties are hard excluded from Pixie v1.
+- Room capacity is trusted only when present in calculator metadata.
+- Point estimates reject unsupported years before calculator fallback behavior can hide missing charts.
+- Guest accommodation estimates use the installed calculator package pricing policy and are labelled as estimates.
+- Ready Stay owner payout and Ready Stay fee logic are not used for custom Pixie guest accommodation estimates.
 
 ## Files Added
 
@@ -146,6 +187,31 @@ Phase 1 planner foundation:
 - `src/lib/pixie/tests/completeness.test.ts`
 - `src/lib/pixie/tests/local-draft.test.ts`
 
+Phase 2 resort recommendation foundation:
+
+- `docs/pixie-resort-recommendations.md`
+- `src/lib/pixie/resorts/catalog.ts`
+- `src/lib/pixie/resorts/eligibility.ts`
+- `src/lib/pixie/resorts/explanations.ts`
+- `src/lib/pixie/resorts/identifiers.ts`
+- `src/lib/pixie/resorts/index.ts`
+- `src/lib/pixie/resorts/recommendation-service.ts`
+- `src/lib/pixie/resorts/room-types.ts`
+- `src/lib/pixie/resorts/scoring.ts`
+- `src/lib/pixie/resorts/types.ts`
+- `src/lib/pixie/pricing/guest-price-adapter.ts`
+- `src/lib/pixie/pricing/index.ts`
+- `src/lib/pixie/pricing/points-adapter.ts`
+- `src/lib/pixie/pricing/types.ts`
+- `src/lib/pixie/tests/guest-price-adapter.test.ts`
+- `src/lib/pixie/tests/points-adapter.test.ts`
+- `src/lib/pixie/tests/recommendation-service.test.ts`
+- `src/lib/pixie/tests/resort-catalog.test.ts`
+- `src/lib/pixie/tests/resort-eligibility.test.ts`
+- `src/lib/pixie/tests/resort-identifiers.test.ts`
+- `src/lib/pixie/tests/resort-scoring.test.ts`
+- `src/lib/pixie/tests/room-types.test.ts`
+
 ## Files Modified
 
 Documentation reference:
@@ -153,6 +219,11 @@ Documentation reference:
 - `README.md`
 
 Phase 1 documentation updates:
+
+- `docs/pixie-development-bible.md`
+- `docs/pixie-progress-log.md`
+
+Phase 2 documentation updates:
 
 - `docs/pixie-development-bible.md`
 - `docs/pixie-progress-log.md`
@@ -185,6 +256,13 @@ Targeted Pixie validation should run before broad repository validation.
 - `pnpm exec tsc --noEmit --pretty false`: failed on existing repository type issues. After Pixie fixes, the final run did not report `src/lib/pixie` errors. Existing examples include Next 15 route-handler type mismatches, Supabase relation array/object typing, missing Vitest globals in older tests, contract snapshot typing, and package React type mismatches.
 - `pnpm run build`: first sandboxed run failed with Turbopack `Operation not permitted` while creating a process/binding an internal port. Escalated rerun succeeded. Next still emitted existing `themeColor` metadata warnings and skipped lint/type validation.
 
+### 2026-07-10 Phase 2 Validation
+
+- `pnpm exec vitest run src/lib/pixie/tests`: passed. 12 test files, 118 tests.
+- `pnpm exec tsc --noEmit --pretty false`: failed on existing repository type issues. The final run did not report `src/lib/pixie` errors. Existing examples include generated Next route-handler type mismatches, Supabase relation array/object typing, missing Vitest globals in older tests, contract snapshot typing, package React type mismatches, and calculator package strictness issues.
+- `pnpm run lint`: failed on existing repository lint issues. No `src/lib/pixie` lint errors were visible in the final run. Existing examples include calculator `any` usage, CommonJS script imports, `TestimonialsSection` hook-order violations, unescaped entities, owner/dashboard `any` usage, and image/useEffect warnings.
+- `pnpm run build`: first sandboxed run failed with Turbopack `Operation not permitted` while creating a process/binding an internal port. Escalated rerun succeeded. Next emitted existing `themeColor` metadata warnings and skipped lint/type validation.
+
 ## Known Issues
 
 - The repository has an OpenAI helper at `src/lib/ai/openai.ts`, but the main support chat route currently uses Gemini.
@@ -196,12 +274,15 @@ Targeted Pixie validation should run before broad repository validation.
 - The exact canonical room-type identifier set remains unresolved; Phase 1 uses opaque `selectedRoomType` strings until the recommendation/booking boundary confirms canonical IDs.
 - The exact WDW DVC resort allowlist should be verified against current canonical resort data before resort scoring begins.
 - `booking_ready` currently means ready for a booking draft handoff, not ready to submit a booking without authentication and booking-form details.
+- The installed `pixiedvc-calculator` runtime output and TypeScript source differ in pricing-category naming and rates. Pixie Phase 2 supports both shapes, but the calculator package should be rebuilt or reconciled before public pricing language depends on it.
+- Fort Wilderness Cabins have chart/fallback traces but no calculator resort metadata, so Pixie excludes them.
+- A migration references Kidani as calculator code `KV`, while the calculator package uses `AKV` for Animal Kingdom Villas. Pixie Phase 2 uses `AKV`.
+- Cross-year point estimates can fail when one side of the chart range is missing; the adapter surfaces this as unsupported rather than estimating.
 
 ## Future Work
 
 Future phases:
 
-- Build deterministic resort recommendation service for Walt Disney World.
 - Build deterministic Ready Stay matching service.
 - Add AI orchestration behind provider abstraction.
 - Build `/pixie` mobile-first frontend.
@@ -215,8 +296,9 @@ Future phases:
 
 - Which model provider should Pixie use first: OpenAI, Gemini, or a provider abstraction with one configured default?
 - What is the exact WDW DVC resort allowlist for v1, including whether Fort Wilderness cabins should be included in Phase 2 scoring?
-- What canonical room-type IDs should Pixie expose before booking conversion?
-- What guest price estimate policy should custom Pixie plans use?
+- Should Fort Wilderness Cabins be added after calculator metadata is completed?
+- Should the calculator package runtime be rebuilt to match its TypeScript source before Pixie pricing is user-facing?
+- What final room/view mapping should booking conversion use when Pixie moves from recommendation to booking draft?
 - Should Pixie hide or alter the global support widget on `/pixie`?
 - What retention policy should apply to saved Pixie conversations and plans?
 - Should users be able to delete saved Pixie trips from v1?
@@ -224,12 +306,14 @@ Future phases:
 
 ## Next Approved Task
 
-Phase 2: Deterministic recommendation engine foundation.
+Phase 3: Deterministic Ready Stay matching foundation.
 
-The next implementation task should build trusted, non-AI resort recommendation inputs and scoring primitives for Walt Disney World only. It should reuse existing canonical resort/calculator data, avoid point/pricing promises unless the trusted calculator path is explicitly wired, and must not add AI calls, frontend UI, persistence, migrations, Ready Stay checkout changes, or booking request creation.
+The next implementation task should build trusted, non-AI Ready Stay matching against the existing Ready Stay visibility, pricing, capacity, and booking handoff systems. It must reuse existing Ready Stay logic, avoid checkout or lock changes, avoid AI calls, avoid frontend UI, avoid persistence changes, and recheck Ready Stay availability at action time in later phases.
 
-Before starting Phase 1, Codex must read:
+Before starting any future Pixie task, Codex must read:
 
 1. `docs/pixie-development-bible.md`
 2. `docs/pixie-progress-log.md`
-3. Existing repository files relevant to planner schema design
+3. `docs/pixie-planner-state.md`
+4. `docs/pixie-resort-recommendations.md` when the phase touches resorts, rooms, points, pricing, recommendations, or Ready Stay matching
+5. Existing repository files relevant to the requested phase
