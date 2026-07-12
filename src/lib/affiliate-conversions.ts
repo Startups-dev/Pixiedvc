@@ -172,22 +172,37 @@ async function getRentalForBooking({
   rentalId?: string | null;
   bookingRequestId: string;
 }) {
-  const select = 'id, dvc_confirmation_number, status, booking_request_id';
+  const select = 'id, dvc_confirmation_number, status, match_id';
 
   if (rentalId) {
     const { data } = await client.from('rentals').select(select).eq('id', rentalId).maybeSingle();
     if (data) return data as Record<string, unknown>;
   }
 
-  const byBooking = await client
+  const { data: matches } = await client
+    .from('booking_matches')
+    .select('id')
+    .eq('booking_id', bookingRequestId)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  const matchIds = (matches ?? [])
+    .map((match) => (typeof match.id === 'string' ? match.id : null))
+    .filter((id): id is string => Boolean(id));
+
+  if (matchIds.length === 0) {
+    return null;
+  }
+
+  const byMatch = await client
     .from('rentals')
     .select(select)
-    .eq('booking_request_id', bookingRequestId)
+    .in('match_id', matchIds)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  return (byBooking.data as Record<string, unknown> | null) ?? null;
+  return (byMatch.data as Record<string, unknown> | null) ?? null;
 }
 
 async function standardConfirmationIsComplete({
@@ -199,14 +214,14 @@ async function standardConfirmationIsComplete({
   booking: BookingRow;
   rentalId?: string | null;
 }) {
+  if (hasText(booking.disney_confirmation_number)) {
+    return { complete: true, rentalId: rentalId ?? null, event: 'confirmation_number_saved' };
+  }
+
   const rental = await getRentalForBooking({ client, rentalId, bookingRequestId: booking.id });
   const resolvedRentalId = hasText(rental?.id) ? rental.id : rentalId ?? null;
 
-  const hasConfirmationNumber =
-    hasText(booking.disney_confirmation_number) ||
-    hasText(rental?.dvc_confirmation_number);
-
-  if (hasConfirmationNumber) {
+  if (hasText(rental?.dvc_confirmation_number)) {
     return { complete: true, rentalId: resolvedRentalId, event: 'confirmation_number_saved' };
   }
 

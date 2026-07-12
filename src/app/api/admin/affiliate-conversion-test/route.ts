@@ -168,43 +168,6 @@ async function simulateConversion({
 
   const beforeBooking = toSnapshot(booking as Record<string, unknown>);
 
-  const { data: existingRental } = await adminClient
-    .from('rentals')
-    .select('id, status, dvc_confirmation_number')
-    .eq('booking_request_id', TEST_BOOKING_REQUEST_ID)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const beforeRental: RentalSnapshot | null = existingRental
-    ? {
-        id: existingRental.id,
-        status: existingRental.status ?? null,
-        dvc_confirmation_number: existingRental.dvc_confirmation_number ?? null,
-        existedBefore: true,
-      }
-    : null;
-
-  const { data: existingMilestones } = existingRental?.id
-    ? await adminClient
-        .from('rental_milestones')
-        .select('id, code, status, occurred_at, meta')
-        .eq('rental_id', existingRental.id)
-        .in('code', [...TEST_MILESTONE_CODES])
-    : { data: [] };
-
-  const beforeMilestones: RentalMilestoneSnapshot[] = TEST_MILESTONE_CODES.map((code) => {
-    const row = existingMilestones?.find((milestone) => milestone.code === code);
-    return {
-      id: row?.id ?? null,
-      code,
-      status: row?.status ?? null,
-      occurred_at: row?.occurred_at ?? null,
-      meta: row?.meta ?? null,
-      existedBefore: Boolean(row?.id),
-    };
-  });
-
   const depositDue = beforeBooking.deposit_due && beforeBooking.deposit_due > 0 ? beforeBooking.deposit_due : 1;
   const nowIso = new Date().toISOString();
 
@@ -214,6 +177,7 @@ async function simulateConversion({
       deposit_due: depositDue,
       deposit_paid: depositDue,
       deposit_currency: beforeBooking.deposit_currency ?? 'USD',
+      disney_confirmation_number: beforeBooking.disney_confirmation_number ?? TEST_CONFIRMATION_NUMBER,
       updated_at: nowIso,
     })
     .eq('id', TEST_BOOKING_REQUEST_ID);
@@ -222,80 +186,9 @@ async function simulateConversion({
     return NextResponse.json({ error: bookingUpdateError.message }, { status: 500 });
   }
 
-  const resort = Array.isArray(booking.primary_resort) ? booking.primary_resort[0] : booking.primary_resort;
-  const resortCode =
-    typeof resort?.calculator_code === 'string'
-      ? resort.calculator_code
-      : typeof resort?.slug === 'string'
-        ? resort.slug
-        : 'TEST';
-
-  let rentalId = existingRental?.id ?? null;
-  if (existingRental?.id) {
-    const { error: rentalUpdateError } = await adminClient
-      .from('rentals')
-      .update({
-        dvc_confirmation_number: TEST_CONFIRMATION_NUMBER,
-        status: existingRental.status ?? 'booked',
-        updated_at: nowIso,
-      })
-      .eq('id', existingRental.id);
-    if (rentalUpdateError) {
-      return NextResponse.json({ error: rentalUpdateError.message }, { status: 500 });
-    }
-  } else {
-    const { data: insertedRental, error: rentalInsertError } = await adminClient
-      .from('rentals')
-      .insert({
-        owner_user_id: adminUserId,
-        resort_code: resortCode,
-        room_type: booking.primary_room ?? null,
-        check_in: booking.check_in ?? null,
-        check_out: booking.check_out ?? null,
-        points_required: booking.total_points ?? null,
-        rental_amount_cents: booking.guest_total_cents_final ?? booking.guest_total_cents ?? null,
-        status: 'booked',
-        booking_request_id: TEST_BOOKING_REQUEST_ID,
-        dvc_confirmation_number: TEST_CONFIRMATION_NUMBER,
-      })
-      .select('id')
-      .single();
-
-    if (rentalInsertError) {
-      return NextResponse.json({ error: rentalInsertError.message }, { status: 500 });
-    }
-    rentalId = insertedRental.id;
-  }
-
-  if (rentalId) {
-    const { error: milestoneError } = await adminClient.from('rental_milestones').upsert(
-      [
-        {
-          rental_id: rentalId,
-          code: 'owner_booked',
-          status: 'completed',
-          occurred_at: nowIso,
-          meta: { source: 'admin_test_simulation' },
-        },
-        {
-          rental_id: rentalId,
-          code: 'disney_confirmation_uploaded',
-          status: 'completed',
-          occurred_at: nowIso,
-          meta: { source: 'admin_test_simulation' },
-        },
-      ],
-      { onConflict: 'rental_id,code' },
-    );
-    if (milestoneError) {
-      return NextResponse.json({ error: milestoneError.message }, { status: 500 });
-    }
-  }
-
   const conversionResult = await ensureAffiliateConversionForBooking({
     bookingRequestId: TEST_BOOKING_REQUEST_ID,
     source: 'admin_test_simulation',
-    rentalId,
     confirmedAt: nowIso,
     client: adminClient,
   });
@@ -306,30 +199,10 @@ async function simulateConversion({
     .eq('id', TEST_BOOKING_REQUEST_ID)
     .maybeSingle();
 
-  const { data: afterRental } = rentalId
-    ? await adminClient
-        .from('rentals')
-        .select('id, status, dvc_confirmation_number')
-        .eq('id', rentalId)
-        .maybeSingle()
-    : { data: null };
-
   const after: SimulationAuditAfter = {
     booking: toSnapshot((afterBooking ?? {}) as Record<string, unknown>),
-    rental: afterRental
-      ? {
-          id: afterRental.id,
-          status: afterRental.status ?? null,
-          dvc_confirmation_number: afterRental.dvc_confirmation_number ?? null,
-          existedBefore: Boolean(existingRental?.id),
-        }
-      : null,
-    milestones: beforeMilestones.map((milestone) => ({
-      ...milestone,
-      status: 'completed',
-      occurred_at: nowIso,
-      meta: { source: 'admin_test_simulation' },
-    })),
+    rental: null,
+    milestones: [],
     conversion: {
       id: conversionResult.conversionId ?? null,
       existedBefore: Boolean(existingConversion?.id),
@@ -345,8 +218,8 @@ async function simulateConversion({
     entityId: TEST_BOOKING_REQUEST_ID,
     before: {
       booking: beforeBooking,
-      rental: beforeRental,
-      milestones: beforeMilestones,
+      rental: null,
+      milestones: [],
       conversion: existingConversion
         ? {
             id: existingConversion.id,
@@ -433,6 +306,7 @@ async function resetSimulation({
         deposit_due: before.booking.deposit_due,
         deposit_paid: before.booking.deposit_paid,
         deposit_currency: before.booking.deposit_currency,
+        disney_confirmation_number: before.booking.disney_confirmation_number,
         updated_at: new Date().toISOString(),
       })
       .eq('id', TEST_BOOKING_REQUEST_ID);
