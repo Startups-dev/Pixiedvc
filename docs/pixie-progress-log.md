@@ -34,11 +34,13 @@ Phase 4 server-side AI orchestration foundation is complete. Pixie now has a lig
 
 Phase 4.5 OpenAI provider verification is complete. Pixie now requires `PIXIE_MODEL`, uses the verified sample identifier `gpt-5.6-sol`, maps OpenAI configuration/auth/model/rate-limit failures to typed errors, includes mocked provider regression coverage, and has a skipped-by-default live smoke test.
 
-Pixie still has no frontend, public chat API route, persistence, migrations, booking conversion, voice, avatar, or deployment.
+Phase 5 text experience foundation is complete. Pixie now has the first `/pixie` mobile-first text planning workspace, a secure non-persistent `/api/pixie/chat` route, local browser draft restore/reset, trusted resort and Ready Stay result rendering, safe analytics events, and feature-flagged public exposure.
+
+Pixie still has no authenticated persistence, migrations, booking conversion, Ready Stay locking, payment, email, voice, avatar, or deployment.
 
 ## Current Phase
 
-Phase 4.5: OpenAI provider verification.
+Phase 5: Text-chat API and frontend foundation.
 
 Approved implementation order from the development bible:
 
@@ -55,7 +57,7 @@ Approved implementation order from the development bible:
 11. Analytics.
 12. Production hardening.
 
-Phase 1, Phase 2, Phase 2.5, Phase 3, Phase 4, and Phase 4.5 are complete. The next approved implementation phase is the text-chat API and frontend foundation.
+Phase 1, Phase 2, Phase 2.5, Phase 3, Phase 4, Phase 4.5, and Phase 5 are complete. The next approved implementation phase is prototype validation and launch hardening for the text experience before authenticated persistence.
 
 ## Completed Work
 
@@ -244,6 +246,38 @@ Not implemented in this phase:
 - Ready Stay locking or checkout changes.
 - Payment, email, voice, or avatar.
 
+### 2026-07-12: Phase 5 text experience foundation completed
+
+Implemented:
+
+- `/pixie` route with metadata, loading state, error boundary, and feature-flag-aware client shell.
+- Mobile-first Pixie planning workspace with chat-first layout, desktop plan panel, and mobile plan drawer.
+- Text composer with Enter-to-send, Shift+Enter newline behavior, cancellation affordance, character limit, and accessible label.
+- Initial Pixie welcome message, AI disclosure, Walt Disney World scope, and starter quick replies.
+- `/api/pixie/chat` route that validates request JSON, planner state, message limits, recent-message limits, feature flag, model configuration, request size, and rate limits before streaming Phase 4 orchestrator events.
+- NDJSON streaming contract for route responses with `Cache-Control: no-store`.
+- Feature flag `PIXIE_PUBLIC_ENABLED` with production-disabled default when unset.
+- In-memory per-IP and per-draft rate limiting using the Phase 4 contract, documented as local/staging only.
+- Browser-only client state helpers for chat messages, streaming events, trusted recommendations, Ready Stay matches, plan outline, warnings, and errors.
+- Browser draft wrapper using the Phase 1 local-draft storage key `pixiedvc:pixie:draft:v1`.
+- Corrupted-draft recovery and reset that clears only Pixie draft storage.
+- Resort recommendation cards that render trusted Phase 2 results, estimate disclosures, pricing unavailable states, capacity confidence, and tradeoffs.
+- Ready Stay cards that render trusted Phase 3 matches, exact/flexible/alternative distinctions, listing-specific prices, partial-overlap labels, and recheck warnings.
+- Plan outline, trip progress, traveller summary, trip summary, warnings, future-facing save prompt, and reset dialog components.
+- Safe client analytics wrappers for Phase 5 funnel events without full messages, raw trip state, provider output, secrets, or accessibility notes.
+- Phase 5 reference documentation.
+- Phase 5 route, client state, draft storage, and UI contract tests.
+
+Not implemented in this phase:
+
+- Authenticated Pixie persistence.
+- Database migrations.
+- Booking request conversion.
+- Ready Stay locking, checkout, payment, agreements, or booking-record changes.
+- Email.
+- Voice or animated avatar.
+- Deployment.
+
 ## Architecture Decisions
 
 - Pixie lives inside the existing PixieDVC production repository.
@@ -300,6 +334,11 @@ Not implemented in this phase:
 - Pixie AI tools are deterministic server-side functions; the model cannot execute arbitrary function names or business logic.
 - Pixie AI has no Supabase write, booking, payment, email, owner, or hidden-inventory tools.
 - Phase 4 memory rate limiting is not production-distributed and must be replaced or backed by a distributed store before launch.
+- Phase 5 exposes `/api/pixie/chat` as an NDJSON streaming route over the Phase 4 event contract.
+- Phase 5 keeps anonymous Pixie draft persistence browser-local and stores only structured planner state plus capped recent-message summaries.
+- Phase 5 uses `PIXIE_PUBLIC_ENABLED`; when unset, Pixie is enabled outside production and disabled in production.
+- Phase 5 remains non-persistent and performs no Supabase writes.
+- Phase 5 Ready Stay actions deep-link to existing public Ready Stay routes and do not create locks or checkout state.
 
 ## Files Added
 
@@ -413,6 +452,47 @@ Phase 4.5 OpenAI provider verification:
 
 - `src/lib/pixie/tests/ai-provider-live-smoke.test.ts`
 
+Phase 5 text experience:
+
+- `docs/pixie-text-experience.md`
+- `src/app/api/pixie/chat/route.ts`
+- `src/app/pixie/PixieClient.tsx`
+- `src/app/pixie/error.tsx`
+- `src/app/pixie/loading.tsx`
+- `src/app/pixie/page.tsx`
+- `src/components/pixie/PixieChat.tsx`
+- `src/components/pixie/PixieComposer.tsx`
+- `src/components/pixie/PixieDesktopPlanPanel.tsx`
+- `src/components/pixie/PixieHeader.tsx`
+- `src/components/pixie/PixieMessage.tsx`
+- `src/components/pixie/PixieMessageList.tsx`
+- `src/components/pixie/PixieMobilePlanDrawer.tsx`
+- `src/components/pixie/PixiePlanOutline.tsx`
+- `src/components/pixie/PixiePlanPanel.tsx`
+- `src/components/pixie/PixiePortrait.tsx`
+- `src/components/pixie/PixieProgress.tsx`
+- `src/components/pixie/PixieQuickReplies.tsx`
+- `src/components/pixie/PixieReadyStayCard.tsx`
+- `src/components/pixie/PixieReadyStayMatches.tsx`
+- `src/components/pixie/PixieResetDialog.tsx`
+- `src/components/pixie/PixieResortRecommendationCard.tsx`
+- `src/components/pixie/PixieResortRecommendations.tsx`
+- `src/components/pixie/PixieSavePrompt.tsx`
+- `src/components/pixie/PixieShell.tsx`
+- `src/components/pixie/PixieThinkingState.tsx`
+- `src/components/pixie/PixieTravellerSummary.tsx`
+- `src/components/pixie/PixieTripSummary.tsx`
+- `src/components/pixie/PixieWarnings.tsx`
+- `src/lib/pixie/client/analytics.ts`
+- `src/lib/pixie/client/api.ts`
+- `src/lib/pixie/client/chat-state.ts`
+- `src/lib/pixie/client/draft-storage.ts`
+- `src/lib/pixie/client/types.ts`
+- `src/lib/pixie/tests/pixie-chat-route.test.ts`
+- `src/lib/pixie/tests/pixie-client-state.test.ts`
+- `src/lib/pixie/tests/pixie-draft-storage.test.ts`
+- `src/lib/pixie/tests/pixie-ui-contract.test.tsx`
+
 ## Files Modified
 
 Documentation reference:
@@ -472,6 +552,12 @@ Phase 4.5 updates:
 - `src/lib/pixie/ai/schemas.ts`
 - `src/lib/pixie/tests/ai-orchestrator.test.ts`
 - `src/lib/pixie/tests/ai-provider.test.ts`
+
+Phase 5 updates:
+
+- `docs/pixie-progress-log.md`
+- `env-production.example.yaml`
+- `env-staging.example.yaml`
 
 ## Database Migrations
 
@@ -550,6 +636,19 @@ Targeted Pixie validation should run before broad repository validation.
 - `pnpm run build`: rerun outside the sandbox passed. Next emitted existing `themeColor` metadata warnings and skipped lint/type validation.
 - `git diff --check`: passed.
 
+### 2026-07-12 Phase 5 Validation
+
+- `pnpm exec vitest run src/lib/pixie/tests/pixie-chat-route.test.ts src/lib/pixie/tests/pixie-client-state.test.ts src/lib/pixie/tests/pixie-draft-storage.test.ts src/lib/pixie/tests/pixie-ui-contract.test.tsx`: passed. 4 test files, 24 tests.
+- `pnpm exec vitest run src/lib/pixie/tests`: passed. 30 test files passed, 1 live smoke file skipped, 218 tests passed, 1 skipped.
+- `pnpm exec vitest run src/lib/ready-stays`: passed. 4 test files, 10 tests.
+- `pnpm --dir packages/pixiedvc-calculator exec vitest run`: passed. 2 test files, 13 tests.
+- `pnpm exec eslint src/app/pixie src/app/api/pixie/chat src/components/pixie src/lib/pixie/client src/lib/pixie/tests/pixie-chat-route.test.ts src/lib/pixie/tests/pixie-client-state.test.ts src/lib/pixie/tests/pixie-draft-storage.test.ts src/lib/pixie/tests/pixie-ui-contract.test.tsx`: passed.
+- `pnpm run lint`: failed on existing repository lint issues outside the new Pixie text experience files. The targeted Phase 5 lint run passed.
+- `pnpm exec tsc --noEmit --pretty false`: failed on existing repository type issues. After correcting Phase 5 test fixtures, no new `src/lib/pixie`, `src/app/pixie`, `src/app/api/pixie`, or `src/components/pixie` type errors were visible in the final run.
+- `pnpm run build`: first sandboxed run failed with the known Turbopack process/port permission error while processing `src/app/owner/rentals/[rentalId]/rental-header.module.css`.
+- `pnpm run build`: rerun outside the sandbox passed. Next emitted existing metadata `themeColor` warnings and skipped lint/type validation.
+- `git diff --check`: passed.
+
 ## Known Issues
 
 - The repository has an OpenAI helper at `src/lib/ai/openai.ts`, but the main support chat route currently uses Gemini.
@@ -572,12 +671,18 @@ Targeted Pixie validation should run before broad repository validation.
 - Phase 4 does not estimate model cost because no canonical versioned provider cost table exists.
 - `PIXIE_MODEL` is required. The verified sample identifier is `gpt-5.6-sol`; `gpt-5.6` was not used as a fallback.
 - Phase 4.5 live smoke testing is skipped by default and requires `PIXIE_LIVE_OPENAI_SMOKE=1`, `OPENAI_API_KEY`, and `PIXIE_MODEL`.
+- Phase 5 `/pixie` is feature-flagged by `PIXIE_PUBLIC_ENABLED`; production defaults to disabled when unset.
+- Phase 5 rate limiting is still in-memory and not production-distributed across Cloud Run instances.
+- Phase 5 uses the existing global layout and does not hide the global support widget on `/pixie`.
+- Phase 5 uses progressive NDJSON event streaming, not token-by-token provider streaming.
+- Phase 5 save prompt is future-facing only; no server-side Pixie trip persistence exists yet.
 
 ## Future Work
 
 Future phases:
 
-- Add text-chat API route and `/pixie` mobile-first frontend.
+- Prototype-test and launch-harden the `/pixie` text experience.
+- Add distributed rate limiting before public production exposure.
 - Add authenticated persistence.
 - Add booking request conversion.
 - Add voice.
@@ -597,9 +702,9 @@ Future phases:
 
 ## Next Approved Task
 
-Phase 5: Text-chat API and frontend foundation.
+Phase 6: Prototype validation and launch hardening for the text experience.
 
-The next implementation task should add the bounded text-chat API route and initial `/pixie` frontend shell using the Phase 4 orchestrator. It must not add persistence, booking conversion, Ready Stay locking, payment, voice, avatar, or deployment.
+The next implementation task should validate `/pixie` end-to-end in local/staging-like conditions, harden launch guards, confirm copy and accessibility, verify analytics payloads, and decide whether to keep the support widget visible. It must not add authenticated persistence, booking conversion, Ready Stay locking, payment, voice, avatar, or deployment unless explicitly requested.
 
 Before starting any future Pixie task, Codex must read:
 

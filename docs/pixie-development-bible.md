@@ -579,6 +579,15 @@ Append architectural decisions here when they are made.
 - The in-memory rate limiter is a development/test contract only; a distributed limiter is required before public launch.
 - Usage metadata records tokens and duration when available, but cost estimates are omitted until a versioned cost table is approved.
 
+### 2026-07-12: Phase 5 text experience foundation
+
+- `/api/pixie/chat` streams Pixie-owned NDJSON events over the Phase 4 streaming contract.
+- `/pixie` remains non-persistent; anonymous drafts stay browser-local through `pixiedvc:pixie:draft:v1`.
+- `PIXIE_PUBLIC_ENABLED` gates public access. When unset, Pixie is enabled outside production and disabled in production.
+- Phase 5 client analytics may record safe funnel metadata only; full messages, raw trip state, provider payloads, secrets, legal names, and accessibility notes must not be sent.
+- Ready Stay actions from Pixie deep-link to the existing public Ready Stay flow and must not create locks or checkout state.
+- Phase 5 does not hide the global support widget. A later launch-hardening phase may revisit that decision.
+
 ## 20. How Codex Must Operate
 
 Every future Pixie prompt must begin with this workflow:
