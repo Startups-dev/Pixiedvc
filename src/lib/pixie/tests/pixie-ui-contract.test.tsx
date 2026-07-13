@@ -7,11 +7,22 @@ import PixieHeader from "@/components/pixie/PixieHeader";
 import PixieMessage from "@/components/pixie/PixieMessage";
 import PixieReadyStayCard from "@/components/pixie/PixieReadyStayCard";
 import PixieSavePrompt from "@/components/pixie/PixieSavePrompt";
+import SupportWidget from "@/components/support/SupportWidget";
 import { createInitialPixieChatState } from "@/lib/pixie/client/chat-state";
 import type { PixieReadyStayMatch } from "@/lib/pixie/ready-stays/types";
 
+const navigationMock = vi.hoisted(() => ({ pathname: "/" }));
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => navigationMock.pathname,
+}));
+
 vi.mock("@/lib/pixie/client/analytics", () => ({
   trackPixieEvent: vi.fn(),
+}));
+
+vi.mock("@/components/support/SupportPanel", () => ({
+  default: () => <div>Support panel</div>,
 }));
 
 vi.mock("next/image", () => ({
@@ -144,10 +155,26 @@ describe("Pixie UI contracts", () => {
     render(<PixieReadyStayCard match={readyStayMatch()} />);
 
     expect(screen.getAllByText(/partial overlap/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Incomplete stay/i)).toBeInTheDocument();
     expect(screen.getByText(/not a full trip match/i)).toBeInTheDocument();
     expect(screen.getByText(/Inventory and price require recheck/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /view ready stay/i })).toHaveAttribute("href", "/ready-stays/rs1");
+    expect(screen.getByRole("link", { name: /review ready stay/i })).toHaveAttribute("href", "/ready-stays/rs1");
+    expect(screen.queryByText("64")).not.toBeInTheDocument();
     expect(screen.queryByText(/owner payout/i)).not.toBeInTheDocument();
+  });
+
+  it("hides the global support widget on Pixie routes", () => {
+    navigationMock.pathname = "/pixie";
+    render(<SupportWidget />);
+
+    expect(screen.queryByRole("button", { name: /open concierge support/i })).not.toBeInTheDocument();
+  });
+
+  it("keeps the global support widget available outside Pixie routes", () => {
+    navigationMock.pathname = "/";
+    render(<SupportWidget />);
+
+    expect(screen.getByRole("button", { name: /open concierge support/i })).toBeInTheDocument();
   });
 
   it("save prompt does not claim server-side trip persistence", () => {

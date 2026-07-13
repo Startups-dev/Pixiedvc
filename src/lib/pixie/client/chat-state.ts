@@ -38,6 +38,7 @@ export function createInitialPixieChatState(input: { draftId?: string; recovered
     messages: input.messages ?? [createClientMessage("assistant", INITIAL_ASSISTANT_MESSAGE, "pixie_welcome")],
     recentMessages: [],
     status: "idle",
+    activeTurnId: undefined,
     pendingInput: "",
     currentAssistantText: "",
     completeness: evaluatePixieCompleteness(tripState),
@@ -83,6 +84,19 @@ function statusForEvent(event: PixieChatEvent): PixieChatStatus {
 }
 
 export function applyPixieStreamEvent(state: PixieChatState, event: PixieChatEvent): PixieChatState {
+  if (event.type === "turn_started") {
+    return {
+      ...state,
+      activeTurnId: event.turnId,
+      status: "thinking",
+      error: undefined,
+    };
+  }
+
+  if (state.activeTurnId !== event.turnId) {
+    return state;
+  }
+
   if (event.type === "assistant_text_delta") {
     return {
       ...state,
@@ -126,6 +140,7 @@ export function applyPixieStreamEvent(state: PixieChatState, event: PixieChatEve
     return {
       ...state,
       status: "error",
+      activeTurnId: undefined,
       error: {
         code: event.error.code,
         message: event.error.message,
@@ -137,6 +152,9 @@ export function applyPixieStreamEvent(state: PixieChatState, event: PixieChatEve
 
   if (event.type === "turn_completed") {
     const result = event.result;
+    if (result.turnId !== event.turnId) {
+      return state;
+    }
     const assistantText = state.currentAssistantText || result.assistantResponse;
     const nextMessages = assistantText
       ? appendClientMessage(state.messages, createClientMessage("assistant", assistantText, "pixie_assistant"))
@@ -144,6 +162,7 @@ export function applyPixieStreamEvent(state: PixieChatState, event: PixieChatEve
     return {
       ...state,
       status: "idle",
+      activeTurnId: undefined,
       tripState: result.updatedState,
       completeness: result.completeness,
       recommendations: result.recommendations,
@@ -173,6 +192,11 @@ export function beginPixieTurn(state: PixieChatState, message: string): PixieCha
     pendingInput: "",
     currentAssistantText: "",
     status: "sending",
+    activeTurnId: undefined,
+    recommendations: undefined,
+    readyStayMatches: undefined,
+    planOutline: undefined,
+    warnings: [],
     error: undefined,
     hasSentFirstMessage: true,
   };

@@ -126,5 +126,13 @@ describe("Pixie AI orchestrator", () => {
     }
     expect(events[0]?.type).toBe("turn_started");
     expect(events.at(-1)?.type).toBe("turn_completed");
+    const started = events[0];
+    const completed = events.at(-1);
+    expect(started?.turnId).toMatch(/^pixie_turn_/);
+    expect(completed?.turnId).toBe(started?.turnId);
+    if (completed?.type === "turn_completed") {
+      expect(completed.result.turnId).toBe(started?.turnId);
+    }
+    expect(events.every((event) => event.turnId === started?.turnId)).toBe(true);
   });
 });

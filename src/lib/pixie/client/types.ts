@@ -30,6 +30,7 @@ export type PixieChatState = {
   messages: PixieClientMessage[];
   recentMessages: PixieRecentMessage[];
   status: PixieChatStatus;
+  activeTurnId?: string;
   pendingInput: string;
   currentAssistantText: string;
   recommendations?: PixieRecommendationResult;
@@ -46,4 +47,3 @@ export type PixieChatState = {
 
 export type PixieChatEvent = PixiePlannerStreamEvent;
 export type PixieChatTurnResult = PixiePlannerTurnResult;
-

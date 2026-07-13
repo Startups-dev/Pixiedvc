@@ -11,7 +11,37 @@ function formatCents(cents?: number) {
 }
 
 function label(classification: PixieReadyStayMatch["classification"]) {
-  return classification.replace(/_/g, " ");
+  switch (classification) {
+    case "exact_match":
+      return "Exact match";
+    case "flexible_date_match":
+      return "Flexible-date option";
+    case "near_date_match":
+      return "Nearby-date option";
+    case "partial_overlap":
+      return "Partial overlap";
+    case "resort_preference_match":
+      return "Resort preference option";
+    case "budget_match":
+      return "Budget match";
+    default:
+      return "Alternative";
+  }
+}
+
+function fitLabel(classification: PixieReadyStayMatch["classification"]) {
+  switch (classification) {
+    case "exact_match":
+      return "Exact option";
+    case "flexible_date_match":
+      return "Flexible option";
+    case "near_date_match":
+      return "Nearby option";
+    case "partial_overlap":
+      return "Incomplete stay";
+    default:
+      return "Option";
+  }
 }
 
 export default function PixieReadyStayCard({ match }: { match: PixieReadyStayMatch }) {
@@ -23,7 +53,7 @@ export default function PixieReadyStayCard({ match }: { match: PixieReadyStayMat
           <h3 className="mt-1 text-sm font-semibold text-ink">{match.resortDisplayName}</h3>
           <p className="text-xs text-slate-600">{match.roomDisplayName}</p>
         </div>
-        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700">{match.score}</span>
+        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700">{fitLabel(match.classification)}</span>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
         <div className="rounded-lg bg-white p-2">
@@ -63,10 +93,9 @@ export default function PixieReadyStayCard({ match }: { match: PixieReadyStayMat
           }
           className="shrink-0 rounded-full bg-[#0f2148] px-3 py-2 text-xs font-semibold text-white"
         >
-          View Ready Stay
+          Review Ready Stay
         </Link>
       </div>
     </article>
   );
 }
-

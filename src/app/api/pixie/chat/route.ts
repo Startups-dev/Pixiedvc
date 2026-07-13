@@ -78,6 +78,7 @@ function sanitizeStreamEvent(event: PixiePlannerStreamEvent): PixiePlannerStream
   if (event.type === "turn_failed") {
     return {
       type: "turn_failed",
+      turnId: event.turnId,
       error: pixieAiError(event.error.code, safeErrorMessage(event.error.code), event.error.path, {
         status: event.error.status,
         retryAfterMs: event.error.retryAfterMs,
@@ -170,6 +171,7 @@ export async function POST(request: Request) {
           encoder.encode(
             ndjsonLine({
               type: "turn_failed",
+              turnId: "pixie_turn_route_error",
               error: pixieAiError("tool_execution_failed", "Pixie could not complete that turn safely."),
             }),
           ),
@@ -188,4 +190,3 @@ export async function POST(request: Request) {
     }),
   });
 }
-

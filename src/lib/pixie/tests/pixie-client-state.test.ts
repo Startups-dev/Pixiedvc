@@ -14,6 +14,8 @@ import { emptyPixieUsage } from "@/lib/pixie/ai/usage";
 import type { PixieRecommendationResult } from "@/lib/pixie/resorts/recommendation-service";
 import type { PixieReadyStayMatchResult } from "@/lib/pixie/ready-stays/types";
 
+const TEST_TURN_ID = "pixie_turn_test";
+
 function turnResult(overrides: Partial<PixiePlannerTurnResult> = {}): PixiePlannerTurnResult {
   const state = createEmptyPixieTripState("2026-07-12T12:00:00.000Z");
   const completeness = evaluatePixieCompleteness(state);
@@ -25,7 +27,7 @@ function turnResult(overrides: Partial<PixiePlannerTurnResult> = {}): PixiePlann
     toolResults: [],
     warnings: [],
     usage: emptyPixieUsage("openai", "gpt-5.6-sol", "test-prompt"),
-    turnId: "pixie_turn_test",
+    turnId: TEST_TURN_ID,
     generatedAt: "2026-07-12T12:00:00.000Z",
     ...overrides,
   };
@@ -112,8 +114,10 @@ describe("Pixie client chat state", () => {
 
   it("assistant text is not duplicated when the final turn completes", () => {
     let state = beginPixieTurn(createInitialPixieChatState(), "Hi");
-    state = applyPixieStreamEvent(state, { type: "assistant_text_delta", text: "I updated your plan." });
-    state = applyPixieStreamEvent(state, { type: "turn_completed", result: turnResult() });
+    state = applyPixieStreamEvent(state, { type: "turn_started", turnId: TEST_TURN_ID });
+    state = applyPixieStreamEvent(state, { type: "assistant_text_delta", turnId: TEST_TURN_ID, text: "I updated your plan." });
+    state = applyPixieStreamEvent(state, { type: "turn_completed", turnId: TEST_TURN_ID, result: turnResult() });
+    state = applyPixieStreamEvent(state, { type: "turn_completed", turnId: TEST_TURN_ID, result: turnResult() });
 
     expect(state.status).toBe("idle");
     expect(state.messages.filter((message) => message.role === "assistant" && message.content === "I updated your plan.")).toHaveLength(1);
@@ -124,19 +128,56 @@ describe("Pixie client chat state", () => {
     let state = createInitialPixieChatState();
     const recommendations = recommendationFixture();
     const readyStayMatches = readyStayFixture();
-    state = applyPixieStreamEvent(state, { type: "recommendations_ready", recommendations });
-    state = applyPixieStreamEvent(state, { type: "ready_stays_ready", readyStayMatches });
-    state = applyPixieStreamEvent(state, { type: "plan_outline_ready", planOutline: { days: [] } });
+    state = applyPixieStreamEvent(state, { type: "turn_started", turnId: TEST_TURN_ID });
+    state = applyPixieStreamEvent(state, { type: "recommendations_ready", turnId: TEST_TURN_ID, recommendations });
+    state = applyPixieStreamEvent(state, { type: "ready_stays_ready", turnId: TEST_TURN_ID, readyStayMatches });
+    state = applyPixieStreamEvent(state, { type: "plan_outline_ready", turnId: TEST_TURN_ID, planOutline: { days: [] } });
 
     expect(state.recommendations?.recommendations[0]?.resortId).toBe("vgf");
     expect(state.readyStayMatches?.inventoryDisclaimerKey).toBe("recheck_required_before_booking");
     expect(state.planOutline).toEqual({ days: [] });
   });
 
+  it("ignores stale events from an older turn", () => {
+    let state = beginPixieTurn(createInitialPixieChatState(), "Hi");
+    state = applyPixieStreamEvent(state, { type: "turn_started", turnId: "turn_new" });
+    state = applyPixieStreamEvent(state, { type: "assistant_text_delta", turnId: "turn_old", text: "Old response" });
+    state = applyPixieStreamEvent(state, { type: "turn_completed", turnId: "turn_old", result: turnResult({ turnId: "turn_old" }) });
+
+    expect(state.currentAssistantText).toBe("");
+    expect(state.messages.some((message) => message.content === "Old response")).toBe(false);
+    expect(state.activeTurnId).toBe("turn_new");
+  });
+
+  it("ignores final results with mismatched turn identifiers", () => {
+    let state = beginPixieTurn(createInitialPixieChatState(), "Hi");
+    state = applyPixieStreamEvent(state, { type: "turn_started", turnId: "turn_new" });
+    state = applyPixieStreamEvent(state, { type: "turn_completed", turnId: "turn_new", result: turnResult({ turnId: "turn_other" }) });
+
+    expect(state.status).toBe("thinking");
+    expect(state.messages.some((message) => message.content === "I updated your plan.")).toBe(false);
+    expect(state.activeTurnId).toBe("turn_new");
+  });
+
+  it("clears stale recommendations when a new turn begins", () => {
+    let state = createInitialPixieChatState();
+    const recommendations = recommendationFixture();
+    state = applyPixieStreamEvent(state, { type: "turn_started", turnId: TEST_TURN_ID });
+    state = applyPixieStreamEvent(state, { type: "recommendations_ready", turnId: TEST_TURN_ID, recommendations });
+    expect(state.recommendations).toBeDefined();
+
+    state = beginPixieTurn(state, "Change our dates.");
+    expect(state.recommendations).toBeUndefined();
+    expect(state.readyStayMatches).toBeUndefined();
+    expect(state.planOutline).toBeUndefined();
+  });
+
   it("preserves composer input after a failure when requested", () => {
     let state = beginPixieTurn(createInitialPixieChatState(), "My dates are...");
+    state = applyPixieStreamEvent(state, { type: "turn_started", turnId: TEST_TURN_ID });
     state = applyPixieStreamEvent(state, {
       type: "turn_failed",
+      turnId: TEST_TURN_ID,
       error: { code: "provider_timeout", message: "Pixie is having trouble responding right now." },
     });
 

@@ -49,18 +49,18 @@ export type PixiePlannerTurnResult = {
 
 export type PixiePlannerStreamEvent =
   | { type: "turn_started"; turnId: string }
-  | { type: "assistant_text_delta"; text: string }
-  | { type: "trip_patch_proposed"; patch: unknown }
-  | { type: "trip_patch_applied"; updatedState: PixieTripState }
-  | { type: "tool_started"; toolName: string }
-  | { type: "tool_completed"; toolResult: PixieToolResult }
-  | { type: "recommendations_ready"; recommendations: PixieRecommendationResult }
-  | { type: "ready_stays_ready"; readyStayMatches: PixieReadyStayMatchResult }
-  | { type: "plan_outline_ready"; planOutline: unknown }
-  | { type: "warning"; warning: string }
-  | { type: "usage"; usage: PixieTurnUsage }
-  | { type: "turn_completed"; result: PixiePlannerTurnResult }
-  | { type: "turn_failed"; error: PixieAiError };
+  | { type: "assistant_text_delta"; turnId: string; text: string }
+  | { type: "trip_patch_proposed"; turnId: string; patch: unknown }
+  | { type: "trip_patch_applied"; turnId: string; updatedState: PixieTripState }
+  | { type: "tool_started"; turnId: string; toolName: string }
+  | { type: "tool_completed"; turnId: string; toolResult: PixieToolResult }
+  | { type: "recommendations_ready"; turnId: string; recommendations: PixieRecommendationResult }
+  | { type: "ready_stays_ready"; turnId: string; readyStayMatches: PixieReadyStayMatchResult }
+  | { type: "plan_outline_ready"; turnId: string; planOutline: unknown }
+  | { type: "warning"; turnId: string; warning: string }
+  | { type: "usage"; turnId: string; usage: PixieTurnUsage }
+  | { type: "turn_completed"; turnId: string; result: PixiePlannerTurnResult }
+  | { type: "turn_failed"; turnId: string; error: PixieAiError };
 
 type RunPixiePlannerTurnInput = {
   state: unknown;
@@ -73,6 +73,7 @@ type RunPixiePlannerTurnInput = {
     userId?: string;
   };
   now?: string;
+  turnId?: string;
 };
 
 function turnId(now: string) {
@@ -108,7 +109,7 @@ function safeFallbackModelResult(message: string, nextQuestionKey?: PixieQuestio
 
 export async function runPixiePlannerTurn(input: RunPixiePlannerTurnInput): Promise<PixiePlannerTurnResult> {
   const generatedAt = input.now ?? new Date().toISOString();
-  const id = turnId(generatedAt);
+  const id = input.turnId ?? turnId(generatedAt);
   const config = getPixieAiConfig();
   const warnings: string[] = [];
   let state: PixieTripState;
@@ -263,17 +264,16 @@ export async function* streamPixiePlannerTurn(input: RunPixiePlannerTurnInput): 
   const id = turnId(startedAt);
   yield { type: "turn_started", turnId: id };
   try {
-    const result = await runPixiePlannerTurn({ ...input, now: startedAt });
-    yield { type: "assistant_text_delta", text: result.assistantResponse };
-    if (result.recommendations) yield { type: "recommendations_ready", recommendations: result.recommendations };
-    if (result.readyStayMatches) yield { type: "ready_stays_ready", readyStayMatches: result.readyStayMatches };
-    if (result.planOutline) yield { type: "plan_outline_ready", planOutline: result.planOutline };
-    for (const warning of result.warnings) yield { type: "warning", warning };
-    yield { type: "usage", usage: result.usage };
-    yield { type: "turn_completed", result };
+    const result = await runPixiePlannerTurn({ ...input, now: startedAt, turnId: id });
+    yield { type: "assistant_text_delta", turnId: id, text: result.assistantResponse };
+    if (result.recommendations) yield { type: "recommendations_ready", turnId: id, recommendations: result.recommendations };
+    if (result.readyStayMatches) yield { type: "ready_stays_ready", turnId: id, readyStayMatches: result.readyStayMatches };
+    if (result.planOutline) yield { type: "plan_outline_ready", turnId: id, planOutline: result.planOutline };
+    for (const warning of result.warnings) yield { type: "warning", turnId: id, warning };
+    yield { type: "usage", turnId: id, usage: result.usage };
+    yield { type: "turn_completed", turnId: id, result };
   } catch (error) {
     const pixieError = (error as { pixieError?: PixieAiError }).pixieError ?? pixieAiError("tool_execution_failed", error instanceof Error ? error.message : "Pixie turn failed.");
-    yield { type: "turn_failed", error: pixieError };
+    yield { type: "turn_failed", turnId: id, error: pixieError };
   }
 }
-

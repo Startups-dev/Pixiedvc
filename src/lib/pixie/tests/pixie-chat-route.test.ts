@@ -64,8 +64,8 @@ describe("POST /api/pixie/chat", () => {
     streamMock.mockImplementation(() =>
       events([
         { type: "turn_started", turnId: "pixie_turn_test" },
-        { type: "assistant_text_delta", text: "Who will be traveling with you?" },
-        { type: "turn_completed", result: baseTurnResult() },
+        { type: "assistant_text_delta", turnId: "pixie_turn_test", text: "Who will be traveling with you?" },
+        { type: "turn_completed", turnId: "pixie_turn_test", result: baseTurnResult() },
       ]),
     );
   });
@@ -73,6 +73,7 @@ describe("POST /api/pixie/chat", () => {
   afterEach(() => {
     vi.doUnmock("@/lib/pixie/ai/orchestrator");
     vi.resetModules();
+    vi.unstubAllEnvs();
     process.env = originalEnv;
   });
 
@@ -166,6 +167,32 @@ describe("POST /api/pixie/chat", () => {
       }),
     );
 
+    expect(response.status).toBe(404);
+    expect(streamMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps production disabled when the feature flag is missing or invalid", async () => {
+    delete process.env.PIXIE_PUBLIC_ENABLED;
+    vi.stubEnv("NODE_ENV", "production");
+    let route = await loadRoute();
+    let response = await route.POST(
+      request({
+        state: createEmptyPixieTripState("2026-07-12T12:00:00.000Z"),
+        message: "Hi",
+        recentMessages: [],
+      }),
+    );
+    expect(response.status).toBe(404);
+
+    process.env.PIXIE_PUBLIC_ENABLED = "maybe";
+    route = await loadRoute();
+    response = await route.POST(
+      request({
+        state: createEmptyPixieTripState("2026-07-12T12:00:00.000Z"),
+        message: "Hi",
+        recentMessages: [],
+      }),
+    );
     expect(response.status).toBe(404);
     expect(streamMock).not.toHaveBeenCalled();
   });

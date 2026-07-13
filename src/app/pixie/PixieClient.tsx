@@ -26,6 +26,9 @@ export default function PixieClient({ enabled }: { enabled: boolean }) {
   const abortRef = useRef<AbortController | null>(null);
   const restoredRef = useRef(false);
   const firstMessageTrackedRef = useRef(false);
+  const planningStartedTrackedRef = useRef(false);
+  const completedTurnIdsRef = useRef(new Set<string>());
+  const failedTurnIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
     trackPixieEvent("pixie_page_viewed", { enabled });
@@ -78,7 +81,10 @@ export default function PixieClient({ enabled }: { enabled: boolean }) {
       firstMessageTrackedRef.current = true;
       trackPixieEvent("pixie_first_message_sent", { stage: state.tripState.planningStage });
     }
-    trackPixieEvent("pixie_planning_started", { stage: state.tripState.planningStage });
+    if (!planningStartedTrackedRef.current) {
+      planningStartedTrackedRef.current = true;
+      trackPixieEvent("pixie_planning_started", { stage: state.tripState.planningStage });
+    }
 
     const nextState = beginPixieTurn(state, trimmed);
     setState(nextState);
@@ -96,31 +102,41 @@ export default function PixieClient({ enabled }: { enabled: boolean }) {
           setState((current) => {
             const updated = applyPixieStreamEvent(current, event);
             if (event.type === "turn_completed") {
-              trackPixieEvent("pixie_turn_completed", {
-                stage: event.result.planningStage,
-                resortCount: event.result.recommendations?.recommendations.length ?? 0,
-                readyStayCount: event.result.readyStayMatches?.matches.length ?? 0,
-              });
-              if ((event.result.recommendations?.recommendations.length ?? 0) > 0) {
-                trackPixieEvent("pixie_resort_recommendations_shown", {
-                  count: event.result.recommendations?.recommendations.length ?? 0,
-                });
-              }
-              if ((event.result.readyStayMatches?.matches.length ?? 0) > 0) {
-                trackPixieEvent("pixie_ready_stay_matches_shown", {
-                  count: event.result.readyStayMatches?.matches.length ?? 0,
-                });
-              }
-              if (event.result.completeness.score > current.completeness.score) {
-                trackPixieEvent("pixie_profile_progressed", {
-                  from: current.completeness.score,
-                  to: event.result.completeness.score,
+              const isActiveTurn = current.activeTurnId === event.turnId && event.result.turnId === event.turnId;
+              const alreadyCompleted = completedTurnIdsRef.current.has(event.turnId);
+              if (isActiveTurn && !alreadyCompleted) {
+                completedTurnIdsRef.current.add(event.turnId);
+                trackPixieEvent("pixie_turn_completed", {
                   stage: event.result.planningStage,
+                  resortCount: event.result.recommendations?.recommendations.length ?? 0,
+                  readyStayCount: event.result.readyStayMatches?.matches.length ?? 0,
                 });
+                if ((event.result.recommendations?.recommendations.length ?? 0) > 0) {
+                  trackPixieEvent("pixie_resort_recommendations_shown", {
+                    count: event.result.recommendations?.recommendations.length ?? 0,
+                  });
+                }
+                if ((event.result.readyStayMatches?.matches.length ?? 0) > 0) {
+                  trackPixieEvent("pixie_ready_stay_matches_shown", {
+                    count: event.result.readyStayMatches?.matches.length ?? 0,
+                  });
+                }
+                if (event.result.completeness.score > current.completeness.score) {
+                  trackPixieEvent("pixie_profile_progressed", {
+                    from: current.completeness.score,
+                    to: event.result.completeness.score,
+                    stage: event.result.planningStage,
+                  });
+                }
               }
             }
             if (event.type === "turn_failed") {
-              trackPixieEvent("pixie_turn_failed", { code: event.error.code });
+              const isActiveTurn = current.activeTurnId === event.turnId;
+              const alreadyFailed = failedTurnIdsRef.current.has(event.turnId);
+              if (isActiveTurn && !alreadyFailed) {
+                failedTurnIdsRef.current.add(event.turnId);
+                trackPixieEvent("pixie_turn_failed", { code: event.error.code });
+              }
             }
             return updated;
           });
@@ -144,12 +160,16 @@ export default function PixieClient({ enabled }: { enabled: boolean }) {
 
   function cancelTurn() {
     abortRef.current?.abort();
-    setState((current) => ({ ...current, status: "cancelled", currentAssistantText: "" }));
+    setState((current) => ({ ...current, status: "cancelled", activeTurnId: undefined, currentAssistantText: "" }));
   }
 
   function resetTrip() {
     abortRef.current?.abort();
     clearPixieDraftFromBrowser();
+    completedTurnIdsRef.current.clear();
+    failedTurnIdsRef.current.clear();
+    firstMessageTrackedRef.current = false;
+    planningStartedTrackedRef.current = false;
     setState(resetPixieChatState());
     setResetOpen(false);
     trackPixieEvent("pixie_trip_reset");
@@ -183,4 +203,3 @@ export default function PixieClient({ enabled }: { enabled: boolean }) {
     />
   );
 }
-

@@ -23,6 +23,17 @@ export class PixieChatApiError extends Error {
   }
 }
 
+function parseStreamEvent(line: string): PixieChatEvent {
+  try {
+    return JSON.parse(line) as PixieChatEvent;
+  } catch {
+    throw new PixieChatApiError({
+      code: "malformed_stream_event",
+      message: "Pixie returned an unreadable response. Your trip draft is still safe.",
+    });
+  }
+}
+
 async function readJsonError(response: Response): Promise<PixieClientError> {
   try {
     const data = (await response.json()) as { error?: PixieClientError };
@@ -69,13 +80,12 @@ export async function sendPixieMessage(input: SendPixieMessageInput) {
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed) continue;
-      input.onEvent(JSON.parse(trimmed) as PixieChatEvent);
+      input.onEvent(parseStreamEvent(trimmed));
     }
   }
 
   const finalLine = buffer.trim();
   if (finalLine) {
-    input.onEvent(JSON.parse(finalLine) as PixieChatEvent);
+    input.onEvent(parseStreamEvent(finalLine));
   }
 }
-

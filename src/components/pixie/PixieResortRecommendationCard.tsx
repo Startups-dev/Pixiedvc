@@ -20,6 +20,7 @@ export default function PixieResortRecommendationCard({
     ? formatCents(recommendation.estimatedGuestPrice.estimatedTotalCents)
     : null;
   const label = index === 0 ? "Strongest match" : index === 1 ? "Great alternative" : "Worth considering";
+  const fitLabel = recommendation.score >= 75 ? "Strong fit" : recommendation.score >= 55 ? "Good fit" : "Possible fit";
 
   return (
     <article className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
@@ -32,7 +33,7 @@ export default function PixieResortRecommendationCard({
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</p>
             <h3 className="mt-1 text-sm font-semibold text-ink">{recommendation.displayName}</h3>
           </div>
-          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700">Match {recommendation.score}</span>
+          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700">{fitLabel}</span>
         </div>
         <p className="text-xs text-slate-600">
           Recommended room: <span className="font-semibold text-slate-800">{recommendation.recommendedRoomType.displayName}</span>
@@ -54,6 +55,14 @@ export default function PixieResortRecommendationCard({
             <li key={fragment}>• {fragment}</li>
           ))}
         </ul>
+        {recommendation.tradeoffs[0] ? (
+          <p className="text-xs leading-5 text-amber-800">
+            <span className="font-semibold">Tradeoff:</span> {recommendation.tradeoffs[0]}
+          </p>
+        ) : null}
+        {recommendation.warnings[0] ? (
+          <p className="text-xs leading-5 text-slate-500">{recommendation.warnings[0]}</p>
+        ) : null}
         <p className="text-[11px] leading-5 text-slate-500">
           Estimates are not confirmed availability. Final DVC availability is checked later.
         </p>
@@ -61,4 +70,3 @@ export default function PixieResortRecommendationCard({
     </article>
   );
 }
-

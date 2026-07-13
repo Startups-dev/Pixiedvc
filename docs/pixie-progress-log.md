@@ -649,6 +649,29 @@ Targeted Pixie validation should run before broad repository validation.
 - `pnpm run build`: rerun outside the sandbox passed. Next emitted existing metadata `themeColor` warnings and skipped lint/type validation.
 - `git diff --check`: passed.
 
+### 2026-07-13 Phase 6 Validation
+
+- Phase 6 validated `/pixie` locally as an anonymous prototype with synthetic trip data and `PIXIE_PUBLIC_ENABLED=true`.
+- Browser automation could not attach in this environment because the Node REPL browser runtime failed with `codex/sandbox-state-meta: missing field sandboxPolicy`; localhost HTTP checks and automated state/UI tests were used instead.
+- Complete-family and incomplete-trip API scenarios were exercised against the local route with `PIXIE_MODEL=gpt-5.6-sol`.
+- Stream turn IDs were hardened so all events in a turn share the same `turnId`.
+- Client state now tracks `activeTurnId`, ignores stale events, rejects mismatched final turn IDs, and clears stale recommendations/Ready Stay matches/plan outlines when a new turn starts.
+- Client NDJSON parsing now returns a safe `malformed_stream_event` error for malformed stream lines.
+- Analytics dedupe was added for planning-started, turn-completed, turn-failed, recommendation-shown, Ready-Stay-shown, and profile-progressed events.
+- The global support widget is hidden on `/pixie` only.
+- Resort and Ready Stay cards now use user-facing fit/classification labels rather than raw scores.
+- Multiple-tab behavior is documented as last-writer-wins localStorage behavior; cross-tab merge/conflict UI is not implemented.
+- `pnpm exec vitest run src/lib/pixie/tests/ai-orchestrator.test.ts src/lib/pixie/tests/pixie-client-state.test.ts src/lib/pixie/tests/pixie-client-api.test.ts src/lib/pixie/tests/pixie-chat-route.test.ts src/lib/pixie/tests/pixie-ui-contract.test.tsx`: passed. 5 test files, 31 tests.
+- `pnpm exec vitest run src/lib/pixie/tests`: passed. 31 test files passed, 1 live smoke file skipped, 225 tests passed, 1 skipped.
+- `pnpm exec vitest run src/lib/ready-stays`: passed. 4 test files, 10 tests.
+- `pnpm --dir packages/pixiedvc-calculator exec vitest run`: passed. 2 test files, 13 tests.
+- `pnpm exec eslint src/app/pixie src/app/api/pixie/chat src/components/pixie src/components/support/SupportWidget.tsx src/lib/pixie/client src/lib/pixie/ai/orchestrator.ts src/lib/pixie/tests/ai-orchestrator.test.ts src/lib/pixie/tests/pixie-client-state.test.ts src/lib/pixie/tests/pixie-client-api.test.ts src/lib/pixie/tests/pixie-chat-route.test.ts src/lib/pixie/tests/pixie-ui-contract.test.tsx`: passed.
+- `pnpm run lint`: failed on existing repository lint issues outside the Phase 6 files. Targeted Pixie lint passed.
+- `pnpm exec tsc --noEmit --pretty false`: failed on existing repository type issues. The new Phase 6 Pixie test type errors found during the first run were fixed, and no Pixie Phase 6 errors remained visible in the final run.
+- `pnpm run build`: first sandboxed run failed with the known Turbopack process/port permission error while processing `src/app/owner/matches/[matchId]/match-header.module.css`.
+- `pnpm run build`: rerun outside the sandbox passed. Next emitted existing metadata `themeColor` warnings and skipped lint/type validation.
+- `git diff --check`: passed.
+
 ## Known Issues
 
 - The repository has an OpenAI helper at `src/lib/ai/openai.ts`, but the main support chat route currently uses Gemini.
@@ -673,15 +696,17 @@ Targeted Pixie validation should run before broad repository validation.
 - Phase 4.5 live smoke testing is skipped by default and requires `PIXIE_LIVE_OPENAI_SMOKE=1`, `OPENAI_API_KEY`, and `PIXIE_MODEL`.
 - Phase 5 `/pixie` is feature-flagged by `PIXIE_PUBLIC_ENABLED`; production defaults to disabled when unset.
 - Phase 5 rate limiting is still in-memory and not production-distributed across Cloud Run instances.
-- Phase 5 uses the existing global layout and does not hide the global support widget on `/pixie`.
+- Phase 6 hides the existing global support widget on `/pixie` only; future human-concierge escalation should be designed inside Pixie.
 - Phase 5 uses progressive NDJSON event streaming, not token-by-token provider streaming.
 - Phase 5 save prompt is future-facing only; no server-side Pixie trip persistence exists yet.
+- Phase 6 could not complete full interactive browser validation because the in-app browser runtime failed in this environment. A real browser/mobile pass remains required before launch.
+- Pixie local drafts are last-writer-wins across multiple tabs; no cross-tab merge/conflict UI exists.
 
 ## Future Work
 
 Future phases:
 
-- Prototype-test and launch-harden the `/pixie` text experience.
+- Complete an interactive browser/mobile validation pass when browser tooling is available.
 - Add distributed rate limiting before public production exposure.
 - Add authenticated persistence.
 - Add booking request conversion.
@@ -695,16 +720,16 @@ Future phases:
 - What is the exact WDW DVC resort allowlist for v1, including whether Fort Wilderness cabins should be included in Phase 2 scoring?
 - Should Fort Wilderness Cabins be added after calculator metadata is completed?
 - What final room/view mapping should booking conversion use when Pixie moves from recommendation to booking draft?
-- Should Pixie hide or alter the global support widget on `/pixie`?
+- What human-concierge escalation should Pixie expose inside the `/pixie` experience?
 - What retention policy should apply to saved Pixie conversations and plans?
 - Should users be able to delete saved Pixie trips from v1?
 - Which Pixie analytics events are required for launch?
 
 ## Next Approved Task
 
-Phase 6: Prototype validation and launch hardening for the text experience.
+Authenticated Pixie persistence.
 
-The next implementation task should validate `/pixie` end-to-end in local/staging-like conditions, harden launch guards, confirm copy and accessibility, verify analytics payloads, and decide whether to keep the support widget visible. It must not add authenticated persistence, booking conversion, Ready Stay locking, payment, voice, avatar, or deployment unless explicitly requested.
+The next implementation task can add saved Pixie trips for authenticated users after a final interactive browser/mobile pass confirms the Phase 6 UX. It must not add booking conversion, Ready Stay locking, payment, voice, avatar, or deployment unless explicitly requested. Distributed rate limiting remains required before public multi-instance production exposure.
 
 Before starting any future Pixie task, Codex must read:
 

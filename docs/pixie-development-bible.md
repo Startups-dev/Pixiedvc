@@ -588,6 +588,13 @@ Append architectural decisions here when they are made.
 - Ready Stay actions from Pixie deep-link to the existing public Ready Stay flow and must not create locks or checkout state.
 - Phase 5 does not hide the global support widget. A later launch-hardening phase may revisit that decision.
 
+### 2026-07-13: Phase 6 text prototype hardening
+
+- Every Pixie stream event must carry the authoritative `turnId`; the client must ignore stale events and reject final events whose envelope turn ID does not match the result turn ID.
+- Starting a new turn clears stale recommendation, Ready Stay, and plan-outline panels until authoritative replacement results arrive.
+- The global support widget is hidden on `/pixie` only. Pixie remains the primary assistant surface on that route; future human-concierge escalation should be presented inside Pixie rather than as a second floating assistant.
+- Pixie recommendation and Ready Stay cards should use user-facing match labels rather than displaying raw deterministic scores as scientific precision.
+
 ## 20. How Codex Must Operate
 
 Every future Pixie prompt must begin with this workflow:
