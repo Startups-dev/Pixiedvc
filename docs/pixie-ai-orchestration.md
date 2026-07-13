@@ -31,7 +31,7 @@ The provider requires `OPENAI_API_KEY` only when invoked.
 
 ## Model Configuration
 
-Configuration is server-side and environment-controlled. The sample default is `gpt-5.6` and should remain controlled by `PIXIE_MODEL` rather than spread through business code:
+Configuration is server-side and environment-controlled. `PIXIE_MODEL` is mandatory and must not silently fall back to another model. The verified sample model identifier is `gpt-5.6-sol`; production and staging may change the value only through environment configuration:
 
 - `PIXIE_MODEL`
 - `PIXIE_MAX_OUTPUT_TOKENS`
@@ -40,7 +40,7 @@ Configuration is server-side and environment-controlled. The sample default is `
 - `PIXIE_MAX_INPUT_CHARS`
 - `PIXIE_MAX_RECENT_MESSAGES`
 
-Defaults are conservative and live in `src/lib/pixie/ai/safety.ts`.
+Non-model defaults are conservative and live in `src/lib/pixie/ai/safety.ts`. Missing `PIXIE_MODEL` is a typed `configuration_error`.
 
 Prompt version:
 
@@ -53,6 +53,54 @@ Provider source version:
 ```text
 2026-07-11.phase4.fetch-responses
 ```
+
+## Phase 4.5 Provider Verification
+
+Pixie uses the OpenAI Responses API endpoint:
+
+```text
+POST https://api.openai.com/v1/responses
+```
+
+The provider sends the configured model exactly as `model` in the request body. It does not fall back to another model when `PIXIE_MODEL` is missing, invalid, inaccessible, or not supported by the API key.
+
+Structured output uses the Responses API `text.format` JSON-schema contract:
+
+```json
+{
+  "text": {
+    "format": {
+      "type": "json_schema",
+      "name": "pixie_model_turn_result",
+      "strict": true,
+      "schema": {}
+    }
+  }
+}
+```
+
+The schema requires a Pixie-owned `PixieModelTurnResult` object. Nullable fields from the provider boundary are normalized by Zod before the result enters Pixie orchestration.
+
+Verified strict-schema constraints:
+
+- every object schema must set `additionalProperties: false`;
+- every declared object property must be listed in that object's `required` array;
+- optional model fields are represented as required nullable schema fields at the provider boundary;
+- provider null fillers are stripped or normalized before Pixie validates `PixieTripPatch` with Zod;
+- tool request `input` is a closed object and all tool inputs are still validated again by the registry-backed executor.
+
+Model access was verified through the official `/v1/models` endpoint and a controlled Responses API smoke test using synthetic trip data only. The account had access to `gpt-5.6-sol`; `gpt-5.6` was not treated as a valid fallback.
+
+Manual smoke-test command:
+
+```bash
+set -a
+. ./.env.local
+set +a
+PIXIE_MODEL=gpt-5.6-sol PIXIE_LIVE_OPENAI_SMOKE=1 pnpm exec vitest run src/lib/pixie/tests/ai-provider-live-smoke.test.ts
+```
+
+The smoke test reads `OPENAI_API_KEY` only from the environment, does not print the key, does not persist the response, and is skipped during ordinary automated test runs.
 
 ## Structured Model Output
 
@@ -251,6 +299,7 @@ No browser code or public API route is added in Phase 4.
 - No distributed rate limiter exists.
 - General Disney knowledge remains prompt-level and stable only; no retrieval or live web browsing is implemented.
 - Ready Stay matches remain advisory and require recheck before booking.
+- Model availability is account-specific. If the configured model returns `model_not_found` or is inaccessible to the API key, Pixie fails with a typed provider/configuration error and does not substitute another model.
 
 ## Future API Route Integration
 

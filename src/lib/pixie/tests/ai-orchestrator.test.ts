@@ -1,10 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createFixturePixieProvider } from "@/lib/pixie/ai/provider";
 import { runPixiePlannerTurn, streamPixiePlannerTurn } from "@/lib/pixie/ai/orchestrator";
 import { createEmptyPixieTripState, normalizePixieTripState } from "@/lib/pixie/planner-state";
 
 describe("Pixie AI orchestrator", () => {
+  const originalPixieModel = process.env.PIXIE_MODEL;
+
+  beforeEach(() => {
+    process.env.PIXIE_MODEL = "gpt-5.6-sol";
+  });
+
+  afterEach(() => {
+    if (originalPixieModel === undefined) delete process.env.PIXIE_MODEL;
+    else process.env.PIXIE_MODEL = originalPixieModel;
+  });
+
   it("applies dates and party from a structured model patch", async () => {
     const result = await runPixiePlannerTurn({
       state: createEmptyPixieTripState("2026-07-11T12:00:00.000Z"),
@@ -117,4 +128,3 @@ describe("Pixie AI orchestrator", () => {
     expect(events.at(-1)?.type).toBe("turn_completed");
   });
 });
-

@@ -32,11 +32,13 @@ Phase 3 deterministic Ready Stay matching foundation is complete. Pixie now has 
 
 Phase 4 server-side AI orchestration foundation is complete. Pixie now has a lightweight provider abstraction, fetch-based OpenAI provider, strict structured model output, safe patch extraction, approved tool registry/executor, orchestration flow, streaming-ready event contract, rate-limit contract, usage metadata, safety limits, and tests.
 
+Phase 4.5 OpenAI provider verification is complete. Pixie now requires `PIXIE_MODEL`, uses the verified sample identifier `gpt-5.6-sol`, maps OpenAI configuration/auth/model/rate-limit failures to typed errors, includes mocked provider regression coverage, and has a skipped-by-default live smoke test.
+
 Pixie still has no frontend, public chat API route, persistence, migrations, booking conversion, voice, avatar, or deployment.
 
 ## Current Phase
 
-Phase 4: Server-side AI orchestration foundation.
+Phase 4.5: OpenAI provider verification.
 
 Approved implementation order from the development bible:
 
@@ -53,7 +55,7 @@ Approved implementation order from the development bible:
 11. Analytics.
 12. Production hardening.
 
-Phase 1, Phase 2, Phase 2.5, Phase 3, and Phase 4 are complete. The next approved implementation phase is the text-chat API and frontend foundation.
+Phase 1, Phase 2, Phase 2.5, Phase 3, Phase 4, and Phase 4.5 are complete. The next approved implementation phase is the text-chat API and frontend foundation.
 
 ## Completed Work
 
@@ -208,6 +210,29 @@ Implemented:
 - Provider-independent rate-limit contract with in-memory development/test implementation.
 - Usage metadata aggregation for tokens, model, prompt version, tool rounds, tool calls, and duration.
 - AI orchestration reference documentation.
+
+Not implemented in this phase:
+
+- Public chat API route.
+- `/pixie` frontend.
+- Database persistence.
+- Database migrations.
+- Booking conversion.
+- Ready Stay locking or checkout changes.
+- Payment, email, voice, or avatar.
+
+### 2026-07-12: Phase 4.5 OpenAI provider verification completed
+
+Implemented:
+
+- Verified the initial OpenAI provider remains fetch-based because the repository does not install the `openai` npm SDK.
+- Verified Pixie uses `POST https://api.openai.com/v1/responses`.
+- Updated sample Pixie model configuration from `gpt-5.6` to the verified accessible identifier `gpt-5.6-sol`.
+- Made `PIXIE_MODEL` mandatory; missing model configuration now returns a typed `configuration_error`.
+- Hardened provider failure handling for missing API key, inaccessible model, authentication failure, rate limiting, timeout, provider failure, and malformed structured output.
+- Confirmed the provider does not silently fall back to another model.
+- Added mocked provider regression tests for exact configured model usage, no fallback, sanitized failures, rate-limit retry metadata, malformed output, token usage extraction, and secret redaction.
+- Added a skipped-by-default live provider smoke test using synthetic trip data.
 
 Not implemented in this phase:
 
@@ -384,6 +409,10 @@ Phase 4 AI orchestration foundation:
 - `src/lib/pixie/tests/ai-tool-executor.test.ts`
 - `src/lib/pixie/tests/ai-usage.test.ts`
 
+Phase 4.5 OpenAI provider verification:
+
+- `src/lib/pixie/tests/ai-provider-live-smoke.test.ts`
+
 ## Files Modified
 
 Documentation reference:
@@ -430,6 +459,19 @@ Phase 4 updates:
 - `docs/pixie-progress-log.md`
 - `env-production.example.yaml`
 - `env-staging.example.yaml`
+
+Phase 4.5 updates:
+
+- `docs/pixie-ai-orchestration.md`
+- `docs/pixie-progress-log.md`
+- `env-production.example.yaml`
+- `env-staging.example.yaml`
+- `src/lib/pixie/ai/errors.ts`
+- `src/lib/pixie/ai/openai-provider.ts`
+- `src/lib/pixie/ai/safety.ts`
+- `src/lib/pixie/ai/schemas.ts`
+- `src/lib/pixie/tests/ai-orchestrator.test.ts`
+- `src/lib/pixie/tests/ai-provider.test.ts`
 
 ## Database Migrations
 
@@ -496,6 +538,18 @@ Targeted Pixie validation should run before broad repository validation.
 - `pnpm run build`: passed when run outside the sandbox. Next emitted existing metadata `themeColor` warnings and skipped lint/type validation.
 - `git diff --check`: passed.
 
+### 2026-07-12 Phase 4.5 Validation
+
+- Official model-list verification: passed. The configured account returned `gpt-5.6-sol` as accessible via `/v1/models`.
+- Live Pixie provider smoke test: passed with `PIXIE_MODEL=gpt-5.6-sol` and synthetic trip data. The test used `POST https://api.openai.com/v1/responses` and strict `text.format` JSON-schema output.
+- `pnpm exec vitest run src/lib/pixie/tests/ai-provider.test.ts src/lib/pixie/tests/ai-structured-output.test.ts src/lib/pixie/tests/ai-orchestrator.test.ts`: passed. 3 test files, 19 tests.
+- `pnpm exec vitest run src/lib/pixie/tests`: passed. 26 test files passed, 1 live smoke file skipped, 194 tests passed, 1 skipped.
+- `pnpm exec eslint src/lib/pixie`: passed.
+- `pnpm exec tsc --noEmit --pretty false`: failed on existing repository type issues. After fixing the Phase 4.5 Pixie test env casts, no `src/lib/pixie` errors were visible in the final run.
+- `pnpm run build`: first sandboxed run failed with the known Turbopack process/port permission error while processing `src/app/owner/rentals/[rentalId]/rental-header.module.css`.
+- `pnpm run build`: rerun outside the sandbox passed. Next emitted existing `themeColor` metadata warnings and skipped lint/type validation.
+- `git diff --check`: passed.
+
 ## Known Issues
 
 - The repository has an OpenAI helper at `src/lib/ai/openai.ts`, but the main support chat route currently uses Gemini.
@@ -516,6 +570,8 @@ Targeted Pixie validation should run before broad repository validation.
 - The `openai` npm SDK is not installed. Pixie Phase 4 uses a fetch-based OpenAI Responses API provider and should be revisited if the project later standardizes on the official SDK package.
 - Phase 4 rate limiting is a local/testing contract only; production requires a distributed limiter before public launch.
 - Phase 4 does not estimate model cost because no canonical versioned provider cost table exists.
+- `PIXIE_MODEL` is required. The verified sample identifier is `gpt-5.6-sol`; `gpt-5.6` was not used as a fallback.
+- Phase 4.5 live smoke testing is skipped by default and requires `PIXIE_LIVE_OPENAI_SMOKE=1`, `OPENAI_API_KEY`, and `PIXIE_MODEL`.
 
 ## Future Work
 

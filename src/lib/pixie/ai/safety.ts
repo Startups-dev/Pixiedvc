@@ -1,6 +1,6 @@
 import { PIXIE_LIMITS } from "@/lib/pixie/constants";
 import type { PixieAiError } from "@/lib/pixie/ai/errors";
-import { pixieAiError } from "@/lib/pixie/ai/errors";
+import { PixieAiException, pixieAiError } from "@/lib/pixie/ai/errors";
 import type { PixieRecentMessage } from "@/lib/pixie/ai/schemas";
 
 export const PIXIE_AI_LIMITS = {
@@ -19,8 +19,13 @@ export const PIXIE_AI_LIMITS = {
 } as const;
 
 export function getPixieAiConfig(env: NodeJS.ProcessEnv = process.env) {
+  const model = env.PIXIE_MODEL?.trim();
+  if (!model) {
+    throw new PixieAiException("configuration_error", "PIXIE_MODEL is required for Pixie AI provider configuration.");
+  }
+
   return {
-    model: env.PIXIE_MODEL || "gpt-5.6",
+    model,
     maxOutputTokens: parsePositiveInt(env.PIXIE_MAX_OUTPUT_TOKENS, PIXIE_AI_LIMITS.defaultMaxOutputTokens),
     modelTimeoutMs: parsePositiveInt(env.PIXIE_MODEL_TIMEOUT_MS, PIXIE_AI_LIMITS.defaultModelTimeoutMs),
     maxToolRounds: parsePositiveInt(env.PIXIE_MAX_TOOL_ROUNDS, PIXIE_AI_LIMITS.maxToolRounds),

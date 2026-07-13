@@ -30,21 +30,48 @@ export const PIXIE_TOOL_NAMES = [
 export const pixiePlanningIntentSchema = z.enum(PIXIE_PLANNING_INTENTS);
 export const pixieToolNameSchema = z.enum(PIXIE_TOOL_NAMES);
 
+function removeNullPatchFields(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(removeNullPatchFields);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, entry]) => entry !== null && entry !== undefined)
+      .map(([key, entry]) => [key, removeNullPatchFields(entry)]),
+  );
+}
+
 export const pixieAiToolRequestSchema = z
   .object({
     name: pixieToolNameSchema,
     input: z.record(z.unknown()).default({}),
-    requestId: z.string().trim().min(1).max(120).optional(),
-    reason: z.string().trim().max(300).optional(),
+    requestId: z
+      .string()
+      .trim()
+      .min(1)
+      .max(120)
+      .nullable()
+      .optional()
+      .transform((value) => value ?? undefined),
+    reason: z
+      .string()
+      .trim()
+      .max(300)
+      .nullable()
+      .optional()
+      .transform((value) => value ?? undefined),
   })
   .strict();
 
 export const pixieModelTurnResultSchema = z
   .object({
     assistantResponse: z.string().trim().min(1).max(3000),
-    tripPatch: pixieTripPatchSchema.default({}),
+    tripPatch: z.preprocess(removeNullPatchFields, pixieTripPatchSchema).default({}),
     requestedTools: z.array(pixieAiToolRequestSchema).max(5).default([]),
-    nextQuestionKey: z.enum(PIXIE_QUESTION_KEYS).optional(),
+    nextQuestionKey: z
+      .enum(PIXIE_QUESTION_KEYS)
+      .nullable()
+      .optional()
+      .transform((value) => value ?? undefined),
     planningIntent: pixiePlanningIntentSchema,
     confidence: z.number().min(0).max(1).default(0.5),
     warnings: z.array(z.string().trim().min(1).max(300)).max(10).default([]),
@@ -95,4 +122,3 @@ export type PixieModelTurnResult = z.infer<typeof pixieModelTurnResultSchema>;
 export type PixieRecentMessage = z.infer<typeof pixieRecentMessageSchema>;
 export type PixieProviderUsage = z.infer<typeof pixieProviderUsageSchema>;
 export type PixiePlannerTurnRequest = z.infer<typeof pixiePlannerTurnRequestSchema>;
-
