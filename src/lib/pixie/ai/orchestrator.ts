@@ -5,7 +5,7 @@ import type { PixieReadyStayMatchResult } from "@/lib/pixie/ready-stays/types";
 import type { PixieTripState } from "@/lib/pixie/schema";
 import type { PixieCompletenessResult, PixieQuestionKey } from "@/lib/pixie/types";
 import type { PixieAiError } from "@/lib/pixie/ai/errors";
-import { pixieAiError } from "@/lib/pixie/ai/errors";
+import { PixieAiException, pixieAiError } from "@/lib/pixie/ai/errors";
 import type { PixieModelProvider, PixieModelProviderResult } from "@/lib/pixie/ai/provider";
 import { createOpenAiPixieProvider } from "@/lib/pixie/ai/openai-provider";
 import { buildPixiePlannerResponse } from "@/lib/pixie/ai/response-builder";
@@ -107,6 +107,19 @@ function safeFallbackModelResult(message: string, nextQuestionKey?: PixieQuestio
   };
 }
 
+function pixieErrorFromProviderFailure(error: unknown): PixieAiError {
+  if (error instanceof PixieAiException) {
+    return pixieAiError(error.code, error.message, undefined, {
+      status: error.status,
+      retryAfterMs: error.retryAfterMs,
+    });
+  }
+  return pixieAiError(
+    "provider_unavailable",
+    error instanceof Error ? error.message : "Pixie provider failed before returning a usable planning result.",
+  );
+}
+
 export async function runPixiePlannerTurn(input: RunPixiePlannerTurnInput): Promise<PixiePlannerTurnResult> {
   const generatedAt = input.now ?? new Date().toISOString();
   const id = input.turnId ?? turnId(generatedAt);
@@ -163,20 +176,8 @@ export async function runPixiePlannerTurn(input: RunPixiePlannerTurnInput): Prom
       { model: config.model, maxOutputTokens: config.maxOutputTokens, timeoutMs: config.modelTimeoutMs },
     );
   } catch (error) {
-    const modelResult = safeFallbackModelResult("I can still help plan your trip, but I could not process that message with the planning model. Could you share your travel dates or party size?", completeness.suggestedNextQuestionKey);
-    const response = buildPixiePlannerResponse({ modelResult, completeness, toolResults: [], warnings: [...warnings, error instanceof Error ? error.message : "provider_unavailable"] });
-    return {
-      assistantResponse: response.message,
-      updatedState: state,
-      completeness,
-      planningStage: completeness.planningStage,
-      toolResults: [],
-      nextQuestionKey: response.nextQuestionKey,
-      warnings: response.warnings,
-      usage,
-      turnId: id,
-      generatedAt,
-    };
+    const pixieError = pixieErrorFromProviderFailure(error);
+    throw Object.assign(new Error(pixieError.message), { pixieError });
   }
 
   usage = mergePixieUsage(usage, providerResult.usage, 0);

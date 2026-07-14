@@ -104,6 +104,35 @@ describe("POST /api/pixie/chat", () => {
     );
   });
 
+  it("streams sanitized typed provider failures instead of completed fallback turns", async () => {
+    streamMock.mockImplementation(() =>
+      events([
+        { type: "turn_started", turnId: "pixie_turn_timeout" },
+        {
+          type: "turn_failed",
+          turnId: "pixie_turn_timeout",
+          error: { code: "provider_timeout", message: "OpenAI provider request timed out." },
+        },
+      ]),
+    );
+    const { POST } = await loadRoute();
+    const response = await POST(
+      request({
+        state: createEmptyPixieTripState("2026-07-12T12:00:00.000Z"),
+        message: "Hi",
+        recentMessages: [],
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const text = await response.text();
+    expect(text).toContain('"turn_failed"');
+    expect(text).toContain('"provider_timeout"');
+    expect(text).toContain("Pixie is having trouble responding right now. Your trip draft is still safe.");
+    expect(text).not.toContain("OpenAI provider request timed out.");
+    expect(text).not.toContain('"turn_completed"');
+  });
+
   it("accepts the first-turn recent messages produced by the Pixie client", async () => {
     const { POST } = await loadRoute();
     const clientState = beginPixieTurn(

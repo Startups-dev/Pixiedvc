@@ -12,9 +12,9 @@ export const PIXIE_AI_LIMITS = {
   maxModelOutputChars: 8000,
   maxToolCallsPerTurn: 5,
   maxToolRounds: 2,
-  maxOrchestrationMs: 20_000,
+  maxOrchestrationMs: 35_000,
   maxToolExecutionMs: 5000,
-  defaultModelTimeoutMs: 12_000,
+  defaultModelTimeoutMs: 30_000,
   defaultMaxOutputTokens: 1200,
 } as const;
 

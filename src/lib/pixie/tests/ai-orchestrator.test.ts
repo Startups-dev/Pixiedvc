@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { PixieAiException } from "@/lib/pixie/ai/errors";
 import { createFixturePixieProvider } from "@/lib/pixie/ai/provider";
 import { runPixiePlannerTurn, streamPixiePlannerTurn } from "@/lib/pixie/ai/orchestrator";
 import { createEmptyPixieTripState, normalizePixieTripState } from "@/lib/pixie/planner-state";
@@ -90,19 +91,28 @@ describe("Pixie AI orchestrator", () => {
     expect(result.recommendations?.recommendations[0].score).toBeTypeOf("number");
   });
 
-  it("provider failure preserves current state", async () => {
+  it("provider failure emits a typed stream failure instead of a completed fallback turn", async () => {
     const state = createEmptyPixieTripState("2026-07-11T12:00:00.000Z");
-    const result = await runPixiePlannerTurn({
+    const events = [];
+    for await (const event of streamPixiePlannerTurn({
       state,
       message: "Help",
       provider: {
         async createPlannerTurn() {
-          throw new Error("provider down");
+          throw new PixieAiException("provider_timeout", "OpenAI provider request timed out.");
         },
       },
-    });
-    expect(result.updatedState).toEqual(state);
-    expect(result.warnings.join(" ")).toMatch(/provider down/);
+    })) {
+      events.push(event);
+    }
+
+    expect(events.map((event) => event.type)).toEqual(["turn_started", "turn_failed"]);
+    const failed = events.at(-1);
+    expect(failed?.type).toBe("turn_failed");
+    if (failed?.type === "turn_failed") {
+      expect(failed.error.code).toBe("provider_timeout");
+      expect(failed.error.message).toBe("OpenAI provider request timed out.");
+    }
   });
 
   it("streaming contract emits final authoritative result", async () => {

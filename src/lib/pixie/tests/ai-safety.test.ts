@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { detectPromptInjectionAttempt, limitRecentMessages, normalizeUserMessage, validatePlannerStateSize } from "@/lib/pixie/ai/safety";
+import { detectPromptInjectionAttempt, getPixieAiConfig, limitRecentMessages, normalizeUserMessage, validatePlannerStateSize } from "@/lib/pixie/ai/safety";
 import { createEmptyPixieTripState } from "@/lib/pixie/planner-state";
 
 describe("Pixie AI safety", () => {
@@ -29,5 +29,8 @@ describe("Pixie AI safety", () => {
   it("accepts normal planner state size", () => {
     expect(validatePlannerStateSize(createEmptyPixieTripState())).toBeNull();
   });
-});
 
+  it("uses a live-safe default model timeout for the verified Pixie model", () => {
+    expect(getPixieAiConfig({ PIXIE_MODEL: "gpt-5.6-sol" }).modelTimeoutMs).toBe(30_000);
+  });
+});
