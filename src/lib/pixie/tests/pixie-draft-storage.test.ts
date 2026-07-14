@@ -62,10 +62,35 @@ describe("Pixie browser draft storage", () => {
     const raw = window.localStorage.getItem(PIXIE_LOCAL_DRAFT_STORAGE_KEY) ?? "";
     const parsed = JSON.parse(raw) as { recentMessages: unknown[] };
     expect(parsed.recentMessages).toHaveLength(6);
+    expect(JSON.stringify(parsed.recentMessages)).not.toContain("createdAt");
     expect(raw).not.toContain("OPENAI_API_KEY");
     expect(raw).not.toContain("systemPrompt");
     expect(raw).not.toContain("payment");
     expect(raw).not.toContain("service_role");
+  });
+
+  it("strips legacy createdAt metadata from restored recent messages", () => {
+    const state = createEmptyPixieTripState("2026-07-12T12:00:00.000Z");
+    window.localStorage.setItem(
+      PIXIE_LOCAL_DRAFT_STORAGE_KEY,
+      JSON.stringify({
+        draftVersion: 1,
+        savedAt: "2026-07-12T12:00:00.000Z",
+        state,
+        recentMessages: [
+          {
+            role: "user",
+            content: "We are two adults.",
+            createdAt: "2026-07-12T12:00:00.000Z",
+          },
+        ],
+      }),
+    );
+
+    const restored = readPixieDraftFromBrowser();
+
+    expect(restored?.recovered).toBe(true);
+    expect(restored?.recentMessages).toEqual([{ role: "user", content: "We are two adults." }]);
   });
 
   it("reset clears only the Pixie draft", () => {

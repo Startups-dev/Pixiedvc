@@ -1,16 +1,13 @@
 import { PIXIE_LIMITS, PIXIE_LOCAL_DRAFT_STORAGE_KEY, PIXIE_LOCAL_DRAFT_VERSION } from "@/lib/pixie/constants";
+import { pixieRecentMessageSchema } from "@/lib/pixie/ai/schemas";
 import { createEmptyPixieTripState, normalizePixieTripState } from "@/lib/pixie/planner-state";
 import { pixieTripStateSchema, type PixieTripState } from "@/lib/pixie/schema";
 import type { PixieDraftParseResult } from "@/lib/pixie/types";
 import { z } from "zod";
 
-const recentMessageSchema = z
-  .object({
-    role: z.enum(["user", "assistant"]),
-    content: z.string().trim().min(1).max(PIXIE_LIMITS.maxRecentDraftMessageLength),
-    createdAt: z.string().datetime().optional(),
-  })
-  .strict();
+const recentMessageSchema = pixieRecentMessageSchema.extend({
+  content: z.string().trim().min(1).max(PIXIE_LIMITS.maxRecentDraftMessageLength),
+});
 
 const pixieLocalDraftEnvelopeSchema = z
   .object({
@@ -33,6 +30,23 @@ function freshResult(reason: PixieDraftParseResult["reason"], errors: string[] =
     return { ok: true, state, recovered: false, reason };
   }
   return { ok: false, state, recovered: true, reason, errors };
+}
+
+function stripLegacyRecentMessageMetadata(value: unknown) {
+  if (!value || typeof value !== "object") return value;
+  const record = value as Record<string, unknown>;
+  if (!Array.isArray(record.recentMessages)) return value;
+  return {
+    ...record,
+    recentMessages: record.recentMessages.map((message) => {
+      if (!message || typeof message !== "object") return message;
+      const entry = message as Record<string, unknown>;
+      return {
+        role: entry.role,
+        content: entry.content,
+      };
+    }),
+  };
 }
 
 export function serializePixieDraft(
@@ -61,15 +75,18 @@ export function migratePixieDraft(value: unknown): PixieDraftParseResult {
   const record = value as Record<string, unknown>;
   if (record.draftVersion === PIXIE_LOCAL_DRAFT_VERSION) {
     const parsed = pixieLocalDraftEnvelopeSchema.safeParse(record);
-    if (!parsed.success) {
-      return freshResult("invalid_state", parsed.error.issues.map((issue) => issue.message));
+    const recoveredParsed = parsed.success
+      ? parsed
+      : pixieLocalDraftEnvelopeSchema.safeParse(stripLegacyRecentMessageMetadata(record));
+    if (recoveredParsed.success) {
+      return {
+        ok: true,
+        state: normalizePixieTripState(recoveredParsed.data.state, { preserveUpdatedAt: true }),
+        recovered: !parsed.success,
+        reason: parsed.success ? "none" : "migrated",
+      };
     }
-    return {
-      ok: true,
-      state: normalizePixieTripState(parsed.data.state, { preserveUpdatedAt: true }),
-      recovered: false,
-      reason: "none",
-    };
+    return freshResult("invalid_state", parsed.error.issues.map((issue) => issue.message));
   }
 
   if (record.draftVersion === undefined && record.state && typeof record.state === "object") {

@@ -7,6 +7,7 @@ import {
   recentMessagesFromClient,
   resetPixieChatState,
 } from "@/lib/pixie/client/chat-state";
+import { pixieRecentMessageSchema } from "@/lib/pixie/ai/schemas";
 import { evaluatePixieCompleteness } from "@/lib/pixie/completeness";
 import { createEmptyPixieTripState } from "@/lib/pixie/planner-state";
 import type { PixiePlannerTurnResult } from "@/lib/pixie/ai/orchestrator";
@@ -110,6 +111,17 @@ describe("Pixie client chat state", () => {
     expect(state.status).toBe("sending");
     expect(state.messages.filter((message) => message.role === "user")).toHaveLength(1);
     expect(state.recentMessages.at(-1)?.content).toBe("We are two adults.");
+  });
+
+  it("does not send client-only createdAt metadata in recent messages", () => {
+    const state = beginPixieTurn(createInitialPixieChatState(), "We are two adults.");
+    const recent = recentMessagesFromClient(state.messages);
+
+    expect(recent.length).toBeGreaterThan(0);
+    expect(recent.every((message) => !("createdAt" in message))).toBe(true);
+    for (const message of recent) {
+      expect(pixieRecentMessageSchema.safeParse(message).success).toBe(true);
+    }
   });
 
   it("assistant text is not duplicated when the final turn completes", () => {

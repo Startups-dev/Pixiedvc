@@ -56,7 +56,6 @@ export function recentMessagesFromClient(messages: PixieClientMessage[]): PixieR
     .map((message) => ({
       role: message.role as "user" | "assistant",
       content: message.content.slice(0, 500),
-      createdAt: message.createdAt,
     }));
 }
 

@@ -5,6 +5,7 @@ import {
   PIXIE_LOCAL_DRAFT_STORAGE_KEY,
   serializePixieDraft,
 } from "@/lib/pixie/local-draft";
+import { pixieRecentMessageSchema } from "@/lib/pixie/ai/schemas";
 import type { PixieRecentMessage } from "@/lib/pixie/ai/schemas";
 import type { PixieTripState } from "@/lib/pixie/schema";
 
@@ -36,6 +37,22 @@ function recoveryNotice(reason: string) {
   }
 }
 
+function normalizeStoredRecentMessages(value: unknown): PixieRecentMessage[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((message) => {
+      if (!message || typeof message !== "object") return null;
+      const entry = message as Record<string, unknown>;
+      const parsed = pixieRecentMessageSchema.safeParse({
+        role: entry.role,
+        content: entry.content,
+      });
+      return parsed.success ? parsed.data : null;
+    })
+    .filter((message): message is PixieRecentMessage => Boolean(message))
+    .slice(-DRAFT_MESSAGE_CAP);
+}
+
 export function readPixieDraftFromBrowser(): PixieStoredDraft | null {
   if (!canUseStorage()) return null;
   const raw = window.localStorage.getItem(PIXIE_LOCAL_DRAFT_STORAGE_KEY);
@@ -60,8 +77,8 @@ export function readPixieDraftFromBrowser(): PixieStoredDraft | null {
 
   let recentMessages: PixieRecentMessage[] = [];
   try {
-    const envelope = JSON.parse(raw) as { recentMessages?: PixieRecentMessage[] };
-    recentMessages = (envelope.recentMessages ?? []).slice(-DRAFT_MESSAGE_CAP);
+    const envelope = JSON.parse(raw) as { recentMessages?: unknown };
+    recentMessages = normalizeStoredRecentMessages(envelope.recentMessages);
   } catch {
     recentMessages = [];
   }
@@ -77,7 +94,7 @@ export function readPixieDraftFromBrowser(): PixieStoredDraft | null {
 export function writePixieDraftToBrowser(state: PixieTripState, recentMessages: PixieRecentMessage[]) {
   if (!canUseStorage()) return;
   const serialized = serializePixieDraft(state, {
-    recentMessages: recentMessages.slice(-DRAFT_MESSAGE_CAP),
+    recentMessages: normalizeStoredRecentMessages(recentMessages),
   });
   window.localStorage.setItem(PIXIE_LOCAL_DRAFT_STORAGE_KEY, serialized);
 }
@@ -88,4 +105,3 @@ export function clearPixieDraftFromBrowser() {
 }
 
 export { PIXIE_LOCAL_DRAFT_STORAGE_KEY };
-

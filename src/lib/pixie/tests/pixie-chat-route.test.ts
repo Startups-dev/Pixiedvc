@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { evaluatePixieCompleteness } from "@/lib/pixie/completeness";
 import { createEmptyPixieTripState } from "@/lib/pixie/planner-state";
 import { emptyPixieUsage } from "@/lib/pixie/ai/usage";
+import { beginPixieTurn, createInitialPixieChatState, recentMessagesFromClient } from "@/lib/pixie/client/chat-state";
 import type { PixiePlannerStreamEvent, PixiePlannerTurnResult } from "@/lib/pixie/ai/orchestrator";
 
 const streamMock = vi.fn();
@@ -101,6 +102,47 @@ describe("POST /api/pixie/chat", () => {
         context: { sessionId: "draft_test" },
       }),
     );
+  });
+
+  it("accepts the first-turn recent messages produced by the Pixie client", async () => {
+    const { POST } = await loadRoute();
+    const clientState = beginPixieTurn(
+      createInitialPixieChatState({ draftId: "draft_first_turn" }),
+      "We are two adults and two children, ages 6 and 9. We want to visit October 10 through October 17, 2026. We love EPCOT and swimming, and we want a balanced trip.",
+    );
+    const recentMessages = recentMessagesFromClient(clientState.messages);
+
+    expect(JSON.stringify(recentMessages)).not.toContain("createdAt");
+
+    const response = await POST(
+      request({
+        state: createEmptyPixieTripState("2026-07-12T12:00:00.000Z"),
+        message: "We are two adults and two children, ages 6 and 9. We want to visit October 10 through October 17, 2026. We love EPCOT and swimming, and we want a balanced trip.",
+        recentMessages,
+        draftId: "draft_first_turn",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const text = await response.text();
+    expect(text).toContain('"turn_completed"');
+    expect(streamMock).toHaveBeenCalled();
+  });
+
+  it("preserves strict recent-message validation at the API boundary", async () => {
+    const { POST } = await loadRoute();
+    const response = await POST(
+      request({
+        state: createEmptyPixieTripState("2026-07-12T12:00:00.000Z"),
+        message: "Hi",
+        recentMessages: [{ role: "user", content: "Hi", createdAt: "2026-07-12T12:00:00.000Z" }],
+      }),
+    );
+    const json = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(json.error.code).toBe("invalid_model_output");
+    expect(streamMock).not.toHaveBeenCalled();
   });
 
   it("returns a safe error for invalid JSON", async () => {
