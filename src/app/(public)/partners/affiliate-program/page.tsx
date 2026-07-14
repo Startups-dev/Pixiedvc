@@ -3,14 +3,21 @@
 import { FormEvent, ReactNode, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BookOpen, Check, ShieldCheck, Sparkles, Users } from "lucide-react";
 import {
-  affiliateCard,
-  affiliateCard2,
-  affiliateInput,
-  affiliatePrimaryButton,
-  affiliateTextMuted,
-} from "@/lib/affiliate-theme";
+  ArrowRight,
+  BarChart3,
+  Check,
+  CircleDollarSign,
+  Link2,
+  MousePointerClick,
+  PieChart,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Users,
+  WalletCards,
+  Wand2,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
 type ApplyForm = {
@@ -33,45 +40,138 @@ const initialForm: ApplyForm = {
   agreed: false,
 };
 
-const benefits = [
+const HERO_PIXIE_IMAGE = "/images/affiliate/pixie-affiliate-hero-transparent.png";
+const DASHBOARD_PREVIEW_IMAGE =
+  "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Affiliate%20%20pages%20images/PixieDvc%20Affiliate%20Dashboard.png";
+const inputClassName =
+  "w-full rounded-2xl border border-[rgba(15,33,72,0.14)] bg-[#F7F3EA] px-4 py-3 text-sm text-[#10224A] outline-none transition placeholder:text-[#58657A]/60 focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/25";
+
+const heroBenefits = [
+  {
+    icon: ShieldCheck,
+    title: "Premium Brand You Can Trust",
+    copy: "A concierge experience your audience can recommend with confidence.",
+  },
+  {
+    icon: CircleDollarSign,
+    title: "Competitive Commissions",
+    copy: "Earn 10–15% of PixieDVC’s service revenue on qualifying completed bookings.",
+  },
+  {
+    icon: BarChart3,
+    title: "Real-Time Tracking",
+    copy: "Track clicks, booking requests, conversions, and commissions.",
+  },
+  {
+    icon: WalletCards,
+    title: "Monthly Payouts",
+    copy: "Clear payout reporting and transparent commission history.",
+  },
+];
+
+const creatorBenefits = [
   {
     icon: Users,
-    title: "Serve your audience",
-    copy: "Introduce DVC owners to a simpler, more guided way to rent their unused points.",
+    title: "Help DVC Owners Earn More",
+    copy: "Introduce owners to a guided way to rent eligible unused points.",
   },
   {
     icon: ShieldCheck,
-    title: "Protect your reputation",
-    copy: "PixieDVC is built around verified owners, clear communication, and a concierge-style booking experience.",
+    title: "Protect Your Reputation",
+    copy: "Refer your audience to a premium, concierge-supported experience.",
   },
   {
-    icon: BookOpen,
-    title: "Create useful content",
-    copy: "Turn DVC education, owner tips, and Disney travel planning into helpful partner content.",
+    icon: PieChart,
+    title: "Earn Transparent Commissions",
+    copy: "See how eligible commissions are calculated and tracked.",
   },
   {
-    icon: Sparkles,
-    title: "Grow with the program",
-    copy: "Approved partners unlock referral tools, tracking, resources, and commission opportunities as the program expands.",
+    icon: BarChart3,
+    title: "Professional Dashboard",
+    copy: "Monitor clicks, requests, conversions, commission history, and payouts.",
+  },
+];
+
+const workflowSteps = [
+  {
+    icon: Link2,
+    title: "Share Your Link",
+    copy: "Share your personalized PixieDVC referral link with your audience.",
+  },
+  {
+    icon: MousePointerClick,
+    title: "Referral Clicks",
+    copy: "A DVC owner or guest visits PixieDVC through your link.",
+  },
+  {
+    icon: Wand2,
+    title: "Pixie Handles Everything",
+    copy: "We manage verification, support, matching, and the booking experience.",
+  },
+  {
+    icon: Check,
+    title: "Booking Completed",
+    copy: "The eligible referral completes a qualifying booking.",
+  },
+  {
+    icon: CircleDollarSign,
+    title: "You Earn Commission",
+    copy: "Your commission is tracked and added to your partner account.",
+  },
+];
+
+const dashboardBenefits = [
+  "Real-time clicks and visitors",
+  "Booking requests and conversions",
+  "Commission tracking and history",
+  "Marketing resources and partner guidance",
+  "Monthly payout reporting",
+  "Personalized referral links",
+];
+
+const whyPixie = [
+  {
+    title: "Disney Focused",
+    copy: "Created for the DVC and Disney vacation community.",
+  },
+  {
+    title: "Premium Experience",
+    copy: "Concierge support for owners, guests, and partners.",
+  },
+  {
+    title: "Secure & Trusted",
+    copy: "Verified workflows, protected payments, and clear tracking.",
+  },
+  {
+    title: "Partner Support",
+    copy: "Resources, guidance, and support as your referrals grow.",
   },
 ];
 
 const faqs = [
   {
-    q: "Can anyone apply?",
-    a: "PixieDVC Partners is designed for Disney-focused creators, travel planners, DVC educators, and community builders who can introduce owners to PixieDVC in a helpful and trustworthy way.",
+    q: "How are commissions calculated?",
+    a: "Commissions are calculated as a percentage of PixieDVC’s service revenue, which is the difference between the guest payment and the DVC owner payout. Your applicable rate depends on your partner tier and the booking’s eligibility.",
   },
   {
-    q: "What happens after I apply?",
-    a: "You’ll create your partner login and access your dashboard. Some tools unlock after your application is reviewed.",
+    q: "What are the partner tiers?",
+    a: "Partner earns 10%, Verified Partner earns 12.5%, and Ambassador earns 15% of eligible PixieDVC service revenue. Higher tiers are earned through completed referrals, strong partner performance, referral quality, and brand alignment. Qualification rules will be governed by the Partner Agreement and program policies.",
   },
   {
-    q: "Do I need to be a Disney Vacation Club owner?",
-    a: "No. You do not need to own DVC points, but your audience should have a natural connection to Disney travel, DVC ownership, or vacation planning.",
+    q: "When and how are payouts made?",
+    a: "Eligible commissions are reviewed and included in scheduled partner payout cycles. Available payment methods and timing are shown inside the partner dashboard and Partner Agreement.",
   },
   {
-    q: "What can I do inside the dashboard?",
-    a: "You can learn how PixieDVC works, review partner resources, prepare your audience, and see what becomes available as your account moves forward.",
+    q: "How long does referral attribution last?",
+    a: "Referral attribution is governed by the PixieDVC Partner Agreement and the tracking rules active when the referral is recorded.",
+  },
+  {
+    q: "What are the requirements to join?",
+    a: "The program is intended for Disney-focused creators, DVC educators, travel planners, community leaders, and aligned partners who can represent PixieDVC responsibly.",
+  },
+  {
+    q: "How quickly can I begin?",
+    a: "After submitting your application, you can create your partner login and access your dashboard. Program access and available tools are subject to the current partner onboarding process.",
   },
 ];
 
@@ -269,358 +369,598 @@ export default function AffiliateProgramPage() {
   }
 
   return (
-    <main>
-      <section className="mx-auto grid max-w-7xl gap-14 px-6 py-24 lg:grid-cols-2 lg:items-center lg:py-32">
-        <div>
-          <p className={`mb-4 text-xs uppercase tracking-[0.24em] ${affiliateTextMuted}`}>
-            Already an affiliate?{" "}
-            <Link href="/affiliate/login" className="font-semibold text-[#D4AF37] hover:underline">
-              Sign in here
-            </Link>
-          </p>
-          <h1 className="text-5xl font-semibold tracking-tight text-slate-100 md:text-6xl">
-            Partner With PixieDVC
-          </h1>
-          <p className={`mt-6 max-w-xl text-lg leading-relaxed ${affiliateTextMuted}`}>
-            Introduce DVC owners to PixieDVC in a helpful and trustworthy way. Simple tracking. Premium positioning.
-          </p>
-          <button
-            type="button"
-            onClick={scrollToApply}
-            className={`mt-8 inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition ${affiliatePrimaryButton}`}
-          >
-            Apply Now
-            <ArrowRight className="h-4 w-4" />
-          </button>
-          <Link
-            href="/affiliate/login"
-            className="ml-3 inline-flex items-center rounded-xl border border-white/10 px-6 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-slate-100"
-          >
-            Existing Affiliate Login
-          </Link>
+    <main className="overflow-x-hidden bg-[#F7F3EA] text-[#10224A]">
+      <section className="relative overflow-hidden bg-[#08152F] text-white">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(214,180,90,0.22),transparent_28%),radial-gradient(circle_at_74%_34%,rgba(23,58,114,0.72),transparent_34%)]" />
+        <div className="absolute inset-y-0 -left-16 w-[72%] translate-y-3 opacity-25 sm:-left-20 sm:translate-y-4 lg:left-6 lg:w-[66%] lg:translate-y-6">
+          <img
+            src={HERO_PIXIE_IMAGE}
+            alt=""
+            aria-hidden="true"
+            className="h-full w-full scale-110 object-contain object-left-bottom lg:scale-125"
+          />
         </div>
-
-        <div className={`${affiliateCard} rounded-3xl p-6`}>
-          <div className="overflow-hidden rounded-xl border border-white/10 bg-slate-900/40">
-            <img
-              src="https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Affiliate%20%20pages%20images/PixieDvc%20Affiliate%20Dashboard.png"
-              alt="PixieDVC Affiliate Dashboard preview"
-              className="h-auto w-full object-cover"
-              loading="lazy"
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-6 py-20">
-        <h2 className="text-3xl font-semibold tracking-tight text-slate-100 md:text-4xl">
-          Why Creators Partner With PixieDVC
-        </h2>
-        <p className={`mt-4 max-w-3xl text-base leading-relaxed ${affiliateTextMuted}`}>
-          PixieDVC gives Disney-focused creators a premium way to help DVC owners rent their points with confidence.
-        </p>
-        <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          {benefits.map((benefit) => {
-            const Icon = benefit.icon;
-            return (
-              <article
-                key={benefit.title}
-                className={`${affiliateCard} p-6`}
-              >
-                <Icon className="h-5 w-5 text-[#D4AF37]" />
-                <h3 className="mt-4 text-lg font-semibold text-slate-100">
-                  {benefit.title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-300">{benefit.copy}</p>
-              </article>
-            );
-          })}
-        </div>
-        <p className={`mt-8 max-w-4xl text-sm leading-relaxed ${affiliateTextMuted}`}>
-          PixieDVC reviews partner applications to keep the program aligned with trusted Disney travel voices.
-        </p>
-      </section>
-
-      <section ref={applyRef} id="affiliate-application" className="mx-auto max-w-7xl px-6 py-20">
-        <div className="max-w-3xl">
-          <h2 className="text-3xl font-semibold tracking-tight text-slate-100 md:text-4xl">
-            Apply to Become a PixieDVC Affiliate
-          </h2>
-        </div>
-
-        {applicationStep === "received" ? (
-          <div className={`mt-10 rounded-3xl p-8 ${affiliateCard}`}>
-            <div className="max-w-2xl space-y-4">
-              <h3 className="text-2xl font-semibold text-slate-100">
-                Application received!
-              </h3>
-              <p className={`text-sm leading-relaxed ${affiliateTextMuted}`}>
-                Your PixieDVC Partner application has been received. Next, let’s create your secure partner account so you can access your dashboard.
-              </p>
+        <div className="relative mx-auto grid max-w-[1200px] gap-8 px-6 py-14 lg:translate-x-12 lg:grid-cols-[1.35fr_1fr] lg:items-center lg:py-20 xl:translate-x-16">
+          <div className="order-1 min-w-0 lg:pl-16 xl:pl-24">
+            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#D6B45A]">
+              PixieDVC Partner Program
+            </p>
+            <h1
+              className="mt-5 max-w-[11ch] text-balance text-[2.35rem] font-semibold leading-[0.96] tracking-[-0.04em] text-white [text-shadow:0_2px_18px_rgba(8,21,47,0.55)] sm:max-w-2xl sm:text-5xl lg:text-6xl"
+              style={{ color: "#FFFFFF" }}
+            >
+              Turn Your Disney Audience Into Premium Income
+            </h1>
+            <p className="mt-6 max-w-[34ch] text-base leading-7 text-[#CBD5E1] sm:max-w-xl sm:text-lg">
+              Partner with PixieDVC and earn up to 15% of our service revenue every time an eligible referral completes a qualifying booking.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
                 type="button"
-                onClick={() => setApplicationStep("account")}
-                className={`rounded-xl px-6 py-3 text-sm font-semibold transition ${affiliatePrimaryButton}`}
+                onClick={scrollToApply}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#D6B45A] px-7 py-3 text-sm font-semibold text-[#08152F] shadow-[0_16px_36px_rgba(214,180,90,0.24)] transition hover:-translate-y-0.5 hover:bg-[#E4C66E] focus:outline-none focus:ring-2 focus:ring-[#D6B45A] focus:ring-offset-2 focus:ring-offset-[#08152F]"
               >
-                Create Partner Account
+                Apply Now — It’s Free
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </button>
+              <Link
+                href="/affiliate/login"
+                className="inline-flex items-center justify-center rounded-full border border-white/15 px-7 py-3 text-sm font-semibold text-[#F8FAFC] transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-[#D6B45A] focus:ring-offset-2 focus:ring-offset-[#08152F]"
+              >
+                Partner Login
+              </Link>
             </div>
+            <p className="mt-3 text-xs font-medium text-[#CBD5E1]">Takes less than 2 minutes</p>
           </div>
-        ) : applicationStep === "account" ? (
-          <form onSubmit={handleCreateAccount} className={`mt-10 rounded-3xl p-8 ${affiliateCard}`}>
-            <div className="max-w-2xl space-y-5">
-              <h3 className="text-2xl font-semibold text-slate-100">
-                Create Your Partner Account
-              </h3>
-              <p className={`text-sm ${affiliateTextMuted}`}>
-                Use the same email from your application so we can connect your account automatically.
-              </p>
-              <Field label="Email">
-                <input
-                  type="email"
-                  value={accountForm.email || submittedEmail}
-                  onChange={(e) => setAccountForm({ ...accountForm, email: e.target.value })}
-                  required
-                  autoComplete="email"
-                  className={`${affiliateInput} !text-slate-400`}
-                />
-              </Field>
-              <Field label="Password">
-                <input
-                  type="password"
-                  value={accountForm.password}
-                  onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })}
-                  required
-                  autoComplete="new-password"
-                  className={`${affiliateInput} !text-slate-400`}
-                />
-              </Field>
-              <Field label="Confirm Password">
-                <input
-                  type="password"
-                  value={accountForm.confirmPassword}
-                  onChange={(e) => setAccountForm({ ...accountForm, confirmPassword: e.target.value })}
-                  required
-                  autoComplete="new-password"
-                  className={`${affiliateInput} !text-slate-400`}
-                />
-              </Field>
-              <button
-                type="submit"
-                disabled={accountStatus === "loading"}
-                className={`rounded-xl px-6 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${affiliatePrimaryButton}`}
-              >
-                {accountStatus === "loading" ? "Creating..." : "Create My Partner Account"}
-              </button>
-              <p className={`text-xs ${affiliateTextMuted}`}>
-                Your information is secure and will only be used for your PixieDVC Partner account.
-              </p>
-              {accountStatus === "error" && accountMessage === "Unable to create partner account" ? (
-                <div className="space-y-4 rounded-2xl border border-rose-400/30 bg-rose-400/10 p-5 text-sm text-slate-200">
-                  <div>
-                    <h4 className="text-base font-semibold text-rose-200">Unable to create partner account</h4>
-                    <p className="mt-2 text-slate-300">We couldn’t create your partner account. This can happen if:</p>
-                  </div>
-                  <ul className="list-disc space-y-1 pl-5 text-slate-300">
-                    <li>The email address doesn’t match your application</li>
-                    <li>An account with this email already exists</li>
-                    <li>There was a temporary issue. Please try again</li>
-                  </ul>
-                  <p className="text-slate-300">If the problem continues, please contact support.</p>
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAccountStatus("idle");
-                        setAccountMessage(null);
-                      }}
-                      className={`rounded-xl px-5 py-2 text-xs font-semibold transition ${affiliatePrimaryButton}`}
-                    >
-                      Try Again
-                    </button>
-                    <Link
-                      href="/contact"
-                      className="inline-flex rounded-xl border border-white/10 px-5 py-2 text-xs font-semibold text-slate-200 transition hover:bg-white/5"
-                    >
-                      Contact Support
-                    </Link>
-                  </div>
-                </div>
-              ) : accountStatus === "success" && accountMessage ? (
-                <div className={`space-y-5 rounded-2xl border border-[#D4AF37]/35 bg-[#111827] p-5 text-sm shadow-sm sm:p-6`}>
+
+          <div className="order-2 grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            {heroBenefits.map((benefit) => {
+              const Icon = benefit.icon;
+              return (
+                <article key={benefit.title} className="min-w-0 rounded-3xl border border-white/12 bg-[#0F2148]/75 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.22)] backdrop-blur">
                   <div className="flex items-start gap-4">
-                    <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#D4AF37]/70 text-[#D4AF37]">
-                      <Check aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#D6B45A]/50 text-[#D6B45A]">
+                      <Icon className="h-5 w-5" aria-hidden="true" />
                     </span>
-                    <div className="space-y-3">
-                      <h4 className="font-display text-xl text-slate-200">Account Created</h4>
-                      <div className={`space-y-2 ${affiliateTextMuted}`}>
-                        <p>We've sent a confirmation email to your inbox.</p>
-                        <p>Please verify your email to activate your Partner Account.</p>
-                      </div>
+                    <div className="min-w-0">
+                      <h2 className="text-base font-semibold text-[#F8FAFC]" style={{ color: "#F8FAFC" }}>
+                        {benefit.title}
+                      </h2>
+                      <p className="mt-1 break-words text-sm leading-6 text-[#CBD5E1]">{benefit.copy}</p>
                     </div>
                   </div>
-                  <div className="h-px bg-white/10" />
-                  <div className={`space-y-3 ${affiliateTextMuted}`}>
-                    <p>Once confirmed, you'll be able to:</p>
-                    <ul className="list-disc space-y-2 pl-5">
-                      <li>Access your Partner Dashboard</li>
-                      <li>Explore marketing resources</li>
-                      <li>Learn how the referral program works</li>
-                      <li>Prepare your referral links</li>
-                    </ul>
-                  </div>
-                  <Link
-                    href="/affiliate/login"
-                    className={`inline-flex rounded-xl px-5 py-2.5 text-xs font-semibold transition ${affiliatePrimaryButton}`}
-                  >
-                    Go to Partner Login
-                  </Link>
-                  <p className={`text-xs ${affiliateTextMuted}`}>
-                    You can return here after verifying your email.
-                  </p>
-                </div>
-              ) : accountMessage ? (
-                <p className={`text-sm ${accountStatus === "error" ? "text-red-400" : "text-[#D4AF37]"}`}>
-                  {accountMessage}
-                </p>
-              ) : null}
-            </div>
-          </form>
-        ) : (
-          <form
-            onSubmit={handleSubmit}
-            className={`mt-10 rounded-3xl p-8 ${affiliateCard}`}
-          >
-          <div className="grid gap-5 md:grid-cols-2">
-            <Field label="Full Name *">
-              <input
-                value={form.fullName}
-                onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-                required
-                className={`${affiliateInput} !text-slate-400`}
-              />
-            </Field>
-            <Field label="Email *">
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                required
-                className={`${affiliateInput} !text-slate-400`}
-              />
-            </Field>
-            <Field label="Website or Channel URL *">
-              <input
-                value={form.websiteOrChannelUrl}
-                onChange={(e) => setForm({ ...form, websiteOrChannelUrl: e.target.value })}
-                required
-                className={`${affiliateInput} !text-slate-400`}
-              />
-            </Field>
-            <Field label="Instagram / YouTube link (optional)">
-              <input
-                value={form.socialLink}
-                onChange={(e) => setForm({ ...form, socialLink: e.target.value })}
-                className={`${affiliateInput} !text-slate-400`}
-              />
-            </Field>
-            <Field label="Estimated monthly traffic (optional)">
-              <select
-                value={form.trafficEstimate}
-                onChange={(e) => setForm({ ...form, trafficEstimate: e.target.value })}
-                className={`${affiliateInput} !text-slate-400`}
-              >
-                <option value="">Select range</option>
-                <option value="lt_1k">&lt;1K</option>
-                <option value="1k_10k">1K–10K</option>
-                <option value="10k_50k">10K–50K</option>
-                <option value="50k_plus">50K+</option>
-              </select>
-            </Field>
+                </article>
+              );
+            })}
           </div>
-
-          <Field label="How do you plan to promote PixieDVC? *" className="mt-5">
-            <textarea
-              value={form.promotionPlan}
-              onChange={(e) => setForm({ ...form, promotionPlan: e.target.value })}
-              required
-              rows={4}
-              className={`${affiliateInput} !text-slate-400`}
-            />
-          </Field>
-
-          <label className={`mt-5 flex items-start gap-3 text-sm ${affiliateTextMuted}`}>
-            <input
-              type="checkbox"
-              checked={form.agreed}
-              onChange={(e) => setForm({ ...form, agreed: e.target.checked })}
-              required
-              className="mt-1 h-4 w-4 rounded border-white/10 bg-[#111827]"
-            />
-            <span>
-              I have read and agree to the PixieDVC Affiliate Agreement.{" "}
-              <Link href="/affiliate/agreement" target="_blank" className="font-semibold text-[#D4AF37] hover:underline">
-                Read agreement
-              </Link>
-            </span>
-          </label>
-
-          <button
-            type="submit"
-            disabled={!canSubmit || status === "loading"}
-            className={`mt-6 rounded-xl px-6 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${affiliatePrimaryButton}`}
-          >
-            {status === "loading" ? "Submitting..." : "Submit Application"}
-          </button>
-
-          {message ? (
-            <p className={`mt-2 text-sm ${status === "error" ? "text-red-400" : "text-[#D4AF37]"}`}>{message}</p>
-          ) : null}
-          {referralLink ? (
-            <p className={`mt-2 text-sm ${affiliateTextMuted}`}>
-              Your referral link is ready: <span className="font-semibold text-slate-100">{referralLink}</span>
-            </p>
-          ) : null}
-          </form>
-        )}
-      </section>
-
-      <section className="mx-auto max-w-7xl px-6 py-20">
-        <h2 className="text-3xl font-semibold tracking-tight text-slate-100 md:text-4xl">
-          What Happens Next
-        </h2>
-        <p className={`mt-6 max-w-3xl text-sm leading-relaxed ${affiliateTextMuted}`}>
-          You’ll register a login and have access to your affiliate dashboard. From there, you can explore resources, learn how the program works, and get everything ready while we review your application.
-        </p>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-6 py-20">
-        <h2 className="text-3xl font-semibold tracking-tight text-slate-100 md:text-4xl">
-          FAQ
-        </h2>
-        <div className="mt-10 grid gap-4">
-          {faqs.map((item) => (
-            <article key={item.q} className={`${affiliateCard} p-6`}>
-              <h3 className="text-base font-semibold text-slate-100">
-                {item.q}
-              </h3>
-              <p className={`mt-2 text-sm leading-relaxed ${affiliateTextMuted}`}>{item.a}</p>
-            </article>
-          ))}
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 pb-24 pt-6" />
+      <section className="bg-[#F7F3EA] px-6 py-16">
+        <div className="mx-auto max-w-[1200px]">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Earnings Example</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl">
+              How Much Can You Earn?
+            </h2>
+            <p className="mt-4 text-base leading-7 text-[#58657A]">
+              You earn a percentage of PixieDVC’s service revenue—the difference between what the guest pays and what the DVC owner receives.
+            </p>
+          </div>
+
+          <div className="mt-10 rounded-[28px] border border-[rgba(15,33,72,0.12)] bg-white p-5 shadow-[0_22px_55px_rgba(15,33,72,0.08)] lg:p-8">
+            <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr_auto_1fr] lg:items-center">
+              <FinancialCard label="Guest Pays" value="$3,600" />
+              <Connector label="minus" />
+              <FinancialCard label="Owner Receives" value="$2,725" />
+              <Connector label="equals" />
+              <FinancialCard label="PixieDVC Service Revenue" value="$875" featured />
+            </div>
+
+            <div className="mt-6 flex justify-center text-[#D6B45A]" aria-hidden="true">
+              <ArrowRight className="h-5 w-5 rotate-90" />
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              <CommissionCard tier="Partner — 10%" amount="$87.50" />
+              <CommissionCard tier="Verified Partner — 12.5%" amount="$109.38" featured />
+              <CommissionCard tier="Ambassador — 15%" amount="$131.25" />
+            </div>
+          </div>
+
+          <p className="mt-5 text-center text-sm leading-6 text-[#58657A]">
+            Illustrative example only. Actual commissions vary based on reservation size, resort, pricing, owner payout, eligibility, and partner tier.
+          </p>
+          <p className="mt-2 text-center text-sm font-medium text-[#10224A]">
+            Higher commission tiers are earned through consistent completed referrals and strong partner performance.
+          </p>
+        </div>
+      </section>
+
+      <section className="bg-white px-6 py-16">
+        <div className="mx-auto max-w-[1200px]">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">How It Works</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl">
+              From referral link to tracked commission
+            </h2>
+          </div>
+          <div className="mt-10 grid gap-5 lg:grid-cols-5">
+            {workflowSteps.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <article key={step.title} className="relative rounded-3xl border border-[rgba(15,33,72,0.12)] bg-[#F7F3EA] p-5">
+                  {index < workflowSteps.length - 1 ? (
+                    <span className="absolute left-[calc(100%-10px)] top-10 hidden h-px w-10 bg-[#D6B45A] lg:block" aria-hidden="true" />
+                  ) : null}
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0F2148] text-[#D6B45A]">
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <h3 className="mt-5 text-lg font-semibold text-[#10224A]">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[#58657A]">{step.copy}</p>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#08152F] px-6 py-16 text-white">
+        <div className="mx-auto max-w-[1200px]">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Creator Advantages</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#F8FAFC] sm:text-4xl" style={{ color: "#F8FAFC" }}>
+              Why creators partner with PixieDVC
+            </h2>
+          </div>
+          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {creatorBenefits.map((benefit) => {
+              const Icon = benefit.icon;
+              return (
+                <article key={benefit.title} className="rounded-3xl border border-white/12 bg-[#0F2148]/70 p-6">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D6B45A]/50 text-[#D6B45A]">
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <h3 className="mt-5 text-lg font-semibold text-[#F8FAFC]" style={{ color: "#F8FAFC" }}>
+                    {benefit.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-[#CBD5E1]">{benefit.copy}</p>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#F7F3EA] px-6 py-16">
+        <div className="mx-auto grid max-w-[1200px] gap-10 lg:grid-cols-[0.86fr_1.14fr] lg:items-center">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Dashboard Showcase</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl">
+              Your Affiliate Dashboard
+            </h2>
+            <p className="mt-4 text-base leading-7 text-[#58657A]">
+              Everything you need to understand your referrals and grow your partner activity.
+            </p>
+            <ul className="mt-7 grid gap-3 text-sm text-[#10224A] sm:grid-cols-2 lg:grid-cols-1">
+              {dashboardBenefits.map((item) => (
+                <li key={item} className="flex items-start gap-3">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#D6B45A]" aria-hidden="true" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={scrollToApply}
+              className="mt-8 inline-flex items-center justify-center rounded-full border border-[#0F2148]/15 px-6 py-3 text-sm font-semibold text-[#10224A] transition hover:border-[#D6B45A] hover:text-[#0F2148] focus:outline-none focus:ring-2 focus:ring-[#D6B45A]"
+            >
+              Explore the Partner Experience
+            </button>
+          </div>
+          <div className="rounded-[28px] border border-[rgba(15,33,72,0.12)] bg-[#08152F] p-3 shadow-[0_24px_70px_rgba(15,33,72,0.18)]">
+            <div className="flex gap-2 border-b border-white/10 px-4 py-3" aria-hidden="true">
+              <span className="h-3 w-3 rounded-full bg-white/25" />
+              <span className="h-3 w-3 rounded-full bg-white/20" />
+              <span className="h-3 w-3 rounded-full bg-white/15" />
+            </div>
+            <div className="overflow-hidden rounded-2xl">
+              <img
+                src={DASHBOARD_PREVIEW_IMAGE}
+                alt="PixieDVC affiliate dashboard preview"
+                className="h-auto w-full object-cover"
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white px-6 py-16">
+        <div className="mx-auto max-w-[1200px]">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Why PixieDVC</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl">
+              Built for premium DVC referrals
+            </h2>
+          </div>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {whyPixie.map((item) => (
+              <article key={item.title} className="rounded-3xl border border-[rgba(15,33,72,0.12)] bg-[#F7F3EA] p-5">
+                <h3 className="text-base font-semibold text-[#10224A]">{item.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-[#58657A]">{item.copy}</p>
+              </article>
+            ))}
+            <article className="rounded-3xl border border-[#D6B45A]/45 bg-[#0F2148] p-5 text-white shadow-[0_18px_45px_rgba(15,33,72,0.18)]">
+              <Sparkles className="h-5 w-5 text-[#D6B45A]" aria-hidden="true" />
+              <h3 className="mt-4 text-base font-semibold text-[#F8FAFC]">Founding Creator Program</h3>
+              <p className="mt-2 text-sm leading-6 text-[#CBD5E1]">
+                Founding partners may receive enhanced launch commission opportunities, recognition, and early access to partner resources.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#F7F3EA] px-6 py-16">
+        <div className="mx-auto max-w-[980px]">
+          <div className="text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">FAQ</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl">
+              Partner Program questions
+            </h2>
+          </div>
+          <div className="mt-10 space-y-4">
+            {faqs.map((item) => (
+              <details key={item.q} className="group rounded-3xl border border-[rgba(15,33,72,0.12)] bg-white p-6 shadow-[0_14px_34px_rgba(15,33,72,0.06)]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-base font-semibold text-[#10224A] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D6B45A]">
+                  {item.q}
+                  <span className="text-[#D6B45A] transition group-open:rotate-45" aria-hidden="true">+</span>
+                </summary>
+                <p className="mt-4 text-sm leading-7 text-[#58657A]">{item.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#F7F3EA] px-6 py-10">
+        <div className="mx-auto max-w-[1200px] rounded-[32px] border border-white/12 bg-[#08152F] p-8 text-white shadow-[0_26px_70px_rgba(8,21,47,0.24)] sm:p-10 lg:flex lg:items-center lg:justify-between lg:gap-10">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Apply Today</p>
+            <h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-[-0.03em] text-[#F8FAFC] sm:text-4xl" style={{ color: "#F8FAFC" }}>
+              Ready to Join the PixieDVC Partner Program?
+            </h2>
+            <ul className="mt-6 grid gap-3 text-sm text-[#CBD5E1] sm:grid-cols-3">
+              {["Quick & Easy Application", "Transparent Partner Tracking", "Start Building Eligible Commissions"].map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <Star className="mt-0.5 h-4 w-4 shrink-0 text-[#D6B45A]" aria-hidden="true" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="mt-8 shrink-0 lg:mt-0">
+            <button
+              type="button"
+              onClick={scrollToApply}
+              className="inline-flex w-full items-center justify-center rounded-full bg-[#D6B45A] px-7 py-3 text-sm font-semibold text-[#08152F] transition hover:-translate-y-0.5 hover:bg-[#E4C66E] focus:outline-none focus:ring-2 focus:ring-[#D6B45A] focus:ring-offset-2 focus:ring-offset-[#08152F] sm:w-auto"
+            >
+              Apply Now — It’s Free
+            </button>
+            <p className="mt-3 text-center text-xs text-[#CBD5E1]">Secure • Free to join • No monthly fees</p>
+          </div>
+        </div>
+      </section>
+
+      <section ref={applyRef} id="affiliate-application" className="bg-[#F7F3EA] px-6 py-16">
+        <div className="mx-auto max-w-[980px]">
+          <div className="text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Application</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl">
+              Apply to the PixieDVC Partner Program
+            </h2>
+          </div>
+
+          {applicationStep === "received" ? (
+            <div className="mt-10 rounded-[28px] border border-[rgba(15,33,72,0.12)] bg-white p-8 shadow-[0_22px_55px_rgba(15,33,72,0.08)]">
+              <div className="max-w-2xl space-y-4">
+                <h3 className="text-2xl font-semibold text-[#10224A]">Application received!</h3>
+                <p className="text-sm leading-relaxed text-[#58657A]">
+                  Your PixieDVC Partner application has been received. Next, let’s create your secure partner account so you can access your dashboard.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setApplicationStep("account")}
+                  className="rounded-full bg-[#D6B45A] px-6 py-3 text-sm font-semibold text-[#08152F] transition hover:bg-[#E4C66E] focus:outline-none focus:ring-2 focus:ring-[#D6B45A]"
+                >
+                  Create Partner Account
+                </button>
+              </div>
+            </div>
+          ) : applicationStep === "account" ? (
+            <form onSubmit={handleCreateAccount} className="mt-10 rounded-[28px] border border-[rgba(15,33,72,0.12)] bg-white p-8 shadow-[0_22px_55px_rgba(15,33,72,0.08)]">
+              <div className="max-w-2xl space-y-5">
+                <h3 className="text-2xl font-semibold text-[#10224A]">Create Your Partner Account</h3>
+                <p className="text-sm text-[#58657A]">
+                  Use the same email from your application so we can connect your account automatically.
+                </p>
+                <Field label="Email">
+                  <input
+                    type="email"
+                    value={accountForm.email || submittedEmail}
+                    onChange={(e) => setAccountForm({ ...accountForm, email: e.target.value })}
+                    required
+                    autoComplete="email"
+                    className={inputClassName}
+                  />
+                </Field>
+                <Field label="Password">
+                  <input
+                    type="password"
+                    value={accountForm.password}
+                    onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })}
+                    required
+                    autoComplete="new-password"
+                    className={inputClassName}
+                  />
+                </Field>
+                <Field label="Confirm Password">
+                  <input
+                    type="password"
+                    value={accountForm.confirmPassword}
+                    onChange={(e) => setAccountForm({ ...accountForm, confirmPassword: e.target.value })}
+                    required
+                    autoComplete="new-password"
+                    className={inputClassName}
+                  />
+                </Field>
+                <button
+                  type="submit"
+                  disabled={accountStatus === "loading"}
+                  className="rounded-full bg-[#D6B45A] px-6 py-3 text-sm font-semibold text-[#08152F] transition hover:bg-[#E4C66E] disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#D6B45A]"
+                >
+                  {accountStatus === "loading" ? "Creating..." : "Create My Partner Account"}
+                </button>
+                <p className="text-xs text-[#58657A]">
+                  Your information is secure and will only be used for your PixieDVC Partner account.
+                </p>
+                {accountStatus === "error" && accountMessage === "Unable to create partner account" ? (
+                  <div className="space-y-4 rounded-2xl border border-rose-300 bg-rose-50 p-5 text-sm text-[#10224A]">
+                    <div>
+                      <h4 className="text-base font-semibold text-[#10224A]">Unable to create partner account</h4>
+                      <p className="mt-2 text-[#58657A]">We couldn’t create your partner account. This can happen if:</p>
+                    </div>
+                    <ul className="list-disc space-y-1 pl-5 text-[#58657A]">
+                      <li>The email address doesn’t match your application</li>
+                      <li>An account with this email already exists</li>
+                      <li>There was a temporary issue. Please try again</li>
+                    </ul>
+                    <p className="text-[#58657A]">If the problem continues, please contact support.</p>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAccountStatus("idle");
+                          setAccountMessage(null);
+                        }}
+                        className="rounded-full bg-[#D6B45A] px-5 py-2 text-xs font-semibold text-[#08152F] transition hover:bg-[#E4C66E]"
+                      >
+                        Try Again
+                      </button>
+                      <Link
+                        href="/contact"
+                        className="inline-flex rounded-full border border-[rgba(15,33,72,0.12)] px-5 py-2 text-xs font-semibold text-[#10224A] transition hover:border-[#D6B45A]"
+                      >
+                        Contact Support
+                      </Link>
+                    </div>
+                  </div>
+                ) : accountStatus === "success" && accountMessage ? (
+                  <div className="space-y-5 rounded-2xl border border-[#D6B45A]/40 bg-[#08152F] p-5 text-sm shadow-sm sm:p-6">
+                    <div className="flex items-start gap-4">
+                      <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#D6B45A]/70 text-[#D6B45A]">
+                        <Check aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+                      </span>
+                      <div className="space-y-3">
+                        <h4 className="text-xl font-semibold text-[#F8FAFC]">Account Created</h4>
+                        <div className="space-y-2 text-[#CBD5E1]">
+                          <p>We've sent a confirmation email to your inbox.</p>
+                          <p>Please verify your email to activate your Partner Account.</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="h-px bg-white/10" />
+                    <div className="space-y-3 text-[#CBD5E1]">
+                      <p>Once confirmed, you'll be able to:</p>
+                      <ul className="list-disc space-y-2 pl-5">
+                        <li>Access your Partner Dashboard</li>
+                        <li>Explore marketing resources</li>
+                        <li>Learn how the referral program works</li>
+                        <li>Prepare your referral links</li>
+                      </ul>
+                    </div>
+                    <Link
+                      href="/affiliate/login"
+                      className="inline-flex rounded-full bg-[#D6B45A] px-5 py-2.5 text-xs font-semibold text-[#08152F] transition hover:bg-[#E4C66E]"
+                    >
+                      Go to Partner Login
+                    </Link>
+                    <p className="text-xs text-[#CBD5E1]">You can return here after verifying your email.</p>
+                  </div>
+                ) : accountMessage ? (
+                  <p className={`text-sm ${accountStatus === "error" ? "text-rose-700" : "text-[#10224A]"}`}>
+                    {accountMessage}
+                  </p>
+                ) : null}
+              </div>
+            </form>
+          ) : (
+            <form
+              onSubmit={handleSubmit}
+              className="mt-10 rounded-[28px] border border-[rgba(15,33,72,0.12)] bg-white p-8 shadow-[0_22px_55px_rgba(15,33,72,0.08)]"
+            >
+              <div className="grid gap-5 md:grid-cols-2">
+                <Field label="Full Name *">
+                  <input
+                    value={form.fullName}
+                    onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+                    required
+                    className={inputClassName}
+                  />
+                </Field>
+                <Field label="Email *">
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    required
+                    className={inputClassName}
+                  />
+                </Field>
+                <Field label="Website or Channel URL *">
+                  <input
+                    value={form.websiteOrChannelUrl}
+                    onChange={(e) => setForm({ ...form, websiteOrChannelUrl: e.target.value })}
+                    required
+                    className={inputClassName}
+                  />
+                </Field>
+                <Field label="Instagram / YouTube link (optional)">
+                  <input
+                    value={form.socialLink}
+                    onChange={(e) => setForm({ ...form, socialLink: e.target.value })}
+                    className={inputClassName}
+                  />
+                </Field>
+                <Field label="Estimated monthly traffic (optional)">
+                  <select
+                    value={form.trafficEstimate}
+                    onChange={(e) => setForm({ ...form, trafficEstimate: e.target.value })}
+                    className={inputClassName}
+                  >
+                    <option value="">Select range</option>
+                    <option value="lt_1k">&lt;1K</option>
+                    <option value="1k_10k">1K–10K</option>
+                    <option value="10k_50k">10K–50K</option>
+                    <option value="50k_plus">50K+</option>
+                  </select>
+                </Field>
+              </div>
+
+              <Field label="How do you plan to promote PixieDVC? *" className="mt-5">
+                <textarea
+                  value={form.promotionPlan}
+                  onChange={(e) => setForm({ ...form, promotionPlan: e.target.value })}
+                  required
+                  rows={4}
+                  className={inputClassName}
+                />
+              </Field>
+
+              <label className="mt-5 flex items-start gap-3 text-sm text-[#58657A]">
+                <input
+                  type="checkbox"
+                  checked={form.agreed}
+                  onChange={(e) => setForm({ ...form, agreed: e.target.checked })}
+                  required
+                  className="mt-1 h-4 w-4 rounded border-[rgba(15,33,72,0.18)] text-[#D6B45A] focus:ring-[#D6B45A]"
+                />
+                <span>
+                  I have read and agree to the PixieDVC Affiliate Agreement.{" "}
+                  <Link href="/affiliate/agreement" target="_blank" className="font-semibold text-[#10224A] underline decoration-[#D6B45A] underline-offset-4">
+                    Read agreement
+                  </Link>
+                </span>
+              </label>
+
+              <button
+                type="submit"
+                disabled={!canSubmit || status === "loading"}
+                className="mt-6 rounded-full bg-[#D6B45A] px-6 py-3 text-sm font-semibold text-[#08152F] transition hover:bg-[#E4C66E] disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#D6B45A]"
+              >
+                {status === "loading" ? "Submitting..." : "Submit Application"}
+              </button>
+
+              {message ? (
+                <p className={`mt-3 text-sm ${status === "error" ? "text-rose-700" : "text-[#10224A]"}`}>{message}</p>
+              ) : null}
+              {referralLink ? (
+                <p className="mt-2 text-sm text-[#58657A]">
+                  Your referral link is ready: <span className="font-semibold text-[#10224A]">{referralLink}</span>
+                </p>
+              ) : null}
+            </form>
+          )}
+        </div>
+      </section>
     </main>
   );
 }
 
 function Field({ label, children, className = "" }: { label: string; children: ReactNode; className?: string }) {
   return (
-    <label className={`flex flex-col gap-2 text-sm font-medium text-slate-400 ${className}`.trim()}>
+    <label className={`flex flex-col gap-2 text-sm font-semibold text-[#10224A] ${className}`.trim()}>
       <span>{label}</span>
       {children}
     </label>
+  );
+}
+
+function FinancialCard({
+  label,
+  value,
+  featured = false,
+}: {
+  label: string;
+  value: string;
+  featured?: boolean;
+}) {
+  return (
+    <article
+      className={`rounded-3xl border p-5 text-center ${
+        featured
+          ? "border-[#D6B45A]/45 bg-[#0F2148] text-white"
+          : "border-[rgba(15,33,72,0.12)] bg-[#F7F3EA] text-[#10224A]"
+      }`}
+    >
+      <p className={`text-xs font-semibold uppercase tracking-[0.22em] ${featured ? "text-[#D6B45A]" : "text-[#58657A]"}`}>
+        {label}
+      </p>
+      <p className={`mt-3 text-3xl font-semibold ${featured ? "text-[#F8FAFC]" : "text-[#10224A]"}`}>{value}</p>
+    </article>
+  );
+}
+
+function Connector({ label }: { label: string }) {
+  return (
+    <div className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-[#D6B45A] lg:flex-col">
+      <span className="h-px w-10 bg-[#D6B45A]/60 lg:h-8 lg:w-px" aria-hidden="true" />
+      <span>{label}</span>
+      <span className="h-px w-10 bg-[#D6B45A]/60 lg:h-8 lg:w-px" aria-hidden="true" />
+    </div>
+  );
+}
+
+function CommissionCard({
+  tier,
+  amount,
+  featured = false,
+}: {
+  tier: string;
+  amount: string;
+  featured?: boolean;
+}) {
+  return (
+    <article
+      className={`rounded-3xl border p-5 text-center ${
+        featured
+          ? "border-[#D6B45A]/50 bg-[#F7F3EA] shadow-[0_14px_34px_rgba(214,180,90,0.16)]"
+          : "border-[rgba(15,33,72,0.12)] bg-white"
+      }`}
+    >
+      <p className="text-sm font-semibold text-[#10224A]">{tier}</p>
+      <p className="mt-2 text-2xl font-semibold text-[#10224A]">{amount}</p>
+    </article>
   );
 }
