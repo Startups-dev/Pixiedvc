@@ -7,16 +7,12 @@ import {
   ArrowRight,
   BarChart3,
   Check,
-  CircleDollarSign,
-  Link2,
-  MousePointerClick,
   PieChart,
   ShieldCheck,
   Sparkles,
   Star,
   Users,
   WalletCards,
-  Wand2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
@@ -45,25 +41,28 @@ const DASHBOARD_PREVIEW_IMAGE =
   "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Affiliate%20%20pages%20images/PixieDvc%20Affiliate%20Dashboard.png";
 const inputClassName =
   "w-full rounded-2xl border border-[rgba(15,33,72,0.14)] bg-[#F7F3EA] px-4 py-3 text-sm text-[#10224A] outline-none transition placeholder:text-[#58657A]/60 focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/25";
+const editorialHeadingStyle = {
+  fontFamily: '"Playfair Display", "Cormorant Garamond", Georgia, serif',
+};
 
 const heroBenefits = [
   {
-    icon: ShieldCheck,
+    iconSrc: "/images/affiliate-assets/shield-transparent.png",
     title: "Premium Brand You Can Trust",
     copy: "A concierge experience your audience can recommend with confidence.",
   },
   {
-    icon: CircleDollarSign,
+    iconSrc: "/images/affiliate-assets/stacked-coins-transparent.png",
     title: "Competitive Commissions",
     copy: "Earn 10–15% of PixieDVC’s service revenue on qualifying completed bookings.",
   },
   {
-    icon: BarChart3,
+    iconSrc: "/images/affiliate-assets/concierge-bell-transparent.png",
     title: "Real-Time Tracking",
     copy: "Track clicks, booking requests, conversions, and commissions.",
   },
   {
-    icon: WalletCards,
+    iconSrc: "/images/affiliate-assets/payout-ribbon-transparent.png",
     title: "Monthly Payouts",
     copy: "Clear payout reporting and transparent commission history.",
   },
@@ -94,28 +93,28 @@ const creatorBenefits = [
 
 const workflowSteps = [
   {
-    icon: Link2,
+    iconSrc: "/images/affiliate-assets/workflow-tag-v3.png",
     title: "Share Your Link",
     copy: "Share your personalized PixieDVC referral link with your audience.",
   },
   {
-    icon: MousePointerClick,
-    title: "Referral Clicks",
+    iconSrc: "/images/affiliate-assets/workflow-wand-v3.png",
+    title: "Someone Visits",
     copy: "A DVC owner or guest visits PixieDVC through your link.",
   },
   {
-    icon: Wand2,
+    iconSrc: "/images/affiliate-assets/workflow-bell-star-v3.png",
     title: "Pixie Handles Everything",
     copy: "We manage verification, support, matching, and the booking experience.",
   },
   {
-    icon: Check,
-    title: "Booking Completed",
-    copy: "The eligible referral completes a qualifying booking.",
+    iconSrc: "/images/affiliate-assets/workflow-shieldcheck-v3.png",
+    title: "Reservation Confirmed",
+    copy: "The eligible referral completes a qualifying reservation.",
   },
   {
-    icon: CircleDollarSign,
-    title: "You Earn Commission",
+    iconSrc: "/images/affiliate-assets/workflow-dollar-badge-v3.png",
+    title: "Commission Earned",
     copy: "Your commission is tracked and added to your partner account.",
   },
 ];
@@ -151,28 +150,37 @@ const whyPixie = [
 const faqs = [
   {
     q: "How are commissions calculated?",
-    a: "Commissions are calculated as a percentage of PixieDVC’s service revenue, which is the difference between the guest payment and the DVC owner payout. Your applicable rate depends on your partner tier and the booking’s eligibility.",
+    a: "You earn a percentage of PixieDVC’s service revenue — that’s the difference between what the guest pays and what the DVC owner receives. Your commission rate depends on your partner tier and the booking’s eligibility.",
   },
   {
     q: "What are the partner tiers?",
-    a: "Partner earns 10%, Verified Partner earns 12.5%, and Ambassador earns 15% of eligible PixieDVC service revenue. Higher tiers are earned through completed referrals, strong partner performance, referral quality, and brand alignment. Qualification rules will be governed by the Partner Agreement and program policies.",
+    a: "Partner earns 10%, Verified Partner earns 12.5%, and Ambassador earns 15% of eligible PixieDVC service revenue. As your completed referrals grow and you consistently represent the PixieDVC brand well, you’ll unlock higher commission tiers automatically. Qualification rules are outlined in the Partner Agreement and program policies.",
   },
   {
     q: "When and how are payouts made?",
-    a: "Eligible commissions are reviewed and included in scheduled partner payout cycles. Available payment methods and timing are shown inside the partner dashboard and Partner Agreement.",
+    a: "We run scheduled payout cycles throughout the month. Eligible commissions are reviewed and paid out using your selected payment method. You’ll see exact payout dates and methods right inside your dashboard.",
   },
   {
     q: "How long does referral attribution last?",
-    a: "Referral attribution is governed by the PixieDVC Partner Agreement and the tracking rules active when the referral is recorded.",
+    a: "Attribution is designed to give your referrals a fair chance to book. Exact attribution windows and rules are defined in the PixieDVC Partner Agreement.",
   },
   {
     q: "What are the requirements to join?",
-    a: "The program is intended for Disney-focused creators, DVC educators, travel planners, community leaders, and aligned partners who can represent PixieDVC responsibly.",
+    a: "We partner with Disney-focused creators, DVC educators, travel planners, community leaders, and content creators who share our values and can represent PixieDVC with integrity.",
   },
   {
     q: "How quickly can I begin?",
-    a: "After submitting your application, you can create your partner login and access your dashboard. Program access and available tools are subject to the current partner onboarding process.",
+    a: "Once your application is submitted, you’ll get instant access to your partner dashboard. From there, you can grab your links, explore resources, and start sharing — we’ll take care of the rest.",
   },
+];
+
+const audienceProfiles = [
+  { icon: Sparkles, label: "Disney YouTubers" },
+  { icon: PieChart, label: "Disney Bloggers" },
+  { icon: ShieldCheck, label: "Travel Advisors" },
+  { icon: Users, label: "Community Leaders" },
+  { icon: BarChart3, label: "Instagram Creators" },
+  { icon: WalletCards, label: "Podcast Hosts" },
 ];
 
 function getAffiliateConfirmationRedirectUrl() {
@@ -369,7 +377,7 @@ export default function AffiliateProgramPage() {
   }
 
   return (
-    <main className="overflow-x-hidden bg-[#F7F3EA] text-[#10224A]">
+    <main className="w-screen max-w-[100vw] overflow-x-hidden bg-[#F7F3EA] text-[#10224A]">
       <section className="relative overflow-hidden bg-[#08152F] text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(214,180,90,0.22),transparent_28%),radial-gradient(circle_at_74%_34%,rgba(23,58,114,0.72),transparent_34%)]" />
         <div className="absolute inset-y-0 -left-16 w-[72%] translate-y-3 opacity-25 sm:-left-20 sm:translate-y-4 lg:left-6 lg:w-[66%] lg:translate-y-6">
@@ -380,16 +388,16 @@ export default function AffiliateProgramPage() {
             className="h-full w-full scale-110 object-contain object-left-bottom lg:scale-125"
           />
         </div>
-        <div className="relative mx-auto grid max-w-[1200px] gap-8 px-6 py-14 lg:translate-x-12 lg:grid-cols-[1.35fr_1fr] lg:items-center lg:py-20 xl:translate-x-16">
+        <div className="relative mx-auto grid max-w-[1200px] gap-8 px-6 py-12 lg:translate-x-12 lg:grid-cols-[1.35fr_1fr] lg:items-center lg:py-16 xl:translate-x-16">
           <div className="order-1 min-w-0 lg:pl-16 xl:pl-24">
             <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#D6B45A]">
               PixieDVC Partner Program
             </p>
             <h1
-              className="mt-5 max-w-[11ch] text-balance text-[2.35rem] font-semibold leading-[0.96] tracking-[-0.04em] text-white [text-shadow:0_2px_18px_rgba(8,21,47,0.55)] sm:max-w-2xl sm:text-5xl lg:text-6xl"
-              style={{ color: "#FFFFFF" }}
+              className="mt-5 max-w-[12ch] text-balance text-[2.35rem] font-semibold leading-[0.96] tracking-[-0.04em] text-white [text-shadow:0_2px_18px_rgba(8,21,47,0.55)] sm:max-w-2xl sm:text-5xl lg:text-6xl"
+              style={{ ...editorialHeadingStyle, color: "#FFFFFF" }}
             >
-              Turn Your Disney Audience Into Premium Income
+              Turn Your Disney Audience Into a Premium Revenue Stream
             </h1>
             <p className="mt-6 max-w-[34ch] text-base leading-7 text-[#CBD5E1] sm:max-w-xl sm:text-lg">
               Partner with PixieDVC and earn up to 15% of our service revenue every time an eligible referral completes a qualifying booking.
@@ -400,7 +408,7 @@ export default function AffiliateProgramPage() {
                 onClick={scrollToApply}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-[#D6B45A] px-7 py-3 text-sm font-semibold text-[#08152F] shadow-[0_16px_36px_rgba(214,180,90,0.24)] transition hover:-translate-y-0.5 hover:bg-[#E4C66E] focus:outline-none focus:ring-2 focus:ring-[#D6B45A] focus:ring-offset-2 focus:ring-offset-[#08152F]"
               >
-                Apply Now — It’s Free
+                Apply to Become a Partner
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </button>
               <Link
@@ -415,19 +423,16 @@ export default function AffiliateProgramPage() {
 
           <div className="order-2 grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-1">
             {heroBenefits.map((benefit) => {
-              const Icon = benefit.icon;
               return (
-                <article key={benefit.title} className="min-w-0 rounded-3xl border border-white/12 bg-[#0F2148]/75 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.22)] backdrop-blur">
-                  <div className="flex items-start gap-4">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#D6B45A]/50 text-[#D6B45A]">
-                      <Icon className="h-5 w-5" aria-hidden="true" />
-                    </span>
-                    <div className="min-w-0">
-                      <h2 className="text-base font-semibold text-[#F8FAFC]" style={{ color: "#F8FAFC" }}>
-                        {benefit.title}
-                      </h2>
-                      <p className="mt-1 break-words text-sm leading-6 text-[#CBD5E1]">{benefit.copy}</p>
-                    </div>
+                <article key={benefit.title} className="flex min-w-0 items-center gap-4 rounded-3xl border border-white/12 bg-[#0F2148]/75 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.22)] backdrop-blur">
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center">
+                    <img src={benefit.iconSrc} alt="" aria-hidden="true" className="h-10 w-10 object-contain" />
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="text-base font-semibold text-[#F8FAFC]" style={{ color: "#F8FAFC" }}>
+                      {benefit.title}
+                    </h2>
+                    <p className="mt-1 break-words text-sm leading-6 text-[#CBD5E1]">{benefit.copy}</p>
                   </div>
                 </article>
               );
@@ -436,11 +441,11 @@ export default function AffiliateProgramPage() {
         </div>
       </section>
 
-      <section className="bg-[#F7F3EA] px-6 py-16">
-        <div className="mx-auto max-w-[1200px]">
-          <div className="mx-auto max-w-3xl text-center">
+      <section className="bg-[#F7F3EA] px-6 py-12 md:py-14">
+        <div className="mx-auto grid max-w-[1200px] gap-8 lg:grid-cols-[0.36fr_0.64fr] lg:items-center">
+          <div className="max-w-md">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Earnings Example</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl">
+            <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl" style={editorialHeadingStyle}>
               How Much Can You Earn?
             </h2>
             <p className="mt-4 text-base leading-7 text-[#58657A]">
@@ -448,72 +453,75 @@ export default function AffiliateProgramPage() {
             </p>
           </div>
 
-          <div className="mt-10 rounded-[28px] border border-[rgba(15,33,72,0.12)] bg-white p-5 shadow-[0_22px_55px_rgba(15,33,72,0.08)] lg:p-8">
-            <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr_auto_1fr] lg:items-center">
-              <FinancialCard label="Guest Pays" value="$3,600" />
-              <Connector label="minus" />
-              <FinancialCard label="Owner Receives" value="$2,725" />
-              <Connector label="equals" />
-              <FinancialCard label="PixieDVC Service Revenue" value="$875" featured />
-            </div>
+          <div className="min-w-0 rounded-[24px] border border-[rgba(15,33,72,0.12)] bg-white p-5 shadow-[0_18px_44px_rgba(15,33,72,0.08)] lg:p-6">
+            <div className="grid min-w-0 gap-4">
+              <div className="grid min-w-0 gap-3 md:grid-cols-[1fr_auto_1fr_auto_1.08fr] md:items-center">
+                <FinancialCard label="Guest Pays" value="$3,600" />
+                <Connector label="minus" compact />
+                <FinancialCard label="Owner Receives" value="$2,725" />
+                <Connector label="equals" compact />
+                <FinancialCard label="PixieDVC Service Revenue" value="$875" featured />
+              </div>
 
-            <div className="mt-6 flex justify-center text-[#D6B45A]" aria-hidden="true">
-              <ArrowRight className="h-5 w-5 rotate-90" />
-            </div>
+              <div className="flex items-center justify-center gap-3 text-xs font-semibold uppercase tracking-[0.22em] text-[#D6B45A]">
+                <span className="h-px w-16 bg-[#D6B45A]/60" aria-hidden="true" />
+                <span>commission</span>
+                <span className="h-px w-16 bg-[#D6B45A]/60" aria-hidden="true" />
+              </div>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
-              <CommissionCard tier="Partner — 10%" amount="$87.50" />
-              <CommissionCard tier="Verified Partner — 12.5%" amount="$109.38" featured />
-              <CommissionCard tier="Ambassador — 15%" amount="$131.25" />
+              <div className="min-w-0 rounded-3xl border border-[#D6B45A]/45 bg-[#F7F3EA] p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#D6B45A]">Your Commission</p>
+                <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-3">
+                  <CommissionCard tier="Partner" percent="10%" amount="$87.50" />
+                  <CommissionCard tier="Verified Partner" percent="12.5%" amount="$109.38" featured />
+                  <CommissionCard tier="Ambassador" percent="15%" amount="$131.25" />
+                </div>
+              </div>
             </div>
+            <p className="mt-4 text-xs leading-5 text-[#58657A]">
+              Illustrative example only. Actual commissions vary based on reservation size, resort, pricing, owner payout, eligibility, and partner tier.
+            </p>
+            <p className="mt-1 text-xs font-medium text-[#10224A]">
+              Higher commission tiers are earned through consistent completed referrals and strong partner performance.
+            </p>
           </div>
-
-          <p className="mt-5 text-center text-sm leading-6 text-[#58657A]">
-            Illustrative example only. Actual commissions vary based on reservation size, resort, pricing, owner payout, eligibility, and partner tier.
-          </p>
-          <p className="mt-2 text-center text-sm font-medium text-[#10224A]">
-            Higher commission tiers are earned through consistent completed referrals and strong partner performance.
-          </p>
         </div>
       </section>
 
-      <section className="bg-white px-6 py-16">
+      <section className="bg-white px-6 py-12 md:py-14">
         <div className="mx-auto max-w-[1200px]">
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">How It Works</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl">
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl" style={editorialHeadingStyle}>
               From referral link to tracked commission
             </h2>
           </div>
-          <div className="mt-10 grid gap-5 lg:grid-cols-5">
-            {workflowSteps.map((step, index) => {
-              const Icon = step.icon;
-              return (
-                <article key={step.title} className="relative rounded-3xl border border-[rgba(15,33,72,0.12)] bg-[#F7F3EA] p-5">
-                  {index < workflowSteps.length - 1 ? (
-                    <span className="absolute left-[calc(100%-10px)] top-10 hidden h-px w-10 bg-[#D6B45A] lg:block" aria-hidden="true" />
-                  ) : null}
-                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0F2148] text-[#D6B45A]">
-                    <Icon className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <h3 className="mt-5 text-lg font-semibold text-[#10224A]">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-[#58657A]">{step.copy}</p>
-                </article>
-              );
-            })}
+          <div className="mt-8 grid gap-5 lg:grid-cols-5">
+            {workflowSteps.map((step, index) => (
+              <article key={step.title} className="relative rounded-3xl border border-[rgba(15,33,72,0.12)] bg-[#F7F3EA] p-5">
+                {index < workflowSteps.length - 1 ? (
+                  <span className="absolute left-[calc(100%-10px)] top-10 hidden h-px w-10 bg-[#D6B45A] lg:block" aria-hidden="true" />
+                ) : null}
+                <span className="flex h-14 w-14 items-center justify-center">
+                  <img src={step.iconSrc} alt="" aria-hidden="true" className="h-12 w-12 object-contain" />
+                </span>
+                <h3 className="mt-5 text-lg font-semibold text-[#10224A]">{step.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-[#58657A]">{step.copy}</p>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="bg-[#08152F] px-6 py-16 text-white">
+      <section className="bg-[#08152F] px-6 py-12 text-white md:py-14">
         <div className="mx-auto max-w-[1200px]">
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Creator Advantages</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#F8FAFC] sm:text-4xl" style={{ color: "#F8FAFC" }}>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#F8FAFC] sm:text-4xl" style={{ ...editorialHeadingStyle, color: "#F8FAFC" }}>
               Why creators partner with PixieDVC
             </h2>
           </div>
-          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {creatorBenefits.map((benefit) => {
               const Icon = benefit.icon;
               return (
@@ -532,11 +540,11 @@ export default function AffiliateProgramPage() {
         </div>
       </section>
 
-      <section className="bg-[#F7F3EA] px-6 py-16">
+      <section className="bg-[#F7F3EA] px-6 py-12 md:py-14">
         <div className="mx-auto grid max-w-[1200px] gap-10 lg:grid-cols-[0.86fr_1.14fr] lg:items-center">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Dashboard Showcase</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl">
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl" style={editorialHeadingStyle}>
               Your Affiliate Dashboard
             </h2>
             <p className="mt-4 text-base leading-7 text-[#58657A]">
@@ -576,15 +584,15 @@ export default function AffiliateProgramPage() {
         </div>
       </section>
 
-      <section className="bg-white px-6 py-16">
+      <section className="bg-white px-6 py-12 md:py-14">
         <div className="mx-auto max-w-[1200px]">
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Why PixieDVC</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl">
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl" style={editorialHeadingStyle}>
               Built for premium DVC referrals
             </h2>
           </div>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {whyPixie.map((item) => (
               <article key={item.title} className="rounded-3xl border border-[rgba(15,33,72,0.12)] bg-[#F7F3EA] p-5">
                 <h3 className="text-base font-semibold text-[#10224A]">{item.title}</h3>
@@ -602,15 +610,15 @@ export default function AffiliateProgramPage() {
         </div>
       </section>
 
-      <section className="bg-[#F7F3EA] px-6 py-16">
+      <section className="bg-[#F7F3EA] px-6 py-12 md:py-14">
         <div className="mx-auto max-w-[980px]">
           <div className="text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">FAQ</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl">
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl" style={editorialHeadingStyle}>
               Partner Program questions
             </h2>
           </div>
-          <div className="mt-10 space-y-4">
+          <div className="mt-8 space-y-3">
             {faqs.map((item) => (
               <details key={item.q} className="group rounded-3xl border border-[rgba(15,33,72,0.12)] bg-white p-6 shadow-[0_14px_34px_rgba(15,33,72,0.06)]">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-base font-semibold text-[#10224A] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D6B45A]">
@@ -628,7 +636,7 @@ export default function AffiliateProgramPage() {
         <div className="mx-auto max-w-[1200px] rounded-[32px] border border-white/12 bg-[#08152F] p-8 text-white shadow-[0_26px_70px_rgba(8,21,47,0.24)] sm:p-10 lg:flex lg:items-center lg:justify-between lg:gap-10">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Apply Today</p>
-            <h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-[-0.03em] text-[#F8FAFC] sm:text-4xl" style={{ color: "#F8FAFC" }}>
+            <h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-[-0.03em] text-[#F8FAFC] sm:text-4xl" style={{ ...editorialHeadingStyle, color: "#F8FAFC" }}>
               Ready to Join the PixieDVC Partner Program?
             </h2>
             <ul className="mt-6 grid gap-3 text-sm text-[#CBD5E1] sm:grid-cols-3">
@@ -646,18 +654,45 @@ export default function AffiliateProgramPage() {
               onClick={scrollToApply}
               className="inline-flex w-full items-center justify-center rounded-full bg-[#D6B45A] px-7 py-3 text-sm font-semibold text-[#08152F] transition hover:-translate-y-0.5 hover:bg-[#E4C66E] focus:outline-none focus:ring-2 focus:ring-[#D6B45A] focus:ring-offset-2 focus:ring-offset-[#08152F] sm:w-auto"
             >
-              Apply Now — It’s Free
+              Apply to Become a Partner
             </button>
             <p className="mt-3 text-center text-xs text-[#CBD5E1]">Secure • Free to join • No monthly fees</p>
           </div>
         </div>
       </section>
 
-      <section ref={applyRef} id="affiliate-application" className="bg-[#F7F3EA] px-6 py-16">
+      <section className="bg-[#08152F] px-6 py-12 text-white md:py-14">
+        <div className="mx-auto max-w-[1200px] text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Partner Fit</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#F8FAFC] sm:text-4xl" style={{ ...editorialHeadingStyle, color: "#F8FAFC" }}>
+            Who Is This Program For?
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[#CBD5E1]">
+            Built for creators and professionals who inspire Disney vacationers every day.
+          </p>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+            {audienceProfiles.map((profile) => {
+              const Icon = profile.icon;
+              return (
+                <article key={profile.label} className="rounded-3xl border border-white/12 bg-[#0F2148]/70 p-5 shadow-[0_16px_40px_rgba(0,0,0,0.16)]">
+                  <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[#D6B45A]/50 text-[#D6B45A]">
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <h3 className="mt-4 text-sm font-semibold leading-5 text-[#F8FAFC]" style={{ color: "#F8FAFC" }}>
+                    {profile.label}
+                  </h3>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section ref={applyRef} id="affiliate-application" className="bg-[#F7F3EA] px-6 py-12 md:py-14">
         <div className="mx-auto max-w-[980px]">
           <div className="text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Application</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl">
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl" style={editorialHeadingStyle}>
               Apply to the PixieDVC Partner Program
             </h2>
           </div>
@@ -918,13 +953,13 @@ function FinancialCard({
 }) {
   return (
     <article
-      className={`rounded-3xl border p-5 text-center ${
+      className={`min-w-0 max-w-full rounded-3xl border p-5 text-center ${
         featured
           ? "border-[#D6B45A]/45 bg-[#0F2148] text-white"
           : "border-[rgba(15,33,72,0.12)] bg-[#F7F3EA] text-[#10224A]"
       }`}
     >
-      <p className={`text-xs font-semibold uppercase tracking-[0.22em] ${featured ? "text-[#D6B45A]" : "text-[#58657A]"}`}>
+      <p className={`break-words text-xs font-semibold uppercase tracking-[0.18em] sm:tracking-[0.22em] ${featured ? "text-[#D6B45A]" : "text-[#58657A]"}`}>
         {label}
       </p>
       <p className={`mt-3 text-3xl font-semibold ${featured ? "text-[#F8FAFC]" : "text-[#10224A]"}`}>{value}</p>
@@ -932,35 +967,38 @@ function FinancialCard({
   );
 }
 
-function Connector({ label }: { label: string }) {
+function Connector({ label, compact = false }: { label: string; compact?: boolean }) {
   return (
-    <div className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-[#D6B45A] lg:flex-col">
-      <span className="h-px w-10 bg-[#D6B45A]/60 lg:h-8 lg:w-px" aria-hidden="true" />
-      <span>{label}</span>
-      <span className="h-px w-10 bg-[#D6B45A]/60 lg:h-8 lg:w-px" aria-hidden="true" />
+    <div className={`flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-[#D6B45A] ${compact ? "" : "lg:flex-col"}`}>
+      <span className={`h-px bg-[#D6B45A]/60 ${compact ? "w-6" : "w-10 lg:h-8 lg:w-px"}`} aria-hidden="true" />
+      <span className="whitespace-nowrap">{label}</span>
+      <span className={`h-px bg-[#D6B45A]/60 ${compact ? "w-6" : "w-10 lg:h-8 lg:w-px"}`} aria-hidden="true" />
     </div>
   );
 }
 
 function CommissionCard({
   tier,
+  percent,
   amount,
   featured = false,
 }: {
   tier: string;
+  percent?: string;
   amount: string;
   featured?: boolean;
 }) {
   return (
     <article
-      className={`rounded-3xl border p-5 text-center ${
+      className={`min-w-0 max-w-full rounded-3xl border p-5 text-center ${
         featured
           ? "border-[#D6B45A]/50 bg-[#F7F3EA] shadow-[0_14px_34px_rgba(214,180,90,0.16)]"
           : "border-[rgba(15,33,72,0.12)] bg-white"
       }`}
     >
-      <p className="text-sm font-semibold text-[#10224A]">{tier}</p>
-      <p className="mt-2 text-2xl font-semibold text-[#10224A]">{amount}</p>
+      {percent ? <p className="text-lg font-semibold text-[#D6B45A]">{percent}</p> : null}
+      <p className="mt-1 break-words text-sm font-semibold text-[#10224A]">{tier}</p>
+      <p className="mt-2 text-xl font-semibold text-[#10224A]">{amount}</p>
     </article>
   );
 }
