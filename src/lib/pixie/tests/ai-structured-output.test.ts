@@ -46,5 +46,39 @@ describe("Pixie structured model output", () => {
       }),
     ).toThrow();
   });
-});
 
+  it("accepts strict concierge strategy metadata", () => {
+    const parsed = pixieModelTurnResultSchema.parse({
+      assistantResponse: "That helps narrow it down. What accommodation budget should I use?",
+      tripPatch: {},
+      requestedTools: [],
+      nextQuestionKey: "ask_budget_context",
+      planningIntent: "collect_information",
+      conversationMode: "discovery",
+      activeDecisionKey: "budget",
+      delightMomentKey: "none",
+      confidence: 0.7,
+      warnings: [],
+    });
+
+    expect(parsed.conversationMode).toBe("discovery");
+    expect(parsed.activeDecisionKey).toBe("budget");
+    expect(parsed.delightMomentKey).toBe("none");
+  });
+
+  it("rejects unknown concierge strategy metadata", () => {
+    expect(() =>
+      pixieModelTurnResultSchema.parse({
+        assistantResponse: "Hello.",
+        tripPatch: {},
+        requestedTools: [],
+        planningIntent: "collect_information",
+        conversationMode: "sales_push",
+        activeDecisionKey: "budget",
+        delightMomentKey: "none",
+        confidence: 0.5,
+        warnings: [],
+      }),
+    ).toThrow();
+  });
+});

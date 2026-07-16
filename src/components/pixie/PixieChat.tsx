@@ -49,7 +49,7 @@ export default function PixieChat({
           {state.error.message}
         </div>
       ) : null}
-      <PixieQuickReplies nextQuestionKey={state.nextQuestionKey ?? state.completeness.suggestedNextQuestionKey} onSend={onSend} disabled={!enabled || active} />
+      <PixieQuickReplies state={state} nextQuestionKey={state.nextQuestionKey ?? state.completeness.suggestedNextQuestionKey} onSend={onSend} disabled={!enabled || active} />
       <PixieComposer
         value={state.pendingInput}
         disabled={!enabled}
@@ -62,4 +62,3 @@ export default function PixieChat({
     </section>
   );
 }
-

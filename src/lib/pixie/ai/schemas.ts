@@ -3,7 +3,7 @@ import { z } from "zod";
 import { PIXIE_QUESTION_KEYS } from "@/lib/pixie/constants";
 import { pixieTripPatchSchema } from "@/lib/pixie/schema";
 
-export const PIXIE_AI_PROMPT_VERSION = "2026-07-11.phase4";
+export const PIXIE_AI_PROMPT_VERSION = "2026-07-15.concierge-personality";
 export const PIXIE_AI_PROVIDER_VERSION = "2026-07-11.phase4.fetch-responses";
 
 export const PIXIE_PLANNING_INTENTS = [
@@ -19,6 +19,44 @@ export const PIXIE_PLANNING_INTENTS = [
   "unsupported_request",
 ] as const;
 
+export const PIXIE_CONVERSATION_MODES = [
+  "discovery",
+  "clarification",
+  "recommendation",
+  "refinement",
+  "general_guidance",
+  "return_to_plan",
+  "celebration",
+  "decision_support",
+] as const;
+
+export const PIXIE_ACTIVE_DECISION_KEYS = [
+  "dates",
+  "party",
+  "budget",
+  "trip_priorities",
+  "pace",
+  "park_days",
+  "resort_choice",
+  "room_type",
+  "ready_stay",
+  "dining_style",
+  "adult_evening",
+  "none",
+] as const;
+
+export const PIXIE_DELIGHT_MOMENT_KEYS = [
+  "first_trip",
+  "halloween",
+  "christmas",
+  "birthday",
+  "anniversary",
+  "strong_resort_match",
+  "ready_stay_exact_match",
+  "celebration",
+  "none",
+] as const;
+
 export const PIXIE_TOOL_NAMES = [
   "get_planner_status",
   "apply_trip_patch",
@@ -28,6 +66,9 @@ export const PIXIE_TOOL_NAMES = [
 ] as const;
 
 export const pixiePlanningIntentSchema = z.enum(PIXIE_PLANNING_INTENTS);
+export const pixieConversationModeSchema = z.enum(PIXIE_CONVERSATION_MODES);
+export const pixieActiveDecisionKeySchema = z.enum(PIXIE_ACTIVE_DECISION_KEYS);
+export const pixieDelightMomentKeySchema = z.enum(PIXIE_DELIGHT_MOMENT_KEYS);
 export const pixieToolNameSchema = z.enum(PIXIE_TOOL_NAMES);
 
 function removeNullPatchFields(value: unknown): unknown {
@@ -73,6 +114,18 @@ export const pixieModelTurnResultSchema = z
       .optional()
       .transform((value) => value ?? undefined),
     planningIntent: pixiePlanningIntentSchema,
+    conversationMode: pixieConversationModeSchema
+      .nullable()
+      .optional()
+      .transform((value) => value ?? undefined),
+    activeDecisionKey: pixieActiveDecisionKeySchema
+      .nullable()
+      .optional()
+      .transform((value) => value ?? undefined),
+    delightMomentKey: pixieDelightMomentKeySchema
+      .nullable()
+      .optional()
+      .transform((value) => value ?? undefined),
     confidence: z.number().min(0).max(1).default(0.5),
     warnings: z.array(z.string().trim().min(1).max(300)).max(10).default([]),
   })
@@ -116,6 +169,9 @@ export const pixiePlannerTurnRequestSchema = z
   .strict();
 
 export type PixiePlanningIntent = z.infer<typeof pixiePlanningIntentSchema>;
+export type PixieConversationMode = z.infer<typeof pixieConversationModeSchema>;
+export type PixieActiveDecisionKey = z.infer<typeof pixieActiveDecisionKeySchema>;
+export type PixieDelightMomentKey = z.infer<typeof pixieDelightMomentKeySchema>;
 export type PixieToolName = z.infer<typeof pixieToolNameSchema>;
 export type PixieAiToolRequest = z.infer<typeof pixieAiToolRequestSchema>;
 export type PixieModelTurnResult = z.infer<typeof pixieModelTurnResultSchema>;

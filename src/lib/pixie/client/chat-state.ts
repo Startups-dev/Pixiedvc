@@ -7,7 +7,7 @@ import type { PixieClientError, PixieClientMessage, PixieChatEvent, PixieChatSta
 
 const MAX_DISPLAY_MESSAGES = 40;
 const INITIAL_ASSISTANT_MESSAGE =
-  "Hi, I’m Pixie. I’ll help you build a Walt Disney World vacation around your family, your budget, and the experiences that matter most. Who will be traveling with you?";
+  "Hi, I’m Pixie. I’ll help shape a Walt Disney World trip around your family, your budget, and the experiences that matter most. To start, who will be traveling with you?";
 
 function nowIso() {
   return new Date().toISOString();

@@ -35,6 +35,9 @@ describe("Pixie AI provider contract", () => {
         requestedTools: [],
         nextQuestionKey: "ask_dates",
         planningIntent: "collect_information",
+        conversationMode: "discovery",
+        activeDecisionKey: "dates",
+        delightMomentKey: "none",
         confidence: 0.75,
         warnings: [],
       }),
@@ -110,6 +113,7 @@ describe("Pixie AI provider contract", () => {
 
     expect(requestBody.model).toBe("gpt-5.6-sol");
     expect(JSON.stringify(requestBody)).not.toContain("gpt-5.6\"");
+    expect(JSON.stringify(requestBody)).toContain("2026-07-15.concierge-personality");
     expect(result.metadata.model).toBe("gpt-5.6-sol");
     expect(result.usage).toMatchObject({
       model: "gpt-5.6-sol",
@@ -118,6 +122,27 @@ describe("Pixie AI provider contract", () => {
       cachedInputTokens: 7,
       totalTokens: 153,
     });
+  });
+
+  it("requires concierge metadata in the strict OpenAI structured-output schema", async () => {
+    const fetchMock = mockOpenAiResponse(Response.json(validOpenAiPayload()));
+    const provider = createOpenAiPixieProvider(testEnv({
+      OPENAI_API_KEY: "sk-test-redacted",
+      PIXIE_MODEL: "gpt-5.6-sol",
+    }));
+
+    await provider.createPlannerTurn(plannerInput());
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as {
+      text?: { format?: { schema?: { required?: string[]; properties?: Record<string, unknown> } } };
+    };
+    const schema = requestBody.text?.format?.schema;
+
+    expect(schema?.required).toEqual(
+      expect.arrayContaining(["conversationMode", "activeDecisionKey", "delightMomentKey"]),
+    );
+    expect(schema?.properties).toHaveProperty("conversationMode");
+    expect(schema?.properties).toHaveProperty("activeDecisionKey");
+    expect(schema?.properties).toHaveProperty("delightMomentKey");
   });
 
   it("returns a typed configuration error when the API key is missing", async () => {

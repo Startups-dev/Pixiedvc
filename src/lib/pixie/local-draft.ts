@@ -86,7 +86,8 @@ export function migratePixieDraft(value: unknown): PixieDraftParseResult {
         reason: parsed.success ? "none" : "migrated",
       };
     }
-    return freshResult("invalid_state", parsed.error.issues.map((issue) => issue.message));
+    const issues = parsed.success ? ["Draft payload is invalid."] : parsed.error.issues.map((issue) => issue.message);
+    return freshResult("invalid_state", issues);
   }
 
   if (record.draftVersion === undefined && record.state && typeof record.state === "object") {

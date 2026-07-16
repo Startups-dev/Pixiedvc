@@ -6,7 +6,7 @@ Permanent rules live in `docs/pixie-development-bible.md`. This file tracks stat
 
 ## Project Status
 
-Pixie has not been implemented yet.
+Pixie is implemented through the anonymous text prototype, Phase 6 validation, and the concierge-personality refinement. It is not yet launched as a production public feature.
 
 The architecture audit is complete. The repository has been inspected for relevant systems:
 
@@ -36,11 +36,13 @@ Phase 4.5 OpenAI provider verification is complete. Pixie now requires `PIXIE_MO
 
 Phase 5 text experience foundation is complete. Pixie now has the first `/pixie` mobile-first text planning workspace, a secure non-persistent `/api/pixie/chat` route, local browser draft restore/reset, trusted resort and Ready Stay result rendering, safe analytics events, and feature-flagged public exposure.
 
+The concierge-personality phase is complete. Pixie now has a versioned concierge prompt, strict conversation-mode metadata, plain-text response normalization, trusted recommendation introductions, contextual quick replies, and documentation for the desired interview strategy.
+
 Pixie still has no authenticated persistence, migrations, booking conversion, Ready Stay locking, payment, email, voice, avatar, or deployment.
 
 ## Current Phase
 
-Phase 5: Text-chat API and frontend foundation.
+Concierge-personality and interview-strategy refinement after Phase 6 prototype validation.
 
 Approved implementation order from the development bible:
 
@@ -57,7 +59,7 @@ Approved implementation order from the development bible:
 11. Analytics.
 12. Production hardening.
 
-Phase 1, Phase 2, Phase 2.5, Phase 3, Phase 4, Phase 4.5, and Phase 5 are complete. The next approved implementation phase is prototype validation and launch hardening for the text experience before authenticated persistence.
+Phase 1, Phase 2, Phase 2.5, Phase 3, Phase 4, Phase 4.5, Phase 5, Phase 6 validation, and the concierge-personality refinement are complete. The next approved implementation phase is recommendation storytelling refinement or authenticated persistence, depending on product priority.
 
 ## Completed Work
 
@@ -278,6 +280,35 @@ Not implemented in this phase:
 - Voice or animated avatar.
 - Deployment.
 
+### 2026-07-15: Concierge personality and interview strategy completed
+
+Implemented:
+
+- Versioned Pixie prompt updated from `2026-07-11.phase4` to `2026-07-15.concierge-personality`.
+- Concierge personality guidance for warm, calm, premium, concise, honest and proactive responses.
+- Preferred turn structure: acknowledge, connect, guide, ask one useful question.
+- Conversation-mode metadata: discovery, clarification, recommendation, refinement, general guidance, return to plan, celebration, and decision support.
+- Active-decision and delight-moment metadata for response presentation.
+- Prompt rules for side questions, “you decide” requests, restrained delight, recommendation introductions, and plain-text responses.
+- Response-builder normalization for raw Markdown markers in the current plain-text renderer.
+- Response-builder guard against repeated mechanical questions for dates, party, or budget when completeness already knows the answer.
+- Compact deterministic resort recommendation introductions using trusted Phase 2 tool output.
+- Contextual quick replies for budget, pace, resort recommendations, and “you decide” paths.
+- Concierge personality reference documentation.
+- Mocked tests for prompt content, strict structured metadata, provider schema alignment, response builder behavior, and contextual quick replies.
+- Live synthetic testing with `PIXIE_MODEL=gpt-5.6-sol` confirmed that the first family-trip message can extract trip details, produce recommendations, and keep responses concise when the local timeout is raised to 60 seconds.
+- Live synthetic testing also found and fixed two conversation-quality issues: repeated resort introductions during unrelated turns and unsupported specific restaurant naming during dining “you decide” guidance.
+
+Not implemented in this phase:
+
+- New Disney knowledge sources.
+- Restaurant database.
+- Deterministic pricing, points, capacity, recommendation, or Ready Stay business-logic changes.
+- Persistence.
+- Booking actions.
+- Voice or avatar.
+- Deployment.
+
 ## Architecture Decisions
 
 - Pixie lives inside the existing PixieDVC production repository.
@@ -329,7 +360,8 @@ Not implemented in this phase:
 - AKV Kidani/Jambo listing distinctions remain `subProperty` metadata under Pixie resort ID `akv`.
 - Pixie AI uses a provider abstraction and does not depend directly on provider response objects.
 - The initial Pixie OpenAI provider is fetch-based because no `openai` SDK package is currently installed.
-- Pixie AI prompt version is `2026-07-11.phase4`.
+- Pixie AI prompt version is `2026-07-15.concierge-personality`.
+- Pixie model output may include strict concierge metadata: `conversationMode`, `activeDecisionKey`, and `delightMomentKey`; these guide presentation only and do not authorize trusted facts.
 - Pixie AI tool allowlist is `get_planner_status`, `apply_trip_patch`, `recommend_resorts`, `find_ready_stays`, and `generate_plan_outline`.
 - Pixie AI tools are deterministic server-side functions; the model cannot execute arbitrary function names or business logic.
 - Pixie AI has no Supabase write, booking, payment, email, owner, or hidden-inventory tools.

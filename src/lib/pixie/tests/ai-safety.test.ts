@@ -31,6 +31,6 @@ describe("Pixie AI safety", () => {
   });
 
   it("uses a live-safe default model timeout for the verified Pixie model", () => {
-    expect(getPixieAiConfig({ PIXIE_MODEL: "gpt-5.6-sol" }).modelTimeoutMs).toBe(30_000);
+    expect(getPixieAiConfig({ NODE_ENV: "test", PIXIE_MODEL: "gpt-5.6-sol" }).modelTimeoutMs).toBe(30_000);
   });
 });

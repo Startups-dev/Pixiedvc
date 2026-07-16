@@ -5,10 +5,14 @@ import { describe, expect, it, vi } from "vitest";
 import PixieComposer from "@/components/pixie/PixieComposer";
 import PixieHeader from "@/components/pixie/PixieHeader";
 import PixieMessage from "@/components/pixie/PixieMessage";
+import PixieQuickReplies from "@/components/pixie/PixieQuickReplies";
 import PixieReadyStayCard from "@/components/pixie/PixieReadyStayCard";
 import PixieSavePrompt from "@/components/pixie/PixieSavePrompt";
 import SupportWidget from "@/components/support/SupportWidget";
 import { createInitialPixieChatState } from "@/lib/pixie/client/chat-state";
+import { evaluatePixieCompleteness } from "@/lib/pixie/completeness";
+import { createEmptyPixieTripState } from "@/lib/pixie/planner-state";
+import type { PixieRecommendationResult } from "@/lib/pixie/resorts/recommendation-service";
 import type { PixieReadyStayMatch } from "@/lib/pixie/ready-stays/types";
 
 const navigationMock = vi.hoisted(() => ({ pathname: "/" }));
@@ -101,6 +105,53 @@ function readyStayMatch(overrides: Partial<PixieReadyStayMatch> = {}): PixieRead
   };
 }
 
+function recommendationResult(): PixieRecommendationResult {
+  return {
+    recommendations: [
+      {
+        recommendationId: "pixie-rec-bcv-studio",
+        resortId: "bcv",
+        resortSlug: "beach-club-villas",
+        displayName: "Beach Club Villas",
+        rank: 1,
+        score: 90,
+        eligibleRoomTypes: [],
+        recommendedRoomType: {
+          id: "deluxe_studio",
+          displayName: "Deluxe Studio",
+          calculatorRoomCode: "DELUXESTUDIO",
+          standardCapacity: 4,
+          maximumCapacity: 5,
+          bedroomCount: 0,
+          kitchenLevel: "kitchenette",
+          laundryAvailability: "shared",
+          calculatorSupported: true,
+        },
+        estimatedPoints: null,
+        estimatedGuestPrice: null,
+        budgetFit: "budget_context_missing",
+        reasonCodes: ["near_priority_park"],
+        explanationFragments: ["Close to EPCOT."],
+        tradeoffs: ["Budget fit will improve after accommodation budget context is known."],
+        warnings: [],
+        dataQuality: ["partial"],
+        pricingStatus: "not_requested",
+        calculatorStatus: "not_requested",
+        scoringBreakdown: [],
+      },
+    ],
+    excludedResorts: [],
+    warnings: [],
+    inputSummary: { destination: "walt_disney_world", partySize: 4, budgetType: "unknown" },
+    recommendationReadiness: evaluatePixieCompleteness(createEmptyPixieTripState("2026-07-15T12:00:00.000Z")),
+    generatedAt: "2026-07-15T12:00:00.000Z",
+    scoringVersion: "test",
+    catalogVersion: "test",
+    pricingVersion: "test",
+    calculatorCoverage: { supportedYears: [2026] },
+  };
+}
+
 describe("Pixie UI contracts", () => {
   it("renders Pixie disclosure and Disney non-affiliation language", () => {
     render(<PixieHeader state={createInitialPixieChatState()} enabled onResetClick={() => undefined} />);
@@ -187,5 +238,35 @@ describe("Pixie UI contracts", () => {
 
     expect(screen.getByText(/server-side saved trips come in a later phase/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /sign in to continue/i })).toHaveAttribute("href", "/login?mode=signup&next=%2Fpixie&intent=pixie");
+  });
+
+  it("renders contextual budget quick replies that still send natural API messages", async () => {
+    const user = userEvent.setup();
+    const onSend = vi.fn();
+    render(<PixieQuickReplies nextQuestionKey="ask_budget_context" disabled={false} onSend={onSend} />);
+
+    expect(screen.getByRole("button", { name: /accommodation budget/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /whole-trip budget/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button")).toHaveLength(4);
+
+    await user.click(screen.getByRole("button", { name: /whole-trip budget/i }));
+    expect(onSend).toHaveBeenCalledWith("I have a whole-trip budget, not just lodging.");
+  });
+
+  it("shows recommendation quick replies after trusted recommendations exist", () => {
+    const state = createInitialPixieChatState();
+    render(
+      <PixieQuickReplies
+        state={{ ...state, recommendations: recommendationResult() }}
+        nextQuestionKey="ask_budget_context"
+        disabled={false}
+        onSend={() => undefined}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /keep pixie.s favorite/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /compare top two/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /check ready stays/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button")).toHaveLength(4);
   });
 });

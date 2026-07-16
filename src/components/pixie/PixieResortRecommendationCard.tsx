@@ -16,7 +16,7 @@ export default function PixieResortRecommendationCard({
   index: number;
 }) {
   const image = resolveResortImage({ resortSlug: recommendation.resortSlug, imageIndex: index + 1 });
-  const price = recommendation.estimatedGuestPrice?.supported
+  const price = recommendation.estimatedGuestPrice?.supported && recommendation.estimatedGuestPrice.pricingContext === "custom_request_estimate"
     ? formatCents(recommendation.estimatedGuestPrice.estimatedTotalCents)
     : null;
   const label = index === 0 ? "Strongest match" : index === 1 ? "Great alternative" : "Worth considering";

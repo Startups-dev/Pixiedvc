@@ -45,7 +45,7 @@ Non-model defaults are conservative and live in `src/lib/pixie/ai/safety.ts`. Mi
 Prompt version:
 
 ```text
-2026-07-11.phase4
+2026-07-15.concierge-personality
 ```
 
 Provider source version:
@@ -111,12 +111,21 @@ The model must return `PixieModelTurnResult`:
 - `requestedTools`
 - `nextQuestionKey`
 - `planningIntent`
+- `conversationMode`
+- `activeDecisionKey`
+- `delightMomentKey`
 - `confidence`
 - `warnings`
 
 Unknown fields are rejected. Invalid output is not silently accepted.
 
 The model must not return authoritative points, prices, room capacity, inventory, Ready Stay visibility, booking status, payment status, or database identifiers.
+
+Concierge metadata is optional after normalization and nullable at the provider boundary. It guides response presentation only:
+
+- `conversationMode`: discovery, clarification, recommendation, refinement, general guidance, return to plan, celebration, or decision support.
+- `activeDecisionKey`: the current planning decision, such as budget, pace, resort choice, dining style, or adult evening.
+- `delightMomentKey`: restrained warmth for special moments such as first trips, Halloween, celebrations, strong resort matches, or exact Ready Stay matches.
 
 ## Trip Patch Process
 
@@ -223,7 +232,9 @@ Rules include:
 - trusted tool results;
 - warnings.
 
-It softens unsafe availability language and adds Ready Stay recheck warnings when Ready Stay tools run.
+It softens unsafe availability language, removes common Markdown markers for the current plain-text renderer, avoids repeating mechanical questions for facts already known by completeness, adds Ready Stay recheck warnings when Ready Stay tools run, and can introduce trusted resort recommendations with a compact deterministic summary.
+
+Recommendation introductions use only trusted tool output for resort names, ranking, reasons and tradeoffs. They do not change scores, prices, points, capacity, or eligibility.
 
 Future UI should render trusted cards separately from conversational text.
 

@@ -87,6 +87,8 @@ The current Phase 4 provider does not stream token-by-token text. The UI still h
 
 Phase 6 hardening requires every stream event to carry `turnId`. The client ignores stale events, rejects final results whose envelope turn ID does not match the result turn ID, and deduplicates repeated completion/failure events by turn ID.
 
+The concierge-personality phase keeps the same streaming contract. It changes only conversation strategy, plain-text response handling, and contextual quick replies.
+
 ## Feature Flag
 
 Environment variable:
@@ -149,6 +151,8 @@ Messages have stable client IDs and roles:
 - `status`
 
 Internal tool events are not displayed as normal chat bubbles.
+
+The initial Pixie message is intentionally concise and concierge-like: Pixie offers to shape a Walt Disney World trip around the family, budget, and priorities, then asks who is traveling.
 
 ## Local Draft Recovery
 
@@ -219,6 +223,22 @@ Ready Stay cards render trusted Phase 3 matches only:
 Ready Stay cards use labels such as “Exact match,” “Flexible-date option,” and “Partial overlap.” Partial overlaps remain visibly incomplete. The card action is a review/deep-link action into the existing Ready Stay flow, not a Pixie booking or lock action.
 
 Pixie never displays owner payout values or treats Ready Stay prices as custom request estimates.
+
+## Quick Replies
+
+Quick replies are contextual presentation helpers. They still send normal user-intent text through `/api/pixie/chat`; they do not patch planner state directly.
+
+Current behavior:
+
+- Budget question: “Accommodation budget,” “Nightly budget,” “Whole-trip budget,” and “Still deciding.”
+- Resort recommendations available: “Keep Pixie’s favorite,” “Compare top two,” “Show lower-cost options,” and “Check Ready Stays.”
+- Pace question: includes “You decide” so Pixie can make a reasoned recommendation when enough context exists.
+
+No more than four quick replies are shown.
+
+## Plain Text Responses
+
+The current chat renderer is plain text. The Pixie prompt asks the model not to use Markdown headings, bold markers, bullet markers, tables, raw JSON, or HTML. The response builder also strips common Markdown markers defensively before returning assistant text to the client.
 
 ## Analytics Events
 

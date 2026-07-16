@@ -1,7 +1,16 @@
 import { buildPixieSystemPrompt } from "@/lib/pixie/ai/prompts";
 import type { PixieModelOptions, PixieModelProvider, PixieModelProviderResult, PixiePlannerTurnInput } from "@/lib/pixie/ai/provider";
 import { PixieAiException } from "@/lib/pixie/ai/errors";
-import { PIXIE_AI_PROMPT_VERSION, PIXIE_AI_PROVIDER_VERSION, pixieModelTurnResultSchema } from "@/lib/pixie/ai/schemas";
+import {
+  PIXIE_ACTIVE_DECISION_KEYS,
+  PIXIE_AI_PROMPT_VERSION,
+  PIXIE_AI_PROVIDER_VERSION,
+  PIXIE_CONVERSATION_MODES,
+  PIXIE_DELIGHT_MOMENT_KEYS,
+  PIXIE_PLANNING_INTENTS,
+  PIXIE_TOOL_NAMES,
+  pixieModelTurnResultSchema,
+} from "@/lib/pixie/ai/schemas";
 import { getPixieAiConfig, withTimeoutSignal } from "@/lib/pixie/ai/safety";
 import { getPixieModelToolDefinitions } from "@/lib/pixie/ai/tool-registry";
 import {
@@ -367,7 +376,18 @@ export function createOpenAiPixieProvider(env: NodeJS.ProcessEnv = process.env):
                 schema: {
                   type: "object",
                   additionalProperties: false,
-                  required: ["assistantResponse", "tripPatch", "requestedTools", "nextQuestionKey", "planningIntent", "confidence", "warnings"],
+                  required: [
+                    "assistantResponse",
+                    "tripPatch",
+                    "requestedTools",
+                    "nextQuestionKey",
+                    "planningIntent",
+                    "conversationMode",
+                    "activeDecisionKey",
+                    "delightMomentKey",
+                    "confidence",
+                    "warnings",
+                  ],
                   properties: {
                     assistantResponse: { type: "string" },
                     tripPatch: pixieTripPatchJsonSchema,
@@ -378,7 +398,7 @@ export function createOpenAiPixieProvider(env: NodeJS.ProcessEnv = process.env):
                         additionalProperties: false,
                         required: ["name", "input", "requestId", "reason"],
                         properties: {
-                          name: { type: "string", enum: ["get_planner_status", "apply_trip_patch", "recommend_resorts", "find_ready_stays", "generate_plan_outline"] },
+                          name: { type: "string", enum: PIXIE_TOOL_NAMES },
                           input: { type: "object", additionalProperties: false, required: [], properties: {} },
                           requestId: { type: ["string", "null"] },
                           reason: { type: ["string", "null"] },
@@ -391,18 +411,19 @@ export function createOpenAiPixieProvider(env: NodeJS.ProcessEnv = process.env):
                     },
                     planningIntent: {
                       type: "string",
-                      enum: [
-                        "collect_information",
-                        "clarify_information",
-                        "update_trip",
-                        "recommend_resorts",
-                        "find_ready_stays",
-                        "explain_recommendation",
-                        "revise_plan",
-                        "prepare_booking_handoff",
-                        "general_disney_planning",
-                        "unsupported_request",
-                      ],
+                      enum: PIXIE_PLANNING_INTENTS,
+                    },
+                    conversationMode: {
+                      type: ["string", "null"],
+                      enum: [...PIXIE_CONVERSATION_MODES, null],
+                    },
+                    activeDecisionKey: {
+                      type: ["string", "null"],
+                      enum: [...PIXIE_ACTIVE_DECISION_KEYS, null],
+                    },
+                    delightMomentKey: {
+                      type: ["string", "null"],
+                      enum: [...PIXIE_DELIGHT_MOMENT_KEYS, null],
                     },
                     confidence: { type: "number" },
                     warnings: { type: "array", items: { type: "string" } },

@@ -188,6 +188,7 @@ export async function runPixiePlannerTurn(input: RunPixiePlannerTurnInput): Prom
       completeness,
       toolResults: [],
       warnings: [...warnings, "invalid_model_output"],
+      latestUserMessage: message.message,
     });
     return {
       assistantResponse: response.message,
@@ -232,7 +233,7 @@ export async function runPixiePlannerTurn(input: RunPixiePlannerTurnInput): Prom
   usage = mergePixieUsage(usage, undefined, toolResults.length);
 
   const trustedOutputs = extractTrustedToolOutputs(toolResults);
-  const response = buildPixiePlannerResponse({ modelResult, completeness, toolResults, warnings });
+  const response = buildPixiePlannerResponse({ modelResult, completeness, toolResults, warnings, latestUserMessage: message.message });
 
   return {
     assistantResponse: response.message,
