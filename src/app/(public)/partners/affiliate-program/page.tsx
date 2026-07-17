@@ -5,14 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
-  BarChart3,
   Check,
-  PieChart,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  Users,
-  WalletCards,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
@@ -70,22 +63,18 @@ const heroBenefits = [
 
 const creatorBenefits = [
   {
-    icon: Users,
     title: "Help DVC Owners Earn More",
     copy: "Introduce owners to a guided way to rent eligible unused points.",
   },
   {
-    icon: ShieldCheck,
     title: "Protect Your Reputation",
     copy: "Refer your audience to a premium, concierge-supported experience.",
   },
   {
-    icon: PieChart,
     title: "Earn Transparent Commissions",
     copy: "See how eligible commissions are calculated and tracked.",
   },
   {
-    icon: BarChart3,
     title: "Professional Dashboard",
     copy: "Monitor clicks, requests, conversions, commission history, and payouts.",
   },
@@ -175,12 +164,12 @@ const faqs = [
 ];
 
 const audienceProfiles = [
-  { icon: Sparkles, label: "Disney YouTubers" },
-  { icon: PieChart, label: "Disney Bloggers" },
-  { icon: ShieldCheck, label: "Travel Advisors" },
-  { icon: Users, label: "Community Leaders" },
-  { icon: BarChart3, label: "Instagram Creators" },
-  { icon: WalletCards, label: "Podcast Hosts" },
+  { label: "Disney YouTubers" },
+  { label: "Disney Bloggers" },
+  { label: "Travel Advisors" },
+  { label: "Community Leaders" },
+  { label: "Instagram Creators" },
+  { label: "Podcast Hosts" },
 ];
 
 function getAffiliateConfirmationRedirectUrl() {
@@ -521,21 +510,18 @@ export default function AffiliateProgramPage() {
               Why creators partner with PixieDVC
             </h2>
           </div>
-          <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-            {creatorBenefits.map((benefit) => {
-              const Icon = benefit.icon;
-              return (
-                <article key={benefit.title} className="rounded-3xl border border-white/12 bg-[#0F2148]/70 p-6">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D6B45A]/50 text-[#D6B45A]">
-                    <Icon className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <h3 className="mt-5 text-lg font-semibold text-[#F8FAFC]" style={{ color: "#F8FAFC" }}>
-                    {benefit.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-[#CBD5E1]">{benefit.copy}</p>
-                </article>
-              );
-            })}
+          <div className="mt-11 grid items-stretch gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {creatorBenefits.map((benefit, index) => (
+              <article key={benefit.title} className="flex h-full flex-col rounded-3xl border border-[rgba(231,200,106,0.16)] bg-[#0F2148]/70 px-[30px] py-8 shadow-[0_18px_42px_rgba(0,0,0,0.12)] transition duration-200 motion-reduce:transition-none motion-reduce:hover:translate-y-0 hover:-translate-y-0.5 hover:border-[rgba(231,200,106,0.28)] hover:bg-[#173A72]/45">
+                <p className="text-[44px] font-medium leading-none tracking-[-0.045em] text-[#E7C86A]/90" style={editorialHeadingStyle}>
+                  {String(index + 1).padStart(2, "0")}
+                </p>
+                <h3 className="mt-8 min-h-[52px] text-[19px] font-semibold leading-[1.35] text-[#F8FAFC]" style={{ color: "#F8FAFC" }}>
+                  {benefit.title}
+                </h3>
+                <p className="mt-3 text-sm leading-[1.68] text-[#CBD5E1]">{benefit.copy}</p>
+              </article>
+            ))}
           </div>
         </div>
       </section>
@@ -600,8 +586,7 @@ export default function AffiliateProgramPage() {
               </article>
             ))}
             <article className="rounded-3xl border border-[#D6B45A]/45 bg-[#0F2148] p-5 text-white shadow-[0_18px_45px_rgba(15,33,72,0.18)]">
-              <Sparkles className="h-5 w-5 text-[#D6B45A]" aria-hidden="true" />
-              <h3 className="mt-4 text-base font-semibold text-[#F8FAFC]">Founding Creator Program</h3>
+              <h3 className="text-base font-semibold text-[#F8FAFC]">Founding Creator Program</h3>
               <p className="mt-2 text-sm leading-6 text-[#CBD5E1]">
                 Founding partners may receive enhanced launch commission opportunities, recognition, and early access to partner resources.
               </p>
@@ -641,8 +626,7 @@ export default function AffiliateProgramPage() {
             </h2>
             <ul className="mt-6 grid gap-3 text-sm text-[#CBD5E1] sm:grid-cols-3">
               {["Quick & Easy Application", "Transparent Partner Tracking", "Start Building Eligible Commissions"].map((item) => (
-                <li key={item} className="flex items-start gap-2">
-                  <Star className="mt-0.5 h-4 w-4 shrink-0 text-[#D6B45A]" aria-hidden="true" />
+                <li key={item}>
                   <span>{item}</span>
                 </li>
               ))}
@@ -671,19 +655,13 @@ export default function AffiliateProgramPage() {
             Built for creators and professionals who inspire Disney vacationers every day.
           </p>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
-            {audienceProfiles.map((profile) => {
-              const Icon = profile.icon;
-              return (
-                <article key={profile.label} className="rounded-3xl border border-white/12 bg-[#0F2148]/70 p-5 shadow-[0_16px_40px_rgba(0,0,0,0.16)]">
-                  <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[#D6B45A]/50 text-[#D6B45A]">
-                    <Icon className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <h3 className="mt-4 text-sm font-semibold leading-5 text-[#F8FAFC]" style={{ color: "#F8FAFC" }}>
-                    {profile.label}
-                  </h3>
-                </article>
-              );
-            })}
+            {audienceProfiles.map((profile) => (
+              <article key={profile.label} className="rounded-3xl border border-white/12 bg-[#0F2148]/70 p-5 shadow-[0_16px_40px_rgba(0,0,0,0.16)]">
+                <h3 className="text-sm font-semibold leading-5 text-[#F8FAFC]" style={{ color: "#F8FAFC" }}>
+                  {profile.label}
+                </h3>
+              </article>
+            ))}
           </div>
         </div>
       </section>
