@@ -32,6 +32,8 @@ const initialForm: ApplyForm = {
 const HERO_PIXIE_IMAGE = "/images/affiliate/pixie-affiliate-hero-transparent.png";
 const DASHBOARD_PREVIEW_IMAGE =
   "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Affiliate%20%20pages%20images/PixieDvc%20Affiliate%20Dashboard.png";
+const APPLY_CTA_BACKGROUND_IMAGE =
+  "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/resorts/vero-beach/VBR1.png";
 const inputClassName =
   "w-full rounded-2xl border border-[rgba(15,33,72,0.14)] bg-[#F7F3EA] px-4 py-3 text-sm text-[#10224A] outline-none transition placeholder:text-[#58657A]/60 focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/25";
 const editorialHeadingStyle = {
@@ -83,28 +85,28 @@ const creatorBenefits = [
 const workflowSteps = [
   {
     iconSrc: "/images/affiliate-assets/workflow-tag-v3.png",
-    title: "Share Your Link",
-    copy: "Share your personalized PixieDVC referral link with your audience.",
+    title: "You Share",
+    copy: "Share your unique referral link with your audience.",
   },
   {
     iconSrc: "/images/affiliate-assets/workflow-wand-v3.png",
-    title: "Someone Visits",
-    copy: "A DVC owner or guest visits PixieDVC through your link.",
+    title: "They Discover",
+    copy: "PixieDVC finds the perfect rental solution for them.",
   },
   {
     iconSrc: "/images/affiliate-assets/workflow-bell-star-v3.png",
-    title: "Pixie Handles Everything",
-    copy: "We manage verification, support, matching, and the booking experience.",
+    title: "We Handle Everything",
+    copy: "Our concierge team handles booking, contracts, and communication.",
   },
   {
     iconSrc: "/images/affiliate-assets/workflow-shieldcheck-v3.png",
-    title: "Reservation Confirmed",
-    copy: "The eligible referral completes a qualifying reservation.",
+    title: "Booking Completed",
+    copy: "The guest stays at Disney. You get credit for the successful booking.",
   },
   {
     iconSrc: "/images/affiliate-assets/workflow-dollar-badge-v3.png",
-    title: "Commission Earned",
-    copy: "Your commission is tracked and added to your partner account.",
+    title: "You Earn",
+    copy: "Your commission is calculated and paid on time.",
   },
 ];
 
@@ -366,7 +368,7 @@ export default function AffiliateProgramPage() {
   }
 
   return (
-    <main className="w-screen max-w-[100vw] overflow-x-hidden bg-[#F7F3EA] text-[#10224A]">
+    <main className="overflow-x-hidden bg-[#F7F3EA] text-[#10224A]">
       <section className="relative overflow-hidden bg-[#08152F] text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(214,180,90,0.22),transparent_28%),radial-gradient(circle_at_74%_34%,rgba(23,58,114,0.72),transparent_34%)]" />
         <div className="absolute inset-y-0 -left-16 w-[72%] translate-y-3 opacity-25 sm:-left-20 sm:translate-y-4 lg:left-6 lg:w-[66%] lg:translate-y-6">
@@ -413,7 +415,7 @@ export default function AffiliateProgramPage() {
           <div className="order-2 grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-1">
             {heroBenefits.map((benefit) => {
               return (
-                <article key={benefit.title} className="flex min-w-0 items-center gap-4 rounded-3xl border border-white/12 bg-[#0F2148]/75 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.22)] backdrop-blur">
+                <article key={benefit.title} className="flex min-w-0 items-center gap-4 rounded-[12px] border border-white/12 bg-[#0F2148]/75 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.22)] backdrop-blur">
                   <span className="flex h-12 w-12 shrink-0 items-center justify-center">
                     <img src={benefit.iconSrc} alt="" aria-hidden="true" className="h-10 w-10 object-contain" />
                   </span>
@@ -442,7 +444,7 @@ export default function AffiliateProgramPage() {
             </p>
           </div>
 
-          <div className="min-w-0 rounded-[24px] border border-[rgba(15,33,72,0.12)] bg-white p-5 shadow-[0_18px_44px_rgba(15,33,72,0.08)] lg:p-6">
+          <div className="min-w-0 rounded-[12px] border border-[rgba(15,33,72,0.12)] bg-white p-5 shadow-[0_18px_44px_rgba(15,33,72,0.08)] lg:p-6">
             <div className="grid min-w-0 gap-4">
               <div className="grid min-w-0 gap-3 md:grid-cols-[1fr_auto_1fr_auto_1.08fr] md:items-center">
                 <FinancialCard label="Guest Pays" value="$3,600" />
@@ -458,7 +460,7 @@ export default function AffiliateProgramPage() {
                 <span className="h-px w-16 bg-[#D6B45A]/60" aria-hidden="true" />
               </div>
 
-              <div className="min-w-0 rounded-3xl border border-[#D6B45A]/45 bg-[#F7F3EA] p-5">
+              <div className="min-w-0 rounded-[12px] border border-[#D6B45A]/45 bg-[#F7F3EA] p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#D6B45A]">Your Commission</p>
                 <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-3">
                   <CommissionCard tier="Partner" percent="10%" amount="$87.50" />
@@ -479,25 +481,27 @@ export default function AffiliateProgramPage() {
 
       <section className="bg-white px-6 py-12 md:py-14">
         <div className="mx-auto max-w-[1200px]">
-          <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">How It Works</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl" style={editorialHeadingStyle}>
-              From referral link to tracked commission
+          <div className="rounded-[12px] border border-[#D6B45A]/20 bg-[#071933] px-5 py-10 text-center shadow-[0_24px_60px_rgba(7,25,51,0.18)] sm:px-8 lg:px-10">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.34em] text-[#D6B45A]">How It Works</p>
+            <h2 className="mx-auto mt-2 max-w-4xl text-[28px] font-semibold tracking-[-0.03em] text-[#F8FAFC] sm:text-[34px]" style={{ ...editorialHeadingStyle, color: "#F8FAFC" }}>
+              From referral to commission in 5 simple steps.
             </h2>
-          </div>
-          <div className="mt-8 grid gap-5 lg:grid-cols-5">
-            {workflowSteps.map((step, index) => (
-              <article key={step.title} className="relative rounded-3xl border border-[rgba(15,33,72,0.12)] bg-[#F7F3EA] p-5">
-                {index < workflowSteps.length - 1 ? (
-                  <span className="absolute left-[calc(100%-10px)] top-10 hidden h-px w-10 bg-[#D6B45A] lg:block" aria-hidden="true" />
-                ) : null}
-                <span className="flex h-14 w-14 items-center justify-center">
-                  <img src={step.iconSrc} alt="" aria-hidden="true" className="h-12 w-12 object-contain" />
-                </span>
-                <h3 className="mt-5 text-lg font-semibold text-[#10224A]">{step.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-[#58657A]">{step.copy}</p>
-              </article>
-            ))}
+
+            <div className="mt-10 grid gap-8 md:grid-cols-5 md:gap-4">
+              {workflowSteps.map((step, index) => (
+                <article key={step.title} className="relative flex flex-col items-center text-center">
+                  {index < workflowSteps.length - 1 ? (
+                    <span className="absolute left-[calc(50%+34px)] top-[34px] hidden w-[calc(100%-68px)] border-t border-dashed border-[#D6B45A]/70 md:block" aria-hidden="true" />
+                  ) : null}
+                  <span className="relative z-10 flex h-[68px] w-[68px] items-center justify-center rounded-full border border-[#D6B45A]/55 bg-[#0A1F3F]">
+                    <img src={step.iconSrc} alt="" aria-hidden="true" className="h-10 w-10 object-contain" />
+                  </span>
+                  <span className="mt-3 text-sm font-semibold leading-none text-[#D6B45A]">{index + 1}</span>
+                  <h3 className="mt-3 text-base font-semibold text-[#D6B45A]" style={{ color: "#D6B45A" }}>{step.title}</h3>
+                  <p className="mt-2 max-w-[170px] text-xs leading-5 text-[#CBD5E1]">{step.copy}</p>
+                </article>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -510,16 +514,16 @@ export default function AffiliateProgramPage() {
               Why creators partner with PixieDVC
             </h2>
           </div>
-          <div className="mt-11 grid items-stretch gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-11 grid items-stretch gap-5 md:grid-cols-2 xl:grid-cols-4 xl:gap-x-3">
             {creatorBenefits.map((benefit, index) => (
-              <article key={benefit.title} className="flex h-full flex-col rounded-3xl border border-[rgba(231,200,106,0.16)] bg-[#0F2148]/70 px-[30px] py-8 shadow-[0_18px_42px_rgba(0,0,0,0.12)] transition duration-200 motion-reduce:transition-none motion-reduce:hover:translate-y-0 hover:-translate-y-0.5 hover:border-[rgba(231,200,106,0.28)] hover:bg-[#173A72]/45">
-                <p className="text-[44px] font-medium leading-none tracking-[-0.045em] text-[#E7C86A]/90" style={editorialHeadingStyle}>
+              <article key={benefit.title} className="flex h-full flex-col rounded-[12px] border border-[rgba(231,200,106,0.12)] bg-[#0F2148]/70 px-[30px] py-8 shadow-[0_16px_34px_rgba(0,0,0,0.1)] transition duration-200 motion-reduce:transition-none motion-reduce:hover:translate-y-0 hover:-translate-y-0.5 hover:border-[rgba(231,200,106,0.22)] hover:bg-[#173A72]/45">
+                <p className="text-[41px] font-medium leading-none tracking-[-0.025em] text-[#E7C86A]/85" style={editorialHeadingStyle}>
                   {String(index + 1).padStart(2, "0")}
                 </p>
                 <h3 className="mt-8 min-h-[52px] text-[19px] font-semibold leading-[1.35] text-[#F8FAFC]" style={{ color: "#F8FAFC" }}>
                   {benefit.title}
                 </h3>
-                <p className="mt-3 text-sm leading-[1.68] text-[#CBD5E1]">{benefit.copy}</p>
+                <p className="mt-5 text-sm leading-[1.68] text-[#CBD5E1]">{benefit.copy}</p>
               </article>
             ))}
           </div>
@@ -552,13 +556,13 @@ export default function AffiliateProgramPage() {
               Explore the Partner Experience
             </button>
           </div>
-          <div className="rounded-[28px] border border-[rgba(15,33,72,0.12)] bg-[#08152F] p-3 shadow-[0_24px_70px_rgba(15,33,72,0.18)]">
+          <div className="rounded-[12px] border border-[rgba(15,33,72,0.12)] bg-[#08152F] p-3 shadow-[0_24px_70px_rgba(15,33,72,0.18)]">
             <div className="flex gap-2 border-b border-white/10 px-4 py-3" aria-hidden="true">
               <span className="h-3 w-3 rounded-full bg-white/25" />
               <span className="h-3 w-3 rounded-full bg-white/20" />
               <span className="h-3 w-3 rounded-full bg-white/15" />
             </div>
-            <div className="overflow-hidden rounded-2xl">
+            <div className="overflow-hidden rounded-[12px]">
               <img
                 src={DASHBOARD_PREVIEW_IMAGE}
                 alt="PixieDVC affiliate dashboard preview"
@@ -570,26 +574,44 @@ export default function AffiliateProgramPage() {
         </div>
       </section>
 
-      <section className="bg-white px-6 py-12 md:py-14">
-        <div className="mx-auto max-w-[1200px]">
-          <div className="max-w-3xl">
+      <section className="bg-[#F7F3EA] px-6 py-14 md:py-16">
+        <div className="mx-auto grid max-w-[1200px] gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
+          <div className="lg:pt-3">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Why PixieDVC</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl" style={editorialHeadingStyle}>
+            <h2 className="mt-3 max-w-[11ch] text-4xl font-semibold leading-[0.98] tracking-[-0.04em] text-[#10224A] sm:text-5xl" style={editorialHeadingStyle}>
               Built for premium DVC referrals
             </h2>
+            <p className="mt-6 max-w-sm text-base leading-7 text-[#58657A]">
+              A partner experience built around trust, clear tracking, and premium Disney vacation referrals.
+            </p>
           </div>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            {whyPixie.map((item) => (
-              <article key={item.title} className="rounded-3xl border border-[rgba(15,33,72,0.12)] bg-[#F7F3EA] p-5">
-                <h3 className="text-base font-semibold text-[#10224A]">{item.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-[#58657A]">{item.copy}</p>
-              </article>
-            ))}
-            <article className="rounded-3xl border border-[#D6B45A]/45 bg-[#0F2148] p-5 text-white shadow-[0_18px_45px_rgba(15,33,72,0.18)]">
-              <h3 className="text-base font-semibold text-[#F8FAFC]">Founding Creator Program</h3>
-              <p className="mt-2 text-sm leading-6 text-[#CBD5E1]">
-                Founding partners may receive enhanced launch commission opportunities, recognition, and early access to partner resources.
-              </p>
+
+          <div className="grid gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {whyPixie.map((item) => (
+                <article
+                  key={item.title}
+                  className="rounded-[12px] border border-[rgba(15,33,72,0.09)] bg-white px-6 py-6 shadow-[0_14px_36px_rgba(15,33,72,0.055)]"
+                >
+                  <p className="h-px w-10 bg-[#D6B45A]/70" aria-hidden="true" />
+                  <h3 className="mt-5 text-base font-semibold leading-snug text-[#10224A]">{item.title}</h3>
+                  <p className="mt-4 max-w-[18rem] text-sm leading-[1.78] text-[#58657A]">{item.copy}</p>
+                </article>
+              ))}
+            </div>
+
+            <article className="grid overflow-hidden rounded-[12px] border border-[#D6B45A]/35 bg-[#0F2148] text-white shadow-[0_24px_60px_rgba(15,33,72,0.18)] md:grid-cols-[0.85fr_1.15fr]">
+              <div className="border-b border-white/10 px-7 py-7 md:border-b-0 md:border-r">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Featured</p>
+                <h3 className="mt-4 text-2xl font-semibold leading-tight text-[#F8FAFC]" style={{ color: "#F8FAFC" }}>
+                  Founding Creator Program
+                </h3>
+              </div>
+              <div className="px-7 py-7">
+                <p className="max-w-xl text-sm leading-[1.82] text-[#CBD5E1]">
+                  Founding partners may receive enhanced launch commission opportunities, recognition, and early access to partner resources.
+                </p>
+              </div>
             </article>
           </div>
         </div>
@@ -605,7 +627,7 @@ export default function AffiliateProgramPage() {
           </div>
           <div className="mt-8 space-y-3">
             {faqs.map((item) => (
-              <details key={item.q} className="group rounded-3xl border border-[rgba(15,33,72,0.12)] bg-white p-6 shadow-[0_14px_34px_rgba(15,33,72,0.06)]">
+              <details key={item.q} className="group rounded-[12px] border border-[rgba(15,33,72,0.12)] bg-white p-6 shadow-[0_14px_34px_rgba(15,33,72,0.06)]">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-base font-semibold text-[#10224A] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D6B45A]">
                   {item.q}
                   <span className="text-[#D6B45A] transition group-open:rotate-45" aria-hidden="true">+</span>
@@ -617,8 +639,16 @@ export default function AffiliateProgramPage() {
         </div>
       </section>
 
-      <section className="bg-[#F7F3EA] px-6 py-10">
-        <div className="mx-auto max-w-[1200px] rounded-[32px] border border-white/12 bg-[#08152F] p-8 text-white shadow-[0_26px_70px_rgba(8,21,47,0.24)] sm:p-10 lg:flex lg:items-center lg:justify-between lg:gap-10">
+      <section
+        className="bg-[#08152F] bg-cover bg-center px-6 py-9 text-white"
+        style={{
+          backgroundImage: `linear-gradient(90deg, rgba(8, 21, 47, 0.94) 0%, rgba(8, 21, 47, 0.62) 48%, rgba(8, 21, 47, 0.82) 100%), url(${APPLY_CTA_BACKGROUND_IMAGE})`,
+          backgroundPosition: "center 42%",
+        }}
+      >
+        <div
+          className="mx-auto max-w-[1200px] py-3 lg:flex lg:items-center lg:justify-between lg:gap-10"
+        >
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Apply Today</p>
             <h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-[-0.03em] text-[#F8FAFC] sm:text-4xl" style={{ ...editorialHeadingStyle, color: "#F8FAFC" }}>
@@ -636,9 +666,17 @@ export default function AffiliateProgramPage() {
             <button
               type="button"
               onClick={scrollToApply}
-              className="inline-flex w-full items-center justify-center rounded-full bg-[#D6B45A] px-7 py-3 text-sm font-semibold text-[#08152F] transition hover:-translate-y-0.5 hover:bg-[#E4C66E] focus:outline-none focus:ring-2 focus:ring-[#D6B45A] focus:ring-offset-2 focus:ring-offset-[#08152F] sm:w-auto"
+              className="group inline-flex w-full items-center justify-center rounded-md px-8 py-3 text-sm font-semibold text-[#08152F] shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_10px_24px_rgba(8,21,47,0.22)] transition-[box-shadow,background-position] duration-300 hover:bg-[center_70%] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.52),0_12px_28px_rgba(8,21,47,0.28)] focus:outline-none focus:ring-2 focus:ring-[#D6B45A] focus:ring-offset-2 focus:ring-offset-[#08152F] sm:w-auto"
+              style={{
+                backgroundImage: "linear-gradient(180deg, #F2D57A 0%, #D6B45A 54%, #B8872F 100%)",
+                backgroundSize: "100% 135%",
+                backgroundPosition: "center 0%",
+                fontKerning: "none",
+                fontVariantLigatures: "none",
+                letterSpacing: "0",
+              }}
             >
-              Apply to Become a Partner
+              <span className="block leading-none">Apply to Become a Partner</span>
             </button>
             <p className="mt-3 text-center text-xs text-[#CBD5E1]">Secure • Free to join • No monthly fees</p>
           </div>
@@ -656,7 +694,11 @@ export default function AffiliateProgramPage() {
           </p>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
             {audienceProfiles.map((profile) => (
-              <article key={profile.label} className="rounded-3xl border border-white/12 bg-[#0F2148]/70 p-5 shadow-[0_16px_40px_rgba(0,0,0,0.16)]">
+              <article
+                key={profile.label}
+                className="border border-white/12 bg-[#0F2148]/70 p-5 shadow-[0_16px_40px_rgba(0,0,0,0.16)]"
+                style={{ borderRadius: 12 }}
+              >
                 <h3 className="text-sm font-semibold leading-5 text-[#F8FAFC]" style={{ color: "#F8FAFC" }}>
                   {profile.label}
                 </h3>
@@ -676,7 +718,7 @@ export default function AffiliateProgramPage() {
           </div>
 
           {applicationStep === "received" ? (
-            <div className="mt-10 rounded-[28px] border border-[rgba(15,33,72,0.12)] bg-white p-8 shadow-[0_22px_55px_rgba(15,33,72,0.08)]">
+            <div className="mt-10 rounded-[12px] border border-[rgba(15,33,72,0.12)] bg-white p-8 shadow-[0_22px_55px_rgba(15,33,72,0.08)]">
               <div className="max-w-2xl space-y-4">
                 <h3 className="text-2xl font-semibold text-[#10224A]">Application received!</h3>
                 <p className="text-sm leading-relaxed text-[#58657A]">
@@ -692,7 +734,7 @@ export default function AffiliateProgramPage() {
               </div>
             </div>
           ) : applicationStep === "account" ? (
-            <form onSubmit={handleCreateAccount} className="mt-10 rounded-[28px] border border-[rgba(15,33,72,0.12)] bg-white p-8 shadow-[0_22px_55px_rgba(15,33,72,0.08)]">
+            <form onSubmit={handleCreateAccount} className="mt-10 rounded-[12px] border border-[rgba(15,33,72,0.12)] bg-white p-8 shadow-[0_22px_55px_rgba(15,33,72,0.08)]">
               <div className="max-w-2xl space-y-5">
                 <h3 className="text-2xl font-semibold text-[#10224A]">Create Your Partner Account</h3>
                 <p className="text-sm text-[#58657A]">
@@ -739,7 +781,7 @@ export default function AffiliateProgramPage() {
                   Your information is secure and will only be used for your PixieDVC Partner account.
                 </p>
                 {accountStatus === "error" && accountMessage === "Unable to create partner account" ? (
-                  <div className="space-y-4 rounded-2xl border border-rose-300 bg-rose-50 p-5 text-sm text-[#10224A]">
+                  <div className="space-y-4 rounded-[12px] border border-rose-300 bg-rose-50 p-5 text-sm text-[#10224A]">
                     <div>
                       <h4 className="text-base font-semibold text-[#10224A]">Unable to create partner account</h4>
                       <p className="mt-2 text-[#58657A]">We couldn’t create your partner account. This can happen if:</p>
@@ -770,7 +812,7 @@ export default function AffiliateProgramPage() {
                     </div>
                   </div>
                 ) : accountStatus === "success" && accountMessage ? (
-                  <div className="space-y-5 rounded-2xl border border-[#D6B45A]/40 bg-[#08152F] p-5 text-sm shadow-sm sm:p-6">
+                  <div className="space-y-5 rounded-[12px] border border-[#D6B45A]/40 bg-[#08152F] p-5 text-sm shadow-sm sm:p-6">
                     <div className="flex items-start gap-4">
                       <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#D6B45A]/70 text-[#D6B45A]">
                         <Check aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
@@ -811,7 +853,7 @@ export default function AffiliateProgramPage() {
           ) : (
             <form
               onSubmit={handleSubmit}
-              className="mt-10 rounded-[28px] border border-[rgba(15,33,72,0.12)] bg-white p-8 shadow-[0_22px_55px_rgba(15,33,72,0.08)]"
+              className="mt-10 rounded-[12px] border border-[rgba(15,33,72,0.12)] bg-white p-8 shadow-[0_22px_55px_rgba(15,33,72,0.08)]"
             >
               <div className="grid gap-5 md:grid-cols-2">
                 <Field label="Full Name *">
@@ -931,7 +973,7 @@ function FinancialCard({
 }) {
   return (
     <article
-      className={`min-w-0 max-w-full rounded-3xl border p-5 text-center ${
+      className={`min-w-0 max-w-full rounded-[12px] border p-5 text-center ${
         featured
           ? "border-[#D6B45A]/45 bg-[#0F2148] text-white"
           : "border-[rgba(15,33,72,0.12)] bg-[#F7F3EA] text-[#10224A]"
@@ -968,7 +1010,7 @@ function CommissionCard({
 }) {
   return (
     <article
-      className={`min-w-0 max-w-full rounded-3xl border p-5 text-center ${
+      className={`min-w-0 max-w-full rounded-[12px] border p-5 text-center ${
         featured
           ? "border-[#D6B45A]/50 bg-[#F7F3EA] shadow-[0_14px_34px_rgba(214,180,90,0.16)]"
           : "border-[rgba(15,33,72,0.12)] bg-white"
