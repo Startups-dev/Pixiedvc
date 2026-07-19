@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { Button, Card } from "@pixiedvc/design-system";
+import AffiliatePayoutEmailForm from "@/components/affiliate/PayoutEmailForm";
+import CopyReferralLinkButton from "@/components/affiliate/CopyReferralLinkButton";
 import {
   ensureAffiliateForApplicationUser,
   getAffiliateForUser,
@@ -9,18 +10,25 @@ import {
   getAffiliatePayoutSummary,
   isBlockedAffiliateStatus,
 } from "@/lib/affiliates";
-import AffiliatePayoutEmailForm from "@/components/affiliate/PayoutEmailForm";
-import CopyReferralLinkButton from "@/components/affiliate/CopyReferralLinkButton";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
-import {
-  affiliateCard,
-  affiliateCard2,
-  affiliateLink,
-  affiliatePrimaryButton,
-  affiliateSecondaryButton,
-  affiliateTextMuted,
-} from "@/lib/affiliate-theme";
 import { buildAffiliateReferralUrl, getReferralBaseUrl } from "@/lib/affiliate-referrals";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
+
+const dashboardCard =
+  "rounded-[24px] border border-[#0F2148]/10 bg-white p-6 shadow-[0_14px_40px_rgba(15,33,72,0.06)]";
+const dashboardPanel = "rounded-3xl border border-[#0F2148]/10 bg-[#F7F3EA] p-6";
+const dashboardSectionHeading = "font-display text-[28px] leading-tight tracking-[-0.02em] text-[#0F2148]";
+const dashboardCardHeading = "font-display text-[26px] leading-tight tracking-[-0.02em] text-[#0F2148]";
+const dashboardBodyText = "text-[15px] leading-7 text-[#58657A]";
+const dashboardSmallText = "text-[13px] leading-5 text-[#58657A]";
+const dashboardDivider = "divide-y divide-[#0F2148]/10";
+const dashboardPrimaryButton =
+  "inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0F2148] px-5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#173A72] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6B45A]";
+const dashboardGoldButton =
+  "inline-flex min-h-12 items-center justify-center rounded-xl bg-[#D6B45A] px-5 text-sm font-semibold text-[#08152F] transition hover:-translate-y-0.5 hover:bg-[#E4C66E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E4C66E] focus-visible:ring-offset-2 focus-visible:ring-offset-[#08152F]";
+const dashboardSecondaryButton =
+  "inline-flex min-h-11 items-center justify-center rounded-xl border border-[#0F2148]/12 bg-white px-4 text-sm font-semibold text-[#0F2148] transition hover:-translate-y-0.5 hover:bg-[#F7F3EA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6B45A]";
+const dashboardNavyTextButton =
+  "inline-flex min-h-12 items-center justify-center rounded-xl px-3 text-sm font-medium text-[#CBD5E1] transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(value);
@@ -38,15 +46,15 @@ function formatLabel(value: string | null | undefined) {
 function statusChip(status: string) {
   const normalized = (status ?? "").toLowerCase();
   if (normalized === "paid" || normalized === "active" || normalized === "approved") {
-    return "border border-emerald-400/30 bg-emerald-400/10 text-emerald-200";
+    return "border border-emerald-200 bg-emerald-50 text-emerald-700";
   }
   if (normalized === "scheduled" || normalized === "pending" || normalized === "pending_review") {
-    return "border border-amber-400/30 bg-amber-400/10 text-amber-200";
+    return "border border-amber-200 bg-amber-50 text-amber-700";
   }
   if (normalized === "failed" || normalized === "cancelled") {
-    return "border border-rose-400/30 bg-rose-400/10 text-rose-200";
+    return "border border-rose-200 bg-rose-50 text-rose-700";
   }
-  return "border border-sky-400/30 bg-sky-400/10 text-sky-200";
+  return "border border-sky-200 bg-sky-50 text-sky-700";
 }
 
 function logAffiliateDashboardRedirect(
@@ -121,22 +129,22 @@ export default async function AffiliateDashboardPage() {
 
   if (!affiliate) {
     return (
-      <div className="mx-auto max-w-4xl px-6 py-20">
-        <Card surface="dark" className={`space-y-4 ${affiliateCard}`}>
-          <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Affiliate Portal</p>
-          <h1 className="font-display text-3xl text-slate-100">Profile not found</h1>
-          <p className={`text-sm ${affiliateTextMuted}`}>
+      <div className="mx-auto max-w-4xl bg-[#F7F3EA] px-6 py-20 text-[#10224A]">
+        <section className={`${dashboardCard} space-y-4`}>
+          <p className={dashboardSmallText}>Affiliate Portal</p>
+          <h1 className={dashboardSectionHeading}>Profile not found</h1>
+          <p className={dashboardBodyText}>
             We couldn’t find an affiliate profile linked to this email yet. Our concierge team can help get you set up.
           </p>
           <div className="space-y-2">
-            <Button asChild variant="ghost" className={affiliateSecondaryButton}>
-              <Link href="/contact">Talk to Concierge</Link>
-            </Button>
-            <Link href="/" className={`block text-xs font-semibold ${affiliateLink}`}>
+            <Link href="/contact" className={dashboardSecondaryButton}>
+              Talk to Concierge
+            </Link>
+            <Link href="/" className="block text-sm font-semibold text-[#0F2148] underline-offset-4 hover:underline">
               Back to PixieDVC
             </Link>
           </div>
-        </Card>
+        </section>
       </div>
     );
   }
@@ -152,242 +160,280 @@ export default async function AffiliateDashboardPage() {
       ? 0
       : payouts.reduce((sum, row) => sum + Number(row.amount_usd ?? 0), 0) / payouts.length;
   const hasAnyEarnings = summary.pendingOwed > 0 || summary.lastPaidAmount > 0 || payoutAverage > 0;
+  const attentionLabel = affiliate.payoutEmail ? "Everything is ready" : "Add your payout email";
+  const attentionCopy = affiliate.payoutEmail
+    ? "Your referral link and payout destination are set."
+    : "Add a payout email so future commissions have a destination.";
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 px-6 py-14">
-      <header className={`relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-br from-[#0f172a] via-[#111827] to-[#0b1224] p-8 shadow-[0_22px_60px_rgba(2,6,23,0.45)]`}>
-        <div className="pointer-events-none absolute -right-14 -top-16 h-52 w-52 rounded-full bg-[#2dd4bf]/10 blur-3xl" />
-        <div className="pointer-events-none absolute -left-8 bottom-0 h-32 w-32 rounded-full bg-[#60a5fa]/10 blur-2xl" />
-        <div className="relative flex flex-wrap items-start justify-between gap-8">
-          <div className="min-w-[260px] flex-1 space-y-4">
-            <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Affiliate Dashboard</p>
-            <h1 className="font-display text-4xl text-slate-100">Welcome back, {affiliate.displayName}</h1>
-            <div className="flex flex-wrap items-center gap-3 text-xs">
-              <span className={`inline-flex items-center rounded-full px-3 py-1 font-semibold uppercase tracking-[0.2em] ${statusChip(affiliate.status)}`}>
+    <main className="bg-[#F7F3EA] text-[#10224A]">
+      <div className="mx-auto max-w-[1500px] space-y-8 px-6 py-12 lg:px-10">
+        <header className="grid gap-8 rounded-[28px] border border-[#0F2148]/10 bg-white p-7 shadow-[0_18px_55px_rgba(15,33,72,0.08)] lg:grid-cols-[minmax(0,1fr)_360px] lg:p-10">
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusChip(affiliate.status)}`}>
                 {formatLabel(affiliate.status)}
               </span>
-              <span className="inline-flex items-center rounded-full border border-sky-400/25 bg-sky-400/10 px-3 py-1 font-semibold uppercase tracking-[0.2em] text-sky-200">
-                {formatLabel(affiliate.tier)} Tier
+              <span className="inline-flex rounded-full border border-[#D6B45A]/30 bg-[#D6B45A]/10 px-3 py-1 text-xs font-semibold text-[#8A6A12]">
+                {formatLabel(affiliate.tier)} Partner
               </span>
             </div>
-            <div className={`max-w-2xl rounded-2xl border border-white/10 bg-[#0f172a]/70 p-4 text-sm ${affiliateTextMuted}`}>
-              <p className="text-xs uppercase tracking-[0.2em]">Referral Link</p>
-              <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-                <p className="break-all font-semibold text-slate-200">{referralLink}</p>
-                <CopyReferralLinkButton
-                  referralLink={referralLink}
-                  className="inline-flex items-center rounded-full border border-sky-400/30 bg-sky-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-200 transition hover:bg-sky-400/20"
-                />
-              </div>
-              <p className="mt-3 text-xs text-slate-400">
-                Share this link to start earning commission on confirmed bookings.
+            <div className="max-w-3xl space-y-3">
+              <p className="text-[15px] font-medium leading-6 text-[#58657A]">Welcome back,</p>
+              <h1 className="font-display text-5xl leading-[0.95] tracking-[-0.035em] text-[#0F2148] md:text-6xl">
+                {affiliate.displayName}
+              </h1>
+              <p className="max-w-2xl text-[15px] leading-7 text-[#58657A]">
+                Share your link. Pixie tracks eligible bookings and keeps your commission activity visible.
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <Button asChild variant="ghost" className={affiliateSecondaryButton}>
-              <Link href="/affiliate/resources">Resources</Link>
-            </Button>
-            <Button asChild variant="ghost" className={affiliateSecondaryButton}>
-              <Link href="/affiliate/guides">Guides</Link>
-            </Button>
-            <Button asChild className={affiliatePrimaryButton}>
-              <Link href={`/calculator?ref=${affiliate.slug}`}>Share Your Link</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
 
-      <section className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card surface="dark" className={`${affiliateCard} border-white/15 bg-[#0f172a]`}>
-            <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Pending owed</p>
-            <p className="mt-3 text-4xl font-semibold text-slate-100">{formatCurrency(summary.pendingOwed)}</p>
-            <p className={`text-xs ${affiliateTextMuted}`}>Scheduled unpaid commissions</p>
-          </Card>
-          <Card surface="dark" className={`${affiliateCard} border-white/15 bg-[#0f172a]`}>
-            <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Last paid</p>
-            <p className="mt-3 text-4xl font-semibold text-slate-100">{formatCurrency(summary.lastPaidAmount)}</p>
-            <p className={`text-xs ${affiliateTextMuted}`}>
-              {summary.lastPaidAt ? `Paid ${new Date(summary.lastPaidAt).toLocaleDateString()}` : "No payouts yet"}
+          <aside className="rounded-3xl bg-[#08152F] p-5 text-white">
+            <p className="text-[13px] font-medium leading-5 text-[#CBD5E1]">Next best step</p>
+            <h2 className="mt-2 font-display text-[32px] leading-none tracking-[-0.025em] text-white">
+              Copy your referral link.
+            </h2>
+            <p className="mt-3 text-[15px] leading-7 text-[#CBD5E1]">
+              Every eligible booking that starts here is tracked automatically.
             </p>
-          </Card>
-          <Card surface="dark" className={`${affiliateCard} border-white/15 bg-[#0f172a]`}>
-            <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Average payout</p>
-            <p className="mt-3 text-4xl font-semibold text-slate-100">{formatCurrency(payoutAverage)}</p>
-            <p className={`text-xs ${affiliateTextMuted}`}>
-              Across {payouts.length} payout {payouts.length === 1 ? "record" : "records"}
+            <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="break-all text-sm font-semibold text-white">{referralLink}</p>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <CopyReferralLinkButton
+                referralLink={referralLink}
+                label="Copy Referral Link"
+                className={dashboardGoldButton}
+              />
+              <Link
+                href="/affiliate/guides"
+                className={dashboardNavyTextButton}
+              >
+                View guides
+              </Link>
+            </div>
+          </aside>
+        </header>
+
+        <section aria-label="Dashboard summary" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className={dashboardCard}>
+            <p className={`${dashboardSmallText} font-medium`}>Available next payout</p>
+            <p className="mt-3 font-display text-[44px] leading-none tracking-[-0.035em] text-[#0F2148]">
+              {formatCurrency(summary.pendingOwed)}
             </p>
-          </Card>
-        </div>
+            <p className={`mt-3 ${dashboardSmallText}`}>Approved or scheduled commissions.</p>
+          </div>
+          <div className={dashboardCard}>
+            <p className={`${dashboardSmallText} font-medium`}>Last payout received</p>
+            <p className="mt-3 font-display text-[44px] leading-none tracking-[-0.035em] text-[#0F2148]">
+              {formatCurrency(summary.lastPaidAmount)}
+            </p>
+            <p className={`mt-3 ${dashboardSmallText}`}>
+              {summary.lastPaidAt ? `Paid ${new Date(summary.lastPaidAt).toLocaleDateString()}.` : "No payout recorded yet."}
+            </p>
+          </div>
+          <div className={dashboardCard}>
+            <p className={`${dashboardSmallText} font-medium`}>Average payout</p>
+            <p className="mt-3 font-display text-[44px] leading-none tracking-[-0.035em] text-[#0F2148]">
+              {formatCurrency(payoutAverage)}
+            </p>
+            <p className={`mt-3 ${dashboardSmallText}`}>
+              Across {payouts.length} payout {payouts.length === 1 ? "record" : "records"}.
+            </p>
+          </div>
+          <div className={dashboardCard}>
+            <p className={`${dashboardSmallText} font-medium`}>Commission rate</p>
+            <p className="mt-3 font-display text-[44px] leading-none tracking-[-0.035em] text-[#0F2148]">
+              {(affiliate.commissionRate * 100).toFixed(0)}%
+            </p>
+            <p className={`mt-3 ${dashboardSmallText}`}>{formatLabel(affiliate.tier)} partner tier.</p>
+          </div>
+        </section>
 
         {!hasAnyEarnings ? (
-          <Card surface="dark" className={`${affiliateCard2} border-white/15`}>
-            <p className="text-sm text-slate-300">
-              You haven&apos;t earned commissions yet. Start by sharing your referral link.
-            </p>
-          </Card>
-        ) : null}
-      </section>
-
-      <section className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
-        <Card surface="dark" className={`space-y-4 ${affiliateCard} border-white/15 bg-[#0f172a] lg:min-h-[430px]`}>
-          <div className="flex items-center justify-between">
-            <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Earnings activity</p>
-            <span className="text-xs text-slate-300">Last {recentPayouts.length || 0} earnings records</span>
-          </div>
-          {recentPayouts.length === 0 ? (
-            <div className="space-y-4 rounded-2xl border border-white/10 bg-[#0b1224] p-5">
-              <p className="text-sm font-semibold text-slate-200">No payout activity yet.</p>
-              <p className={`text-sm ${affiliateTextMuted}`}>
-                Share your referral link, drive your first booking, and your earnings will appear here automatically.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <CopyReferralLinkButton
-                  referralLink={referralLink}
-                  className="rounded-full bg-[#D4AF37] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#111827] transition hover:brightness-110"
-                />
-                <Button asChild variant="ghost" className={affiliateSecondaryButton}>
-                  <Link href="/affiliate/guides">View Guides</Link>
-                </Button>
+          <section className="rounded-[24px] border border-[#D6B45A]/25 bg-[#FFF8E6] p-6 shadow-[0_14px_40px_rgba(15,33,72,0.06)]">
+            <div className="flex flex-wrap items-center justify-between gap-5">
+              <div className="max-w-2xl">
+                <h2 className={dashboardSectionHeading}>
+                  Your first commission starts with one share.
+                </h2>
+                <p className={`mt-3 ${dashboardBodyText}`}>
+                  Once an eligible referral completes a qualifying booking, commission activity appears here.
+                </p>
               </div>
-              <div className="grid gap-2 rounded-2xl border border-white/10 bg-[#0f172a] p-4 text-xs text-slate-300">
-                <p className="font-semibold uppercase tracking-[0.2em] text-slate-400">Getting Started</p>
-                <p>1. Share your referral link</p>
-                <p>2. A guest books through your link</p>
-                <p>3. Earn commission automatically</p>
-              </div>
+              <CopyReferralLinkButton
+                referralLink={referralLink}
+                label="Copy Referral Link"
+                className={dashboardPrimaryButton}
+              />
             </div>
-          ) : (
-            <div className="rounded-2xl border border-white/10 bg-[#0b1224]">
-              <ul className="divide-y divide-white/10">
+          </section>
+        ) : null}
+
+        <section className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.85fr)]">
+          <section className={`${dashboardCard} lg:min-h-[420px]`}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className={dashboardSectionHeading}>
+                  Recent commission activity
+                </h2>
+                <p className="mt-2 text-[15px] leading-6 text-[#58657A]">Latest payout items tied to eligible bookings.</p>
+              </div>
+              <span className={dashboardSmallText}>Last {recentPayouts.length || 0} records</span>
+            </div>
+
+            {recentPayouts.length === 0 ? (
+              <div className={`mt-6 ${dashboardPanel}`}>
+                <h3 className="text-[17px] font-semibold leading-6 text-[#0F2148]">Commission activity will appear here.</h3>
+                <p className={`mt-3 max-w-2xl ${dashboardBodyText}`}>
+                  Pixie records each eligible commission and keeps the status visible from review to payout.
+                </p>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <CopyReferralLinkButton
+                    referralLink={referralLink}
+                    label="Copy Referral Link"
+                    className={dashboardPrimaryButton}
+                  />
+                  <Link
+                    href="/affiliate/resources"
+                    className={dashboardSecondaryButton}
+                  >
+                    Open Resources
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <ul className={`mt-6 ${dashboardDivider} rounded-3xl border border-[#0F2148]/10`}>
                 {recentPayouts.map((row) => {
                   const amount = Number(row.amount_usd ?? 0);
                   const paidOrCreatedAt = row.paid_at ?? row.created_at;
                   const bookingLabel =
                     typeof row.booking_count === "number" && row.booking_count > 0
                       ? `${row.booking_count} ${row.booking_count === 1 ? "booking" : "bookings"}`
-                      : null;
+                      : "Booking details pending";
 
                   return (
-                    <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                    <li key={row.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
                       <div className="min-w-[180px]">
-                        <p className="text-sm font-semibold text-slate-100">{formatCurrency(amount)}</p>
-                        <p className="text-xs text-slate-400">
-                          {new Date(paidOrCreatedAt).toLocaleDateString()}
-                          {bookingLabel ? ` • ${bookingLabel}` : ""}
+                        <p className="font-display text-[30px] leading-none tracking-[-0.03em] text-[#0F2148]">
+                          {formatCurrency(amount)}
+                        </p>
+                        <p className="mt-2 text-[13px] leading-5 text-[#58657A]">
+                          {new Date(paidOrCreatedAt).toLocaleDateString()} • {bookingLabel}
                         </p>
                       </div>
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${statusChip(row.status)}`}>
+                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusChip(row.status)}`}>
                         {formatLabel(row.status)}
                       </span>
                     </li>
                   );
                 })}
               </ul>
-            </div>
-          )}
-        </Card>
-        <div className="space-y-6">
-          <Card surface="dark" className={`space-y-4 ${affiliateCard} border-white/15 bg-[#0f172a]`}>
-            <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Payout email</p>
-            <AffiliatePayoutEmailForm initialEmail={affiliate.payoutEmail} />
-            <p className={`text-xs ${affiliateTextMuted}`}>We send PayPal/Wise payouts to this address.</p>
-          </Card>
+            )}
+          </section>
 
-          <Card surface="dark" className={`space-y-4 ${affiliateCard} border-white/15 bg-[#0f172a]`}>
-            <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Commission tier</p>
-            <div className={`space-y-2 text-sm ${affiliateTextMuted}`}>
-              <div className="flex items-center justify-between">
-                <span>Rate</span>
-                <span className="font-semibold text-slate-100">{(affiliate.commissionRate * 100).toFixed(0)}%</span>
+          <div className="space-y-6">
+            <section className={dashboardCard}>
+              <h2 className={dashboardCardHeading}>Needs attention</h2>
+              <p className={`mt-3 ${dashboardBodyText}`}>{attentionCopy}</p>
+              <div className="mt-5 rounded-2xl border border-[#0F2148]/10 bg-[#F7F3EA] p-4">
+                <p className="text-[15px] font-semibold leading-6 text-[#0F2148]">{attentionLabel}</p>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Status</span>
-                <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${statusChip(affiliate.status)}`}>
-                  {formatLabel(affiliate.status)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Tier</span>
-                <span className="font-semibold text-slate-100">{formatLabel(affiliate.tier)}</span>
-              </div>
-              <div className={`mt-2 rounded-2xl p-4 text-xs ${affiliateCard2} ${affiliateTextMuted}`}>
-                Payouts are processed manually on a monthly schedule.
-              </div>
-              {affiliate.tier === "elite" ? (
-                <div className="mt-2 rounded-2xl border border-sky-400/20 bg-sky-400/10 p-4 text-xs text-sky-200">
-                  Elite Partner unlocked: 8% commission tier, verified partner benefits, featured partner potential, and
-                  early promotion access.
-                </div>
-              ) : affiliate.tier === "verified" ? (
-                <div className="mt-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-xs text-emerald-300">
-                  Verified Partner unlocked: badge eligibility, future higher commission tiers, featured partner
-                  potential, and early promotion access.
-                </div>
-              ) : (
-                <div className={`mt-2 rounded-2xl p-4 text-xs ${affiliateCard2} ${affiliateTextMuted}`}>
-                  Basic tier includes 6% commission and standard dashboard access.
-                </div>
-              )}
-            </div>
-          </Card>
-        </div>
-      </section>
+            </section>
 
-      <section className="grid gap-6">
-        <Card surface="dark" className={`space-y-4 ${affiliateCard} border-white/15 bg-[#0f172a]`}>
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Payout history</p>
-              <p className="mt-1 text-sm text-slate-300">Recent commissions and payout statuses</p>
-            </div>
-            <span className="text-xs text-slate-400">{payouts.length} records</span>
+            <section className={dashboardCard}>
+              <h2 className={dashboardCardHeading}>Payout details</h2>
+              <p className={`mt-3 ${dashboardBodyText}`}>Used for future manual payouts.</p>
+              <div className="mt-5">
+                <AffiliatePayoutEmailForm initialEmail={affiliate.payoutEmail} />
+              </div>
+            </section>
+
+            <section className={dashboardCard}>
+              <h2 className={dashboardCardHeading}>Partner status</h2>
+              <div className="mt-5 space-y-3 text-[15px] leading-6 text-[#58657A]">
+                <div className="flex items-center justify-between gap-4">
+                  <span>Tier</span>
+                  <span className="font-semibold text-[#0F2148]">{formatLabel(affiliate.tier)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span>Status</span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusChip(affiliate.status)}`}>
+                    {formatLabel(affiliate.status)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span>Commission rate</span>
+                  <span className="font-semibold text-[#0F2148]">{(affiliate.commissionRate * 100).toFixed(0)}%</span>
+                </div>
+              </div>
+              <p className="mt-5 rounded-2xl bg-[#F7F3EA] p-4 text-[14px] leading-6 text-[#58657A]">
+                Payouts are reviewed manually on the current partner schedule.
+              </p>
+            </section>
           </div>
-          {payouts.length === 0 ? (
-            <p className={`text-sm ${affiliateTextMuted}`}>No payouts yet.</p>
-          ) : (
-            <div className="overflow-hidden rounded-2xl border border-white/10">
-              <table className="min-w-full divide-y divide-white/10 text-sm">
-                <thead className="bg-[#0b1224] text-xs uppercase tracking-[0.22em] text-slate-400">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-semibold">Period</th>
-                    <th className="px-4 py-3 text-left font-semibold">Bookings</th>
-                    <th className="px-4 py-3 text-left font-semibold">Amount</th>
-                    <th className="px-4 py-3 text-left font-semibold">Status</th>
-                    <th className="px-4 py-3 text-left font-semibold">Paid</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/10 bg-[#0f172a] text-slate-300">
-                  {payouts.map((payout) => {
-                    const run = payout.payout_run;
-                    const periodLabel = run
-                      ? `${new Date(run.period_start).toLocaleDateString()} – ${new Date(run.period_end).toLocaleDateString()}`
-                      : new Date(payout.created_at).toLocaleDateString();
-                    const paidLabel = payout.paid_at ? new Date(payout.paid_at).toLocaleDateString() : "—";
+        </section>
 
-                    return (
-                      <tr key={payout.id}>
-                        <td className="px-4 py-3">{periodLabel}</td>
-                        <td className="px-4 py-3">{payout.booking_count ?? 0}</td>
-                        <td className="px-4 py-3 font-semibold text-slate-100">
-                          {formatCurrency(Number(payout.amount_usd ?? 0))}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${statusChip(payout.status)}`}>
-                            {formatLabel(payout.status)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-slate-400">{paidLabel}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+        <section>
+          <div className={dashboardCard}>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className={dashboardSectionHeading}>Payout history</h2>
+                <p className="mt-2 text-[15px] leading-6 text-[#58657A]">Recent commission payout records.</p>
+              </div>
+              <span className={dashboardSmallText}>{payouts.length} records</span>
             </div>
-          )}
-        </Card>
-      </section>
-    </div>
+            {payouts.length === 0 ? (
+              <div className={`mt-6 ${dashboardPanel}`}>
+                <h3 className="text-[17px] font-semibold leading-6 text-[#0F2148]">Your payout history will appear here.</h3>
+                <p className={`mt-3 max-w-2xl ${dashboardBodyText}`}>
+                  Once approved commissions enter a payout cycle, this ledger shows amount, status, and paid date.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-6 overflow-hidden rounded-3xl border border-[#0F2148]/10">
+                <table className={`min-w-full ${dashboardDivider} text-[14px]`}>
+                  <thead className="bg-[#F7F3EA] text-[#58657A]">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold">Period</th>
+                      <th className="px-4 py-3 text-left font-semibold">Bookings</th>
+                      <th className="px-4 py-3 text-left font-semibold">Amount</th>
+                      <th className="px-4 py-3 text-left font-semibold">Status</th>
+                      <th className="px-4 py-3 text-left font-semibold">Paid</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#0F2148]/10 bg-white text-[#58657A]">
+                    {payouts.map((payout) => {
+                      const run = payout.payout_run;
+                      const periodLabel = run
+                        ? `${new Date(run.period_start).toLocaleDateString()} – ${new Date(run.period_end).toLocaleDateString()}`
+                        : new Date(payout.created_at).toLocaleDateString();
+                      const paidLabel = payout.paid_at ? new Date(payout.paid_at).toLocaleDateString() : "—";
+
+                      return (
+                        <tr key={payout.id}>
+                          <td className="px-4 py-3">{periodLabel}</td>
+                          <td className="px-4 py-3">{payout.booking_count ?? 0}</td>
+                          <td className="px-4 py-3 font-semibold text-[#0F2148]">
+                            {formatCurrency(Number(payout.amount_usd ?? 0))}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusChip(payout.status)}`}>
+                              {formatLabel(payout.status)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-[#58657A]">{paidLabel}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }

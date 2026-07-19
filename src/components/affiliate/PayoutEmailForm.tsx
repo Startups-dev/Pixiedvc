@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { affiliateInput, affiliatePrimaryButton, affiliateTextMuted } from "@/lib/affiliate-theme";
 
 export default function AffiliatePayoutEmailForm({ initialEmail }: { initialEmail: string | null }) {
   const [email, setEmail] = useState(initialEmail ?? "");
@@ -21,38 +20,41 @@ export default function AffiliatePayoutEmailForm({ initialEmail }: { initialEmai
 
     setSaving(false);
     if (!response.ok) {
-      setMessage({ tone: "error", text: "Unable to update payout email." });
+      setMessage({
+        tone: "error",
+        text: "We couldn’t update your payout email. Your previous details are still saved.",
+      });
       return;
     }
 
-    setMessage({ tone: "success", text: "Payout email updated." });
+    setMessage({ tone: "success", text: "Your payout email has been updated." });
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <label className={`flex flex-col gap-1.5 text-sm ${affiliateTextMuted}`}>
-        <span className="font-semibold text-slate-300">PayPal/Wise email</span>
+      <label className="flex flex-col gap-2 text-[15px] leading-6 text-[#58657A]">
+        <span className="font-semibold text-[#0F2148]">Payout email</span>
         <input
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="you@example.com"
-          className={`${affiliateInput} text-slate-200 placeholder:text-slate-500`}
+          className="min-h-12 rounded-xl border border-[#0F2148]/12 bg-white px-4 text-[15px] text-[#0F2148] shadow-[0_8px_24px_rgba(15,33,72,0.04)] outline-none transition placeholder:text-[#8A94A6] focus:border-[#D6B45A]/70 focus:ring-2 focus:ring-[#D6B45A]/20"
         />
       </label>
       <button
         type="submit"
-        className={`rounded-full px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.2em] transition disabled:cursor-not-allowed disabled:opacity-60 ${affiliatePrimaryButton}`}
+        className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0F2148] px-5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#173A72] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6B45A] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
         disabled={saving}
       >
         {saving ? "Saving…" : "Save"}
       </button>
       {message ? (
         <p
-          className={`rounded-xl border px-3 py-2 text-xs ${
+          className={`rounded-xl border px-3 py-2 text-[13px] leading-5 ${
             message.tone === "success"
-              ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-200"
-              : "border-rose-400/30 bg-rose-400/10 text-rose-200"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-rose-200 bg-rose-50 text-rose-700"
           }`}
         >
           {message.text}
