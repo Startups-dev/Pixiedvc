@@ -289,11 +289,15 @@ export default function HeaderClient({
     <header className="relative z-[100] w-full overflow-visible">
       <div className="w-full border-b border-white/10 bg-[#0f2148] pt-4">
         <div className="mx-auto flex h-[80px] w-full max-w-[1200px] items-center gap-4 px-3 sm:px-4 md:px-6 lg:gap-5">
-          <div className="-ml-[84px] w-[330px] shrink-0 lg:-ml-[92px] lg:w-[388px]">
-            <Link href="/" onClick={closeMobile} className="flex translate-y-[15px] items-center">
+          <div className="w-auto shrink-0">
+            <Link
+              href="/"
+              onClick={closeMobile}
+              className="flex items-center"
+            >
               <PixieLogo
                 priority
-                className="block w-[274px] h-auto sm:w-[303px] md:w-[337px] lg:w-[370px] xl:w-[385px]"
+                className="w-[176px] sm:w-[196px] lg:w-[218px]"
               />
             </Link>
           </div>

@@ -192,7 +192,7 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
       ) : null}
       {showResaleRestrictionBanner ? (
         <Card className="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-4 text-sm text-amber-900 shadow-sm">
-          Resale memberships acquired on/after Jan 19, 2019 have booking restrictions at certain resorts (including Riviera, Villas at Disneyland Hotel, and the Cabins at Fort Wilderness). PixieDVC will automatically avoid matching you to requests you can’t book.
+          Resale memberships acquired on/after Jan 19, 2019 have booking restrictions at certain resorts (including Riviera, Villas at Disneyland Hotel, and the Cabins at Fort Wilderness). HannaDVC will automatically avoid matching you to requests you can’t book.
         </Card>
       ) : null}
 
@@ -205,7 +205,7 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
         </div>
         {foundingOwnerSummary?.active ? (
           <p className="text-sm text-slate-600">
-            You&apos;re part of the PixieDVC Founding Owner Circle.
+            You&apos;re part of the HannaDVC Founding Owner Circle.
           </p>
         ) : null}
       </section>

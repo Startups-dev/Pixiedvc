@@ -11,7 +11,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Why do you ask for my payout per point?",
-    a: "That is what you earn per point when the stay sells. PixieDVC adds a separate guest service fee.",
+    a: "That is what you earn per point when the stay sells. HannaDVC adds a separate guest service fee.",
   },
   {
     q: "Why is there a maximum payout?",
@@ -23,10 +23,10 @@ const FAQ_ITEMS = [
   },
   {
     q: "How is the max payout calculated?",
-    a: "We use season-based caps and resort demand adjustments. Max payout = Guest cap − PixieDVC fee.",
+    a: "We use season-based caps and resort demand adjustments. Max payout = Guest cap − HannaDVC fee.",
   },
   {
-    q: "Do guests see my payout or the Pixie fee?",
+    q: "Do guests see my payout or the HannaDVC fee?",
     a: "No. Guests only see the final guest price.",
   },
   {

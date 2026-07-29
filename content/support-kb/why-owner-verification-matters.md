@@ -5,7 +5,7 @@ category: owner
 audience: guest,owner
 updatedAt: 2026-03-07
 related_questions:
-  - Why does PixieDVC verify owners?
+  - Why does HannaDVC verify owners?
   - Is owner verification required?
   - How does verification help guests?
 ---

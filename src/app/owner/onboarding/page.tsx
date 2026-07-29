@@ -338,7 +338,7 @@ export default function OwnerOnboarding() {
           onChange={(event) => setNewsletterOptIn(event.target.checked)}
         />
         <span>
-          Yes, I&apos;d like to receive PixieDVC owner updates, platform news, booking opportunities, and marketing emails. I can unsubscribe at any time.
+          Yes, I&apos;d like to receive HannaDVC owner updates, platform news, booking opportunities, and marketing emails. I can unsubscribe at any time.
         </span>
       </label>
       <button

@@ -10,7 +10,7 @@ type Props = {
 function labelFor(section: ResortInfoSection) {
   if (section.type === "overview") return "About This Resort";
   if (section.type === "transportation") return "Getting Around";
-  if (section.type === "amenities") return "What You Get with PixieDVC";
+  if (section.type === "amenities") return "What You Get with HannaDVC";
   if (section.type === "policies") return "Good to Know";
   return section.title;
 }

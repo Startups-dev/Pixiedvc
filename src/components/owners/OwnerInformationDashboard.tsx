@@ -6,7 +6,7 @@ import IntercomButton from "@/components/chat/IntercomButton";
 const protectionTiles = [
   { title: "Verified Guests", text: "Identity and payment confirmed before booking." },
   { title: "Owner Authorization", text: "No reservation made without your approval." },
-  { title: "Secure Payments", text: "Guest funds collected by PixieDVC." },
+  { title: "Secure Payments", text: "Guest funds collected by HannaDVC." },
   { title: "Concierge Oversight", text: "Every reservation reviewed manually." },
   { title: "Clear Documentation", text: "Agreements and invoices provided." },
   { title: "No Owner Fees", text: "You receive payout without deductions." },
@@ -48,7 +48,7 @@ export default function OwnerInformationDashboard() {
               operational work of renting them responsibly.
             </p>
             <p className="text-base text-slate-500">
-              PixieDVC connects verified guests with available Disney Vacation Club points, manages communication and
+              HannaDVC connects verified guests with available Disney Vacation Club points, manages communication and
               documentation, and ensures each booking follows a clear, structured, and contractually sound process,
               with owner protection built in at every step.
             </p>
@@ -237,7 +237,7 @@ function Hero() {
     <div className="relative overflow-hidden ring-1 ring-black/10 shadow-sm">
       <img
         src="https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/pixiedvc-social-proof/platform-images/Screenshot%202026-01-01%20at%2012.34.06%20AM.png"
-        alt="PixieDVC owner rental process overview"
+        alt="HannaDVC owner rental process overview"
         className="h-[280px] w-full object-cover lg:h-[460px]"
       />
     </div>

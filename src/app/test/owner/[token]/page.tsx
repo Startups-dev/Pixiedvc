@@ -22,7 +22,7 @@ export default async function OwnerTestEntryPage({ params }: { params: { token: 
           </p>
           <div className="mt-6">
             <Link href="/" className="text-sm font-semibold text-[#0F2148] underline-offset-2 hover:underline">
-              Return to PixieDVC
+              Return to HannaDVC
             </Link>
           </div>
         </div>

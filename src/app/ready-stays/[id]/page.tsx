@@ -123,7 +123,7 @@ export default async function ReadyStayDetailPage({
                 <p className="text-xs uppercase tracking-[0.3em] text-muted">Policies</p>
                 <div className="space-y-2 text-sm text-muted">
                   <p>
-                    Ready Stays follow PixieDVC&apos;s rental policies. Because these reservations are already confirmed through Disney Vacation Club, cancellation and change terms are defined in your rental agreement prior to payment.
+                    Ready Stays follow HannaDVC&apos;s rental policies. Because these reservations are already confirmed through Disney Vacation Club, cancellation and change terms are defined in your rental agreement prior to payment.
                   </p>
                   <p>
                     Ready Stays are best suited for guests with firm travel plans. We encourage you to review your agreement carefully before securing your reservation.

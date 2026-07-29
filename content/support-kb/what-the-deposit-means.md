@@ -7,10 +7,10 @@ updatedAt: 2026-03-08
 related_questions:
   - What does the deposit cover?
   - Is the deposit the full payment?
-  - When do I pay on PixieDVC?
+  - When do I pay on HannaDVC?
 ---
 
-PixieDVC uses a $99 availability deposit to begin checking availability and matching a Disney Vacation Club owner for your request.
+HannaDVC uses a $99 availability deposit to begin checking availability and matching a Disney Vacation Club owner for your request.
 
 This deposit is fully refundable until a matching owner is secured.
 

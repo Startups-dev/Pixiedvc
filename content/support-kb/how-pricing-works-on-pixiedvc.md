@@ -1,5 +1,5 @@
 ---
-title: How Pricing Works on PixieDVC
+title: How Pricing Works on HannaDVC
 slug: how-pricing-works-on-pixiedvc
 category: payments
 audience: guest
@@ -10,7 +10,7 @@ related_questions:
   - What affects total price?
 ---
 
-PixieDVC pricing is tied to stay details, not a single flat price.
+HannaDVC pricing is tied to stay details, not a single flat price.
 
 The largest cost factors are:
 - resort

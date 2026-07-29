@@ -39,9 +39,9 @@ export default async function ProfilePage() {
     <div className="mx-auto mt-16 max-w-3xl space-y-10 px-6 pb-24">
       <header className="space-y-3">
         <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Account</p>
-        <h1 className="text-3xl font-semibold text-slate-900">Your PixieDVC profile</h1>
+        <h1 className="text-3xl font-semibold text-slate-900">Your HannaDVC profile</h1>
         <p className="max-w-2xl text-base text-slate-500">
-          Manage how your name appears across PixieDVC and keep your contact details up to date. We keep the email address tied to your
+          Manage how your name appears across HannaDVC and keep your contact details up to date. We keep the email address tied to your
           login (<span className="font-medium">{user.email}</span>) in sync with Supabase authentication.
         </p>
       </header>

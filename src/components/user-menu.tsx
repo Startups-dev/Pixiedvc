@@ -147,7 +147,7 @@ export default function UserMenu({ label, isAdmin = false, userRole, hasAffiliat
             className="block rounded-[10px] px-3 py-2 text-white/90 transition hover:bg-white/10 hover:text-white"
             onClick={() => setOpen(false)}
           >
-            Pixie Booking
+            HannaDVC Booking
           </Link>
 
           <Link

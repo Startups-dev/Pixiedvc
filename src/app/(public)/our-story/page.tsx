@@ -12,20 +12,20 @@ export default function OurStoryPage() {
         <h1 className="mt-3 text-4xl font-serif sm:text-5xl">Built by a DVC family, for families like yours.</h1>
         <div className="mt-6 space-y-4 text-base leading-7 text-[#0F2148]/80">
           <p>
-            PixieDVC started the same way many Disney trips do: around a family table, planning a vacation that meant
+            HannaDVC started the same way many Disney trips do: around a family table, planning a vacation that meant
             more than just a few days away.
           </p>
           <p>
             We’re Disney Vacation Club owners. We’ve planned trips with kids, grandparents, first-time Disney guests,
             and lifelong fans. We know how exciting, and sometimes overwhelming, planning a DVC stay can feel.
           </p>
-          <p>So we built PixieDVC to make it easier, calmer, and more straightforward.</p>
+          <p>So we built HannaDVC to make it easier, calmer, and more straightforward.</p>
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl space-y-12 px-6 pb-14">
         <div className="space-y-4">
-          <h2 className="text-2xl font-semibold text-[#0F2148]">Why PixieDVC Exists</h2>
+          <h2 className="text-2xl font-semibold text-[#0F2148]">Why HannaDVC Exists</h2>
           <p className="text-sm leading-6 text-[#0F2148]/80">Disney vacations are special.</p>
           <p className="text-sm leading-6 text-[#0F2148]/80">They’re often:</p>
           <ul className="space-y-2 text-sm text-[#0F2148]/80">
@@ -41,12 +41,12 @@ export default function OurStoryPage() {
             Too often, families are left sorting through confusing point charts, wondering if they’re making the right
             choice, or feeling unsure about who to trust.
           </p>
-          <p className="text-sm leading-6 text-[#0F2148]/80">PixieDVC exists to change that experience.</p>
+          <p className="text-sm leading-6 text-[#0F2148]/80">HannaDVC exists to change that experience.</p>
         </div>
 
         <div className="space-y-4">
           <h2 className="text-2xl font-semibold text-[#0F2148]">We’re DVC Owners Too</h2>
-          <p className="text-sm leading-6 text-[#0F2148]/80">PixieDVC isn’t a faceless marketplace.</p>
+          <p className="text-sm leading-6 text-[#0F2148]/80">HannaDVC isn’t a faceless marketplace.</p>
           <p className="text-sm leading-6 text-[#0F2148]/80">
             We’re people who actually use DVC. We understand how the system works, where it gets confusing, and what
             details matter most when you’re planning a stay.
@@ -67,7 +67,7 @@ export default function OurStoryPage() {
           <p className="text-sm leading-6 text-[#0F2148]/80">
             Instead of treating your stay like a transaction, we treat it like a conversation.
           </p>
-          <p className="text-sm leading-6 text-[#0F2148]/80">With PixieDVC, you can expect:</p>
+          <p className="text-sm leading-6 text-[#0F2148]/80">With HannaDVC, you can expect:</p>
           <ul className="space-y-2 text-sm text-[#0F2148]/80">
             <li>• Personal, concierge-style support</li>
             <li>• Clear explanations (no guesswork)</li>
@@ -84,7 +84,7 @@ export default function OurStoryPage() {
       <section className="mx-auto max-w-6xl space-y-12 px-6 pb-16">
         <div className="space-y-4">
           <h2 className="text-2xl font-semibold text-[#0F2148]">A Family-Run Approach</h2>
-          <p className="text-sm leading-6 text-[#0F2148]/80">PixieDVC is family-run, and that shapes how we work.</p>
+          <p className="text-sm leading-6 text-[#0F2148]/80">HannaDVC is family-run, and that shapes how we work.</p>
           <p className="text-sm leading-6 text-[#0F2148]/80">
             We know how much these trips matter, especially when you’re traveling with the people you love most. That’s
             why we take extra care with every request, every question, and every detail.
@@ -97,7 +97,7 @@ export default function OurStoryPage() {
         <div className="rounded-3xl border border-[#0F2148]/10 bg-[#0F2148]/5 p-6 text-sm leading-6 text-[#0F2148]/80">
           <h2 className="text-xl font-semibold text-[#0F2148]">Transparency Matters</h2>
           <p className="mt-3">
-            PixieDVC is an independent platform created by Disney Vacation Club owners.
+            HannaDVC is an independent platform created by Disney Vacation Club owners.
             We are not affiliated with or endorsed by The Walt Disney Company or Disney Vacation Club. Our role is to
             help families access DVC resorts with clarity, care, and confidence.
           </p>

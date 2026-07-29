@@ -40,7 +40,7 @@ export default function GuestsPage() {
                 Book DVC villas with concierge magic & zero guesswork.
               </h1>
               <p className="max-w-xl text-lg text-muted">
-                Tell us your travel dates and villa preferences. PixieDVC matches your request with verified Disney Vacation Club owners and manages the coordination, agreements, and confirmation, so your stay is secured clearly and professionally.
+                Tell us your travel dates and villa preferences. HannaDVC matches your request with verified Disney Vacation Club owners and manages the coordination, agreements, and confirmation, so your stay is secured clearly and professionally.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Suspense fallback={null}>
@@ -51,7 +51,7 @@ export default function GuestsPage() {
                       className="bg-white/6 px-5 py-2 text-white !text-white shadow-[0_6px_16px_rgba(35,53,107,0.18)] transition duration-300 hover:bg-white/14"
                     >
                       <ReferralLink href="/calculator" className="text-white">
-                        Launch Pixie Booking
+                        Launch HannaDVC Booking
                       </ReferralLink>
                     </Button>
                   </div>
@@ -102,7 +102,7 @@ export default function GuestsPage() {
 
           <section className="mt-24 space-y-12">
             <SectionHeader
-              eyebrow="Why Guests Love PixieDVC"
+              eyebrow="Why Guests Love HannaDVC"
               title="A better way to book DVC stays"
               description="Verified owner matches, transparent coordination, and professional support throughout your booking."
             />
@@ -115,7 +115,7 @@ export default function GuestsPage() {
               ))}
             </div>
             <p className="text-sm text-muted">
-              PixieDVC works directly with verified owners to deliver confirmed stays, transparent pricing, and contract-backed bookings.
+              HannaDVC works directly with verified owners to deliver confirmed stays, transparent pricing, and contract-backed bookings.
             </p>
           </section>
         </main>

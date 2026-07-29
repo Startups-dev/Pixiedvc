@@ -74,7 +74,7 @@ export default async function OwnerUrgentPage() {
         <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Urgent Placement</p>
         <h1 className="text-3xl font-semibold text-slate-900">Private placement request</h1>
         <p className="text-sm text-slate-500">
-          Share urgent points or confirmed reservations for private placement. Listings are only visible to PixieDVC
+          Share urgent points or confirmed reservations for private placement. Listings are only visible to HannaDVC
           staff.
         </p>
       </header>

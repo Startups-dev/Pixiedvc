@@ -14,6 +14,6 @@ Contact concierge support when your issue is account-specific, payment-related, 
 
 Common examples include deposit problems, sign-in issues, request-specific status checks, owner verification concerns, and booking flow blockers.
 
-If your question is general, Pixie Concierge can often answer immediately.
+If your question is general, Hara can often answer immediately.
 
 If your case needs direct review, concierge support is the right next step.

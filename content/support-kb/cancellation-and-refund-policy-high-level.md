@@ -12,7 +12,7 @@ related_questions:
   - What happens if my plans change?
 ---
 
-PixieDVC reservations follow structured cancellation policies because Disney Vacation Club reservations are tied to member points.
+HannaDVC reservations follow structured cancellation policies because Disney Vacation Club reservations are tied to member points.
 
 This means policies can differ from traditional hotel cancellation rules.
 

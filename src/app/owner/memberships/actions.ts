@@ -109,7 +109,7 @@ export async function upsertOwnerMembership(input: MembershipInput) {
           user_id: user.id,
           type: "resale_restriction_notice",
           title: "Resale booking restrictions",
-          body: "Resale memberships acquired on/after Jan 19, 2019 have booking restrictions at certain resorts (including Riviera, Villas at Disneyland Hotel, and the Cabins at Fort Wilderness). PixieDVC will automatically avoid matching you to requests you can’t book.",
+          body: "Resale memberships acquired on/after Jan 19, 2019 have booking restrictions at certain resorts (including Riviera, Villas at Disneyland Hotel, and the Cabins at Fort Wilderness). HannaDVC will automatically avoid matching you to requests you can’t book.",
           link: "/owner/dashboard",
         });
       }

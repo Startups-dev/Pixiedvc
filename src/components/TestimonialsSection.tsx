@@ -180,7 +180,7 @@ export default function TestimonialsSection({
                 required
                 className="mt-1"
               />
-              <span>I agree PixieDVC may display my testimonial publicly after review.</span>
+              <span>I agree HannaDVC may display my testimonial publicly after review.</span>
             </label>
             <p className="text-xs text-slate-500">
               Please don’t include links. Submissions with links may be rejected.

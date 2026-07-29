@@ -89,10 +89,10 @@ export default async function ResortsIndexPage() {
       <section className="mx-auto max-w-6xl px-6 pb-20 pt-16">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-[#0F2148]/50">PixieDVC Resorts</p>
+            <p className="text-xs uppercase tracking-[0.25em] text-[#0F2148]/50">HannaDVC Resorts</p>
             <h1 className="mt-2 text-3xl font-serif sm:text-4xl">Choose your next storybook stay</h1>
             <p className="mt-3 max-w-2xl text-sm text-[#0F2148]/70">
-              Browse every resort in the PixieDVC collection with concierge notes, map highlights, and availability
+              Browse every resort in the HannaDVC collection with concierge notes, map highlights, and availability
               cues linked directly to each detail page.
             </p>
           </div>

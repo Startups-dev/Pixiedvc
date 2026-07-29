@@ -18,7 +18,7 @@ export default function PixieReadyStayMatches({ matches }: { matches?: PixieRead
           <p className="text-[11px] leading-5 text-slate-500">Ready Stay price and availability must be rechecked before any booking action.</p>
         </div>
       ) : (
-        <p className="mt-3 text-sm leading-6 text-slate-500">Pixie can compare public Ready Stays after dates and party size are usable.</p>
+        <p className="mt-3 text-sm leading-6 text-slate-500">Hara can compare public Ready Stays after dates and party size are usable.</p>
       )}
     </section>
   );
@@ -35,4 +35,3 @@ function MatchGroup({ title, items }: { title: string; items: NonNullable<PixieR
     </div>
   );
 }
-

@@ -397,7 +397,7 @@ export default async function AdminAnalyticsPage({
           <p className="text-xs uppercase tracking-[0.32em] text-slate-400">Admin · Analytics</p>
           <h1 className="text-3xl font-semibold text-slate-50">Analytics</h1>
           <p className="max-w-3xl text-sm text-slate-400">
-            First-party traffic, affiliate attribution, conversion, and payout reporting for PixieDVC.
+            First-party traffic, affiliate attribution, conversion, and payout reporting for HannaDVC.
           </p>
         </header>
 

@@ -14,7 +14,7 @@ Some Disney Vacation Club resorts are easier to secure when requests are made ea
 
 At a high level, booking windows can affect which requests are easier to match because owners can have stronger access at their home resorts.
 
-Guests do not need to manage booking-window rules themselves. PixieDVC handles matching and availability checks.
+Guests do not need to manage booking-window rules themselves. HannaDVC handles matching and availability checks.
 
 If availability is limited, flexibility usually helps. The most useful areas to flex are:
 - travel dates

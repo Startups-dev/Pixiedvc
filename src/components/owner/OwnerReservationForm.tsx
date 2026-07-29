@@ -574,7 +574,7 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
           <p>You receive {ownerPayoutValid ? `${formatDollars(ownerPayout)}/pt` : "—"}</p>
           <p>Total owner payout: {totalOwnerPayout !== null ? formatDollars(totalOwnerPayout) : "—"}</p>
           <p className="mt-2 text-xs text-slate-500">
-            Heads up: guests pay a PixieDVC service fee on top of your payout.
+            Heads up: guests pay a HannaDVC service fee on top of your payout.
           </p>
         </div>
       </div>

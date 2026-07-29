@@ -3,7 +3,7 @@ import Link from "next/link";
 import ExpiringPointsRequestForm from "@/components/owner/ExpiringPointsRequestForm";
 
 export const metadata = {
-  title: "Expiring DVC Points | PixieDVC",
+  title: "Expiring DVC Points | HannaDVC",
   description:
     "Manual review support for DVC owners with expiring points or reservations they need to move quickly.",
 };
@@ -36,12 +36,12 @@ const steps = [
     body: "If your points are approaching expiration, flexibility on pricing may help increase visibility and interest. Share what you'd like to receive and we'll review the request alongside current demand, travel timing, and resort interest.",
   },
   {
-    title: "PixieDVC reviews demand",
+    title: "HannaDVC reviews demand",
     body: "Our team reviews your resort, expiration date, stay details, and target payout.",
   },
   {
     title: "We May Feature Your Stay",
-    body: "If it is a good fit, we may feature your stay through PixieDVC newsletters, owner channels, and other marketing initiatives designed to reach Disney travelers.",
+    body: "If it is a good fit, we may feature your stay through HannaDVC newsletters, owner channels, and other marketing initiatives designed to reach Disney travelers.",
   },
   {
     title: "You decide whether to move forward",
@@ -84,7 +84,7 @@ export default function ExpiringPointsPage() {
                   We&apos;ll help you explore your options before they expire.
                 </p>
                 <p className="mt-5 max-w-3xl text-[16px] leading-8 text-[#5d6f8b]">
-                  If you have points approaching expiration or a reservation you can no longer use, PixieDVC may be
+                  If you have points approaching expiration or a reservation you can no longer use, HannaDVC may be
                   able to help by presenting select stays to our audience of Disney travelers through newsletters,
                   featured promotions, and targeted outreach.
                 </p>
@@ -191,7 +191,7 @@ export default function ExpiringPointsPage() {
                 Concierge-Led Review
               </h2>
               <p className="mt-4 max-w-xl text-[16px] leading-8 text-[#5d6f8b]">
-                This is a selective, manual review process. PixieDVC does not automatically list every request. We
+                This is a selective, manual review process. HannaDVC does not automatically list every request. We
                 review timing, resort demand, travel dates, and owner expectations before recommending next steps.
               </p>
               <div className="mt-8 rounded-[30px] border border-[#dbe5f5] bg-white/80 p-6 shadow-[0_18px_44px_rgba(15,33,72,0.06)]">
@@ -213,7 +213,7 @@ export default function ExpiringPointsPage() {
                   </ul>
                   <p>
                     These promotional opportunities can help increase visibility for stays that may benefit from
-                    additional exposure. Placement is not guaranteed and is determined at PixieDVC&apos;s discretion.
+                    additional exposure. Placement is not guaranteed and is determined at HannaDVC&apos;s discretion.
                   </p>
                 </div>
               </div>

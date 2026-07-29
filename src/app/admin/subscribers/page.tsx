@@ -140,7 +140,7 @@ export default async function AdminSubscribersPage({
               <h1 className="text-3xl font-semibold" style={{ color: '#64748b' }}>
                 Subscriber Dashboard
               </h1>
-              <p className="text-sm text-[#b4b4b4]">Read-only visibility into PixieDVC subscriber and lifecycle email data.</p>
+              <p className="text-sm text-[#b4b4b4]">Read-only visibility into HannaDVC subscriber and lifecycle email data.</p>
             </div>
           </header>
 

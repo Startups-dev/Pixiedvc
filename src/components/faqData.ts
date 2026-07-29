@@ -69,14 +69,14 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
           "Use our free online Cost Calculator to see the total accommodation cost for your selected dates, including applicable fees and taxes. A $99 refundable request deposit is required to submit a reservation request. The deposit is applied toward your final balance if the reservation is confirmed and fully refunded if we're unable to secure the requested stay. The calculator does not reflect availability.",
       },
       {
-        question: "What is PixieDVC’s price per point?",
+        question: "What is HannaDVC’s price per point?",
         answer:
-          "PixieDVC guest pricing is based on four Access tiers:\n\nPremier Access — $29 per point\nPriority Access — $26 per point\nSelect Access — $24 per point\nValue Access — $22 per point\n\nThe tier depends on the resort, booking window, room demand, and whether the stay is matched through owner points or offered as a pre-confirmed stay. Your calculator estimate will show the tier and per-point price used before you submit a request.",
+          "HannaDVC guest pricing is based on four Access tiers:\n\nPremier Access — $29 per point\nPriority Access — $26 per point\nSelect Access — $24 per point\nValue Access — $22 per point\n\nThe tier depends on the resort, booking window, room demand, and whether the stay is matched through owner points or offered as a pre-confirmed stay. Your calculator estimate will show the tier and per-point price used before you submit a request.",
       },
       {
         question: "Why are Disney villa rentals cheaper than booking directly through Disney?",
         answer:
-          "PixieDVC reservations are booked using Disney Vacation Club points from verified DVC Members instead of Disney’s standard cash pricing. Because of this, many deluxe Disney villas can cost significantly less than booking directly through Disney.",
+          "HannaDVC reservations are booked using Disney Vacation Club points from verified DVC Members instead of Disney’s standard cash pricing. Because of this, many deluxe Disney villas can cost significantly less than booking directly through Disney.",
       },
       {
         question: "Why do prices vary between resorts and dates?",
@@ -86,7 +86,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         question: "What is included in the estimated price?",
         answer:
-          "Your estimate includes the Disney villa reservation booked through PixieDVC. Taxes collected directly by Disney Resorts at check-in, optional travel insurance, and other vacation expenses are not included unless specifically stated.",
+          "Your estimate includes the Disney villa reservation booked through HannaDVC. Taxes collected directly by Disney Resorts at check-in, optional travel insurance, and other vacation expenses are not included unless specifically stated.",
       },
       {
         question: "Are there hidden fees?",
@@ -123,7 +123,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         question: "What is your cancellation policy?",
         answer:
-          "Your $99 request deposit remains refundable while PixieDVC is still attempting to match your request and confirm availability.\n\nOnce a matching owner is secured, availability is confirmed, and a Rental Agreement is generated for your stay, the deposit becomes non-refundable, even if the reservation has not yet been finalized in Disney’s system.\n\nOnce your reservation is confirmed and payment is completed, cancellation flexibility depends on the specific terms presented for your booking, including any eligible Deferred Cancellation Credit or rebooking options.\n\nBefore committing, you will always be shown the full reservation price, payment terms, cancellation terms specific to your stay, and any available flexibility options. PixieDVC concierge support remains available to help explore eligible rebooking, adjustment, or travel credit options if your plans change.",
+          "Your $99 request deposit remains refundable while HannaDVC is still attempting to match your request and confirm availability.\n\nOnce a matching owner is secured, availability is confirmed, and a Rental Agreement is generated for your stay, the deposit becomes non-refundable, even if the reservation has not yet been finalized in Disney’s system.\n\nOnce your reservation is confirmed and payment is completed, cancellation flexibility depends on the specific terms presented for your booking, including any eligible Deferred Cancellation Credit or rebooking options.\n\nBefore committing, you will always be shown the full reservation price, payment terms, cancellation terms specific to your stay, and any available flexibility options. HannaDVC concierge support remains available to help explore eligible rebooking, adjustment, or travel credit options if your plans change.",
       },
       {
         question: "Why are DVC rental cancellations more restrictive?",
@@ -175,7 +175,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         question: "Do I need to attend a timeshare presentation?",
         answer:
-          "No. PixieDVC rentals do not require attendance at any Disney Vacation Club presentation or sales meeting.",
+          "No. HannaDVC rentals do not require attendance at any Disney Vacation Club presentation or sales meeting.",
       },
       {
         question: "Can I use MagicBands and Lightning Lane?",
@@ -219,7 +219,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
   {
     id: "deals-support",
     title: "Deals & Support",
-    blurb: "Ready Stays, special opportunities, and how to reach PixieDVC for planning help.",
+    blurb: "Ready Stays, special opportunities, and how to reach HannaDVC for planning help.",
     items: [
       {
         question: "Do you offer sales or last-minute deals?",
@@ -234,7 +234,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       {
         question: "What are Limited-Time Disney Villa Deals?",
         answer:
-          "Some Disney villa stays may become available at reduced pricing when an owner has points approaching expiration or wants to secure a faster booking.\n\nThese opportunities can include Ready Stays or flexible booking inventory and may offer exceptional value for travelers with flexible plans.\n\nSome limited-time offers may only be shared through the PixieDVC newsletter before becoming publicly available.\n\nAvailability is limited and deals may disappear quickly once booked.",
+          "Some Disney villa stays may become available at reduced pricing when an owner has points approaching expiration or wants to secure a faster booking.\n\nThese opportunities can include Ready Stays or flexible booking inventory and may offer exceptional value for travelers with flexible plans.\n\nSome limited-time offers may only be shared through the HannaDVC newsletter before becoming publicly available.\n\nAvailability is limited and deals may disappear quickly once booked.",
       },
       {
         question: "Can your concierge team help me choose a resort?",

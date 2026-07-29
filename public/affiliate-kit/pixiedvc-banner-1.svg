@@ -8,7 +8,7 @@
   <rect width="1200" height="630" fill="url(#bg)"/>
   <rect x="70" y="70" width="1060" height="490" rx="32" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>
   <text x="120" y="220" fill="#FFFFFF" font-family="Inter, system-ui, sans-serif" font-size="56" font-weight="600">
-    PixieDVC
+    HannaDVC
   </text>
   <text x="120" y="290" fill="#D6E0FF" font-family="Inter, system-ui, sans-serif" font-size="30" font-weight="500">
     Boutique DVC rentals with concierge support

@@ -3,7 +3,7 @@ export default function RentDvcPointsPage() {
     <main className="mx-auto max-w-4xl px-6 py-16 text-slate-900">
       <h1 className="text-3xl font-semibold tracking-tight">Rent DVC Points</h1>
       <p className="mt-4 text-base text-slate-500">
-        Renting Disney Vacation Club points lets you stay in deluxe resorts without ownership. PixieDVC matches your
+        Renting Disney Vacation Club points lets you stay in deluxe resorts without ownership. HannaDVC matches your
         dates, resort preferences, and room type to verified owners.
       </p>
       <p className="mt-4 text-base text-slate-500">

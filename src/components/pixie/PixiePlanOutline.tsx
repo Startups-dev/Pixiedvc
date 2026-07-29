@@ -24,10 +24,9 @@ export default function PixiePlanOutline({ outline }: { outline: unknown }) {
           ))}
         </ul>
       ) : (
-        <p className="mt-3 text-sm leading-6 text-slate-500">Pixie will draft a simple outline as your trip details become clearer.</p>
+        <p className="mt-3 text-sm leading-6 text-slate-500">Hara will draft a simple outline as your trip details become clearer.</p>
       )}
       <p className="mt-3 text-[11px] leading-5 text-slate-500">Outline guidance does not include live Disney operating data, ticket prices, dining availability, or Lightning Lane policy.</p>
     </section>
   );
 }
-

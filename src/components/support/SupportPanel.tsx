@@ -57,7 +57,7 @@ type SupportChatStreamEvent = {
 const initialMessage: SupportMessage = {
   role: "assistant",
   content: "Hi. How can I help with your plans today?",
-  senderLabel: "PixieDVC Concierge",
+  senderLabel: "HannaDVC Concierge",
 };
 
 export default function SupportPanel({
@@ -78,7 +78,7 @@ export default function SupportPanel({
   const [pathname, setPathname] = useState("");
   const [conciergeConnectionState, setConciergeConnectionState] =
     useState<ConciergeConnectionState>("idle");
-  const [connectedAgentNickname, setConnectedAgentNickname] = useState("PixieDVC Concierge");
+  const [connectedAgentNickname, setConnectedAgentNickname] = useState("HannaDVC Concierge");
   const [contactSubmitStatus, setContactSubmitStatus] = useState<"idle" | "sending" | "sent">(
     "idle",
   );
@@ -173,7 +173,7 @@ export default function SupportPanel({
     setHandoffConnected(false);
     setConversationId(null);
     setGuestLiveToken(null);
-    setConnectedAgentNickname("PixieDVC Concierge");
+    setConnectedAgentNickname("HannaDVC Concierge");
     setConciergeConnectionState((prev) => (prev === "fallback" ? prev : "idle"));
   }, []);
 
@@ -418,7 +418,7 @@ export default function SupportPanel({
                     ? connectedAgentNickname
                     : message.sender === "system"
                       ? "System"
-                      : "PixieDVC Concierge"),
+                      : "HannaDVC Concierge"),
               };
           },
         );
@@ -486,7 +486,7 @@ export default function SupportPanel({
       resolvedQuery.includes("dining plan") ||
       resolvedQuery.includes("disney dining plan")
     ) {
-      return "Disney Dining Plans are not typically added directly by guests on DVC reservations. The owner can usually request/add the plan through Disney Vacation Club Member Services, PixieDVC can coordinate that request, it may require valid payment information, and PixieDVC does not charge a service fee for coordinating it.";
+      return "Disney Dining Plans are not typically added directly by guests on DVC reservations. The owner can usually request/add the plan through Disney Vacation Club Member Services, HannaDVC can coordinate that request, it may require valid payment information, and HannaDVC does not charge a service fee for coordinating it.";
     }
     if (
       resolvedQuery.includes("dvc") ||
@@ -607,7 +607,7 @@ export default function SupportPanel({
             role: "assistant",
             content:
               "All concierge are currently assisting other guests. We can follow up quickly — just leave your details.",
-            senderLabel: "PixieDVC Concierge",
+            senderLabel: "HannaDVC Concierge",
           },
         ]);
         openConciergeFallbackForm();
@@ -628,7 +628,7 @@ export default function SupportPanel({
         id: pendingId,
         role: "assistant",
         content: "",
-        senderLabel: "PixieDVC Concierge",
+        senderLabel: "HannaDVC Concierge",
       },
     ];
     setMessages(nextMessages);
@@ -763,7 +763,7 @@ export default function SupportPanel({
           role: "assistant",
           content: buildClientFallbackAnswer(trimmed, previousUserMessage),
           handoffSuggested: false,
-          senderLabel: "PixieDVC Concierge",
+          senderLabel: "HannaDVC Concierge",
         },
       ]);
     } finally {
@@ -819,7 +819,7 @@ export default function SupportPanel({
       setGuestLiveToken(data?.guestLiveToken ? String(data.guestLiveToken) : null);
       setHandoffConnected(Boolean(data?.assigned));
       if (data?.assigned) {
-        const nickname = String(data?.agentNickname || "PixieDVC Concierge");
+        const nickname = String(data?.agentNickname || "HannaDVC Concierge");
         setConnectedAgentNickname(nickname);
         setConciergeConnectionState("connecting");
         playConnectingSignal();
@@ -906,7 +906,7 @@ export default function SupportPanel({
         {
           role: "assistant",
           content: "This conversation has been closed. Start a new message anytime.",
-          senderLabel: "PixieDVC Concierge",
+          senderLabel: "HannaDVC Concierge",
         },
       ]);
       setTimeout(() => scrollToBottom("smooth"), 0);
@@ -957,7 +957,7 @@ export default function SupportPanel({
           role: "assistant",
           content:
             "Your concierge request has been received. We’ll follow up soon.",
-          senderLabel: "PixieDVC Concierge",
+          senderLabel: "HannaDVC Concierge",
         },
       ]);
     } catch {
@@ -990,7 +990,7 @@ export default function SupportPanel({
         className={`flex items-center justify-between border-b px-5 py-4 ${theme.header}`}
       >
         <div>
-          <p className="text-sm font-semibold">✨ PixieDVC Concierge</p>
+          <p className="text-sm font-semibold">✨ HannaDVC Concierge</p>
           <p className={`text-xs ${theme.muted}`}>Questions about DVC rentals, resorts, or availability?</p>
         </div>
         {categories.length > 0 && (
@@ -1083,7 +1083,7 @@ export default function SupportPanel({
                   {
                     role: "assistant",
                     content: "No problem. I’m here if you need anything else.",
-                    senderLabel: "PixieDVC Concierge",
+                    senderLabel: "HannaDVC Concierge",
                   },
                 ]);
               }}
@@ -1095,7 +1095,7 @@ export default function SupportPanel({
         )}
         {loading && (
           <div className={`text-xs ${theme.muted}`}>
-            PixieDVC Concierge is typing...
+            HannaDVC Concierge is typing...
           </div>
         )}
       </div>

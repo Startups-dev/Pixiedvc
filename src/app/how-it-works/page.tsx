@@ -8,7 +8,7 @@ const bookingPaths = [
     label: "Custom Matching",
     title: "Request your stay",
     description:
-      "For guests who want PixieDVC to help secure a specific Disney villa stay.",
+      "For guests who want HannaDVC to help secure a specific Disney villa stay.",
     bullets: [
       "Flexible dates and resort choices",
       "Concierge matching with verified owners",
@@ -164,7 +164,7 @@ export default function HowItWorksPage() {
               </div>
               <div className="mt-7 space-y-4 text-[16px] leading-8 text-[#5a6d8f]">
                 <p>
-                  PixieDVC reviews your requested dates, resort, room type, and flexibility, then looks for verified
+                  HannaDVC reviews your requested dates, resort, room type, and flexibility, then looks for verified
                   owners with eligible DVC points that fit your stay.
                 </p>
                 <p>
@@ -236,7 +236,7 @@ export default function HowItWorksPage() {
                   resort, room type, check-in, and check-out details.
                 </p>
                 <p>
-                  Because the reservation is already in place, this is usually the fastest path through PixieDVC.
+                  Because the reservation is already in place, this is usually the fastest path through HannaDVC.
                   Inventory is limited and may disappear once booked.
                 </p>
               </div>

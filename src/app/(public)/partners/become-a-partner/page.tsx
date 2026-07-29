@@ -41,7 +41,7 @@ export default function BecomePartnerPage() {
             <div className="space-y-4">
               <h1 className="text-4xl font-semibold tracking-tight text-slate-900">Become a Partner</h1>
               <p className="max-w-2xl text-base leading-relaxed text-gray-600">
-                PixieDVC partners with travel advisors, agencies, and affiliates who want a reliable, owner-safe way to support
+                HannaDVC partners with travel advisors, agencies, and affiliates who want a reliable, owner-safe way to support
                 clients interested in Disney Vacation Club rentals.
               </p>
             </div>
@@ -86,7 +86,7 @@ export default function BecomePartnerPage() {
             ))}
           </div>
           <p className="text-base leading-relaxed text-gray-600">
-            If your clients are exploring DVC rentals and expect a professional, structured experience, PixieDVC can support
+            If your clients are exploring DVC rentals and expect a professional, structured experience, HannaDVC can support
             that need.
           </p>
         </section>
@@ -94,7 +94,7 @@ export default function BecomePartnerPage() {
         <section className="space-y-8 py-16">
           <div className="space-y-3">
             <h2 className="text-3xl font-semibold text-slate-900">How the partnership works</h2>
-            <p className="text-base leading-relaxed text-gray-600">PixieDVC manages the full rental process, including:</p>
+            <p className="text-base leading-relaxed text-gray-600">HannaDVC manages the full rental process, including:</p>
           </div>
           <div className="mx-auto grid max-w-4xl gap-5">
             {partnershipSteps.map((step, index) => (
@@ -118,7 +118,7 @@ export default function BecomePartnerPage() {
 
         <section className="rounded-3xl border border-[#dbe6ff] bg-[#f5f8ff] px-8 py-12 text-center">
           <div className="mx-auto max-w-3xl space-y-6">
-            <h2 className="text-3xl font-semibold text-slate-900">Start earning with PixieDVC</h2>
+            <h2 className="text-3xl font-semibold text-slate-900">Start earning with HannaDVC</h2>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Button asChild>
                 <Link href="/partners/affiliate-program" className="!text-white">
@@ -144,7 +144,7 @@ export default function BecomePartnerPage() {
         <section className="space-y-6 py-16">
           <h2 className="text-3xl font-semibold text-slate-900">Start a conversation</h2>
           <p className="text-base leading-relaxed text-gray-600">
-            If you’re interested in partnering with PixieDVC, reach out to discuss your focus area and how our concierge
+            If you’re interested in partnering with HannaDVC, reach out to discuss your focus area and how our concierge
             team can support your bookings.
           </p>
           <p className="text-base leading-relaxed text-gray-600">Contact us to explore partnership opportunities and onboarding.</p>

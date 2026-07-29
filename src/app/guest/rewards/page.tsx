@@ -64,7 +64,7 @@ export default async function GuestRewardsPage() {
         <p className="text-xs uppercase tracking-[0.3em] text-white/60">Pixie Perks™</p>
         <h1 className="mt-3 text-3xl font-semibold text-white !text-white">Guest rewards</h1>
         <p className="mt-2 max-w-2xl text-sm text-white/75">
-          Pixie Perks rewards loyal guests with lower PixieDVC service fees as you complete stays.
+          Pixie Perks rewards loyal guests with lower HannaDVC service fees as you complete stays.
           Enrollment may close for new participants; existing members keep benefits.
         </p>
       </header>
@@ -83,7 +83,7 @@ export default async function GuestRewardsPage() {
           <div className="rounded-2xl bg-slate-50 px-5 py-4 text-center">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Current perk</p>
             <p className="mt-2 text-2xl font-semibold text-slate-900">{discountPct}%</p>
-            <p className="text-xs text-slate-500">Pixie fee discount</p>
+            <p className="text-xs text-slate-500">HannaDVC fee discount</p>
           </div>
         </div>
         {promotionActive && !enrolled ? (
@@ -111,7 +111,7 @@ export default async function GuestRewardsPage() {
           <li>Stay 5+: 40% discount</li>
         </ul>
         <p className="text-xs text-slate-500">
-          Discounts apply only to PixieDVC’s service fee. Owner payouts stay the same.
+          Discounts apply only to HannaDVC’s service fee. Owner payouts stay the same.
         </p>
       </section>
 
@@ -119,7 +119,7 @@ export default async function GuestRewardsPage() {
         <h2 className="text-xl font-semibold text-slate-900">What you unlock next</h2>
         <p className="text-sm text-slate-500">
           Complete more stays to reach the next discount tier. We’ll always show your current
-          tier and the discount applied to your PixieDVC fee.
+          tier and the discount applied to your HannaDVC fee.
         </p>
       </section>
 
@@ -128,7 +128,7 @@ export default async function GuestRewardsPage() {
         <div className="space-y-3 text-sm text-slate-500">
           <p>
             <strong>Does this change owner payouts?</strong> No. Pixie Perks only reduces the
-            PixieDVC service fee.
+            HannaDVC service fee.
           </p>
           <p>
             <strong>What if enrollment closes?</strong> Enrollment may close for new participants;

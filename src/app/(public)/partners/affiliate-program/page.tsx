@@ -49,7 +49,7 @@ const heroBenefits = [
   {
     iconSrc: "/images/affiliate-assets/stacked-coins-transparent.png",
     title: "Competitive Commissions",
-    copy: "Earn 10–15% of PixieDVC’s service revenue on qualifying completed bookings.",
+    copy: "Earn 10–15% of HannaDVC’s service revenue on qualifying completed bookings.",
   },
   {
     iconSrc: "/images/affiliate-assets/concierge-bell-transparent.png",
@@ -91,7 +91,7 @@ const workflowSteps = [
   {
     iconSrc: "/images/affiliate-assets/workflow-wand-v3.png",
     title: "They Discover",
-    copy: "PixieDVC finds the perfect rental solution for them.",
+    copy: "HannaDVC finds the perfect rental solution for them.",
   },
   {
     iconSrc: "/images/affiliate-assets/workflow-bell-star-v3.png",
@@ -141,11 +141,11 @@ const whyPixie = [
 const faqs = [
   {
     q: "How are commissions calculated?",
-    a: "You earn a percentage of PixieDVC’s service revenue — that’s the difference between what the guest pays and what the DVC owner receives. Your commission rate depends on your partner tier and the booking’s eligibility.",
+    a: "You earn a percentage of HannaDVC’s service revenue — that’s the difference between what the guest pays and what the DVC owner receives. Your commission rate depends on your partner tier and the booking’s eligibility.",
   },
   {
     q: "What are the partner tiers?",
-    a: "Partner earns 10%, Verified Partner earns 12.5%, and Ambassador earns 15% of eligible PixieDVC service revenue. As your completed referrals grow and you consistently represent the PixieDVC brand well, you’ll unlock higher commission tiers automatically. Qualification rules are outlined in the Partner Agreement and program policies.",
+    a: "Partner earns 10%, Verified Partner earns 12.5%, and Ambassador earns 15% of eligible HannaDVC service revenue. As your completed referrals grow and you consistently represent the HannaDVC brand well, you’ll unlock higher commission tiers automatically. Qualification rules are outlined in the Partner Agreement and program policies.",
   },
   {
     q: "When and how are payouts made?",
@@ -153,11 +153,11 @@ const faqs = [
   },
   {
     q: "How long does referral attribution last?",
-    a: "Attribution is designed to give your referrals a fair chance to book. Exact attribution windows and rules are defined in the PixieDVC Partner Agreement.",
+    a: "Attribution is designed to give your referrals a fair chance to book. Exact attribution windows and rules are defined in the HannaDVC Partner Agreement.",
   },
   {
     q: "What are the requirements to join?",
-    a: "We partner with Disney-focused creators, DVC educators, travel planners, community leaders, and content creators who share our values and can represent PixieDVC with integrity.",
+    a: "We partner with Disney-focused creators, DVC educators, travel planners, community leaders, and content creators who share our values and can represent HannaDVC with integrity.",
   },
   {
     q: "How quickly can I begin?",
@@ -382,7 +382,7 @@ export default function AffiliateProgramPage() {
         <div className="relative mx-auto grid max-w-[1200px] gap-8 px-6 py-12 lg:translate-x-12 lg:grid-cols-[1.35fr_1fr] lg:items-center lg:py-16 xl:translate-x-16">
           <div className="order-1 min-w-0 lg:pl-16 xl:pl-24">
             <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#D6B45A]">
-              PixieDVC Partner Program
+              HannaDVC Partner Program
             </p>
             <h1
               className="mt-5 max-w-[12ch] text-balance text-[2.35rem] font-semibold leading-[0.96] tracking-[-0.04em] text-white [text-shadow:0_2px_18px_rgba(8,21,47,0.55)] sm:max-w-2xl sm:text-5xl lg:text-6xl"
@@ -391,7 +391,7 @@ export default function AffiliateProgramPage() {
               Turn Your Disney Audience Into a Premium Revenue Stream
             </h1>
             <p className="mt-6 max-w-[34ch] text-base leading-7 text-[#CBD5E1] sm:max-w-xl sm:text-lg">
-              Partner with PixieDVC and earn up to 15% of our service revenue every time an eligible referral completes a qualifying booking.
+              Partner with HannaDVC and earn up to 15% of our service revenue every time an eligible referral completes a qualifying booking.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
@@ -440,7 +440,7 @@ export default function AffiliateProgramPage() {
               How Much Can You Earn?
             </h2>
             <p className="mt-4 text-base leading-7 text-[#58657A]">
-              You earn a percentage of PixieDVC’s service revenue—the difference between what the guest pays and what the DVC owner receives.
+              You earn a percentage of HannaDVC’s service revenue—the difference between what the guest pays and what the DVC owner receives.
             </p>
           </div>
 
@@ -451,7 +451,7 @@ export default function AffiliateProgramPage() {
                 <Connector label="minus" compact />
                 <FinancialCard label="Owner Receives" value="$2,725" />
                 <Connector label="equals" compact />
-                <FinancialCard label="PixieDVC Service Revenue" value="$875" featured />
+                <FinancialCard label="HannaDVC Service Revenue" value="$875" featured />
               </div>
 
               <div className="flex items-center justify-center gap-3 text-xs font-semibold uppercase tracking-[0.22em] text-[#D6B45A]">
@@ -511,7 +511,7 @@ export default function AffiliateProgramPage() {
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Creator Advantages</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#F8FAFC] sm:text-4xl" style={{ ...editorialHeadingStyle, color: "#F8FAFC" }}>
-              Why creators partner with PixieDVC
+              Why creators partner with HannaDVC
             </h2>
           </div>
           <div className="mt-11 grid items-stretch gap-5 md:grid-cols-2 xl:grid-cols-4 xl:gap-x-3">
@@ -565,7 +565,7 @@ export default function AffiliateProgramPage() {
             <div className="overflow-hidden rounded-[12px]">
               <img
                 src={DASHBOARD_PREVIEW_IMAGE}
-                alt="PixieDVC affiliate dashboard preview"
+                alt="HannaDVC affiliate dashboard preview"
                 className="h-auto w-full object-cover"
                 loading="lazy"
               />
@@ -577,7 +577,7 @@ export default function AffiliateProgramPage() {
       <section className="bg-[#F7F3EA] px-6 py-14 md:py-16">
         <div className="mx-auto grid max-w-[1200px] gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
           <div className="lg:pt-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Why PixieDVC</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Why HannaDVC</p>
             <h2 className="mt-3 max-w-[11ch] text-4xl font-semibold leading-[0.98] tracking-[-0.04em] text-[#10224A] sm:text-5xl" style={editorialHeadingStyle}>
               Built for premium DVC referrals
             </h2>
@@ -652,7 +652,7 @@ export default function AffiliateProgramPage() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Apply Today</p>
             <h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-[-0.03em] text-[#F8FAFC] sm:text-4xl" style={{ ...editorialHeadingStyle, color: "#F8FAFC" }}>
-              Ready to Join the PixieDVC Partner Program?
+              Ready to Join the HannaDVC Partner Program?
             </h2>
             <ul className="mt-6 grid gap-3 text-sm text-[#CBD5E1] sm:grid-cols-3">
               {["Quick & Easy Application", "Transparent Partner Tracking", "Start Building Eligible Commissions"].map((item) => (
@@ -713,7 +713,7 @@ export default function AffiliateProgramPage() {
           <div className="text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D6B45A]">Application</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#10224A] sm:text-4xl" style={editorialHeadingStyle}>
-              Apply to the PixieDVC Partner Program
+              Apply to the HannaDVC Partner Program
             </h2>
           </div>
 
@@ -722,7 +722,7 @@ export default function AffiliateProgramPage() {
               <div className="max-w-2xl space-y-4">
                 <h3 className="text-2xl font-semibold text-[#10224A]">Application received!</h3>
                 <p className="text-sm leading-relaxed text-[#58657A]">
-                  Your PixieDVC Partner application has been received. Next, let’s create your secure partner account so you can access your dashboard.
+                  Your HannaDVC Partner application has been received. Next, let’s create your secure partner account so you can access your dashboard.
                 </p>
                 <button
                   type="button"
@@ -778,7 +778,7 @@ export default function AffiliateProgramPage() {
                   {accountStatus === "loading" ? "Creating..." : "Create My Partner Account"}
                 </button>
                 <p className="text-xs text-[#58657A]">
-                  Your information is secure and will only be used for your PixieDVC Partner account.
+                  Your information is secure and will only be used for your HannaDVC Partner account.
                 </p>
                 {accountStatus === "error" && accountMessage === "Unable to create partner account" ? (
                   <div className="space-y-4 rounded-[12px] border border-rose-300 bg-rose-50 p-5 text-sm text-[#10224A]">
@@ -903,7 +903,7 @@ export default function AffiliateProgramPage() {
                 </Field>
               </div>
 
-              <Field label="How do you plan to promote PixieDVC? *" className="mt-5">
+              <Field label="How do you plan to promote HannaDVC? *" className="mt-5">
                 <textarea
                   value={form.promotionPlan}
                   onChange={(e) => setForm({ ...form, promotionPlan: e.target.value })}
@@ -922,7 +922,7 @@ export default function AffiliateProgramPage() {
                   className="mt-1 h-4 w-4 rounded border-[rgba(15,33,72,0.18)] text-[#D6B45A] focus:ring-[#D6B45A]"
                 />
                 <span>
-                  I have read and agree to the PixieDVC Affiliate Agreement.{" "}
+                  I have read and agree to the HannaDVC Affiliate Agreement.{" "}
                   <Link href="/affiliate/agreement" target="_blank" className="font-semibold text-[#10224A] underline decoration-[#D6B45A] underline-offset-4">
                     Read agreement
                   </Link>

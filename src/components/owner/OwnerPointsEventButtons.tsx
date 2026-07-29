@@ -56,7 +56,7 @@ export default function OwnerPointsEventButtons({
         I borrowed points
       </Button>
       <Button type="button" size="sm" variant="ghost" onClick={() => handleEvent("booked_outside")}>
-        I booked outside PixieDVC
+        I booked outside HannaDVC
       </Button>
       {status === "saved" ? <span className="text-xs text-emerald-600">Saved.</span> : null}
       {status === "error" ? <span className="text-xs text-rose-600">Try again.</span> : null}

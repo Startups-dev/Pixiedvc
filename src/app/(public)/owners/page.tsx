@@ -20,7 +20,7 @@ const customMatchSteps = [
     step: "2",
     title: "We match you with a guest",
     body:
-      "PixieDVC looks for guest requests that fit your points, resort, booking window, and timing.",
+      "HannaDVC looks for guest requests that fit your points, resort, booking window, and timing.",
   },
   {
     step: "3",
@@ -38,7 +38,7 @@ const customMatchSteps = [
     step: "5",
     title: "You get paid",
     body:
-      "Once the booking is confirmed and guest payment is collected, PixieDVC processes your payout according to the agreed terms.",
+      "Once the booking is confirmed and guest payment is collected, HannaDVC processes your payout according to the agreed terms.",
   },
 ];
 
@@ -53,7 +53,7 @@ const readyStaySteps = [
     step: "2",
     title: "We prepare it for listing",
     body:
-      "PixieDVC reviews the stay, helps position the price, and prepares it as a Ready Stay for guests looking for fixed dates.",
+      "HannaDVC reviews the stay, helps position the price, and prepares it as a Ready Stay for guests looking for fixed dates.",
   },
   {
     step: "3",
@@ -71,7 +71,7 @@ const readyStaySteps = [
     step: "5",
     title: "You get paid",
     body:
-      "Once the guest books and payment is collected, PixieDVC processes your payout according to the agreed terms.",
+      "Once the guest books and payment is collected, HannaDVC processes your payout according to the agreed terms.",
   },
 ];
 
@@ -112,7 +112,7 @@ const notes = [
 const faqs = [
   {
     q: "Who communicates with the guest?",
-    a: "PixieDVC handles all guest communication from start to finish. You never need to communicate with the guest directly.",
+    a: "HannaDVC handles all guest communication from start to finish. You never need to communicate with the guest directly.",
   },
   {
     q: "How and when do I get paid?",
@@ -128,7 +128,7 @@ const faqs = [
   },
   {
     q: "Do you take a commission?",
-    a: "No. The payout you see is the amount you receive. PixieDVC’s service fee is built into the guest price and does not reduce your payout.",
+    a: "No. The payout you see is the amount you receive. HannaDVC’s service fee is built into the guest price and does not reduce your payout.",
   },
   {
     q: "Can I rent my DVC points legally?",
@@ -136,15 +136,15 @@ const faqs = [
   },
   {
     q: "What happens if a guest cancels?",
-    a: "Once a booking is confirmed and payment is collected, your payout is secured. If a guest cancels, it does not affect your payout. PixieDVC manages the cancellation and any rebooking or credits directly with the guest. See our Cancellation Policy for full details.",
+    a: "Once a booking is confirmed and payment is collected, your payout is secured. If a guest cancels, it does not affect your payout. HannaDVC manages the cancellation and any rebooking or credits directly with the guest. See our Cancellation Policy for full details.",
   },
   {
     q: "What happens if there’s damage during a stay?",
-    a: "Guests provide their own payment method to Disney at check-in, and any incidental charges or damages are handled directly by the resort. PixieDVC manages the booking process, and you are not responsible for guest-related charges during the stay.",
+    a: "Guests provide their own payment method to Disney at check-in, and any incidental charges or damages are handled directly by the resort. HannaDVC manages the booking process, and you are not responsible for guest-related charges during the stay.",
   },
   {
     q: "Do I need to book tickets or dining for the guest?",
-    a: "No. Guests manage their own park tickets and dining plans through their Disney account once the reservation is linked. PixieDVC provides guidance and support to help guests navigate the process when needed.",
+    a: "No. Guests manage their own park tickets and dining plans through their Disney account once the reservation is linked. HannaDVC provides guidance and support to help guests navigate the process when needed.",
   },
   {
     q: "Do I have to accept every booking request?",
@@ -247,7 +247,7 @@ export default function OwnersPage() {
           <Card className="border border-[#0F2148]/8 bg-white p-8 text-center shadow-[0_24px_60px_rgba(15,33,72,0.10)] md:p-10">
             <div className="mx-auto max-w-3xl space-y-5">
               <p className="text-[18px] leading-[1.7] text-[#5f6673] sm:text-[20px]">
-                PixieDVC helps DVC owners rent unused points or confirmed reservations through a secure, guided platform. You stay in control, we handle the rest.
+                HannaDVC helps DVC owners rent unused points or confirmed reservations through a secure, guided platform. You stay in control, we handle the rest.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <Link
@@ -394,7 +394,7 @@ export default function OwnersPage() {
                 </li>
               </ul>
               <p className="text-[18px] font-semibold leading-[1.55] text-[#30405f]">
-                Your stay is already secured, and PixieDVC helps market it to the right guest.
+                Your stay is already secured, and HannaDVC helps market it to the right guest.
               </p>
               <div className="space-y-4">
                 <div>
@@ -422,7 +422,7 @@ export default function OwnersPage() {
         <div className="mx-auto max-w-6xl px-6">
           <div className="space-y-10">
             <div className="max-w-3xl space-y-3">
-              <p className="text-xs uppercase tracking-[0.24em] text-white/58">Why Owners Use PixieDVC</p>
+              <p className="text-xs uppercase tracking-[0.24em] text-white/58">Why Owners Use HannaDVC</p>
               <h2 className="text-[34px] font-semibold leading-tight !text-white sm:text-[42px]">
                 Keep control, reduce friction, and earn more from your points
               </h2>

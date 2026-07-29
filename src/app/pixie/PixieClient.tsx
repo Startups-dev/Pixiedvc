@@ -150,7 +150,7 @@ export default function PixieClient({ enabled }: { enabled: boolean }) {
       const clientError =
         error instanceof PixieChatApiError
           ? error.error
-          : { code: "network_error", message: "Pixie is having trouble responding right now. Your trip draft is still safe." };
+          : { code: "network_error", message: "Hara is having trouble responding right now. Your trip draft is still safe." };
       trackPixieEvent("pixie_turn_failed", { code: clientError.code });
       setState((current) => failPixieTurn(current, clientError, trimmed));
     } finally {
@@ -177,7 +177,7 @@ export default function PixieClient({ enabled }: { enabled: boolean }) {
 
   const disabledReason = useMemo(() => {
     if (enabled) return undefined;
-    return "Pixie is not publicly enabled in this environment yet.";
+    return "Hara is not publicly enabled in this environment yet.";
   }, [enabled]);
 
   return (

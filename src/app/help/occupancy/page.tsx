@@ -24,7 +24,7 @@ export default function OccupancyHelpPage() {
         <div>
           <h2 className="text-lg font-semibold text-[#0F2148]">Occupancy varies by villa type</h2>
           <p className="mt-2">
-            Studios, one-bedroom, two-bedroom, and grand villas each have different capacity limits. PixieDVC uses
+            Studios, one-bedroom, two-bedroom, and grand villas each have different capacity limits. HannaDVC uses
             Disney’s published maximums to keep your stay compliant and comfortable.
           </p>
         </div>

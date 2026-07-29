@@ -51,8 +51,8 @@ export default function ResortHighlightsSection({ highlight, resortName }: Props
       </div>
       <div className="mt-6 rounded-2xl border border-[#0B1B3A]/10 bg-gradient-to-r from-[#0B1B3A]/[0.05] to-transparent p-4 sm:p-5">
         <p className="text-sm leading-relaxed text-[#0B1B3A]/75 sm:text-base">
-          <span className="font-medium text-[#0B1B3A]/90">PixieDVC recommends</span>{" "}
-          {highlight.recommendation.replace(/^PixieDVC recommends\s*/i, "")}
+          <span className="font-medium text-[#0B1B3A]/90">HannaDVC recommends</span>{" "}
+          {highlight.recommendation.replace(/^HannaDVC recommends\s*/i, "")}
         </p>
       </div>
     </section>

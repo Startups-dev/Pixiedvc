@@ -56,7 +56,7 @@ export default function DisplayNameForm({ userId, initialValue }: DisplayNameFor
           value={value}
           onChange={(event) => setValue(event.target.value)}
           className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-base text-white placeholder:text-white/50 focus:border-white/50 focus:outline-none"
-          placeholder="Jane Pixie"
+          placeholder="Jane Hanna"
         />
       </div>
       <div className="flex items-center gap-3">

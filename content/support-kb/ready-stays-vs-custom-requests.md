@@ -13,7 +13,7 @@ related_questions:
 
 Ready Stays prioritize speed. You choose from pre-assembled stay opportunities where the resort, room type, dates, and length of stay are already defined.
 
-Custom requests prioritize flexibility. You provide your own dates, resorts, and preferences, then PixieDVC seeks a match.
+Custom requests prioritize flexibility. You provide your own dates, resorts, and preferences, then HannaDVC seeks a match.
 
 Ready Stay pricing reflects the stay details that are already defined in that pre-confirmed option.
 

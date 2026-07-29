@@ -308,8 +308,8 @@ export default function LoginClient() {
               {mode === 'update'
                 ? 'Set a new password'
                 : mode === 'signup'
-                  ? 'Create your PixieDVC account'
-                  : 'Sign in to PixieDVC'}
+                  ? 'Create your HannaDVC account'
+                  : 'Sign in to HannaDVC'}
             </h1>
             <p className="text-sm text-slate-500">
               {mode === 'update'

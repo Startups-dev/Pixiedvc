@@ -244,7 +244,7 @@ export default function ExpiringPointsRequestForm() {
 
       {status === "success" ? (
         <div className="md:col-span-2 rounded-[24px] border border-[#d8e8cf] bg-[#f4fbef] px-4 py-4 text-sm text-[#355b25]">
-          Request received. PixieDVC will review your opportunity and reach out if additional information is needed.
+          Request received. HannaDVC will review your opportunity and reach out if additional information is needed.
         </div>
       ) : null}
 

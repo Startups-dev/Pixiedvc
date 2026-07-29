@@ -10,7 +10,7 @@ related_questions:
   - Why did a Ready Stay disappear?
 ---
 
-After selecting a Ready Stay, guests move through the standard PixieDVC booking sequence:
+After selecting a Ready Stay, guests move through the standard HannaDVC booking sequence:
 
 1. Review the stay details.
 2. Accept the reservation agreement.

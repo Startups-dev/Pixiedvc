@@ -398,7 +398,7 @@ function StepTwo({
       </div>
 
       <label className="text-sm font-medium text-slate-700">
-        How did you hear about PixieDVC? (optional)
+        How did you hear about HannaDVC? (optional)
         <input
           value={form.marketingSource}
           onChange={(event) => update("marketingSource", event.target.value)}

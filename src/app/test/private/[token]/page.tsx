@@ -40,7 +40,7 @@ function StateNotice({ state, ownerTone = false }: { state: string | null; owner
 }
 
 const GUEST_TASKS = [
-  "Explore PixieDVC naturally from a guest perspective and describe what you think the platform does.",
+  "Explore HannaDVC naturally from a guest perspective and describe what you think the platform does.",
   "Identify the reservation types offered and explain the difference in your own words.",
   "Decide which reservation type you would choose first and why.",
   "Try to find a stay that matches your trip goals and note any friction points.",
@@ -74,11 +74,11 @@ export default async function PrivateTestPage({
         <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
           <h1 className="text-2xl font-semibold text-slate-900">Private Test Link Unavailable</h1>
           <p className="mt-3 text-sm text-slate-600">
-            This test link is inactive or expired. Please request a fresh private link from the PixieDVC team.
+            This test link is inactive or expired. Please request a fresh private link from the HannaDVC team.
           </p>
           <div className="mt-6">
             <Link href="/" className="text-sm font-semibold text-[#0F2148] underline-offset-2 hover:underline">
-              Return to PixieDVC
+              Return to HannaDVC
             </Link>
           </div>
         </div>
@@ -144,7 +144,7 @@ export default async function PrivateTestPage({
       {isOwnerFlow ? null : (
         <header className="space-y-3">
           <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Private User Testing</p>
-          <h1 className="text-3xl font-semibold text-slate-900">PixieDVC {flowContent.title}</h1>
+          <h1 className="text-3xl font-semibold text-slate-900">HannaDVC {flowContent.title}</h1>
           <p className="max-w-3xl text-sm text-slate-600">{flowContent.intro}</p>
         </header>
       )}
@@ -174,7 +174,7 @@ export default async function PrivateTestPage({
         <section className="space-y-10 rounded-[20px] border border-white/20 bg-white/10 p-8 shadow-[0_20px_60px_rgba(4,10,24,0.45)] backdrop-blur-xl">
           <div className="space-y-3">
             <p className="max-w-3xl text-base font-medium text-slate-100">
-              Welcome {testerFirstName} — thank you for helping test PixieDVC
+              Welcome {testerFirstName} — thank you for helping test HannaDVC
             </p>
             <h2>
               <span className="inline-block rounded-md border border-[#1b3b7a] bg-[#0F2148] px-4 py-1.5 text-sm font-extrabold uppercase tracking-[0.2em] !text-white">
@@ -208,8 +208,8 @@ export default async function PrivateTestPage({
               <li>
                 <span className="font-semibold !text-white">Use the main site:</span>
                 <span className="block">
-                  <Link href="https://www.pixiedvc.com" target="_blank" rel="noopener noreferrer" className="font-semibold text-sky-200 underline underline-offset-2">
-                    👉 https://www.pixiedvc.com
+                  <Link href="https://www.hannadvc.com" target="_blank" rel="noopener noreferrer" className="font-semibold text-sky-200 underline underline-offset-2">
+                    👉 https://www.hannadvc.com
                   </Link>
                 </span>
               </li>
@@ -292,7 +292,7 @@ export default async function PrivateTestPage({
             </span>
           </h2>
           <p className="mt-2 text-sm text-slate-200/90">
-            Complete this after testing the owner experience. Your feedback helps us improve PixieDVC before launch.
+            Complete this after testing the owner experience. Your feedback helps us improve HannaDVC before launch.
           </p>
           <div className="mt-4 rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-slate-100">
             Site link:{" "}
@@ -334,7 +334,7 @@ export default async function PrivateTestPage({
                 </select>
               </label>
               <label className="block">
-                <span className="text-sm font-semibold text-slate-700">What do you think PixieDVC does for owners?</span>
+                <span className="text-sm font-semibold text-slate-700">What do you think HannaDVC does for owners?</span>
                 <textarea name="owner_platform_understanding" rows={3} className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" required />
               </label>
             </section>
@@ -533,10 +533,10 @@ export default async function PrivateTestPage({
             <section className="space-y-4 rounded-2xl border border-slate-200 p-5">
               <div>
                 <h3 className="inline-flex rounded-md border border-[#1b3b7a] bg-[#0F2148] px-3 py-1 text-sm font-semibold uppercase tracking-[0.14em] !text-white">9. Alternatives & Behavior</h3>
-                <p className="mt-1 text-xs text-slate-500">Compare current behavior vs PixieDVC value.</p>
+                <p className="mt-1 text-xs text-slate-500">Compare current behavior vs HannaDVC value.</p>
               </div>
               <label className="block">
-                <span className="text-sm font-semibold text-slate-700">If PixieDVC did not exist, what would you do instead?</span>
+                <span className="text-sm font-semibold text-slate-700">If HannaDVC did not exist, what would you do instead?</span>
                 <textarea name="alternative_if_not_pixiedvc" rows={3} className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" required />
               </label>
               <label className="block">
@@ -570,7 +570,7 @@ export default async function PrivateTestPage({
                 <p className="mt-1 text-xs text-slate-500">Capture final listing intent.</p>
               </div>
               <label className="block">
-                <span className="text-sm font-semibold text-slate-700">Would you list your points on PixieDVC?</span>
+                <span className="text-sm font-semibold text-slate-700">Would you list your points on HannaDVC?</span>
                 <select name="would_list_points" className="mt-1.5 h-12 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" required>
                   <option value="">Select one</option>
                   <option value="yes">Yes</option>

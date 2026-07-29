@@ -14,7 +14,7 @@ Disney Vacation Club (DVC) point rental means a DVC member uses their points to 
 
 DVC is a points-based vacation ownership program. Members receive points each year and use them to book eligible villa stays.
 
-When members cannot use all their points, they may rent them through a platform like PixieDVC.
+When members cannot use all their points, they may rent them through a platform like HannaDVC.
 
 For guests, the result is access to DVC villa-style accommodations through a guided request and confirmation process.
 

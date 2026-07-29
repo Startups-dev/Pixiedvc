@@ -49,7 +49,7 @@ export default async function BookingPage({
           resorts={resorts}
           quoteToken={quoteToken}
           startAtGuestInfo
-          flowLabel="PixieDVC Reservation"
+          flowLabel="HannaDVC Reservation"
           hideDepositBadge
         />
       </main>

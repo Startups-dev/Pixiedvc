@@ -188,7 +188,7 @@ export default function ServiceCatalogPage() {
           Concierge-style support, end to end
         </h1>
         <p className="max-w-2xl text-sm text-[#0B1B3A]/70">
-          Browse every PixieDVC service and guide in one place. Tap any tile to
+          Browse every HannaDVC service and guide in one place. Tap any tile to
           explore or request help.
         </p>
       </header>

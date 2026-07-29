@@ -14,7 +14,7 @@ The calculator gives you a planning estimate, not a confirmed reservation.
 
 After estimating, the next step is submitting a booking request with your exact trip details.
 
-PixieDVC then checks feasibility against owner inventory and reservation rules for your requested dates.
+HannaDVC then checks feasibility against owner inventory and reservation rules for your requested dates.
 
 If a match is found, you move into confirmation and payment steps.
 

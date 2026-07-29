@@ -50,7 +50,7 @@ export default function FaqPageClient() {
             Frequently Asked Questions
           </h1>
           <p className="mt-5 text-base leading-8 text-[#546887] sm:text-lg">
-            Everything you need to know about booking Disney villas through PixieDVC.
+            Everything you need to know about booking Disney villas through HannaDVC.
           </p>
         </div>
       </section>

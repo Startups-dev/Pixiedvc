@@ -15,16 +15,16 @@ import {
 export default function EstimateShareControl() {
   const sharePayload = useMemo(
     () => ({
-      title: "PixieDVC estimate",
-      url: "https://pixiedvc.com/estimate/demo",
+      title: "HannaDVC estimate",
+      url: "https://hannadvc.com/estimate/demo",
       text:
         "Bay Lake Tower at Disney’s Contemporary Resort — Standard View\n" +
         "Deluxe Studio · 4 nights\n" +
         "June 18–22, 2026\n\n" +
         "72 points · $1,656 est.\n" +
         "Estimated at $23/pt (7-month window).\n" +
-        "Shared from PixieDVC\n" +
-        "https://pixiedvc.com/estimate/demo",
+        "Shared from HannaDVC\n" +
+        "https://hannadvc.com/estimate/demo",
     }),
     [],
   );

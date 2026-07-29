@@ -32,11 +32,11 @@ export default function PixieMobilePlanDrawer({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[90] lg:hidden" role="dialog" aria-modal="true" aria-label="Pixie trip plan">
+    <div className="fixed inset-0 z-[90] lg:hidden" role="dialog" aria-modal="true" aria-label="Hara trip plan">
       <button type="button" aria-label="Close plan drawer backdrop" className="absolute inset-0 bg-slate-950/45" onClick={onClose} />
       <div className="absolute inset-x-0 bottom-0 max-h-[86vh] overflow-y-auto rounded-t-3xl bg-[#f5f7fb] p-4 shadow-2xl">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-ink">Your Pixie plan</h2>
+          <h2 className="text-lg font-semibold text-ink">Your Hara plan</h2>
           <button
             ref={closeRef}
             type="button"
@@ -52,4 +52,3 @@ export default function PixieMobilePlanDrawer({
     </div>
   );
 }
-

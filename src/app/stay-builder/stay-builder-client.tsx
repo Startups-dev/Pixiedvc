@@ -145,7 +145,7 @@ export default function StayBuilderClient({
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
       <header className="space-y-3">
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Pixie Stay Builder</p>
+        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">HannaDVC Stay Builder</p>
         <h1 className="text-3xl font-semibold text-slate-900">Plan your Disney stay</h1>
         <p className="text-slate-500">
           Step through dates, resorts, guest details, and policies so our concierge team can match you with the perfect DVC owner.
@@ -545,7 +545,7 @@ function StepOne({
               <span className="text-lg font-semibold text-slate-900">{localEstimate.totalPoints.toLocaleString()} pts</span>
               {` · approx $${localEstimate.totalUSD.toLocaleString()}`}
             </p>
-            <p className="text-xs text-slate-500">Includes PixieDVC service fee and nightly point charts. We’ll confirm final pricing after matching.</p>
+            <p className="text-xs text-slate-500">Includes HannaDVC service fee and nightly point charts. We’ll confirm final pricing after matching.</p>
           </div>
         ) : (
           <p className="text-sm text-slate-500">Choose dates, resort, room, and view to preview pricing.</p>
@@ -759,7 +759,7 @@ function StepTwo({
       </div>
 
       <label className="text-sm font-medium text-slate-700">
-        How did you hear about PixieDVC? (optional)
+        How did you hear about HannaDVC? (optional)
         <input value={form.marketingSource} onChange={(event) => update('marketingSource', event.target.value)} className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2" />
       </label>
 
@@ -1083,7 +1083,7 @@ function StepFour({
       <label className="flex items-start gap-3 text-sm text-slate-700">
         <input type="checkbox" className="mt-1" checked={acceptTerms} onChange={(event) => setAcceptTerms(event.target.checked)} />
         <span>
-          I agree to the PixieDVC rental terms, cancellation policy, and acknowledge that this request is for accommodations only (tickets, dining, and
+          I agree to the HannaDVC rental terms, cancellation policy, and acknowledge that this request is for accommodations only (tickets, dining, and
           transfers are not included).
         </span>
       </label>
@@ -1091,7 +1091,7 @@ function StepFour({
       <label className="flex items-start gap-3 text-sm text-slate-700">
         <input type="checkbox" className="mt-1" checked={ackInsurance} onChange={(event) => setAckInsurance(event.target.checked)} />
         <span>
-          I understand that PixieDVC recommends optional travel insurance from a third-party provider and that deposits may be forfeited if I cancel
+          I understand that HannaDVC recommends optional travel insurance from a third-party provider and that deposits may be forfeited if I cancel
           within 14 days of travel.
         </span>
       </label>

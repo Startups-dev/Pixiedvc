@@ -306,7 +306,7 @@ export default function AffiliateLoginClient() {
         ) : null}
 
         <p className={`text-sm ${affiliateTextMuted}`}>
-          New to PixieDVC affiliates?{" "}
+          New to HannaDVC affiliates?{" "}
           <Link href="/affiliate/apply" className={`font-semibold ${affiliateLink}`}>
             Apply here
           </Link>

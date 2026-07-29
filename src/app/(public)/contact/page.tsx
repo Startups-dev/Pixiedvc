@@ -27,7 +27,7 @@ export default function ContactPage() {
                 We’re one message away from your perfect DVC stay.
               </h1>
               <div className="max-w-prose space-y-3 text-base text-slate-500 sm:text-lg">
-                <p>In a rush? Start a live chat with a PixieDVC concierge — responses are often immediate.</p>
+                <p>In a rush? Start a live chat with a HannaDVC concierge — responses are often immediate.</p>
                 <p>Not urgent? Send us a message and we’ll follow up the same day.</p>
                 <p>Owners, guests, and partners are routed to the right concierge with clear next steps.</p>
               </div>
@@ -36,7 +36,7 @@ export default function ContactPage() {
               </p>
               <div className="space-y-2 text-sm text-slate-500">
                 <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Prefer email?</p>
-                <p className="text-base font-semibold text-ink">hello@pixiedvc.com</p>
+                <p className="text-base font-semibold text-ink">hello@hannadvc.com</p>
               </div>
             </div>
 
@@ -49,7 +49,7 @@ export default function ContactPage() {
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div>
                     <FieldLabel htmlFor="email">Email</FieldLabel>
-                    <TextInput id="email" type="email" className={control} placeholder="mickey@pixiedvc.com" />
+                    <TextInput id="email" type="email" className={control} placeholder="mickey@hannadvc.com" />
                   </div>
                   <div>
                     <FieldLabel htmlFor="role">I am a</FieldLabel>

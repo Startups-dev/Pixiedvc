@@ -106,7 +106,7 @@ export default function DiningPlanCalculator() {
             </p>
             <p className="text-xs text-[#0F2148]/60">
               Dining Plans can be added after your reservation is secured by the DVC owner upon request and it will
-              require your credit card information. For more details contact Pixie DVC concierge.
+              require your credit card information. For more details contact HannaDVC concierge.
             </p>
           </div>
         </div>

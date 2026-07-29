@@ -12,7 +12,7 @@ export default function GroceryServicePage() {
       <section className="overflow-hidden rounded-2xl border border-[#0B1B3A]/10 bg-[#071a33] shadow-sm lg:flex">
         <div className="flex flex-col justify-between gap-6 px-6 py-8 text-white lg:w-[52%]">
           <div className="text-xs uppercase tracking-[0.32em] text-white/60">
-            PixieDVC Service
+            HannaDVC Service
           </div>
 
           <div className="space-y-4">
@@ -69,7 +69,7 @@ export default function GroceryServicePage() {
           <span className="min-w-0">
             Founded by former Disney Cast Members, Vacation Grocery Delivery brings the
             same guest-focused care and attention to detail that defines the Disney
-            experience, making them a natural partner for PixieDVC.
+            experience, making them a natural partner for HannaDVC.
           </span>
         </div>
       </section>

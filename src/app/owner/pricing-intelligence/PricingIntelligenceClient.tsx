@@ -200,7 +200,7 @@ export default function PricingIntelligenceClient({ resorts }: { resorts: Resort
                 {formatDollarsFromCents(capCents)}
               </p>
               <p>
-                <span className="font-semibold">Pixie fee /pt:</span> ${FEE_PER_POINT}
+                <span className="font-semibold">HannaDVC fee /pt:</span> ${FEE_PER_POINT}
               </p>
               <p>
                 <span className="font-semibold">Max owner payout /pt:</span>{" "}
@@ -264,7 +264,7 @@ export default function PricingIntelligenceClient({ resorts }: { resorts: Resort
               {ownerPayoutValid ? `$${ownerPayoutNum.toFixed(2)}/pt` : "—"}
             </span>
           </p>
-          <p>Pixie fee: ${FEE_PER_POINT}/pt</p>
+          <p>HannaDVC fee: ${FEE_PER_POINT}/pt</p>
           <p>
             Guest pays:{" "}
             <span className="font-semibold">

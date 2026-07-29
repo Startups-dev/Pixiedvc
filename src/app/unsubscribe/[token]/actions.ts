@@ -38,7 +38,7 @@ export async function submitUnsubscribeAction(
 
       return {
         status: 'preferences_updated',
-        message: 'We’ve updated your PixieDVC email preferences.',
+        message: 'We’ve updated your HannaDVC email preferences.',
       };
     }
 
@@ -59,7 +59,7 @@ export async function submitUnsubscribeAction(
 
     return {
       status: 'unsubscribed',
-      message: 'We’ve updated your PixieDVC email preferences.',
+      message: 'We’ve updated your HannaDVC email preferences.',
     };
   } catch {
     return {

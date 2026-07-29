@@ -14,6 +14,6 @@ Owner onboarding helps verify ownership details and prepare listing information.
 
 Owners typically provide membership-related details, points information, and required profile data.
 
-This setup helps PixieDVC maintain a consistent, guided process for owner-side participation.
+This setup helps HannaDVC maintain a consistent, guided process for owner-side participation.
 
 After onboarding, owners can manage relevant steps through owner-facing flows and concierge support.

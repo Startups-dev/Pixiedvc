@@ -15,15 +15,15 @@ type CopyBlock = {
 const COPY_BLOCKS: CopyBlock[] = [
   {
     title: "1–2 sentence pitch",
-    body: "PixieDVC helps families rent Disney Vacation Club stays with concierge support and clear pricing. We match guests with verified owners, then handle the details until the reservation is confirmed.",
+    body: "HannaDVC helps families rent Disney Vacation Club stays with concierge support and clear pricing. We match guests with verified owners, then handle the details until the reservation is confirmed.",
   },
   {
     title: "Short paragraph",
-    body: "PixieDVC is a concierge-style DVC rental platform. Guests share dates and room preferences, then we match them with verified owners and confirm availability. We focus on clarity, premium resorts, and a calmer planning experience from estimate to confirmation.",
+    body: "HannaDVC is a concierge-style DVC rental platform. Guests share dates and room preferences, then we match them with verified owners and confirm availability. We focus on clarity, premium resorts, and a calmer planning experience from estimate to confirmation.",
   },
   {
     title: "Long-form (email/blog)",
-    body: "PixieDVC makes Disney Vacation Club rentals feel simple and premium. Guests share their dates, resort preferences, and party size, then our concierge team matches them with verified DVC owners. We provide clear pricing estimates up front and confirm availability once an owner match is secured. It is a relaxed, guided alternative to searching point charts on your own, and it is ideal for families, couples, and international travelers who want help navigating DVC.",
+    body: "HannaDVC makes Disney Vacation Club rentals feel simple and premium. Guests share their dates, resort preferences, and party size, then our concierge team matches them with verified DVC owners. We provide clear pricing estimates up front and confirm availability once an owner match is secured. It is a relaxed, guided alternative to searching point charts on your own, and it is ideal for families, couples, and international travelers who want help navigating DVC.",
   },
 ];
 
@@ -35,7 +35,7 @@ const TALKING_POINTS = [
 ];
 
 const CTA_SUGGESTIONS = [
-  "Get a PixieDVC estimate",
+  "Get a HannaDVC estimate",
   "Plan your DVC stay",
   "See DVC pricing in minutes",
   "Start a concierge quote",
@@ -64,8 +64,8 @@ const FAQS = [
     a: "No. Availability is confirmed only after a verified owner match.",
   },
   {
-    q: "Is PixieDVC affiliated with Disney?",
-    a: "No. PixieDVC is an independent platform and is not affiliated with Disney.",
+    q: "Is HannaDVC affiliated with Disney?",
+    a: "No. HannaDVC is an independent platform and is not affiliated with Disney.",
   },
   {
     q: "What about refunds or cancellations?",
@@ -154,7 +154,7 @@ export default function AffiliateGuidesClient({ initialAffiliateSlug = "" }: { i
           Affiliate Guides
         </h1>
         <p className={`text-sm ${affiliateTextMuted}`}>
-          Clear messaging, ready-to-share assets, and tracking links for PixieDVC partners.
+          Clear messaging, ready-to-share assets, and tracking links for HannaDVC partners.
         </p>
       </header>
 
@@ -198,9 +198,9 @@ export default function AffiliateGuidesClient({ initialAffiliateSlug = "" }: { i
 
       <section className="grid gap-6 md:grid-cols-3">
         <Card surface="dark" className={`space-y-3 ${affiliateCard}`}>
-          <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>What PixieDVC is</p>
+          <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>What HannaDVC is</p>
           <p className={`text-sm ${affiliateTextMuted}`}>
-            PixieDVC is a concierge-style DVC rental platform that matches guests with verified owners and confirms
+            HannaDVC is a concierge-style DVC rental platform that matches guests with verified owners and confirms
             availability before booking.
           </p>
         </Card>
@@ -289,13 +289,13 @@ export default function AffiliateGuidesClient({ initialAffiliateSlug = "" }: { i
               <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Website snippet</p>
               <pre className={`whitespace-pre-wrap rounded-2xl p-4 text-xs ${affiliateCard2}`}>
 {`<a href="${links.calculator}" target="_blank" rel="noopener">
-  Get a PixieDVC estimate
+  Get a HannaDVC estimate
 </a>`}
               </pre>
               <button
                 type="button"
                 onClick={() =>
-                  handleCopy(`<a href="${links.calculator}" target="_blank" rel="noopener">Get a PixieDVC estimate</a>`)
+                  handleCopy(`<a href="${links.calculator}" target="_blank" rel="noopener">Get a HannaDVC estimate</a>`)
                 }
                 className={`text-xs font-semibold ${affiliateLink}`}
               >
@@ -308,14 +308,14 @@ export default function AffiliateGuidesClient({ initialAffiliateSlug = "" }: { i
             <div className="space-y-2">
               <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Email snippet</p>
               <pre className={`whitespace-pre-wrap rounded-2xl p-4 text-xs ${affiliateCard2}`}>
-{`Thinking about a Disney Vacation Club stay? PixieDVC provides concierge support and clear pricing.
+{`Thinking about a Disney Vacation Club stay? HannaDVC provides concierge support and clear pricing.
 Start here: ${links.plan}`}
               </pre>
               <button
                 type="button"
                 onClick={() =>
                   handleCopy(
-                    `Thinking about a Disney Vacation Club stay? PixieDVC provides concierge support and clear pricing.\nStart here: ${links.plan}`
+                    `Thinking about a Disney Vacation Club stay? HannaDVC provides concierge support and clear pricing.\nStart here: ${links.plan}`
                   )
                 }
                 className={`text-xs font-semibold ${affiliateLink}`}
@@ -326,14 +326,14 @@ Start here: ${links.plan}`}
             <div className="space-y-2">
               <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Instagram caption</p>
               <pre className={`whitespace-pre-wrap rounded-2xl p-4 text-xs ${affiliateCard2}`}>
-{`PixieDVC makes DVC rentals feel effortless. Concierge support + premium resorts.
+{`HannaDVC makes DVC rentals feel effortless. Concierge support + premium resorts.
 Estimate your stay: ${links.calculator}`}
               </pre>
               <button
                 type="button"
                 onClick={() =>
                   handleCopy(
-                    `PixieDVC makes DVC rentals feel effortless. Concierge support + premium resorts.\nEstimate your stay: ${links.calculator}`
+                    `HannaDVC makes DVC rentals feel effortless. Concierge support + premium resorts.\nEstimate your stay: ${links.calculator}`
                   )
                 }
                 className={`text-xs font-semibold ${affiliateLink}`}

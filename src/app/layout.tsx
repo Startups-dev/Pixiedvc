@@ -28,14 +28,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PixieDVC • Disney Magic Meets Boutique Tech",
+  title: "HannaDVC • Disney Magic Meets Boutique Tech",
   description:
     "Plan enchanted Disney Vacation Club getaways with luxe UX, points intelligence, and concierge storytelling.",
   themeColor: '#2E8FFF',
   openGraph: {
-    title: "PixieDVC • Disney Magic Meets Boutique Tech",
+    title: "HannaDVC • Disney Magic Meets Boutique Tech",
     description:
-      "Discover resorts, optimize points, and craft storybook itineraries with the PixieDVC planning studio.",
+      "Discover resorts, optimize points, and craft storybook itineraries with the HannaDVC planning studio.",
     type: "website",
   },
 };

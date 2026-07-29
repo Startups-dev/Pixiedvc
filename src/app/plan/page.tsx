@@ -174,7 +174,7 @@ export default async function PlanLandingPage({
                       Build your stay
                     </h2>
                     <p className="mt-4 max-w-md text-[15px] leading-7 text-white/88 sm:text-base">
-                      Choose your resort, dates, and villa type. PixieDVC matches your request with verified DVC owners.
+                      Choose your resort, dates, and villa type. HannaDVC matches your request with verified DVC owners.
                     </p>
                     <p className="mt-3 text-sm leading-6 text-white/72">Best when you already know what you want.</p>
                     <div className="mt-6">

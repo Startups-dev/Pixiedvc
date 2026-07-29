@@ -24,7 +24,7 @@ export default function LinkToDisneyExperienceGuidePage() {
           <div className="rounded-2xl border border-[#0B1B3A]/10 bg-white p-6 shadow-sm">
             <h2 className="text-base font-semibold text-[#0B1B3A]">What you need</h2>
             <ul className="mt-4 space-y-2 text-sm text-[#0B1B3A]/70">
-              <li>• Your confirmation number (from PixieDVC)</li>
+              <li>• Your confirmation number (from HannaDVC)</li>
               <li>• The last name on the reservation</li>
               <li>• My Disney Experience app or website access</li>
             </ul>
@@ -85,7 +85,7 @@ export default function LinkToDisneyExperienceGuidePage() {
                 “I don’t have my confirmation number”
               </div>
               <p className="mt-2 text-sm text-[#0B1B3A]/70">
-                Open your Trip Details page in PixieDVC. If it still shows
+                Open your Trip Details page in HannaDVC. If it still shows
                 “Pending,” the confirmation hasn’t been assigned yet.
               </p>
             </div>

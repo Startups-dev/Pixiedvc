@@ -30,10 +30,10 @@ export default function PixieResetDialog({
       <button type="button" aria-label="Close reset dialog backdrop" className="absolute inset-0 bg-slate-950/50" onClick={onClose} />
       <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
         <h2 id="pixie-reset-title" className="text-lg font-semibold text-ink">
-          Start a new Pixie trip?
+          Start a new Hara trip?
         </h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          This clears only the Pixie draft in this browser: trip details, messages, recommendations, Ready Stay matches, and plan outline.
+          This clears only the Hara draft in this browser: trip details, messages, recommendations, Ready Stay matches, and plan outline.
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <button
@@ -52,4 +52,3 @@ export default function PixieResetDialog({
     </div>
   );
 }
-

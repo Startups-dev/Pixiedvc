@@ -9,7 +9,7 @@ export async function Hero() {
   const heroImageSrc = "/images/hero-new.png";
   const heroImageAlt = heroImageSrc.includes("castle")
     ? "Cinderella Castle with monorail at dusk"
-    : "PixieDVC resort hero image";
+    : "HannaDVC resort hero image";
   const supabase = await createSupabaseServerClient();
   const resorts = await getCanonicalResorts(supabase, { select: "id,name,slug" }).catch(() => []);
 

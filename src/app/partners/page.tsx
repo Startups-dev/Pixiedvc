@@ -6,13 +6,13 @@ export default function PartnersPage() {
     <main className="min-h-screen bg-white text-[#0F2148]">
       <section className="max-w-6xl mx-auto px-6 py-16 space-y-16">
         <section className="space-y-6 rounded-3xl bg-[#0F2148] px-8 py-10 text-white shadow-[0_30px_80px_rgba(8,12,30,0.35)]">
-          <h1 className="text-4xl font-semibold tracking-tight !text-slate-400">Become a PixieDVC Partner</h1>
+          <h1 className="text-4xl font-semibold tracking-tight !text-slate-400">Become a HannaDVC Partner</h1>
           <p className="text-lg text-white/80">
             Join a growing ecosystem of professionals, creators, and service providers supporting Disney Vacation Club
             stays.
           </p>
           <p className="max-w-3xl text-base text-white/75">
-            Whether you bring clients, audiences, or experiences — PixieDVC helps you monetize and scale without
+            Whether you bring clients, audiences, or experiences — HannaDVC helps you monetize and scale without
             operational complexity.
           </p>
           <div className="flex flex-wrap gap-3">
@@ -43,7 +43,7 @@ export default function PartnersPage() {
                   <span className="font-semibold">You:</span> Bring or manage the client relationship
                 </p>
                 <p>
-                  <span className="font-semibold">PixieDVC:</span> Handles matching, contracts, communication, and
+                  <span className="font-semibold">HannaDVC:</span> Handles matching, contracts, communication, and
                   payments
                 </p>
                 <p>
@@ -64,10 +64,10 @@ export default function PartnersPage() {
               </p>
               <div className="space-y-2 text-sm text-[#0F2148]/80">
                 <p>
-                  <span className="font-semibold">You:</span> Share PixieDVC through your content, links, or audience
+                  <span className="font-semibold">You:</span> Share HannaDVC through your content, links, or audience
                 </p>
                 <p>
-                  <span className="font-semibold">PixieDVC:</span> Manages the entire booking and fulfillment process
+                  <span className="font-semibold">HannaDVC:</span> Manages the entire booking and fulfillment process
                 </p>
                 <p>
                   <span className="font-semibold">You earn:</span> Commission on successful referrals
@@ -100,7 +100,7 @@ export default function PartnersPage() {
                   <span className="font-semibold">You:</span> Deliver high-quality services to guests
                 </p>
                 <p>
-                  <span className="font-semibold">PixieDVC:</span> Connects you with qualified, high-intent travelers
+                  <span className="font-semibold">HannaDVC:</span> Connects you with qualified, high-intent travelers
                 </p>
                 <p>
                   <span className="font-semibold">You earn:</span> Direct bookings and/or platform-referred clients

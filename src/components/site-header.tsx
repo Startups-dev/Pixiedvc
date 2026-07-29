@@ -22,8 +22,15 @@ export function SiteHeader({ variant = "transparent" }: { variant?: "transparent
       }
     >
       <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-6 py-10 sm:flex-row sm:items-center sm:justify-between">
-        <Link href="/" className="flex items-center gap-2 text-2xl font-display font-semibold text-ink">
-          <Image src="/images/pixie-logo.png" alt="PixieDVC" width={140} height={36} priority />
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/images/hannadvc-logo.png"
+            alt="HannaDVC"
+            width={1962}
+            height={802}
+            priority
+            className="h-auto w-[210px] object-contain"
+          />
         </Link>
         <nav className="flex flex-wrap items-center gap-6 text-sm font-medium text-muted sm:text-base">
           {navLinks.map((item) => (

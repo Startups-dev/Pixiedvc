@@ -37,13 +37,13 @@ const SCRIPTS: Record<ScriptTab, ScriptItem[]> = {
       id: "short-a",
       title: "Variant A",
       body:
-        "PixieDVC helps you stay in Deluxe Disney villas with full kitchens and extra space — often at better-than-Disney rack pricing — with concierge support from start to finish. {your link}",
+        "HannaDVC helps you stay in Deluxe Disney villas with full kitchens and extra space — often at better-than-Disney rack pricing — with concierge support from start to finish. {your link}",
     },
     {
       id: "short-b",
       title: "Variant B",
       body:
-        "Want a Disney stay with a kitchen and more space than a standard hotel room? PixieDVC helps you book Deluxe villa stays with concierge-style support. {your link}",
+        "Want a Disney stay with a kitchen and more space than a standard hotel room? HannaDVC helps you book Deluxe villa stays with concierge-style support. {your link}",
     },
   ],
   instagram: [
@@ -51,13 +51,13 @@ const SCRIPTS: Record<ScriptTab, ScriptItem[]> = {
       id: "ig-a",
       title: "Caption A",
       body:
-        "Planning Disney? If you want a villa with a full kitchen + extra space (without paying full rack rates), PixieDVC makes it simple. {your link}",
+        "Planning Disney? If you want a villa with a full kitchen + extra space (without paying full rack rates), HannaDVC makes it simple. {your link}",
     },
     {
       id: "ig-b",
       title: "Caption B",
       body:
-        "Deluxe Disney villa stays with kitchens, space, and a calmer booking process. PixieDVC helps you do it the smart way. {your link}",
+        "Deluxe Disney villa stays with kitchens, space, and a calmer booking process. HannaDVC helps you do it the smart way. {your link}",
     },
   ],
   tiktok: [
@@ -65,13 +65,13 @@ const SCRIPTS: Record<ScriptTab, ScriptItem[]> = {
       id: "tt-a",
       title: "15s Script A",
       body:
-        "If you want to stay at Disney in a villa with a full kitchen and extra space — but not pay full rack rates — PixieDVC helps you book Deluxe villa stays with concierge support. Link in bio. {your link}",
+        "If you want to stay at Disney in a villa with a full kitchen and extra space — but not pay full rack rates — HannaDVC helps you book Deluxe villa stays with concierge support. Link in bio. {your link}",
     },
     {
       id: "tt-b",
       title: "15s Script B",
       body:
-        "Hotels are fine… but Disney villas with kitchens hit different. PixieDVC helps you book Deluxe villa stays with concierge support and better-than-rack pricing (often). {your link}",
+        "Hotels are fine… but Disney villas with kitchens hit different. HannaDVC helps you book Deluxe villa stays with concierge support and better-than-rack pricing (often). {your link}",
     },
   ],
   email: [
@@ -79,7 +79,7 @@ const SCRIPTS: Record<ScriptTab, ScriptItem[]> = {
       id: "email-a",
       title: "Email / Blog Copy",
       body:
-        "PixieDVC is a concierge-style platform that helps families book Deluxe Disney villa stays with more space, full kitchens, and flexible layouts — often at better-than-Disney rack pricing. It’s a calmer, guided way to plan a premium Disney stay. {your link}",
+        "HannaDVC is a concierge-style platform that helps families book Deluxe Disney villa stays with more space, full kitchens, and flexible layouts — often at better-than-Disney rack pricing. It’s a calmer, guided way to plan a premium Disney stay. {your link}",
     },
   ],
   talking: [
@@ -97,7 +97,7 @@ const TRACKING_RULES = [
   { title: "Attribution", body: "First referral wins and is not overwritten." },
   {
     title: "Commission",
-    body: "You earn 6–8% of PixieDVC net rental revenue on confirmed and completed stays.",
+    body: "You earn 6–8% of HannaDVC net rental revenue on confirmed and completed stays.",
   },
   { title: "Payouts", body: "Paid monthly after completed stays." },
 ];
@@ -184,7 +184,7 @@ export default function AffiliateResourcesClient({
     try {
       parsed = new URL(advancedInput.trim());
     } catch {
-      setAdvancedError("Please enter a public PixieDVC page URL (not admin/owner/affiliate).");
+      setAdvancedError("Please enter a public HannaDVC page URL (not admin/owner/affiliate).");
       setAdvancedOutput("");
       return;
     }
@@ -204,7 +204,7 @@ export default function AffiliateResourcesClient({
     );
 
     if (!isHttp || !allowedOrigins.has(parsed.origin) || !parsed.pathname.startsWith("/") || isRestricted) {
-      setAdvancedError("Please enter a public PixieDVC page URL (not admin/owner/affiliate).");
+      setAdvancedError("Please enter a public HannaDVC page URL (not admin/owner/affiliate).");
       setAdvancedOutput("");
       return;
     }
@@ -266,7 +266,7 @@ export default function AffiliateResourcesClient({
               <div className="space-y-2">
                 <h1 className="text-4xl font-semibold tracking-tight text-slate-500">Affiliate Toolkit</h1>
                 <p className={`max-w-2xl text-sm ${affiliateTextMuted}`}>
-                  Everything you need to promote Deluxe Disney villa stays with PixieDVC.
+                  Everything you need to promote Deluxe Disney villa stays with HannaDVC.
                 </p>
                 <p className={`text-xs ${affiliateTextMuted}`}>
                   {affiliate.displayName} · {affiliate.tier} · {(affiliate.commissionRate * 100).toFixed(0)}% commission
@@ -297,9 +297,9 @@ export default function AffiliateResourcesClient({
             ) : null}
 
             <Card surface="dark" className={`space-y-4 ${affiliateCard}`}>
-              <h2 className="text-lg font-semibold text-slate-500">How to Position PixieDVC</h2>
+              <h2 className="text-lg font-semibold text-slate-500">How to Position HannaDVC</h2>
               <p className={`text-sm leading-relaxed ${affiliateTextMuted}`}>
-                PixieDVC helps families stay in Deluxe Disney villas with kitchens and extra space — often at
+                HannaDVC helps families stay in Deluxe Disney villas with kitchens and extra space — often at
                 better-than-Disney rack pricing — with concierge-style support.
               </p>
               <ul className={`space-y-2 text-sm ${affiliateTextMuted}`}>
@@ -414,15 +414,15 @@ export default function AffiliateResourcesClient({
 
             <details className={`rounded-2xl p-5 ${affiliateCard2}`}>
               <summary className="cursor-pointer text-sm font-semibold text-slate-500">
-                Advanced: Link to a specific PixieDVC page
+                Advanced: Link to a specific HannaDVC page
               </summary>
               <div className="mt-4 space-y-4">
                 <label className={`space-y-2 text-sm ${affiliateTextMuted}`}>
-                  Paste a PixieDVC URL
+                  Paste a HannaDVC URL
                   <input
                     value={advancedInput}
                     onChange={(event) => setAdvancedInput(event.target.value)}
-                    placeholder="https://pixiedvc.com/…"
+                    placeholder="https://hannadvc.com/…"
                     className={affiliateInput}
                   />
                 </label>

@@ -431,9 +431,9 @@ export default function GuestReturnSurvey({ token, submittedByEmail }: Props) {
             {form.my_trips_awareness === "no" ? (
               <StepRating name="my_trips_appeal_score" label="Based on the idea of having a dashboard with your reservation, how appealing would that be? (1-5, where 1 is not appealing at all and 5 is very appealing)" min={1} max={5} value={form.my_trips_appeal_score} onChange={(v) => updateField("my_trips_appeal_score", v)} />
             ) : null}
-            <StepSelectButtons label="Would you actually use PixieDVC?" value={form.would_use_pixiedvc} options={[["yes", "Yes"], ["no", "No"], ["maybe", "Maybe"]]} onChange={(v) => updateField("would_use_pixiedvc", v)} />
+            <StepSelectButtons label="Would you actually use HannaDVC?" value={form.would_use_pixiedvc} options={[["yes", "Yes"], ["no", "No"], ["maybe", "Maybe"]]} onChange={(v) => updateField("would_use_pixiedvc", v)} />
             <StepTextArea label="Why?" value={form.would_use_reason} onChange={(v) => updateField("would_use_reason", v)} required />
-            <StepTextArea label="If PixieDVC did not exist, what would you do instead?" value={form.alternative_if_not_pixiedvc} onChange={(v) => updateField("alternative_if_not_pixiedvc", v)} required />
+            <StepTextArea label="If HannaDVC did not exist, what would you do instead?" value={form.alternative_if_not_pixiedvc} onChange={(v) => updateField("alternative_if_not_pixiedvc", v)} required />
             <StepTextArea label="What confused you the most?" value={form.biggest_confusion} onChange={(v) => updateField("biggest_confusion", v)} required />
             <StepTextArea label="What did you like most?" value={form.favorite_part} onChange={(v) => updateField("favorite_part", v)} required />
             <StepTextArea label="Is there anything about the design, pages, or tools (like the calculator) that stood out to you?" value={form.design_pages_tools_feedback} onChange={(v) => updateField("design_pages_tools_feedback", v)} />

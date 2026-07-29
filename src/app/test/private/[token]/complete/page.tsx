@@ -46,8 +46,8 @@ export default async function PrivateTestCompletePage({ params }: { params: { to
         </h1>
         <p className="mt-3 text-sm text-slate-600">
           {isGuestFlow
-            ? "Thank you for taking the time to explore PixieDVC and share your feedback."
-            : "Your intake and survey responses were saved for PixieDVC product testing analysis."}
+            ? "Thank you for taking the time to explore HannaDVC and share your feedback."
+            : "Your intake and survey responses were saved for HannaDVC product testing analysis."}
         </p>
         {isGuestFlow ? (
           <p className="mt-3 text-sm text-slate-600">
@@ -58,7 +58,7 @@ export default async function PrivateTestCompletePage({ params }: { params: { to
         {session ? <p className="mt-4 text-xs text-slate-500">Session ID: {session.id}</p> : null}
         <div className="mt-6">
           <Link href="/" className="text-sm font-semibold text-[#0F2148] underline-offset-2 hover:underline">
-            Return to PixieDVC
+            Return to HannaDVC
           </Link>
         </div>
       </section>

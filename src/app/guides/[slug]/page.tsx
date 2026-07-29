@@ -68,7 +68,7 @@ const WHAT_IS_DVC_REASSURANCE = [
   },
   {
     title: "A calmer booking path",
-    body: "PixieDVC helps guests understand pricing, fit, and next steps before moving forward.",
+    body: "HannaDVC helps guests understand pricing, fit, and next steps before moving forward.",
   },
 ];
 
@@ -263,7 +263,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   if (slug === BAY_LAKE_TOWER_SLUG) {
     return {
-      title: "Bay Lake Tower Insider Guide | PixieDVC Guides",
+      title: "Bay Lake Tower Insider Guide | HannaDVC Guides",
       description:
         "Insider perspective on Bay Lake Tower: positioning, who it suits best, and practical dining strategy for a smoother Disney stay.",
       alternates: {
@@ -278,7 +278,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     if (!isResortSlug) return {};
 
     return {
-      title: "Resort Guide Coming Soon | PixieDVC Guides",
+      title: "Resort Guide Coming Soon | HannaDVC Guides",
       description: "We're building an insider guide for this resort. Check back soon.",
       alternates: {
         canonical: `/guides/${slug}`,
@@ -288,13 +288,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const { title, excerpt, heroImage, metaTitle, metaDescription, ogImageUrl } = guide.guide;
   return {
-    title: metaTitle ?? `${title} | PixieDVC Guides`,
+    title: metaTitle ?? `${title} | HannaDVC Guides`,
     description: metaDescription ?? excerpt,
     alternates: {
       canonical: `/guides/${slug}`,
     },
     openGraph: {
-      title: metaTitle ?? `${title} | PixieDVC Guides`,
+      title: metaTitle ?? `${title} | HannaDVC Guides`,
       description: metaDescription ?? excerpt,
       images: (ogImageUrl ?? heroImage) ? [{ url: ogImageUrl ?? heroImage! }] : undefined,
     },
@@ -697,10 +697,10 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
           <div className="relative mx-auto max-w-6xl px-6 py-20 md:py-24">
             <div className="max-w-4xl">
               <p className="inline-flex items-center rounded-full border border-white/15 bg-white/8 px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-white/80 backdrop-blur-sm">
-                PixieDVC Booking Guide
+                HannaDVC Booking Guide
               </p>
               <h1 className="mt-6 max-w-4xl text-2xl font-semibold leading-[1.02] !text-white sm:text-3xl lg:text-[2.625rem]">
-                How PixieDVC Booking Works
+                How HannaDVC Booking Works
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/78 sm:text-lg">
                 Save on Disney Deluxe villas through verified DVC owners, with two simple ways to book: request a
@@ -732,7 +732,7 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
                   Best for specific dates, resorts, or room types.
                 </p>
                 <p className="mt-4 text-sm leading-7 text-[#0F2148]/76">
-                  Tell us your travel dates, resort preferences, and room type. PixieDVC matches you with verified DVC owners.
+                  Tell us your travel dates, resort preferences, and room type. HannaDVC matches you with verified DVC owners.
                 </p>
                 <ul className="mt-6 space-y-3 text-sm text-[#0F2148]/78">
                   <li>Specific travel dates</li>
@@ -795,7 +795,7 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
                   Instead of booking from Disney hotel inventory, your stay is booked through a Disney Vacation Club owner with eligible points.
                 </p>
                 <p>
-                  PixieDVC makes that process feel clear by handling verification, coordination, and the path to confirmation for you.
+                  HannaDVC makes that process feel clear by handling verification, coordination, and the path to confirmation for you.
                 </p>
               </div>
             </div>
@@ -877,7 +877,7 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
           <div className="mx-auto max-w-6xl px-6">
             <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-start">
               <div className="space-y-4">
-                <p className="text-xs uppercase tracking-[0.24em] text-[#0F2148]/55">PixieDVC Value</p>
+                <p className="text-xs uppercase tracking-[0.24em] text-[#0F2148]/55">HannaDVC Value</p>
                 <h2 className="text-3xl font-semibold text-[#0F2148] sm:text-4xl">
                   Concierge-led, Not Marketplace Chaos
                 </h2>
@@ -887,7 +887,7 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
                   Direct owner rentals often require you to evaluate strangers, manage coordination, and handle the booking process yourself.
                 </p>
                 <p>
-                  PixieDVC handles owner verification, communication, coordination, and the process from request through confirmation, so the path feels safer and simpler.
+                  HannaDVC handles owner verification, communication, coordination, and the process from request through confirmation, so the path feels safer and simpler.
                 </p>
               </div>
             </div>
@@ -934,7 +934,7 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
           />
           <div className="relative mx-auto flex min-h-[760px] max-w-6xl items-end px-6 pb-20 pt-24 sm:min-h-[820px] sm:pt-32">
             <div className="max-w-[46rem] rounded-[1.9rem] border border-white/16 bg-[linear-gradient(180deg,rgba(10,20,40,0.34),rgba(10,20,40,0.26))] px-7 py-8 shadow-[0_34px_74px_rgba(0,0,0,0.14)] backdrop-blur-[8px] sm:px-8 sm:py-9">
-              <p className="text-sm font-medium uppercase tracking-[0.18em] text-white/72">PixieDVC Guide</p>
+              <p className="text-sm font-medium uppercase tracking-[0.18em] text-white/72">HannaDVC Guide</p>
               <h1 className="mt-4 max-w-[12ch] text-[3.45rem] font-semibold tracking-tight !text-white sm:text-[4.55rem] sm:leading-[0.98]">
                 What is DVC?
               </h1>
@@ -1059,10 +1059,10 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
             <article className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
               <div className="max-w-2xl">
                 <h2 className="text-[2.8rem] font-medium tracking-tight text-[#10224b] sm:text-[3.2rem]">
-                  How PixieDVC fits in
+                  How HannaDVC fits in
                 </h2>
                 <p className="mt-4 text-[1.08rem] font-normal leading-[1.9] text-[#51678f] sm:text-[1.14rem]">
-                  PixieDVC adds structure, verification, and concierge support to a process that can otherwise feel
+                  HannaDVC adds structure, verification, and concierge support to a process that can otherwise feel
                   informal.
                 </p>
                 <div className="mt-7 grid gap-3 sm:grid-cols-3">
@@ -1081,7 +1081,7 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
                     trust, and more guesswork around availability and timing.
                   </p>
                   <p>
-                    PixieDVC helps estimate point needs, coordinates with verified owners, and keeps the path to a real
+                    HannaDVC helps estimate point needs, coordinates with verified owners, and keeps the path to a real
                     Disney confirmation clear before you commit.
                   </p>
                 </div>
@@ -1173,7 +1173,7 @@ export default async function GuideDetailPage({ params }: { params: Promise<{ sl
               Ready to see what your trip could cost?
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-[1.03rem] leading-[1.95] text-[#5a6d8f] sm:text-[1.12rem]">
-              Use the PixieDVC calculator to estimate pricing, compare resorts, and understand which booking path fits
+              Use the HannaDVC calculator to estimate pricing, compare resorts, and understand which booking path fits
               your stay.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">

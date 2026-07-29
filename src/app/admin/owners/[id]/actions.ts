@@ -116,7 +116,7 @@ async function buildPlaceholderData({ supabase, ownerId, bookingRequestId, price
   }
 
   return {
-    OWNER_NAME: owner.profiles?.display_name ?? 'PixieDVC Owner',
+    OWNER_NAME: owner.profiles?.display_name ?? 'HannaDVC Owner',
     DATE: new Date().toLocaleDateString('en-US', { dateStyle: 'long' }),
     HOME_RESORT: owner.home_resort ?? membership?.resort?.name ?? '',
     USE_YEAR: owner.use_year ?? membership?.use_year ?? '',

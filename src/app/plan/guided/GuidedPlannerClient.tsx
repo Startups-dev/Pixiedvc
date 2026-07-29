@@ -462,7 +462,7 @@ export default function GuidedPlannerClient() {
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.28em] text-white/72">PixieDVC Concierge Planner</p>
+          <p className="text-xs uppercase tracking-[0.28em] text-white/72">HannaDVC Concierge Planner</p>
         </div>
       )}
 
@@ -635,7 +635,7 @@ export default function GuidedPlannerClient() {
                 <StepProgress step={step} />
                 <div className="max-w-2xl space-y-2">
                 <h2 className="text-[1.9rem] font-semibold leading-tight text-[#10224b] sm:text-[2.2rem]">
-                  Your PixieDVC concierge recommendations
+                  Your HannaDVC concierge recommendations
                 </h2>
                 <p className="text-[15px] leading-7 text-[#4b5f87] sm:text-base">
                   Based on your trip style and priorities, these are the strongest resort matches to explore first.

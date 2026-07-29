@@ -44,7 +44,7 @@ export default async function PrivateTestIntakePage({
         <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
           <h1 className="text-2xl font-semibold text-slate-900">Private Test Link Unavailable</h1>
           <p className="mt-3 text-sm text-slate-600">
-            This test link is inactive or expired. Please request a fresh private link from the PixieDVC team.
+            This test link is inactive or expired. Please request a fresh private link from the HannaDVC team.
           </p>
         </div>
       </main>
@@ -163,13 +163,13 @@ export default async function PrivateTestIntakePage({
             <input name="confidentiality_accepted" type="checkbox" className="mt-1" required />
             <span>
               I agree not to share the platform URL, screenshots, recordings, flows, content, or features from this
-              private PixieDVC test.
+              private HannaDVC test.
             </span>
           </label>
 
           <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
             <input name="consent_accepted" type="checkbox" className="mt-1" required />
-            <span>I consent to PixieDVC storing my responses for product testing analysis.</span>
+            <span>I consent to HannaDVC storing my responses for product testing analysis.</span>
           </label>
 
           <div className="flex flex-wrap items-center gap-3">

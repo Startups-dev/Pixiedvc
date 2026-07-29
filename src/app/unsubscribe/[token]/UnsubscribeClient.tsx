@@ -25,10 +25,10 @@ export function UnsubscribeClient({ token, subscriber }: Props) {
   return (
     <div className="mx-auto max-w-xl rounded-[28px] border border-slate-200 bg-white p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:p-10">
       <div className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">PixieDVC Preferences</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">HannaDVC Preferences</p>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Email preferences</h1>
         <p className="text-sm leading-7 text-slate-600">
-          Update how PixieDVC emails <span className="font-medium text-slate-900">{subscriber.email}</span>.
+          Update how HannaDVC emails <span className="font-medium text-slate-900">{subscriber.email}</span>.
         </p>
       </div>
 
@@ -41,7 +41,7 @@ export function UnsubscribeClient({ token, subscriber }: Props) {
             className="mt-1 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
           />
           <span className="text-sm leading-6 text-slate-700">
-            Keep receiving PixieDVC founder updates, resort alerts, and future campaign emails.
+            Keep receiving HannaDVC founder updates, resort alerts, and future campaign emails.
           </span>
         </label>
       </div>

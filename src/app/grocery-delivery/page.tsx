@@ -12,7 +12,7 @@ const PARTNER_LOGO =
 const PARTNER_URL = "https://www.vacationgrocerydeliveryfl.com";
 
 const TRUST_POINTS = [
-  "Recommended by PixieDVC for Disney resort stays",
+  "Recommended by HannaDVC for Disney resort stays",
   "Familiar with Disney resort delivery procedures",
   "Ideal for DVC villas and standard resort rooms",
 ];
@@ -33,9 +33,9 @@ const STEPS = [
 ];
 
 export const metadata = {
-  title: "Grocery Delivery Guide | PixieDVC",
+  title: "Grocery Delivery Guide | HannaDVC",
   description:
-    "Disney resort grocery delivery made easy with a concierge-style planning guide from PixieDVC.",
+    "Disney resort grocery delivery made easy with a concierge-style planning guide from HannaDVC.",
 };
 
 export default function GroceryDeliveryGuidePage() {
@@ -46,7 +46,7 @@ export default function GroceryDeliveryGuidePage() {
           <div className="relative z-10 flex flex-col justify-between gap-8 px-6 py-8 text-white sm:px-8 sm:py-10">
             <div className="space-y-5">
               <div className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/72">
-                PixieDVC Guest Guide
+                HannaDVC Guest Guide
               </div>
               <div className="space-y-4">
                 <h1 className="max-w-2xl text-4xl font-semibold tracking-tight !text-white sm:text-5xl">
@@ -135,7 +135,7 @@ export default function GroceryDeliveryGuidePage() {
                 Today, the team brings more than 15 years of combined Disney Cast Member experience, and many of the people
                 behind the service are former or current Cast Members themselves. They understand Disney resorts, arrival days,
                 guest expectations, and how much smoother a vacation feels when families can skip the grocery run and settle
-                in right away. PixieDVC recommends them because their service aligns naturally with the Disney guest experience
+                in right away. HannaDVC recommends them because their service aligns naturally with the Disney guest experience
                 and helps our guests start their vacations with less stress and more ease.
               </p>
 
@@ -283,7 +283,7 @@ export default function GroceryDeliveryGuidePage() {
                 contentClassName="!text-[#0F2148]/78"
                 iconClassName="!text-white/78"
               >
-                Resort handling can vary, especially around timing and guest arrival. That&apos;s why PixieDVC recommends a provider experienced with Disney resort deliveries rather than a generic grocery drop-off service.
+                Resort handling can vary, especially around timing and guest arrival. That&apos;s why HannaDVC recommends a provider experienced with Disney resort deliveries rather than a generic grocery drop-off service.
               </AccordionItem>
             </Accordion>
           </div>
@@ -300,7 +300,7 @@ export default function GroceryDeliveryGuidePage() {
               Order through our recommended grocery delivery partner
             </h2>
             <p className="mt-4 text-base leading-7 text-white/82">
-              PixieDVC recommends this provider for guests who want a smoother check-in day, better in-room convenience, and a grocery delivery service that understands Disney resort logistics.
+              HannaDVC recommends this provider for guests who want a smoother check-in day, better in-room convenience, and a grocery delivery service that understands Disney resort logistics.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link

@@ -19,10 +19,10 @@ export default function PixieHeader({
       <div className="flex items-center gap-3">
         <PixiePortrait compact />
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Pixie AI Planner</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Ask Hara</p>
           <h1 className="text-xl font-semibold text-ink sm:text-2xl">Walt Disney World planning workspace</h1>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-            Pixie is an AI planning assistant inside PixieDVC. PixieDVC is not Disney or an official Disney representative.
+            Hara helps you compare resorts, dates, and travel priorities inside HannaDVC. HannaDVC is not Disney or an official Disney representative.
           </p>
         </div>
       </div>
@@ -42,4 +42,3 @@ export default function PixieHeader({
     </header>
   );
 }
-

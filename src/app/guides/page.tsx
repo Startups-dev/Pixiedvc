@@ -8,7 +8,7 @@ import GuideNavDropdowns from "@/components/guides/GuideNavDropdowns";
 import { getAllGuides, type GuideMeta } from "@/lib/guides";
 
 export const metadata: Metadata = {
-  title: "PixieDVC Guides",
+  title: "HannaDVC Guides",
   description: "Short, practical guides to help you plan, price, and enjoy your DVC stay.",
   alternates: {
     canonical: "/guides",
@@ -35,7 +35,7 @@ const READY_STAY_NEWEST_GUIDES: GuideMeta[] = [
     title: "What Is a Ready Stay?",
     slug: "ready-stays-transfer-linking#what-is-ready-stay",
     excerpt: "Understand what makes Ready Stays different from traditional DVC booking and why they are already secured.",
-    category: "Trust & How PixieDVC Works",
+    category: "Trust & How HannaDVC Works",
     tags: ["ready stays", "transfer"],
     heroImage: null,
     readingTime: 3,
@@ -51,7 +51,7 @@ const READY_STAY_NEWEST_GUIDES: GuideMeta[] = [
     title: "How the Ready Stay Process Works",
     slug: "ready-stays-transfer-linking#how-ready-stay-works",
     excerpt: "A step-by-step flow from selecting a stay to payment, owner transfer, and confirmation readiness.",
-    category: "Trust & How PixieDVC Works",
+    category: "Trust & How HannaDVC Works",
     tags: ["ready stays", "process"],
     heroImage: null,
     readingTime: 4,
@@ -67,7 +67,7 @@ const READY_STAY_NEWEST_GUIDES: GuideMeta[] = [
     title: "When Can I Link My Reservation?",
     slug: "ready-stays-transfer-linking#when-can-i-link",
     excerpt: "See what Pending means, when the confirmation becomes active, and expected transfer timing.",
-    category: "Trust & How PixieDVC Works",
+    category: "Trust & How HannaDVC Works",
     tags: ["ready stays", "my disney experience", "transfer"],
     heroImage: null,
     readingTime: 3,
@@ -83,7 +83,7 @@ const READY_STAY_NEWEST_GUIDES: GuideMeta[] = [
     title: "How to Link Your Reservation",
     slug: "ready-stays-transfer-linking#how-to-link",
     excerpt: "Follow the exact My Disney Experience steps to link your reservation once it is ready.",
-    category: "Trust & How PixieDVC Works",
+    category: "Trust & How HannaDVC Works",
     tags: ["ready stays", "my disney experience", "linking"],
     heroImage: null,
     readingTime: 3,
@@ -99,7 +99,7 @@ const READY_STAY_NEWEST_GUIDES: GuideMeta[] = [
     title: "Transfer in Progress, What That Means",
     slug: "ready-stays-transfer-linking#transfer-in-progress",
     excerpt: "What the transfer stage means, what is happening behind the scenes, and when to follow up.",
-    category: "Trust & How PixieDVC Works",
+    category: "Trust & How HannaDVC Works",
     tags: ["ready stays", "transfer in progress"],
     heroImage: null,
     readingTime: 3,
@@ -159,7 +159,7 @@ export default async function GuidesPage({
       .filter((guide): guide is NonNullable<typeof guide> => Boolean(guide))
       .map((guide) => ({ title: guide.title, href: `/guides/${guide.slug}` })),
   });
-  const trustSection = buildSection("Trust & How PixieDVC Works", [
+  const trustSection = buildSection("Trust & How HannaDVC Works", [
     "how-disney-vacation-club-rentals-work-step-by-step",
     "how-renting-dvc-points-works",
     "how-long-the-dvc-rental-process-takes",
@@ -220,7 +220,7 @@ export default async function GuidesPage({
         <section className="space-y-6">
           <SectionHeader
             eyebrow="Guides"
-            title="PixieDVC Guides"
+            title="HannaDVC Guides"
             description="Clear, practical reads for planning your DVC stay with confidence."
           />
           <div className="max-w-xl">

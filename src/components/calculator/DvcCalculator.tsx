@@ -218,7 +218,7 @@ export default function DvcCalculator() {
     <div className="mx-auto w-full max-w-6xl rounded-3xl border border-[#0F2148]/10 bg-white/90 p-6 shadow-[0_30px_80px_rgba(15,33,72,0.12)] sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-[#0F2148]/50">PixieDVC Calculator</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-[#0F2148]/50">HannaDVC Calculator</p>
           <h2 className="mt-2 font-display text-2xl text-[#0F2148]">Estimate points & pricing</h2>
         </div>
         <div className="flex gap-2 rounded-full border border-[#0F2148]/15 bg-white/70 p-1">

@@ -14,10 +14,9 @@ export default function PixieMessage({ message }: { message: PixieClientMessage 
               : "border border-slate-200 bg-white text-slate-800"
         }`}
       >
-        {!isUser && !isStatus ? <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Pixie</p> : null}
+        {!isUser && !isStatus ? <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Hara</p> : null}
         <p className="whitespace-pre-wrap break-words">{message.content}</p>
       </div>
     </article>
   );
 }
-

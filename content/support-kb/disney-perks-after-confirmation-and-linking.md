@@ -13,7 +13,7 @@ related_questions:
   - Can I use Lightning Lane?
 ---
 
-Once a PixieDVC reservation is confirmed, guests receive a Disney confirmation number.
+Once a HannaDVC reservation is confirmed, guests receive a Disney confirmation number.
 
 That confirmation can be linked in My Disney Experience.
 

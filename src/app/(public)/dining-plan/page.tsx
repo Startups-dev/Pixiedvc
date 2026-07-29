@@ -7,7 +7,7 @@ export default function DiningPlanPage() {
         <section className="space-y-6">
           <h1 className="text-3xl font-semibold leading-tight text-[#0F2148] sm:text-4xl">Disney Dining Plans</h1>
           <p className="text-base text-[#0F2148]/80">
-            A stay booked through PixieDVC secures your Disney Vacation Club villa accommodation. Dining plans are
+            A stay booked through HannaDVC secures your Disney Vacation Club villa accommodation. Dining plans are
             optional add-ons that can be coordinated after your reservation is confirmed.
           </p>
         </section>
@@ -18,7 +18,7 @@ export default function DiningPlanPage() {
             <ul className="space-y-2 text-sm text-[#0F2148]/80">
               <li>• Yes. Eligible Walt Disney World DVC stays can add a Disney Dining Plan after the stay is secured.</li>
               <li>• Because the reservation belongs to a DVC owner, the owner must add the plan through Member Services.</li>
-              <li>• PixieDVC can coordinate that request once your reservation is confirmed.</li>
+              <li>• HannaDVC can coordinate that request once your reservation is confirmed.</li>
             </ul>
           </div>
 
@@ -58,7 +58,7 @@ export default function DiningPlanPage() {
           <div className="space-y-3">
             <h2 className="text-xl font-semibold text-[#0F2148]">How to add a dining plan</h2>
             <ol className="space-y-2 text-sm text-[#0F2148]/80">
-              <li>1. Contact PixieDVC after your reservation is confirmed.</li>
+              <li>1. Contact HannaDVC after your reservation is confirmed.</li>
               <li>2. We coordinate with the DVC owner to add the selected plan.</li>
               <li>3. Payment is collected securely by phone and must be paid in full when added.</li>
             </ol>

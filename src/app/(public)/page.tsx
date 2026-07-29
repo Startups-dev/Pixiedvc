@@ -69,7 +69,7 @@ const foundingOwnerPromo = {
   offerDescription: "+$2/pt above standard payout rates",
   duration: "first 2 years",
   headline:
-    "Partner with PixieDVC for our July–August launch and earn enhanced payout rates for 2 years.",
+    "Partner with HannaDVC for our July–August launch and earn enhanced payout rates for 2 years.",
   body:
     "A streamlined owner experience for renting DVC points and confirmed reservations, with added launch benefits for early partners.",
   benefits: [
@@ -429,7 +429,7 @@ export default async function Home() {
                     Real Members, Real Magic
                   </p>
                   <h2 className="font-display text-3xl text-ink sm:text-4xl">
-                    Stories from families matching with PixieDVC every week.
+                    Stories from families matching with HannaDVC every week.
                   </h2>
                 </div>
                 <div className="max-w-md" />
@@ -460,7 +460,7 @@ export default async function Home() {
                         <p className="text-xl font-semibold text-[#0F2148]">{story.title}</p>
                         <p className="text-sm leading-relaxed text-slate-500">“{story.quote}”</p>
                         {index === 0 ? (
-                          <p className="text-xs text-slate-500">Verified PixieDVC guest</p>
+                          <p className="text-xs text-slate-500">Verified HannaDVC guest</p>
                         ) : null}
                         <p className="text-xs font-semibold text-slate-500">{story.proofLine}</p>
                       </div>
@@ -481,7 +481,7 @@ export default async function Home() {
             <div className="relative mx-auto max-w-6xl px-6 pt-12 -mt-10">
               <div>
                 <p className="text-[12px] font-medium uppercase tracking-[0.2em] text-white/60">
-                  Pixie Booking
+                  HannaDVC Booking
                 </p>
                 <h2 className="mt-4 max-w-[600px] font-display text-[28px] font-semibold leading-[1.3] tracking-[-0.02em] !text-white sm:text-[34px]">
                   Verified owners, clear steps, and full control — from request to confirmation.
@@ -537,7 +537,7 @@ export default async function Home() {
                   </h3>
                   <p className="mt-2 text-sm text-white/75">
                     Once you’re ready, you secure your stay through our protected payment flow.
-                    Your PixieDVC concierge stays with you through booking and beyond.
+                    Your HannaDVC concierge stays with you through booking and beyond.
                   </p>
                 </div>
               </div>
@@ -618,7 +618,7 @@ export default async function Home() {
                       Designing Magic with former Imagineer Laila M.
                     </h3>
                     <p className="text-sm text-white/70">
-                      Hear how PixieDVC blends narrative-driven UX with operational efficiency across parks and resorts.
+                      Hear how HannaDVC blends narrative-driven UX with operational efficiency across parks and resorts.
                     </p>
                     <button className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-deep transition hover:-translate-y-0.5">
                       Listen & Subscribe

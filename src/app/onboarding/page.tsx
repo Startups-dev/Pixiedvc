@@ -304,7 +304,7 @@ function RoleStep({
     {
       role: 'owner' as const,
       title: 'I own DVC points',
-      description: 'Rent your points through PixieDVC with verified guests and structured payouts.',
+      description: 'Rent your points through HannaDVC with verified guests and structured payouts.',
       bullets: [
         'Verified guests and secure bookings',
         'Transparent payouts and timelines',
@@ -557,7 +557,7 @@ function ProfileStep({
         <label className="text-sm text-slate-500">Display name (optional)</label>
         <input
           className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2"
-          placeholder="Jane Pixie"
+          placeholder="Jane Hanna"
           value={displayName}
           onChange={(event) => setDisplayName(event.target.value)}
           disabled={disableFields}
@@ -983,7 +983,7 @@ function OwnerContractsStep({
             <li>Work best for popular dates and room types</li>
           </ul>
           <p>
-            Point value can change based on timing and demand. PixieDVC will always confirm details with you before
+            Point value can change based on timing and demand. HannaDVC will always confirm details with you before
             moving forward.
           </p>
         </div>
@@ -1049,7 +1049,7 @@ function OwnerContractsStep({
             <li>Reservation type</li>
             <li>Whether Founding Owner benefits are active</li>
           </ul>
-          <p>PixieDVC always confirms payout details with you before moving forward.</p>
+          <p>HannaDVC always confirms payout details with you before moving forward.</p>
         </div>
         <label className="mt-3 flex items-start gap-2 text-xs text-slate-500">
           <input
@@ -1262,7 +1262,7 @@ function HowToFindContractInfo() {
     },
     {
       title: 'Step 3: Check your available points by year',
-      description: 'Review your Points Balance Summary to see how many points you have available for each year. For example: 2025: 98 points, 2026: 120 points, 2027: 120 points. Use these numbers when entering your points into PixieDVC.',
+      description: 'Review your Points Balance Summary to see how many points you have available for each year. For example: 2025: 98 points, 2026: 120 points, 2027: 120 points. Use these numbers when entering your points into HannaDVC.',
     },
   ];
 
@@ -1438,7 +1438,7 @@ function FinishStep({
               onChange={(event) => setOwnerNewsletterOptIn(event.target.checked)}
             />
             <span>
-              Yes, I&apos;d like to receive PixieDVC owner updates, platform news, booking opportunities, and marketing emails. I can unsubscribe at any time.
+              Yes, I&apos;d like to receive HannaDVC owner updates, platform news, booking opportunities, and marketing emails. I can unsubscribe at any time.
             </span>
           </label>
           <button

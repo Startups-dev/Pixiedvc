@@ -320,7 +320,7 @@ export default async function ReadyStaysPage({
       <section id="trust" className="space-y-4">
         <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-medium text-slate-700">
-            You stay in control. PixieDVC reviews every Ready Stay before it goes public, and payout details are confirmed before guest booking.
+            You stay in control. HannaDVC reviews every Ready Stay before it goes public, and payout details are confirmed before guest booking.
           </p>
         </Card>
       </section>

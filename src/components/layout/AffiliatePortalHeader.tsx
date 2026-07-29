@@ -27,9 +27,9 @@ export default function AffiliatePortalHeader({
     <header className="relative z-[60]">
       <div className="w-full border-b border-white/10 bg-[#0f2148]">
         <div className="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-3 px-3 sm:px-4 md:px-6">
-          <div className="-ml-[84px] flex items-center gap-3 lg:-ml-[92px]">
-            <Link href="/" className="flex translate-y-[15px] items-center">
-              <PixieLogo priority className="block w-[311px] h-auto md:w-[340px]" />
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center">
+              <PixieLogo priority className="w-[176px] sm:w-[204px]" />
             </Link>
             <span className="text-xs uppercase tracking-[0.22em] text-white/70">
               Affiliate Portal
@@ -46,7 +46,7 @@ export default function AffiliatePortalHeader({
 
           <div className="flex items-center gap-4">
             <Link href="/" className="text-sm font-semibold text-white/80 transition hover:text-white">
-              Back to PixieDVC
+              Back to HannaDVC
             </Link>
             {isAuthenticated ? (
               <UserMenu label={userLabel ?? "Signed in"} isAdmin={isAdmin} />

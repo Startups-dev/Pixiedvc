@@ -83,7 +83,7 @@ const MESSAGE_DUMMY: SupportMessage[] = [
     sender: "ai",
     content: "I can help with that. Riviera is modern with Skyliner access, while Beach Club is walkable to EPCOT with a standout pool.",
     created_at: new Date(Date.now() - 6 * 60_000).toISOString(),
-    sender_display_name: "Pixie Concierge",
+    sender_display_name: "Hara",
   },
   {
     id: "m3",
@@ -188,7 +188,7 @@ function groupedMessages(messages: SupportMessage[]) {
     const sender = internal ? "internal" : msg.sender;
     const display = internal
       ? "Internal note"
-      : msg.sender_display_name || (msg.sender === "ai" ? "Pixie Concierge" : msg.sender === "agent" ? "Agent" : "Guest");
+      : msg.sender_display_name || (msg.sender === "ai" ? "Hara" : msg.sender === "agent" ? "Agent" : "Guest");
     const prev = groups[groups.length - 1];
     if (prev && prev.sender === sender) {
       prev.items.push(msg);

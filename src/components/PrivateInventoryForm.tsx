@@ -411,7 +411,7 @@ export default function PrivateInventoryForm({ ownerId, initialSubmissions }: Pr
           </label>
           <label className="flex items-start gap-3 text-sm text-slate-700">
             <input type="checkbox" checked={ackResponse} onChange={(event) => setAckResponse(event.target.checked)} />
-            <span>I can respond quickly if PixieDVC needs confirmation.</span>
+            <span>I can respond quickly if HannaDVC needs confirmation.</span>
           </label>
         </div>
 

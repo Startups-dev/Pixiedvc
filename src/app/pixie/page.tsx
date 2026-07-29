@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import PixieClient from "@/app/pixie/PixieClient";
 
 export const metadata: Metadata = {
-  title: "Pixie AI Disney Vacation Planner | PixieDVC",
-  description: "Plan a Walt Disney World vacation with Pixie, the AI planning assistant inside PixieDVC.",
+  title: "Ask Hara | HannaDVC",
+  description: "Plan a Walt Disney World vacation with Hara inside HannaDVC.",
   robots: {
     index: false,
     follow: false,
@@ -21,4 +21,3 @@ export default function PixiePage() {
   const enabled = pixieEnabled();
   return <PixieClient enabled={enabled} />;
 }
-

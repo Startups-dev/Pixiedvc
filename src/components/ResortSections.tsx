@@ -200,7 +200,7 @@ export default function ResortSections({ sections }: Props) {
             : section.type === "transportation"
             ? "Getting Around"
             : section.type === "amenities"
-              ? "What You Get with PixieDVC"
+              ? "What You Get with HannaDVC"
               : section.type === "policies"
                 ? "Good to Know"
                 : section.title;

@@ -37,7 +37,7 @@ const replies: Record<PixieQuestionKey, Array<{ label: string; message: string }
     { label: "You decide", message: "You decide the best park-day rhythm." },
   ],
   ask_resort_choice: [
-    { label: "Keep Pixie’s favorite", message: "Keep Pixie's favorite resort as the leading option." },
+    { label: "Keep Hara’s favorite", message: "Keep Hara's favorite resort as the leading option." },
     { label: "Compare top two", message: "Compare the top two resort options for me." },
     { label: "Show lower-cost options", message: "Show me lower-cost resort options if they still fit." },
     { label: "Check Ready Stays", message: "Check Ready Stays that match this trip." },
@@ -57,7 +57,7 @@ function contextualReplies(state?: PixieChatState, nextQuestionKey?: PixieQuesti
   if (nextQuestionKey) return replies[nextQuestionKey];
   return [
     { label: "We’re just starting", message: "We are just starting our Walt Disney World plans." },
-    { label: "We’re flexible", message: "We are flexible and want Pixie to guide us." },
+    { label: "We’re flexible", message: "We are flexible and want Hara to guide us." },
     { label: "Find a Ready Stay", message: "Find us a Ready Stay if one fits." },
   ];
 }
