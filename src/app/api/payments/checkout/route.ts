@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     params.set('cancel_url', cancelUrl);
     params.append('payment_method_types[]', 'card');
     params.append('line_items[0][price_data][currency]', currency.toLowerCase());
-    params.append('line_items[0][price_data][product_data][name]', 'PixieDVC Reservation Payment');
+    params.append('line_items[0][price_data][product_data][name]', 'HannaDVC Reservation Payment');
     params.append('line_items[0][price_data][unit_amount]', String(amountCents));
     params.append('line_items[0][quantity]', '1');
     params.append('client_reference_id', contract.booking_request_id);

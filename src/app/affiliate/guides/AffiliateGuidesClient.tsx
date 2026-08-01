@@ -347,9 +347,9 @@ Estimate your stay: ${links.calculator}`}
             <p className={`text-xs uppercase tracking-[0.3em] ${affiliateTextMuted}`}>Downloadable assets</p>
             <div className="flex flex-wrap gap-3 text-sm">
               {[
-                "/affiliate-kit/pixiedvc-banner-1.svg",
-                "/affiliate-kit/pixiedvc-banner-2.svg",
-                "/affiliate-kit/pixiedvc-banner-3.svg",
+                "/affiliate-kit/hannadvc-banner-1.svg",
+                "/affiliate-kit/hannadvc-banner-2.svg",
+                "/affiliate-kit/hannadvc-banner-3.svg",
               ].map((asset) => (
                 <Link
                   key={asset}

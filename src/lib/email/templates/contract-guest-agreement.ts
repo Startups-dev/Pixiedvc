@@ -23,8 +23,8 @@ export function buildContractGuestAgreementTemplate({
   paidNowUsd,
   agreementUrl,
 }: ContractGuestAgreementTemplateInput) {
-  const subject = 'PixieDVC - Your rental agreement is ready';
-  const name = guestName?.trim() || 'PixieDVC guest';
+  const subject = 'HannaDVC - Your rental agreement is ready';
+  const name = guestName?.trim() || 'HannaDVC guest';
   const dates = checkIn && checkOut ? `${checkIn} to ${checkOut}` : checkIn || checkOut || 'your travel dates';
   const pointsLabel = typeof points === 'number' && Number.isFinite(points) ? `${points.toLocaleString()}` : null;
   const ctaUrl = agreementUrl?.trim() || null;
@@ -44,9 +44,9 @@ export function buildContractGuestAgreementTemplate({
     'Next step: review the agreement and sign to keep your stay moving forward.',
     ctaUrl
       ? `Review and sign: ${ctaUrl}`
-      : 'Please contact hello@pixiedvc.com to review and sign the agreement.',
+      : 'Please contact hello@hannadvc.com to review and sign the agreement.',
     '',
-    'PixieDVC Concierge',
+    'HannaDVC Team',
   ].join('\n');
 
   const html = renderEmailLayout({

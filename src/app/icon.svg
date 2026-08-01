@@ -1,7 +1,8 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="64" height="64" rx="16" fill="#10224B"/>
-  <path
-    d="M22 15H35.5C44.06 15 49 19.81 49 27.66C49 35.48 44.06 40.31 35.5 40.31H28.42V50H22V15ZM34.93 35.01C40.06 35.01 42.48 32.57 42.48 27.66C42.48 22.75 40.06 20.3 34.93 20.3H28.42V35.01H34.93Z"
-    fill="#F8FAFF"
-  />
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="HannaDVC icon">
+  <rect width="512" height="512" fill="#0F2148"/>
+  <rect x="122" y="102" width="67" height="308" fill="#FFFFFF"/>
+  <rect x="323" y="102" width="67" height="308" fill="#FFFFFF"/>
+  <rect x="122" y="230" width="268" height="66" fill="#FFFFFF"/>
+  <path d="M256 157L271.9 239.6L355 256L271.9 272.4L256 355L240.1 272.4L157 256L240.1 239.6L256 157Z" fill="#D6A53F"/>
+  <path d="M256 194L266.2 245.8L318 256L266.2 266.2L256 318L245.8 266.2L194 256L245.8 245.8L256 194Z" fill="#B6892F"/>
 </svg>

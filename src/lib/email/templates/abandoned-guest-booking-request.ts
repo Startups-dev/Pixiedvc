@@ -30,7 +30,7 @@ export function buildAbandonedGuestBookingRequestTemplate({
     'No payment is required to submit a request.',
     ctaUrl ? `Continue your request: ${ctaUrl}` : null,
     '',
-    'PixieDVC Concierge',
+    'HannaDVC Team',
   ]
     .filter((line): line is string => line !== null)
     .join('\n');

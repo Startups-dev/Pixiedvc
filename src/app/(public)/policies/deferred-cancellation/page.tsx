@@ -6,7 +6,7 @@ import { Card } from "@pixiedvc/design-system";
 export const metadata: Metadata = {
   title: "Deferred Cancellation Policy",
   description:
-    "Pixie DVC’s Deferred Cancellation Policy, including eligibility schedule and terms.",
+    "HannaDVC’s Deferred Cancellation Policy, including eligibility schedule and terms.",
 };
 
 const schedule = [
@@ -51,11 +51,11 @@ export default function DeferredCancellationPolicyPage() {
               If your plans change, you may be eligible for a travel credit depending on how far in advance you cancel.
             </p>
             <p>
-              PixieDVC bookings use owner points, which limits refunds but allows structured flexibility through credits
+              HannaDVC bookings use owner points, which limits refunds but allows structured flexibility through credits
               and rebooking options.
             </p>
             <p>
-              Eligibility, credit value, and usage are determined by Pixie DVC based on the scheduled arrival date and
+              Eligibility, credit value, and usage are determined by HannaDVC based on the scheduled arrival date and
               the terms outlined below.
             </p>
             <p>
@@ -99,15 +99,15 @@ export default function DeferredCancellationPolicyPage() {
           <div className="space-y-4">
             <h2 className="text-[30px] font-semibold leading-tight text-[#06080d]">Policy Terms</h2>
             <ul className="list-disc space-y-2 pl-5 text-[16px] leading-7 text-[#5f6673]">
-              <li>Are issued at Pixie DVC’s discretion</li>
+              <li>Are issued at HannaDVC’s discretion</li>
               <li>Have no cash value and are non-refundable</li>
               <li>Are non-transferable</li>
               <li>May be subject to expiration</li>
-              <li>May only be applied to future Pixie DVC reservations</li>
+              <li>May only be applied to future HannaDVC reservations</li>
               <li>Cannot be combined with other promotions or credits unless explicitly stated</li>
             </ul>
             <p className="text-[16px] leading-7 text-[#5f6673]">
-              Pixie DVC reserves the right to modify or discontinue this policy at any time.
+              HannaDVC reserves the right to modify or discontinue this policy at any time.
             </p>
             <p className="text-[16px] leading-7 text-[#5f6673]">The version published on this page governs all reservations.</p>
           </div>
@@ -134,7 +134,7 @@ export default function DeferredCancellationPolicyPage() {
             <h2 className="text-[30px] font-semibold leading-tight text-[#06080d]">Disclaimer</h2>
             <p className="text-[16px] leading-7 text-[#5f6673]">This policy applies only where explicitly referenced.</p>
             <p className="text-[16px] leading-7 text-[#5f6673]">
-              Pixie DVC makes no guarantee that a travel credit will be issued under this policy unless all eligibility
+              HannaDVC makes no guarantee that a travel credit will be issued under this policy unless all eligibility
               conditions are met.
             </p>
           </div>

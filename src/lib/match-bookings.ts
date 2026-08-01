@@ -855,7 +855,7 @@ export async function evaluateMatchBookings(options: {
       ownerMembershipId: bestCandidate.membership.id,
       borrowMembershipId: bestCandidate.nextMembership?.id ?? null,
       ownerEmail: payoutEmail,
-      ownerName: bestCandidate.ownerProfile.display_name ?? 'PixieDVC Owner',
+      ownerName: bestCandidate.ownerProfile.display_name ?? 'HannaDVC Owner',
       pointsReserved: booking.total_points,
       pointsReservedCurrent: bestCandidate.reserveCurrent,
       pointsReservedBorrowed: bestCandidate.reserveBorrowed,

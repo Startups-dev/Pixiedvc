@@ -24,8 +24,8 @@ export function buildOwnerMatchWaitingTemplate({
   declineUrl,
 }: OwnerMatchWaitingTemplateInput) {
   const resort = resortName?.trim() || 'your resort';
-  const subject = resortName ? `Guest request waiting at ${resort}` : 'New PixieDVC guest request to review';
-  const name = ownerName?.trim() || 'PixieDVC owner';
+  const subject = resortName ? `Guest request waiting at ${resort}` : 'New HannaDVC guest request to review';
+  const name = ownerName?.trim() || 'HannaDVC owner';
   const guest = guestName?.trim() || 'a guest';
   const dates =
     checkIn && checkOut ? `${checkIn} to ${checkOut}` : checkIn || checkOut || 'the requested dates';
@@ -46,9 +46,9 @@ export function buildOwnerMatchWaitingTemplate({
     'Please respond within 24 hours so we can keep the booking moving.',
     primaryUrl ? `Accept request: ${primaryUrl}` : null,
     declineUrl?.trim() ? `Decline request: ${declineUrl.trim()}` : null,
-    !primaryUrl && !declineUrl?.trim() ? 'Log in to the PixieDVC owner dashboard to accept or decline.' : null,
+    !primaryUrl && !declineUrl?.trim() ? 'Log in to the HannaDVC owner dashboard to accept or decline.' : null,
     '',
-    'PixieDVC Concierge',
+    'HannaDVC Team',
   ]
     .filter((line): line is string => line !== null)
     .join('\n');
@@ -59,7 +59,7 @@ export function buildOwnerMatchWaitingTemplate({
 
   const fallbackHtml =
     !primaryUrl && !declineUrl?.trim()
-      ? '<p style="margin:0;font-size:15px;line-height:1.7;color:#31445b;">Log in to the PixieDVC owner dashboard to accept or decline.</p>'
+      ? '<p style="margin:0;font-size:15px;line-height:1.7;color:#31445b;">Log in to the HannaDVC owner dashboard to accept or decline.</p>'
       : '';
 
   const html = renderEmailLayout({

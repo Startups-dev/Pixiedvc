@@ -442,9 +442,9 @@ export default async function ReadyStayAgreementPage({
       },
       intermediary:
         snapshot.parties?.intermediary ?? {
-          legalName: 'Pixie DVC',
+          legalName: 'HannaDVC',
           address: '8 The Green Ste Suite A, Dover, DE 19901, USA',
-          tagline: 'Pixie DVC a AlphaFlare Company',
+          tagline: 'HannaDVC, an AlphaFlare Company',
         },
     },
     occupancy: {

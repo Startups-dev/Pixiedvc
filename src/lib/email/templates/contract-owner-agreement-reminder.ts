@@ -23,8 +23,8 @@ export function buildContractOwnerAgreementReminderTemplate({
   totalUsd,
   agreementUrl,
 }: ContractOwnerAgreementReminderTemplateInput) {
-  const subject = 'Reminder: your PixieDVC owner agreement is ready';
-  const name = ownerName?.trim() || 'PixieDVC owner';
+  const subject = 'Reminder: your HannaDVC owner agreement is ready';
+  const name = ownerName?.trim() || 'HannaDVC owner';
   const dates = checkIn && checkOut ? `${checkIn} to ${checkOut}` : checkIn || checkOut || 'the requested dates';
   const pointsLabel = typeof points === 'number' && Number.isFinite(points) ? `${points.toLocaleString()}` : null;
   const ctaUrl = agreementUrl?.trim() || null;
@@ -44,9 +44,9 @@ export function buildContractOwnerAgreementReminderTemplate({
     'Completing the agreement helps keep the reservation moving smoothly.',
     ctaUrl
       ? `Review and sign: ${ctaUrl}`
-      : 'Please contact hello@pixiedvc.com to review and sign the agreement.',
+      : 'Please contact hello@hannadvc.com to review and sign the agreement.',
     '',
-    'PixieDVC Concierge',
+    'HannaDVC Team',
   ].join('\n');
 
   const html = renderEmailLayout({

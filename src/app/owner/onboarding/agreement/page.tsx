@@ -5,21 +5,21 @@ import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase";
 
-const AGREEMENT_TEXT = `1. Role of PixieDVC
+const AGREEMENT_TEXT = `1. Role of HannaDVC
 
-PixieDVC is an independent digital intermediary platform that connects Disney Vacation Club ("DVC") owners with guests seeking reservations.
+HannaDVC is an independent digital intermediary platform that connects Disney Vacation Club ("DVC") owners with guests seeking reservations.
 
-PixieDVC is not affiliated with, endorsed by, or sponsored by Disney Vacation Club or The Walt Disney Company.
+HannaDVC is not affiliated with, endorsed by, or sponsored by Disney Vacation Club or The Walt Disney Company.
 
-PixieDVC does not own, control, operate, or manage any DVC property.
+HannaDVC does not own, control, operate, or manage any DVC property.
 
-PixieDVC's role is limited to facilitating reservation matching, payment processing, and communication between owners and guests.
+HannaDVC's role is limited to facilitating reservation matching, payment processing, and communication between owners and guests.
 
 2. Independent Contractor Status
 
 You acknowledge that you are an independent DVC owner.
 
-Nothing in this Agreement creates a partnership, agency, joint venture, employment, or fiduciary relationship between you and PixieDVC.
+Nothing in this Agreement creates a partnership, agency, joint venture, employment, or fiduciary relationship between you and HannaDVC.
 
 You are solely responsible for your own tax reporting, regulatory compliance, financial obligations, and DVC membership standing.
 
@@ -37,7 +37,7 @@ You have full authority to rent or transfer reservations listed.
 
 Information provided on the platform is accurate and complete.
 
-You are familiar with DVC rules and policies and do not rely on PixieDVC for interpretation of Disney policies.
+You are familiar with DVC rules and policies and do not rely on HannaDVC for interpretation of Disney policies.
 
 4. Owner Obligations
 
@@ -53,7 +53,7 @@ Transfer reservations into guest names promptly.
 
 Cooperate with reasonable reservation modifications required for operational or financial risk mitigation.
 
-Not double-list active reservations or points on other rental platforms while listed on PixieDVC.
+Not double-list active reservations or points on other rental platforms while listed on HannaDVC.
 
 Comply with all Disney Vacation Club rules and policies.
 
@@ -61,15 +61,15 @@ Failure to perform these obligations constitutes a material breach.
 
 5. No Guarantee of Rental
 
-PixieDVC makes no guarantee that points or reservations will be rented.
+HannaDVC makes no guarantee that points or reservations will be rented.
 
-PixieDVC is not responsible for expired points, unsold availability, or lack of guest demand.
+HannaDVC is not responsible for expired points, unsold availability, or lack of guest demand.
 
 6. Payments and Payout Structure
 
-Owner payout amounts are determined by the rate accepted through the PixieDVC dashboard at the time of listing or reservation confirmation.
+Owner payout amounts are determined by the rate accepted through the HannaDVC dashboard at the time of listing or reservation confirmation.
 
-Guests may pay a different total amount. PixieDVC may retain a platform fee or pricing spread.
+Guests may pay a different total amount. HannaDVC may retain a platform fee or pricing spread.
 
 Platform fees do not reduce the agreed owner payout.
 
@@ -85,7 +85,7 @@ Reservation confirmation compliance
 
 Identity Verification & Payout Authorization
 
-PixieDVC reserves the right to require identity verification prior to releasing any payout to an Owner. Verification may include government-issued identification or other documentation reasonably necessary to confirm identity and payment eligibility.
+HannaDVC reserves the right to require identity verification prior to releasing any payout to an Owner. Verification may include government-issued identification or other documentation reasonably necessary to confirm identity and payment eligibility.
 
 Failure to complete requested verification may result in delayed or withheld payout until verification requirements are satisfied.
 
@@ -93,7 +93,7 @@ Failure to complete requested verification may result in delayed or withheld pay
 
 If a guest initiates a chargeback, payment dispute, fraud claim, or financial reversal:
 
-PixieDVC may:
+HannaDVC may:
 
 Withhold unpaid payout
 
@@ -125,7 +125,7 @@ Owner agrees to:
 
 Return all payouts received for the affected reservation
 
-Compensate PixieDVC for direct losses incurred
+Compensate HannaDVC for direct losses incurred
 
 Cooperate in guest resolution
 
@@ -145,7 +145,7 @@ Disney Vacation Club closures or operational restrictions
 
 If performance becomes impossible or materially impaired:
 
-PixieDVC may cancel or modify affected reservations.
+HannaDVC may cancel or modify affected reservations.
 
 Unpaid owner payouts may be withheld.
 
@@ -161,7 +161,7 @@ Owner shall not retain, sell, distribute, or otherwise exploit guest data.
 
 11. Platform Rights
 
-PixieDVC reserves the right to:
+HannaDVC reserves the right to:
 
 Remove listings
 
@@ -171,7 +171,7 @@ Cancel transactions for fraud, safety, or policy violations
 
 12. Indemnification
 
-Owner agrees to indemnify and hold harmless PixieDVC from any claims, losses, damages, liabilities, and expenses arising from:
+Owner agrees to indemnify and hold harmless HannaDVC from any claims, losses, damages, liabilities, and expenses arising from:
 
 Owner breach of this Agreement
 
@@ -183,9 +183,9 @@ Owner misrepresentation
 
 13. Limitation of Liability
 
-PixieDVC's total liability shall not exceed the total payout paid to Owner during the twelve (12) months preceding the claim.
+HannaDVC's total liability shall not exceed the total payout paid to Owner during the twelve (12) months preceding the claim.
 
-PixieDVC shall not be liable for indirect, incidental, special, or consequential damages.
+HannaDVC shall not be liable for indirect, incidental, special, or consequential damages.
 
 14. Entire Agreement
 
@@ -197,7 +197,7 @@ If any provision is found unenforceable, the remainder shall remain in effect.
 
 16. Modification
 
-PixieDVC may update this Agreement from time to time. Continued use of the platform constitutes acceptance of updated terms.
+HannaDVC may update this Agreement from time to time. Continued use of the platform constitutes acceptance of updated terms.
 
 17. Governing Law
 
@@ -347,7 +347,7 @@ export default function OwnerAgreementPage() {
         onScroll={handleAgreementScroll}
         className="max-h-[420px] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5"
       >
-        <h2 className="mb-4 text-xl font-semibold text-slate-900">PixieDVC Owner Platform Agreement</h2>
+        <h2 className="mb-4 text-xl font-semibold text-slate-900">HannaDVC Owner Platform Agreement</h2>
         <div className="space-y-2 text-sm leading-6">
           {AGREEMENT_TEXT.split("\n").map((line, index) => {
             const trimmed = line.trim();
@@ -375,7 +375,7 @@ export default function OwnerAgreementPage() {
           disabled={!hasScrolledToEnd}
           className="mt-0.5 h-4 w-4 rounded border-slate-300"
         />
-        <span>I have read and agree to the PixieDVC Owner Platform Agreement.</span>
+        <span>I have read and agree to the HannaDVC Owner Platform Agreement.</span>
       </label>
       {!hasScrolledToEnd ? <p className="text-xs text-slate-500">Scroll to the end to enable agreement.</p> : null}
 

@@ -108,7 +108,7 @@ function resolveOwnerDisplayName(match: PendingOwnerMatchRow) {
     if (localPart) return localPart;
   }
 
-  return 'PixieDVC Owner';
+  return 'HannaDVC Owner';
 }
 
 function isStillPending(match: PendingOwnerMatchRow) {

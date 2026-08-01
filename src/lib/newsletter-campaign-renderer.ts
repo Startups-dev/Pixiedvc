@@ -30,7 +30,7 @@ export type RenderedNewsletterCampaign = {
 };
 
 const DISCLAIMER =
-  'PixieDVC is an independent vacation rental platform and is not affiliated with, sponsored by, or endorsed by The Walt Disney Company or Disney Vacation Club.';
+  'HannaDVC is an independent vacation rental platform and is not affiliated with, sponsored by, or endorsed by The Walt Disney Company or Disney Vacation Club.';
 
 function escapeHtml(value: string) {
   return value
@@ -90,7 +90,7 @@ function renderHeroImageHtml(content: NewsletterCampaignContent) {
 
   const alt = content.featured_resort
     ? `${content.featured_resort} featured travel image`
-    : 'PixieDVC featured travel image';
+    : 'HannaDVC featured travel image';
 
   return [
     '<table role="presentation" width="100%" cellPadding="0" cellSpacing="0" border="0" style="border-collapse:collapse;margin:0 0 18px;">',
@@ -114,7 +114,7 @@ function buildFooterHtml(footerNote?: string | null, unsubscribeUrl?: string | n
 
   if (unsubscribeUrl) {
     parts.push(
-      `<p style="margin:0 0 10px;">You are receiving this email because you joined the PixieDVC Insider list. <a href="${escapeHtml(
+      `<p style="margin:0 0 10px;">You are receiving this email because you joined the HannaDVC Insider list. <a href="${escapeHtml(
         unsubscribeUrl,
       )}" style="color:#163566;text-decoration:underline;">Unsubscribe here</a>.</p>`,
     );

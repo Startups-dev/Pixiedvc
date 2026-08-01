@@ -67,7 +67,7 @@ async function createStripeCheckoutSession(request: Request, payload: DepositReq
   params.append("payment_method_types[]", "card");
   if (customerEmail) params.set("customer_email", customerEmail);
   params.append("line_items[0][price_data][currency]", currency);
-  params.append("line_items[0][price_data][product_data][name]", "PixieDVC Deposit");
+  params.append("line_items[0][price_data][product_data][name]", "HannaDVC Deposit");
   params.append("line_items[0][price_data][unit_amount]", String(amountCents));
   params.append("line_items[0][quantity]", "1");
   params.append("client_reference_id", bookingId);

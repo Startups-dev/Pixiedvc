@@ -236,7 +236,7 @@ function Hero() {
   return (
     <div className="relative overflow-hidden ring-1 ring-black/10 shadow-sm">
       <img
-        src="https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/pixiedvc-social-proof/platform-images/Screenshot%202026-01-01%20at%2012.34.06%20AM.png"
+        src="/images/hannadvc-owner-process-overview.svg"
         alt="HannaDVC owner rental process overview"
         className="h-[280px] w-full object-cover lg:h-[460px]"
       />

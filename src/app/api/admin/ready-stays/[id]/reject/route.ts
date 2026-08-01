@@ -95,7 +95,7 @@ export async function POST(
     .maybeSingle();
 
   const ownerEmail = profile?.email ?? ownerRecord?.email ?? null;
-  const ownerName = profile?.display_name ?? ownerRecord?.display_name ?? "PixieDVC owner";
+  const ownerName = profile?.display_name ?? ownerRecord?.display_name ?? "HannaDVC owner";
 
   if (ownerEmail) {
     const resortName = row.resorts?.name ?? "your Ready Stay";

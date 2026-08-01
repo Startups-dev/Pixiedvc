@@ -1,4 +1,4 @@
-# PixieDVC production deployment
+# HannaDVC production deployment
 
 This creates a separate Cloud Run service named `pixiedvc-production`. It does
 not update `pixiedvc-web-staging`, its image tag, its environment variables, or
@@ -26,7 +26,7 @@ this identity by default. Override it only by setting
 RUNTIME_SA="pixiedvc-production-runtime@${PROJECT_ID}.iam.gserviceaccount.com"
 gcloud iam service-accounts describe "$RUNTIME_SA" >/dev/null 2>&1 || \
   gcloud iam service-accounts create pixiedvc-production-runtime \
-    --display-name="PixieDVC production Cloud Run"
+    --display-name="HannaDVC production Cloud Run"
 ```
 
 ## 2. Production environment configuration
@@ -74,9 +74,9 @@ CRON_SECRET
 The deployment script always sets these production URL values itself:
 
 ```text
-NEXT_PUBLIC_SITE_URL=https://pixiedvc.com
-NEXT_PUBLIC_APP_URL=https://pixiedvc.com
-APP_BASE_URL=https://pixiedvc.com
+NEXT_PUBLIC_SITE_URL=https://hannadvc.com
+NEXT_PUBLIC_APP_URL=https://hannadvc.com
+APP_BASE_URL=https://hannadvc.com
 ```
 
 Run production deploy with the env file:
@@ -177,10 +177,10 @@ PIXIEDVC_PRODUCTION_CONFIG_MODE=secret-manager pnpm deploy:production
 
 In the production Supabase project, open Authentication > URL Configuration:
 
-- Site URL: `https://pixiedvc.com`
+- Site URL: `https://hannadvc.com`
 - Exact redirect allow-list entries:
-  - `https://pixiedvc.com/auth/callback`
-  - `https://www.pixiedvc.com/auth/callback`
+  - `https://hannadvc.com/auth/callback`
+  - `https://www.hannadvc.com/auth/callback`
 
 Keep the staging Cloud Run callback URL in the staging Supabase project. Do not
 put the staging URL in the production Supabase project unless a controlled
@@ -216,20 +216,20 @@ a supported region, the direct mapping commands are:
 
 ```bash
 gcloud domains list-user-verified
-gcloud domains verify pixiedvc.com
+gcloud domains verify hannadvc.com
 
 gcloud beta run domain-mappings create \
   --project="$PROJECT_ID" --region="$REGION" \
-  --service=pixiedvc-production --domain=pixiedvc.com
+  --service=pixiedvc-production --domain=hannadvc.com
 
 gcloud beta run domain-mappings create \
   --project="$PROJECT_ID" --region="$REGION" \
-  --service=pixiedvc-production --domain=www.pixiedvc.com
+  --service=pixiedvc-production --domain=www.hannadvc.com
 
 gcloud beta run domain-mappings describe \
-  --project="$PROJECT_ID" --region="$REGION" --domain=pixiedvc.com
+  --project="$PROJECT_ID" --region="$REGION" --domain=hannadvc.com
 gcloud beta run domain-mappings describe \
-  --project="$PROJECT_ID" --region="$REGION" --domain=www.pixiedvc.com
+  --project="$PROJECT_ID" --region="$REGION" --domain=www.hannadvc.com
 ```
 
 Do not run the mapping commands until the production `run.app` URL passes the
@@ -248,10 +248,10 @@ same frontend or redirect it canonically to the apex.
 
 - Open the production `run.app` URL and verify public navigation.
 - Create a production test user and verify confirmation, login, logout, and
-  password-reset callbacks stay on `pixiedvc.com`.
+  password-reset callbacks stay on `hannadvc.com`.
 - Verify owner and guest dashboards read only production Supabase data.
 - Run a Stripe test-mode checkout first; switch to live keys only after webhook
-  delivery is confirmed at `https://pixiedvc.com/api/stripe/webhook`.
+  delivery is confirmed at `https://hannadvc.com/api/stripe/webhook`.
 - Send a Resend message and verify sender-domain authentication, reply/contact
   routing, and unsubscribe links.
 - Invoke protected cron endpoints with the production `CRON_SECRET`.

@@ -1,5 +1,5 @@
 const DISCLAIMER =
-  'PixieDVC is an independent vacation rental platform and is not affiliated with, sponsored by, or endorsed by The Walt Disney Company or Disney Vacation Club.';
+  'HannaDVC is an independent vacation rental platform and is not affiliated with, sponsored by, or endorsed by The Walt Disney Company or Disney Vacation Club.';
 
 function escapeHtml(value: string) {
   return value
@@ -104,7 +104,7 @@ export function renderEmailLayout({
     '<body style="margin:0;padding:0;background:#f3f6fb;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;color:#102542;">',
     '<div style="width:100%;background:#f3f6fb;padding:32px 16px;">',
     '<div style="max-width:640px;margin:0 auto;">',
-    '<div style="margin:0 0 18px;text-align:center;font-size:18px;line-height:1.2;font-weight:700;letter-spacing:0.08em;color:#163566;text-transform:uppercase;">PixieDVC</div>',
+    '<div style="margin:0 0 18px;text-align:center;font-size:18px;line-height:1.2;font-weight:700;letter-spacing:0.08em;color:#163566;text-transform:uppercase;">HannaDVC</div>',
     '<div style="background:#ffffff;border:1px solid #dbe4f0;border-radius:20px;padding:32px 28px;box-shadow:0 12px 32px rgba(16,37,66,0.08);">',
     topHtml ?? '',
     `<h1 style="margin:0 0 14px;font-size:28px;line-height:1.2;font-weight:700;color:#102542;">${escapeHtml(title)}</h1>`,

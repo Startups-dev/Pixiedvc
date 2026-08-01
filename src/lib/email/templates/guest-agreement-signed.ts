@@ -15,7 +15,7 @@ export function buildGuestAgreementSignedTemplate({
   checkOut,
   agreementUrl,
 }: GuestAgreementSignedTemplateInput) {
-  const subject = 'PixieDVC - Your agreement is complete';
+  const subject = 'HannaDVC - Your agreement is complete';
   const name = guestName?.trim() || 'there';
   const dates = checkIn && checkOut ? `${checkIn} to ${checkOut}` : checkIn || checkOut || 'your travel dates';
   const ctaUrl = agreementUrl?.trim() || null;
@@ -31,7 +31,7 @@ export function buildGuestAgreementSignedTemplate({
     'Our concierge team will follow up with any next steps for your stay.',
     ctaUrl ? `View your agreement: ${ctaUrl}` : null,
     '',
-    'PixieDVC Concierge',
+    'HannaDVC Team',
   ]
     .filter((line): line is string => line !== null)
     .join('\n');

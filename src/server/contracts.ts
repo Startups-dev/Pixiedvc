@@ -340,7 +340,7 @@ export async function sendContractEmail(params: { contractId: number; sendToOwne
     await sendContractOwnerAgreementEmail({
       to: ownerEmail,
       templateKey: 'contract_owner_agreement',
-      ownerName: ownerProfile?.display_name ?? 'PixieDVC owner',
+      ownerName: ownerProfile?.display_name ?? 'HannaDVC owner',
       guestName: snapshot.parties?.guest?.fullName ?? null,
       resortName: snapshot.summary?.resortName ?? null,
       roomType: snapshot.summary?.accommodationType ?? null,
@@ -659,9 +659,9 @@ async function buildSnapshot({
         secondOwnerFullName: membership?.co_owner_legal_full_name ?? null,
       },
       intermediary: {
-        legalName: 'Pixie DVC',
+        legalName: 'HannaDVC',
         address: '8 The Green Ste Suite A, Dover, DE 19901, USA',
-        tagline: 'Pixie DVC, an AlphaFlare company',
+        tagline: 'HannaDVC, an AlphaFlare Company',
       },
     },
     occupancy: {

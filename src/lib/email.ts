@@ -174,7 +174,7 @@ type ReadyStayRejectedEmailPayload = {
   reason?: string | null;
 } & EmailLogContext;
 
-const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL ?? 'hello@pixiedvc.com';
+const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL ?? 'hello@hannadvc.com';
 const LOCALHOST_EMAIL_URL_RE = /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?/i;
 
 function sanitizeMetadata(metadata?: EmailLogMetadata | null) {
@@ -428,7 +428,7 @@ export async function sendWelcomeSequenceEmail(payload: WelcomeSequenceEmailPayl
 }
 
 export async function sendConciergeHandoffNotification(payload: ConciergeHandoffEmailPayload) {
-  const to = process.env.CONCIERGE_HANDOFF_EMAIL ?? process.env.RESEND_FROM_EMAIL ?? 'hello@pixiedvc.com';
+  const to = process.env.CONCIERGE_HANDOFF_EMAIL ?? process.env.RESEND_FROM_EMAIL ?? 'hello@hannadvc.com';
   const template =
     payload.source === 'escalate'
       ? buildSupportEscalationTemplate({

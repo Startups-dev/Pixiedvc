@@ -291,7 +291,7 @@ export async function acceptContractAction(_: { error?: string | null }, formDat
     params.append('line_items[0][price_data][currency]', currency.toLowerCase());
     params.append(
       'line_items[0][price_data][product_data][name]',
-      isReadyStay ? 'PixieDVC Ready Stay Payment (Full)' : 'PixieDVC Reservation Payment',
+      isReadyStay ? 'HannaDVC Ready Stay Payment (Full)' : 'HannaDVC Reservation Payment',
     );
     params.append('line_items[0][price_data][unit_amount]', String(amountCents));
     params.append('line_items[0][quantity]', '1');

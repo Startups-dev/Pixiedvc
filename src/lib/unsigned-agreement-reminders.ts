@@ -110,7 +110,7 @@ function resolveOwnerName(snapshot: ContractSnapshot | null | undefined) {
   return (
     snapshot?.parties?.owner?.fullName?.trim() ||
     snapshot?.ownerName?.trim() ||
-    'PixieDVC owner'
+    'HannaDVC owner'
   );
 }
 
@@ -127,7 +127,7 @@ function resolveGuestName(snapshot: ContractSnapshot | null | undefined) {
   return (
     snapshot?.parties?.guest?.fullName?.trim() ||
     snapshot?.renterName?.trim() ||
-    'PixieDVC guest'
+    'HannaDVC guest'
   );
 }
 

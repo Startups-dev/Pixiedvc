@@ -39,7 +39,7 @@ export const STORIES: Story[] = [
       "It was our first Disney trip and it was amazing, the resorts were top quality.",
     imageUrl:
       "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/pixiedvc-social-proof/placeholders/families/oliveira-family.png",
-    imageAlt: "The Oliveira family enjoying a PixieDVC stay.",
+    imageAlt: "The Oliveira family enjoying a HannaDVC stay.",
     proofLine: "V. Oliveira",
   },
 ];

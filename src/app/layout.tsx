@@ -28,15 +28,39 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://hannadvc.com"),
   title: "HannaDVC • Disney Magic Meets Boutique Tech",
   description:
     "Plan enchanted Disney Vacation Club getaways with luxe UX, points intelligence, and concierge storytelling.",
-  themeColor: '#2E8FFF',
+  themeColor: "#0F2148",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
+  },
   openGraph: {
     title: "HannaDVC • Disney Magic Meets Boutique Tech",
     description:
       "Discover resorts, optimize points, and craft storybook itineraries with the HannaDVC planning studio.",
     type: "website",
+    images: [
+      {
+        url: "/images/hannadvc-og.png",
+        width: 1200,
+        height: 630,
+        alt: "HannaDVC",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "HannaDVC • Disney Magic Meets Boutique Tech",
+    description:
+      "Discover resorts, optimize points, and craft storybook itineraries with the HannaDVC planning studio.",
+    images: ["/images/hannadvc-og.png"],
   },
 };
 

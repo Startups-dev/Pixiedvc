@@ -2,9 +2,9 @@
 # Copy to env-production.local.yaml or env-production.yaml and fill real values.
 # These local production env files are gitignored.
 NODE_ENV: "production"
-NEXT_PUBLIC_SITE_URL: "https://pixiedvc.com"
-NEXT_PUBLIC_APP_URL: "https://pixiedvc.com"
-APP_BASE_URL: "https://pixiedvc.com"
+NEXT_PUBLIC_SITE_URL: "https://hannadvc.com"
+NEXT_PUBLIC_APP_URL: "https://hannadvc.com"
+APP_BASE_URL: "https://hannadvc.com"
 APP_TIMEZONE: "America/New_York"
 MATCH_USE_YEAR_BUCKETS: "1"
 

@@ -91,7 +91,7 @@ export default async function ContractSuccessPage({
     }
   }
 
-  const resortName = resortRecord?.name ?? summary.resortName ?? snapshot.resortName ?? 'Pixie DVC';
+  const resortName = resortRecord?.name ?? summary.resortName ?? snapshot.resortName ?? 'HannaDVC';
   const resortCode = resortRecord?.calculator_code ?? summary.resortCode ?? undefined;
   const resortSlug = resortRecord?.slug ?? summary.resortSlug ?? undefined;
   const bannerImage = resolveResortImage({
@@ -142,7 +142,7 @@ export default async function ContractSuccessPage({
 
         <div className="w-full rounded-b-2xl border border-white/10 bg-white px-10 py-12 text-[#0b1b3a] shadow-[0_30px_80px_rgba(2,6,23,0.35)]">
           <p className="text-center text-xs font-semibold uppercase tracking-[0.35em] text-[#0b1b3a]/70">
-            PixieDVC
+            HannaDVC
           </p>
           <AnimatedHeading>Congratulations</AnimatedHeading>
           <p className="mt-3 text-center text-sm text-[#0b1b3a]/70">

@@ -20,6 +20,14 @@ const READY_STAY_GUIDE_LINKS = [
   { href: "/guides/ready-stays-transfer-linking#transfer-in-progress", label: "5. Transfer in Progress, What That Means" },
 ];
 
+function parseOptionalNumberParam(value?: string) {
+  const trimmed = value?.trim() ?? "";
+  if (!trimmed) return null;
+
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export default async function ReadyStaysPublicPage({
   searchParams,
 }: {
@@ -86,21 +94,21 @@ export default async function ReadyStaysPublicPage({
     }
   }
 
-  const priceMin = Number(resolvedSearchParams?.price_min);
-  const priceMax = Number(resolvedSearchParams?.price_max);
-  if (Number.isFinite(priceMin)) {
+  const priceMin = parseOptionalNumberParam(resolvedSearchParams?.price_min);
+  const priceMax = parseOptionalNumberParam(resolvedSearchParams?.price_max);
+  if (priceMin != null) {
     query = query.gte("guest_price_per_point_cents", priceMin);
   }
-  if (Number.isFinite(priceMax)) {
+  if (priceMax != null) {
     query = query.lte("guest_price_per_point_cents", priceMax);
   }
 
-  const pointsMin = Number(resolvedSearchParams?.points_min);
-  const pointsMax = Number(resolvedSearchParams?.points_max);
-  if (Number.isFinite(pointsMin)) {
+  const pointsMin = parseOptionalNumberParam(resolvedSearchParams?.points_min);
+  const pointsMax = parseOptionalNumberParam(resolvedSearchParams?.points_max);
+  if (pointsMin != null) {
     query = query.gte("points", pointsMin);
   }
-  if (Number.isFinite(pointsMax)) {
+  if (pointsMax != null) {
     query = query.lte("points", pointsMax);
   }
 
@@ -135,10 +143,10 @@ export default async function ReadyStaysPublicPage({
     const effectiveGuestTotalCents = getReadyStayGuestTotalCents(stay);
     const effectivePricePerPointCents =
       stay.points > 0 ? Math.round(effectiveGuestTotalCents / stay.points) : stay.guest_price_per_point_cents;
-    if (Number.isFinite(priceMin) && effectivePricePerPointCents < priceMin) return false;
-    if (Number.isFinite(priceMax) && effectivePricePerPointCents > priceMax) return false;
-    if (Number.isFinite(pointsMin) && stay.points < pointsMin) return false;
-    if (Number.isFinite(pointsMax) && stay.points > pointsMax) return false;
+    if (priceMin != null && effectivePricePerPointCents < priceMin) return false;
+    if (priceMax != null && effectivePricePerPointCents > priceMax) return false;
+    if (pointsMin != null && stay.points < pointsMin) return false;
+    if (pointsMax != null && stay.points > pointsMax) return false;
 
     return true;
   });

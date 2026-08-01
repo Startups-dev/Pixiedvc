@@ -5,7 +5,7 @@ const sections = [
     id: "commitment",
     title: "Our Commitment to Your Privacy",
     body: [
-      "At PixieDVC, we respect your privacy and take the protection of your personal information seriously. This Privacy Policy explains how we collect, use, and safeguard information when you visit or interact with our website.",
+      "At HannaDVC, we respect your privacy and take the protection of your personal information seriously. This Privacy Policy explains how we collect, use, and safeguard information when you visit or interact with our website.",
       "Whether you’re browsing, planning a trip, or requesting a reservation, we aim to be transparent, respectful, and responsible with your data.",
     ],
   },
@@ -40,7 +40,7 @@ const sections = [
       "Responding to inquiries",
       "Matching you with available DVC accommodations",
       "Communicating about your request or booking",
-      "Improving the PixieDVC experience",
+      "Improving the HannaDVC experience",
     ],
     footer: "We do not sell your personal information.",
   },
@@ -48,7 +48,7 @@ const sections = [
     id: "payments",
     title: "Payments & Third-Party Processors",
     body: [
-      "PixieDVC does not store credit card information.",
+      "HannaDVC does not store credit card information.",
       "When payments are involved, transactions are handled by trusted third-party payment processors that use industry-standard security measures to protect your data. These providers operate under their own privacy and security policies.",
     ],
   },
@@ -56,7 +56,7 @@ const sections = [
     id: "cookies",
     title: "Cookies & Analytics",
     body: [
-      "PixieDVC uses cookies to improve site functionality and user experience.",
+      "HannaDVC uses cookies to improve site functionality and user experience.",
       "Cookies may be used to:",
     ],
     bullets: [
@@ -79,7 +79,7 @@ const sections = [
     id: "third-party",
     title: "Third-Party Links",
     body: [
-      "Our website may link to third-party sites (including Disney-related resources). PixieDVC is not responsible for the privacy practices or content of external websites.",
+      "Our website may link to third-party sites (including Disney-related resources). HannaDVC is not responsible for the privacy practices or content of external websites.",
     ],
   },
   {
@@ -105,7 +105,7 @@ export default function PrivacyPage() {
   return (
     <main className="bg-white text-[#0F2148]">
       <section className="mx-auto max-w-4xl px-6 pb-12 pt-12">
-        <p className="text-xs uppercase tracking-[0.3em] text-[#0F2148]/60">PixieDVC Privacy Policy</p>
+        <p className="text-xs uppercase tracking-[0.3em] text-[#0F2148]/60">HannaDVC Privacy Policy</p>
         <h1 className="mt-3 text-4xl font-serif sm:text-5xl">Privacy Policy</h1>
         <p className="mt-3 text-sm text-[#0F2148]/70">Last updated: December 2025</p>
       </section>
@@ -138,11 +138,11 @@ export default function PrivacyPage() {
             )}
             {section.id === "contact" && (
               <div className="text-sm text-[#0F2148]/80">
-                <p>PixieDVC</p>
+                <p>HannaDVC</p>
                 <p>
                   <span className="mr-2">📧</span>
-                  <Link href="mailto:hello@pixiedvc.com" className="underline underline-offset-4">
-                    hello@pixiedvc.com
+                  <Link href="mailto:hello@hannadvc.com" className="underline underline-offset-4">
+                    hello@hannadvc.com
                   </Link>
                 </p>
               </div>

@@ -155,7 +155,7 @@ async function loadSentMap(client: AdminClient, subscriberIds: string[]) {
 
 function buildTemplateUrls() {
   return {
-    browseUrl: getAppUrl('/', 'PixieDVC home'),
+    browseUrl: getAppUrl('/', 'HannaDVC home'),
     readyStaysUrl: getAppUrl('/ready-stays', 'Ready Stays page'),
     resortsUrl: getAppUrl('/resorts', 'Resorts page'),
     requestStayUrl: getAppUrl('/check-dates', 'Request your stay page'),

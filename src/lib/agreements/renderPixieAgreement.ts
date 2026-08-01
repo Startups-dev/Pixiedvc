@@ -122,17 +122,17 @@ export function renderPixieAgreementHTML(
     <p>
       <b>Renter:</b> ${esc(snapshot.parties.guest.fullName)}<br/>
       <b>Owner:</b> ${esc(snapshot.parties.owner.fullName)}<br/>
-      <b>Intermediary:</b> Pixie DVC (“Pixie DVC”)<br/>
+      <b>Intermediary:</b> HannaDVC (“HannaDVC”)<br/>
     </p>
 
     <h3>1. Nature of the Transaction</h3>
-    <p>This Agreement governs the rental of Disney Vacation Club (“DVC”) points owned by the Owner and arranged through Pixie DVC. The rental provides accommodations only for the dates confirmed. This Agreement does not include park tickets, transportation, meals, insurance, or other travel services unless separately purchased by the Renter under Disney’s own terms and conditions.</p>
+    <p>This Agreement governs the rental of Disney Vacation Club (“DVC”) points owned by the Owner and arranged through HannaDVC. The rental provides accommodations only for the dates confirmed. This Agreement does not include park tickets, transportation, meals, insurance, or other travel services unless separately purchased by the Renter under Disney’s own terms and conditions.</p>
 
     <h3>2. Final Sale / No Refunds</h3>
     <p>All rentals under this Agreement are final and non-refundable, except where expressly stated herein. Once confirmed, pricing may not be increased for any reason.</p>
 
     <h3>3. Acceptance by Payment</h3>
-    <p>Payment in full by the Renter constitutes full acceptance of this Agreement and all applicable policies. Pixie DVC has received from Renter a non-refundable payment of <b>${money(derivedAmountPaidUsd)}</b> in exchange for securing a confirmed reservation using the Owner’s DVC points.</p>
+    <p>Payment in full by the Renter constitutes full acceptance of this Agreement and all applicable policies. HannaDVC has received from Renter a non-refundable payment of <b>${money(derivedAmountPaidUsd)}</b> in exchange for securing a confirmed reservation using the Owner’s DVC points.</p>
 
     <h3>4. Reservation Details</h3>
     <ul>
@@ -151,13 +151,13 @@ export function renderPixieAgreementHTML(
     <p>Renter agrees not to exceed Disney’s maximum occupancy limits.</p>
 
     <h3>6. Insurance Advisory</h3>
-    <p>Renter acknowledges that Pixie DVC has recommended consideration of trip cancellation insurance, particularly for cancellations close to arrival. Renters residing outside the United States are further advised to obtain travel medical insurance.</p>
+    <p>Renter acknowledges that HannaDVC has recommended consideration of trip cancellation insurance, particularly for cancellations close to arrival. Renters residing outside the United States are further advised to obtain travel medical insurance.</p>
 
     <h3>7. Disney Operations and Amenities</h3>
-    <p>Pixie DVC and the Owner are not responsible for changes, interruptions, or closures affecting resort operations or amenities imposed by Disney Vacation Club or The Walt Disney Company, including construction, refurbishment, reduced services, or modified access to facilities.</p>
+    <p>HannaDVC and the Owner are not responsible for changes, interruptions, or closures affecting resort operations or amenities imposed by Disney Vacation Club or The Walt Disney Company, including construction, refurbishment, reduced services, or modified access to facilities.</p>
 
     <h3>8. Room Assignment</h3>
-    <p>All room locations, views, and specific requests are assigned solely by Disney. Pixie DVC and the Owner make no guarantees regarding room preferences.</p>
+    <p>All room locations, views, and specific requests are assigned solely by Disney. HannaDVC and the Owner make no guarantees regarding room preferences.</p>
 
     <h3>9. Smoking Policy</h3>
     <p>All DVC accommodations, including balconies and patios, are strictly non-smoking. Any cleaning fees, penalties, or charges assessed by Disney due to violation of this policy shall be the sole responsibility of the Renter.</p>
@@ -175,19 +175,19 @@ export function renderPixieAgreementHTML(
     </p>
 
     <h3 id="cancellation-policy">12. Deferred Cancellation Credit Policy</h3>
-    <p>This reservation may be eligible for Pixie DVC’s Deferred Cancellation Credit Policy, available at https://pixiedvc.com/policies/deferred-cancellation</p>
+    <p>This reservation may be eligible for HannaDVC’s Deferred Cancellation Credit Policy, available at https://hannadvc.com/policies/deferred-cancellation</p>
 
     <h3>13. Compliance and Damages</h3>
     <p>Renter agrees to comply with all Disney Vacation Club rules and guest conduct requirements. Renter is responsible for any damages, unpaid charges, or assessments billed to the Owner or the Owner’s DVC account and agrees to reimburse such amounts within 60 days of written notice. Collection costs and legal fees may apply.</p>
 
     <h3>14. Indemnification</h3>
-    <p>Renter agrees to indemnify and hold harmless the Owner and Pixie DVC from any claims, losses, damages, costs, or expenses (including legal fees) arising from Renter’s acts or omissions, or those of permitted occupants.</p>
+    <p>Renter agrees to indemnify and hold harmless the Owner and HannaDVC from any claims, losses, damages, costs, or expenses (including legal fees) arising from Renter’s acts or omissions, or those of permitted occupants.</p>
 
     <h3>15. Governing Law</h3>
     <p>This Agreement shall be governed by the laws of the Province of Ontario and the federal laws of Canada applicable therein. The Parties submit to the non-exclusive jurisdiction of the courts of Ontario.</p>
 
     <h3>16. Force Majeure</h3>
-    <p>Neither Pixie DVC nor the Owner shall be liable for failure to perform due to events beyond reasonable control, including natural disasters, government actions, public health emergencies, or Disney-initiated closures. If Pixie DVC has collected full payment, Pixie DVC may issue a credit equal to the amount paid, subject to its policies.</p>
+    <p>Neither HannaDVC nor the Owner shall be liable for failure to perform due to events beyond reasonable control, including natural disasters, government actions, public health emergencies, or Disney-initiated closures. If HannaDVC has collected full payment, HannaDVC may issue a credit equal to the amount paid, subject to its policies.</p>
 
     <h3>17. Owner Failure to Perform</h3>
     <p>If accommodations are unavailable due to an action or omission of the Owner and comparable accommodations cannot be secured, Renter’s remedy shall be limited to a refund of the amount paid, payable by the Owner. If replacement accommodations cost more, the difference shall be the responsibility of the Owner.</p>
@@ -196,7 +196,7 @@ export function renderPixieAgreementHTML(
     <p>Disney Vacation Club resorts do not provide daily housekeeping. Trash &amp; Towel and full cleaning services are provided according to Disney’s published schedule.</p>
 
     <h3>19. Animals and Pet Restrictions</h3>
-    <p>Animals are not permitted at Disney Vacation Club resorts. The sole exception is service animals, as defined by the Americans with Disabilities Act (ADA). The only DVC accommodation permitting pets is the Cabins at Disney’s Fort Wilderness Resort, and only in accordance with Disney’s pet policies. Pixie DVC and the Owner assume no responsibility for denial of access, removal of animals, or penalties imposed by Disney. All related costs are the responsibility of the Renter.</p>
+    <p>Animals are not permitted at Disney Vacation Club resorts. The sole exception is service animals, as defined by the Americans with Disabilities Act (ADA). The only DVC accommodation permitting pets is the Cabins at Disney’s Fort Wilderness Resort, and only in accordance with Disney’s pet policies. HannaDVC and the Owner assume no responsibility for denial of access, removal of animals, or penalties imposed by Disney. All related costs are the responsibility of the Renter.</p>
 
     <h3>20. Travel Documentation</h3>
     <p>Renter is solely responsible for obtaining valid passports, visas, and entry documentation. Entry into the United States is not guaranteed.</p>
@@ -220,10 +220,10 @@ export function renderPixieAgreementHTML(
     </p>
 
     <div style="margin-top: 18px; font-size: 11px; opacity: 0.9;">
-      <b>Pixie DVC</b><br/>
+      <b>HannaDVC</b><br/>
       8 The Green Ste Suite A<br/>
       Dover, DE 19901, USA<br/>
-      Pixie DVC a AlphaFlare Company
+      HannaDVC, an AlphaFlare Company
     </div>
   </div>
   `;

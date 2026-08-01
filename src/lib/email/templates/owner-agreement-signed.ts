@@ -17,8 +17,8 @@ export function buildOwnerAgreementSignedTemplate({
   checkOut,
   rentalUrl,
 }: OwnerAgreementSignedTemplateInput) {
-  const subject = 'PixieDVC - Guest agreement completed';
-  const name = ownerName?.trim() || 'PixieDVC owner';
+  const subject = 'HannaDVC - Guest agreement completed';
+  const name = ownerName?.trim() || 'HannaDVC owner';
   const guest = guestName?.trim() || 'the guest';
   const dates = checkIn && checkOut ? `${checkIn} to ${checkOut}` : checkIn || checkOut || 'the travel dates';
   const ctaUrl = rentalUrl?.trim() || null;
@@ -34,7 +34,7 @@ export function buildOwnerAgreementSignedTemplate({
     'No additional signature is required from you right now. We will continue guiding the next operational steps.',
     ctaUrl ? `View reservation details: ${ctaUrl}` : null,
     '',
-    'PixieDVC Concierge',
+    'HannaDVC Team',
   ]
     .filter((line): line is string => line !== null)
     .join('\n');

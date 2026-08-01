@@ -28,7 +28,7 @@ function assertValidEmail(email: string) {
 }
 
 function buildPreviewUnsubscribeUrl() {
-  return buildUnsubscribeUrl('preview-token') ?? 'https://pixiedvc.com/unsubscribe/preview-token';
+  return buildUnsubscribeUrl('preview-token') ?? 'https://hannadvc.com/unsubscribe/preview-token';
 }
 
 async function buildTestUnsubscribeUrl(client: AdminClient, email: string) {

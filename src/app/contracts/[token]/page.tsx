@@ -101,7 +101,7 @@ export default async function ContractTokenPage({ params }: { params: Promise<{ 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-6 py-12">
       <header className="text-center">
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">PixieDVC</p>
+        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">HannaDVC</p>
         <h1 className="mt-2 text-3xl font-semibold text-slate-900">
           {role === 'owner' ? 'Owner Agreement' : 'Guest Rental Agreement'}
         </h1>

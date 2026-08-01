@@ -36,18 +36,18 @@ function assertValidEmail(email: string) {
 
 function buildTemplateUrls() {
   return {
-    browseUrl: getAppUrl('/', 'PixieDVC home') ?? 'https://pixiedvc.com',
-    readyStaysUrl: getAppUrl('/ready-stays', 'Ready Stays page') ?? 'https://pixiedvc.com/ready-stays',
-    resortsUrl: getAppUrl('/resorts', 'Resorts page') ?? 'https://pixiedvc.com/resorts',
-    requestStayUrl: getAppUrl('/check-dates', 'Request your stay page') ?? 'https://pixiedvc.com/check-dates',
-    lastMinuteUrl: getAppUrl('/last-minute-deals', 'Last-minute deals page') ?? 'https://pixiedvc.com/last-minute-deals',
-    howItWorksUrl: getAppUrl('/how-it-works', 'How it works page') ?? 'https://pixiedvc.com/how-it-works',
+    browseUrl: getAppUrl('/', 'HannaDVC home') ?? 'https://hannadvc.com',
+    readyStaysUrl: getAppUrl('/ready-stays', 'Ready Stays page') ?? 'https://hannadvc.com/ready-stays',
+    resortsUrl: getAppUrl('/resorts', 'Resorts page') ?? 'https://hannadvc.com/resorts',
+    requestStayUrl: getAppUrl('/check-dates', 'Request your stay page') ?? 'https://hannadvc.com/check-dates',
+    lastMinuteUrl: getAppUrl('/last-minute-deals', 'Last-minute deals page') ?? 'https://hannadvc.com/last-minute-deals',
+    howItWorksUrl: getAppUrl('/how-it-works', 'How it works page') ?? 'https://hannadvc.com/how-it-works',
     ...getWelcomeSequenceAssetUrls(),
   };
 }
 
 function buildPreviewUnsubscribeUrl() {
-  return buildUnsubscribeUrl('preview-token') ?? 'https://pixiedvc.com/unsubscribe/preview-token';
+  return buildUnsubscribeUrl('preview-token') ?? 'https://hannadvc.com/unsubscribe/preview-token';
 }
 
 async function buildTestUnsubscribeUrl(client: AdminClient, email: string) {
@@ -75,7 +75,7 @@ export function buildWelcomeSequencePreviewCards() {
 
   return WELCOME_SEQUENCE_PREVIEW_STEPS.map(({ step, label, testTemplateKey }) => {
     const template = buildWelcomeSequenceTemplate(step, {
-      firstName: 'PixieDVC Insider',
+      firstName: 'HannaDVC Insider',
       ...urls,
       unsubscribeUrl,
     });
@@ -109,7 +109,7 @@ export async function sendWelcomeSequenceTestEmail(params: {
   const unsubscribeUrl = await buildTestUnsubscribeUrl(client, email);
   const sendResult = await sendWelcomeSequenceEmail({
     to: email,
-    firstName: 'PixieDVC Insider',
+    firstName: 'HannaDVC Insider',
     step: params.step,
     ...buildTemplateUrls(),
     unsubscribeUrl,

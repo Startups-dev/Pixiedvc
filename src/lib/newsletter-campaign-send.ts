@@ -76,7 +76,7 @@ function normalizeAudienceSlug(slug?: string | null) {
 }
 
 function buildPreviewFallbackUnsubscribeUrl() {
-  return buildUnsubscribeUrl('preview-token') ?? 'https://pixiedvc.com/unsubscribe/preview-token';
+  return buildUnsubscribeUrl('preview-token') ?? 'https://hannadvc.com/unsubscribe/preview-token';
 }
 
 async function buildUnsubscribeUrlForSubscriber(client: AdminClient, subscriberId: string) {

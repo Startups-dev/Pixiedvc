@@ -88,7 +88,7 @@ export function buildReadyStayBookingPackageTemplate({
   guests = [],
   transferUrl,
 }: ReadyStayBookingPackageTemplateInput) {
-  const subject = 'PixieDVC - Ready Stay booking package';
+  const subject = 'HannaDVC - Ready Stay booking package';
   const name = ownerName?.trim() || 'Owner';
   const dates =
     checkIn && checkOut ? `${checkIn} to ${checkOut}` : checkIn || checkOut || '—';
@@ -125,7 +125,7 @@ export function buildReadyStayBookingPackageTemplate({
       ? `Open owner action page: ${ctaUrl}`
       : 'Open the Ready Stays owner dashboard to complete the transfer.',
     '',
-    'PixieDVC Concierge',
+    'HannaDVC Team',
   ].join('\n');
 
   const html = renderEmailLayout({

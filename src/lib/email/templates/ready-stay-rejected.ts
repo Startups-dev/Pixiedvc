@@ -15,8 +15,8 @@ export function buildReadyStayRejectedTemplate({
   dates,
   reason,
 }: ReadyStayRejectedTemplateInput) {
-  const subject = 'PixieDVC - More information needed for your Ready Stay';
-  const name = ownerName?.trim() || 'PixieDVC owner';
+  const subject = 'HannaDVC - More information needed for your Ready Stay';
+  const name = ownerName?.trim() || 'HannaDVC owner';
   const cleanReason = reason?.trim() || null;
 
   const text = [
@@ -30,7 +30,7 @@ export function buildReadyStayRejectedTemplate({
     '',
     'You can update the listing and resubmit when ready. If you need help, reply to this email and our team will assist.',
     '',
-    'PixieDVC Concierge',
+    'HannaDVC Team',
   ]
     .filter((line): line is string => line !== null)
     .join('\n');

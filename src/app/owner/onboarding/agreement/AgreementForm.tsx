@@ -22,7 +22,7 @@ export function AgreementForm() {
           className="mt-0.5 h-4 w-4 rounded border-slate-300"
           required
         />
-        <span>I have read and agree to the PixieDVC Owner Platform Agreement.</span>
+        <span>I have read and agree to the HannaDVC Owner Platform Agreement.</span>
       </label>
 
       <label className="block">

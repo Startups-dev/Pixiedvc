@@ -7,7 +7,7 @@ const beforeConfirmation = [
   {
     question: "When is my request deposit refundable?",
     answer:
-      "Your request deposit remains refundable while PixieDVC is still working to match your stay and confirm availability. The specific booking terms shown before checkout always control how that deposit is handled.",
+      "Your request deposit remains refundable while HannaDVC is still working to match your stay and confirm availability. The specific booking terms shown before checkout always control how that deposit is handled.",
   },
   {
     question: "What happens before availability is confirmed?",

@@ -3,18 +3,18 @@ import Link from "next/link";
 const sections = [
   {
     id: "about",
-    title: "1. About PixieDVC",
+    title: "1. About HannaDVC",
     body: [
-      "PixieDVC is an independent Disney Vacation Club (DVC) rental marketplace.",
+      "HannaDVC is an independent Disney Vacation Club (DVC) rental marketplace.",
       "We connect Disney Vacation Club owners with guests seeking accommodations at DVC resorts.",
-      "PixieDVC is not affiliated with, endorsed by, or sponsored by The Walt Disney Company or Disney Vacation Club.",
+      "HannaDVC is not affiliated with, endorsed by, or sponsored by The Walt Disney Company or Disney Vacation Club.",
     ],
   },
   {
     id: "service",
     title: "2. Nature of the Service",
     body: [
-      "PixieDVC facilitates reservations by matching guest requests with available DVC owner points. We do not own, operate, or control Disney resorts, nor do we issue Disney products.",
+      "HannaDVC facilitates reservations by matching guest requests with available DVC owner points. We do not own, operate, or control Disney resorts, nor do we issue Disney products.",
       "All reservations are subject to:",
     ],
     bullets: [
@@ -43,7 +43,7 @@ const sections = [
     id: "ip",
     title: "4. Intellectual Property",
     body: [
-      "All content on the Site—including text, images, branding, and design—is owned by PixieDVC or its licensors and is protected by applicable intellectual property laws.",
+      "All content on the Site—including text, images, branding, and design—is owned by HannaDVC or its licensors and is protected by applicable intellectual property laws.",
       "You may not copy, reproduce, distribute, or exploit Site content without prior written permission.",
     ],
   },
@@ -51,7 +51,7 @@ const sections = [
     id: "reservations",
     title: "5. Reservations, Payments & Confirmations",
     body: [
-      "Reservation requests are not confirmed bookings until explicitly confirmed by PixieDVC.",
+      "Reservation requests are not confirmed bookings until explicitly confirmed by HannaDVC.",
       "Once a booking is confirmed and points are allocated, it becomes binding.",
       "Prices, availability, and resort details may change prior to confirmation.",
     ],
@@ -71,7 +71,7 @@ const sections = [
     id: "third-party",
     title: "7. Third-Party Services & Links",
     body: [
-      "The Site may reference or link to third-party services (including Disney systems). PixieDVC is not responsible for the content, availability, or actions of third parties.",
+      "The Site may reference or link to third-party services (including Disney systems). HannaDVC is not responsible for the content, availability, or actions of third parties.",
     ],
   },
   {
@@ -82,7 +82,7 @@ const sections = [
   {
     id: "liability",
     title: "9. Limitation of Liability",
-    body: ["To the fullest extent permitted by law, PixieDVC shall not be liable for:"],
+    body: ["To the fullest extent permitted by law, HannaDVC shall not be liable for:"],
     bullets: [
       "Resort closures, refurbishments, or Disney policy changes",
       "Travel interruptions, weather events, or force majeure",
@@ -94,7 +94,7 @@ const sections = [
     id: "indemnification",
     title: "10. Indemnification",
     body: [
-      "You agree to indemnify and hold PixieDVC harmless from any claims arising out of your use of the Site, violation of these Terms, or infringement of third-party rights.",
+      "You agree to indemnify and hold HannaDVC harmless from any claims arising out of your use of the Site, violation of these Terms, or infringement of third-party rights.",
     ],
   },
   {
@@ -108,7 +108,7 @@ const sections = [
     id: "law",
     title: "12. Governing Law",
     body: [
-      "These Terms are governed by the laws of the jurisdiction in which PixieDVC operates, without regard to conflict-of-law principles.",
+      "These Terms are governed by the laws of the jurisdiction in which HannaDVC operates, without regard to conflict-of-law principles.",
     ],
   },
   {
@@ -122,11 +122,11 @@ export default function TermsPage() {
   return (
     <main className="bg-white text-[#0F2148]">
       <section className="mx-auto max-w-4xl px-6 pb-12 pt-12">
-        <p className="text-xs uppercase tracking-[0.3em] text-[#0F2148]/60">PixieDVC — Terms of Service</p>
+        <p className="text-xs uppercase tracking-[0.3em] text-[#0F2148]/60">HannaDVC — Terms of Service</p>
         <h1 className="mt-3 text-4xl font-serif sm:text-5xl">Terms of Service</h1>
         <p className="mt-3 text-sm text-[#0F2148]/70">Last updated: December 2025</p>
         <p className="mt-6 text-base leading-7 text-[#0F2148]/80">
-          Welcome to PixieDVC. These Terms of Service (“Terms”) govern your use of the PixieDVC website and services (the “Site”), operated independently by PixieDVC (“we,” “us,” or “our”).
+          Welcome to HannaDVC. These Terms of Service (“Terms”) govern your use of the HannaDVC website and services (the “Site”), operated independently by HannaDVC (“we,” “us,” or “our”).
         </p>
         <p className="mt-4 text-base leading-7 text-[#0F2148]/80">
           By accessing or using this Site, you agree to be bound by these Terms. If you do not agree, please do not use the Site.
@@ -154,11 +154,11 @@ export default function TermsPage() {
             )}
             {section.id === "contact" && (
               <div className="text-sm text-[#0F2148]/80">
-                <p>PixieDVC</p>
+                <p>HannaDVC</p>
                 <p>
                   <span className="mr-2">📧</span>
-                  <Link href="mailto:hello@pixiedvc.com" className="underline underline-offset-4">
-                    hello@pixiedvc.com
+                  <Link href="mailto:hello@hannadvc.com" className="underline underline-offset-4">
+                    hello@hannadvc.com
                   </Link>
                 </p>
               </div>

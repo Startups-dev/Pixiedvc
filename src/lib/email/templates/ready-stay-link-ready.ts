@@ -28,7 +28,7 @@ export function buildReadyStayLinkReadyTemplate({
     '3. Enter your confirmation number',
     ctaUrl ? `Open your trip: ${ctaUrl}` : null,
     '',
-    'PixieDVC Concierge',
+    'HannaDVC Team',
   ]
     .filter((line): line is string => line !== null)
     .join('\n');

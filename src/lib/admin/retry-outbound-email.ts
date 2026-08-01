@@ -480,7 +480,7 @@ async function retryReadyStayRejected(row: OutboundEmailRow) {
 
   await sendReadyStayRejectedEmail({
     to: row.recipient_email,
-    ownerName: ownerProfile?.display_name ?? "PixieDVC owner",
+    ownerName: ownerProfile?.display_name ?? "HannaDVC owner",
     resortName,
     roomType: readyStay.room_type ?? null,
     dates,

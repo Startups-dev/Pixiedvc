@@ -15,8 +15,8 @@ export function buildGuestBookingConfirmationTemplate({
   checkOut,
   tripUrl,
 }: GuestBookingConfirmationTemplateInput) {
-  const subject = 'We received your PixieDVC stay request';
-  const guestName = name?.trim() || 'PixieDVC guest';
+  const subject = 'We received your HannaDVC stay request';
+  const guestName = name?.trim() || 'HannaDVC guest';
   const resort = resortName?.trim() || 'your preferred resort';
   const dates =
     checkIn && checkOut ? `${checkIn} to ${checkOut}` : checkIn || checkOut || 'your requested dates';
@@ -33,7 +33,7 @@ export function buildGuestBookingConfirmationTemplate({
     'We will email you as soon as we have an update.',
     ctaUrl ? `View your request: ${ctaUrl}` : null,
     '',
-    'PixieDVC Concierge',
+    'HannaDVC Team',
   ]
     .filter((line): line is string => line !== null)
     .join('\n');

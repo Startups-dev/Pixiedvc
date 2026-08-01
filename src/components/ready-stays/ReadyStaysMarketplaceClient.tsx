@@ -52,7 +52,12 @@ const HOLIDAY_TAGS = [
 ];
 
 function formatDate(value: string) {
-  const date = new Date(value);
+  const [year, month, day] = value.split("-").map((part) => Number(part));
+  const date =
+    year && month && day
+      ? new Date(year, month - 1, day)
+      : new Date(value);
+
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }

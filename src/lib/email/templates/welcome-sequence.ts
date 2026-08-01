@@ -89,14 +89,14 @@ function renderResponsiveImageHtml({
 
 function renderFooterHtml(unsubscribeUrl?: string | null) {
   const disclaimer =
-    'PixieDVC is an independent vacation rental platform and is not affiliated with, sponsored by, or endorsed by The Walt Disney Company or Disney Vacation Club.';
+    'HannaDVC is an independent vacation rental platform and is not affiliated with, sponsored by, or endorsed by The Walt Disney Company or Disney Vacation Club.';
 
   if (!unsubscribeUrl) {
     return `<p style="margin:0 0 10px;">${escapeHtml(disclaimer)}</p>`;
   }
 
   return [
-    `<p style="margin:0 0 10px;">You are receiving this email because you joined the PixieDVC Insider list. <a href="${escapeHtml(
+    `<p style="margin:0 0 10px;">You are receiving this email because you joined the HannaDVC Insider list. <a href="${escapeHtml(
       unsubscribeUrl,
     )}" style="color:#163566;text-decoration:underline;">Unsubscribe here</a>.</p>`,
     `<p style="margin:0;">${escapeHtml(disclaimer)}</p>`,
@@ -165,19 +165,19 @@ export function buildWelcomeSequenceTemplate(
   if (step === 0) {
     return buildTemplate(
       {
-        subject: 'Welcome to PixieDVC',
+        subject: 'Welcome to HannaDVC',
         previewText: 'Your Disney villa insider access starts here.',
-        title: 'Welcome to PixieDVC',
+        title: 'Welcome to HannaDVC',
         intro,
         topHtml: renderResponsiveImageHtml({
           imageUrl: input.welcomeDay0HeroImageUrl,
           alt: 'Elegant Disney villa living room interior with warm lighting and premium furnishings',
         }),
         body: [
-          { kind: 'paragraph', text: 'You’re officially on the PixieDVC Insider list.' },
+          { kind: 'paragraph', text: 'You’re officially on the HannaDVC Insider list.' },
           {
             kind: 'paragraph',
-            text: 'PixieDVC helps Disney travelers discover villa stays through verified Disney Vacation Club owners — including Ready Stays, last-minute opportunities, and custom booking matches.',
+            text: 'HannaDVC helps Disney travelers discover villa stays through verified Disney Vacation Club owners — including Ready Stays, last-minute opportunities, and custom booking matches.',
           },
           { kind: 'paragraph', text: 'Here’s what we’ll send you:' },
           {
@@ -187,7 +187,7 @@ export function buildWelcomeSequenceTemplate(
               'Disney villa deals',
               'Resort guides and booking tips',
               'Last-minute availability alerts',
-              'Special PixieDVC promotions',
+              'Special HannaDVC promotions',
             ],
           },
           {
@@ -202,7 +202,7 @@ export function buildWelcomeSequenceTemplate(
             text: 'Whether you’re planning months ahead or hoping to find a great stay sooner, we’ll help you understand your options.',
           },
         ],
-        signoff: ['See you real soon,', 'The PixieDVC Team'],
+        signoff: ['See you real soon,', 'HannaDVC Team'],
         primaryCtaLabel: 'Browse Ready Stays',
         primaryCtaUrl: input.readyStaysUrl ?? input.browseUrl ?? null,
         secondaryCtaLabel: 'Explore Disney Resorts',
@@ -220,7 +220,7 @@ export function buildWelcomeSequenceTemplate(
         title: 'Two Ways to Book a Disney Villa Stay',
         intro,
         body: [
-          { kind: 'paragraph', text: 'With PixieDVC, there are two main ways to plan your stay.' },
+          { kind: 'paragraph', text: 'With HannaDVC, there are two main ways to plan your stay.' },
           {
             kind: 'paragraph',
             text: 'Ready Stays: These are Disney villa reservations already secured by verified DVC owners. The dates, resort, and room type are already set. They’re great when you want a faster path to booking.',
@@ -262,13 +262,13 @@ export function buildWelcomeSequenceTemplate(
           },
           {
             kind: 'paragraph',
-            text: 'That’s why PixieDVC is built around verified owner participation.',
+            text: 'That’s why HannaDVC is built around verified owner participation.',
           },
           {
             kind: 'paragraph',
             text: 'Our goal is to make the process feel clearer, safer, and more organized for both guests and owners.',
           },
-          { kind: 'paragraph', text: 'PixieDVC helps by focusing on:' },
+          { kind: 'paragraph', text: 'HannaDVC helps by focusing on:' },
           {
             kind: 'list',
             items: [
@@ -371,14 +371,14 @@ export function buildWelcomeSequenceTemplate(
 
   return buildTemplate(
     {
-      subject: 'Your PixieDVC Insider Access Continues',
+      subject: 'Your HannaDVC Insider Access Continues',
       previewText: 'What to expect from us going forward.',
-      title: 'You’re Now Part of the PixieDVC Insider List',
+      title: 'You’re Now Part of the HannaDVC Insider List',
       intro,
       body: [
         {
           kind: 'paragraph',
-          text: 'Over the past month, we’ve introduced you to how PixieDVC works, what Ready Stays are, why verified owners matter, and how Disney villa opportunities appear.',
+          text: 'Over the past month, we’ve introduced you to how HannaDVC works, what Ready Stays are, why verified owners matter, and how Disney villa opportunities appear.',
         },
         { kind: 'paragraph', text: 'From here, we’ll keep things simple.' },
         { kind: 'paragraph', text: 'You’ll receive occasional emails with:' },
@@ -401,7 +401,7 @@ export function buildWelcomeSequenceTemplate(
           text: 'When the right stay appears, you’ll be ready.',
         },
       ],
-      signoff: ['Thanks for being part of PixieDVC,', 'The PixieDVC Team'],
+      signoff: ['Thanks for being part of HannaDVC,', 'HannaDVC Team'],
       primaryCtaLabel: 'Browse Ready Stays',
       primaryCtaUrl: input.readyStaysUrl ?? input.browseUrl ?? null,
       secondaryCtaLabel: 'Explore Resort Guides',

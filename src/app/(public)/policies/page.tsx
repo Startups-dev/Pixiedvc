@@ -28,23 +28,22 @@ export default function PoliciesPage() {
     <main className="bg-white text-[#0F2148]">
       <section className="mx-auto max-w-4xl px-6 pb-10 pt-12">
         <p className="text-xs uppercase tracking-[0.3em] text-[#0F2148]/60">
-          PixieDVC Flexible Cancellation Policy
+          HannaDVC Flexible Cancellation Policy
         </p>
         <h1 className="mt-3 text-4xl font-serif sm:text-5xl">Flexible Cancellation Policy</h1>
-        <p className="mt-3 text-sm text-[#0F2148]/70">(Draft)</p>
       </section>
 
       <section className="mx-auto max-w-4xl space-y-8 px-6 pb-16">
         <div className="space-y-3">
           <h2 className="text-xl font-semibold text-[#0F2148]">Overview</h2>
           <p className="text-sm leading-6 text-[#0F2148]/80">
-            PixieDVC understands that plans can change. While Disney Vacation Club point rentals are traditionally
-            non-refundable, PixieDVC offers a Flexible Travel Credit policy on eligible reservations to provide guests
+            HannaDVC understands that plans can change. While Disney Vacation Club point rentals are traditionally
+            non-refundable, HannaDVC offers a Flexible Travel Credit policy on eligible reservations to provide guests
             with added peace of mind when planning their Disney vacation.
           </p>
           <p className="text-sm leading-6 text-[#0F2148]/80">
-            Guests who cancel within the applicable window may receive a PixieDVC Travel Credit, which can be applied
-            toward a future PixieDVC reservation.
+            Guests who cancel within the applicable window may receive a HannaDVC Travel Credit, which can be applied
+            toward a future HannaDVC reservation.
           </p>
         </div>
 
@@ -54,12 +53,12 @@ export default function PoliciesPage() {
             This policy applies only to Disney Vacation Club reservations that are:
           </p>
           <ul className="list-disc space-y-2 pl-5 text-sm text-[#0F2148]/80">
-            <li>Secured through PixieDVC</li>
+            <li>Secured through HannaDVC</li>
             <li>Successfully confirmed</li>
             <li>Paid in full</li>
           </ul>
           <p className="text-sm leading-6 text-[#0F2148]/80">
-            Reservations that are not eligible under the terms of the Rental Agreement remain subject to PixieDVC’s
+            Reservations that are not eligible under the terms of the Rental Agreement remain subject to HannaDVC’s
             standard All Sales Final policy.
           </p>
         </div>
@@ -68,26 +67,26 @@ export default function PoliciesPage() {
           <h2 className="text-xl font-semibold text-[#0F2148]">How to Request a Cancellation</h2>
           <p className="text-sm leading-6 text-[#0F2148]/80">To request a cancellation:</p>
           <ul className="list-disc space-y-2 pl-5 text-sm text-[#0F2148]/80">
-            <li>Contact PixieDVC by email or through your assigned Vacation Coordinator.</li>
-            <li>Cancellation requests must be received and acknowledged by PixieDVC to be considered valid.</li>
+            <li>Contact HannaDVC by email or through your assigned Vacation Coordinator.</li>
+            <li>Cancellation requests must be received and acknowledged by HannaDVC to be considered valid.</li>
             <li>
               Reservations must be unlinked from Disney platforms (including My Disney Experience, My Disneyland, or My
               Aulani) before cancellation can be completed.
             </li>
           </ul>
           <p className="text-sm leading-6 text-[#0F2148]/80">
-            PixieDVC will confirm receipt of your cancellation request within 24 hours, excluding statutory holidays.
+            HannaDVC will confirm receipt of your cancellation request within 24 hours, excluding statutory holidays.
           </p>
           <p className="text-sm leading-6 text-[#0F2148]/80">
             Guests should not assume a cancellation has been accepted until written confirmation is provided by
-            PixieDVC.
+            HannaDVC.
           </p>
         </div>
 
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-[#0F2148]">Travel Credit Schedule</h2>
           <p className="text-sm leading-6 text-[#0F2148]/80">
-            Due to the complexity of Disney Vacation Club point usage, the value of any PixieDVC Travel Credit is
+            Due to the complexity of Disney Vacation Club point usage, the value of any HannaDVC Travel Credit is
             determined by the timing of the cancellation relative to the scheduled check-in date:
           </p>
           <div className="overflow-hidden rounded-md border border-slate-200">
@@ -95,7 +94,7 @@ export default function PoliciesPage() {
               <thead className="bg-slate-50 text-xs uppercase tracking-[0.2em] text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Cancellation Approved</th>
-                  <th className="px-4 py-3">PixieDVC Travel Credit</th>
+                  <th className="px-4 py-3">HannaDVC Travel Credit</th>
                 </tr>
               </thead>
               <tbody>
@@ -121,7 +120,7 @@ export default function PoliciesPage() {
         <div className="space-y-3">
           <h2 className="text-xl font-semibold text-[#0F2148]">What This Policy Covers</h2>
           <p className="text-sm leading-6 text-[#0F2148]/80">
-            PixieDVC Travel Credits apply to accommodations only, as outlined in the PixieDVC Rental Agreement.
+            HannaDVC Travel Credits apply to accommodations only, as outlined in the HannaDVC Rental Agreement.
           </p>
           <p className="text-sm leading-6 text-[#0F2148]/80">The following are not covered:</p>
           <ul className="list-disc space-y-2 pl-5 text-sm text-[#0F2148]/80">
@@ -131,7 +130,7 @@ export default function PoliciesPage() {
             <li>Special events, tours, or add-ons</li>
           </ul>
           <p className="text-sm leading-6 text-[#0F2148]/80">
-            PixieDVC strongly recommends that guests purchase third-party travel insurance to protect non-accommodation
+            HannaDVC strongly recommends that guests purchase third-party travel insurance to protect non-accommodation
             travel expenses.
           </p>
         </div>
@@ -155,10 +154,10 @@ export default function PoliciesPage() {
         <div className="space-y-3">
           <h2 className="text-xl font-semibold text-[#0F2148]">Issuance of Travel Credits</h2>
           <p className="text-sm leading-6 text-[#0F2148]/80">
-            Eligible PixieDVC Travel Credits are issued within 14 business days after cancellation is confirmed.
+            Eligible HannaDVC Travel Credits are issued within 14 business days after cancellation is confirmed.
           </p>
           <p className="text-sm leading-6 text-[#0F2148]/80">
-            Credits are issued in the guest’s name and associated with their PixieDVC account.
+            Credits are issued in the guest’s name and associated with their HannaDVC account.
           </p>
         </div>
 
@@ -167,8 +166,8 @@ export default function PoliciesPage() {
           <ul className="list-disc space-y-2 pl-5 text-sm text-[#0F2148]/80">
             <li>Are valid for 36 months from the date of issue</li>
             <li>Have no cash value</li>
-            <li>May be applied only toward new PixieDVC accommodation reservations</li>
-            <li>May be combined with other PixieDVC Travel Credits or cash payments</li>
+            <li>May be applied only toward new HannaDVC accommodation reservations</li>
+            <li>May be combined with other HannaDVC Travel Credits or cash payments</li>
             <li>May be used across multiple reservations</li>
           </ul>
           <p className="text-sm leading-6 text-[#0F2148]/80">
@@ -184,11 +183,11 @@ export default function PoliciesPage() {
         <div className="space-y-3">
           <h2 className="text-xl font-semibold text-[#0F2148]">Reservations Not Covered</h2>
           <p className="text-sm leading-6 text-[#0F2148]/80">
-            Reservations that do not qualify under this policy remain subject to PixieDVC’s All Sales Final terms. No
+            Reservations that do not qualify under this policy remain subject to HannaDVC’s All Sales Final terms. No
             refunds, credits, or modifications are permitted outside the scope of this policy.
           </p>
           <p className="text-sm leading-6 text-[#0F2148]/80">
-            Guests with exceptional circumstances may contact PixieDVC for guidance; however, eligibility is not
+            Guests with exceptional circumstances may contact HannaDVC for guidance; however, eligibility is not
             guaranteed.
           </p>
         </div>
@@ -205,7 +204,7 @@ export default function PoliciesPage() {
         <div className="space-y-3">
           <h2 className="text-xl font-semibold text-[#0F2148]">Disclaimer</h2>
           <p className="text-sm leading-6 text-[#0F2148]/80">
-            PixieDVC reserves the right to interpret, apply, or update this policy in accordance with its Rental
+            HannaDVC reserves the right to interpret, apply, or update this policy in accordance with its Rental
             Agreements and operational requirements. This policy applies only to eligible reservations as outlined
             above.
           </p>
@@ -213,11 +212,11 @@ export default function PoliciesPage() {
 
         <div className="space-y-3">
           <h2 className="text-xl font-semibold text-[#0F2148]">Contact</h2>
-          <p className="text-sm leading-6 text-[#0F2148]/80">PixieDVC</p>
+          <p className="text-sm leading-6 text-[#0F2148]/80">HannaDVC</p>
           <p className="text-sm leading-6 text-[#0F2148]/80">
             <span className="mr-2">📧</span>
-            <Link href="mailto:hello@pixiedvc.com" className="underline underline-offset-4">
-              hello@pixiedvc.com
+            <Link href="mailto:hello@hannadvc.com" className="underline underline-offset-4">
+              hello@hannadvc.com
             </Link>
           </p>
         </div>

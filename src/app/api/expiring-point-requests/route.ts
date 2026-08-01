@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error?.message ?? "Unable to save request." }, { status: 400 });
   }
 
-  const adminRecipient = process.env.CONCIERGE_HANDOFF_EMAIL ?? "hello@pixiedvc.com";
+  const adminRecipient = process.env.CONCIERGE_HANDOFF_EMAIL ?? "hello@hannadvc.com";
   const urgencyLabel = formatUrgency(parsed.data.urgency);
   const lines = [
     `Full Name: ${parsed.data.fullName}`,
@@ -108,21 +108,21 @@ export async function POST(request: Request) {
   const ownerBody = [
     `Hi ${parsed.data.fullName},`,
     "",
-    "Thank you for reaching out to PixieDVC.",
+    "Thank you for reaching out to HannaDVC.",
     "",
     "We received your request and our team will review the opportunity. If it appears to be a fit, we may reach out for additional details or next steps.",
     "",
     "Please note that submission does not guarantee placement, booking, or sale.",
     "",
-    "— PixieDVC",
+    "— HannaDVC Team",
   ].join("\n");
   const ownerHtml = `
     <div style="font-family:Arial,sans-serif;line-height:1.6;color:#102554;">
       <p>Hi ${escapeHtml(parsed.data.fullName)},</p>
-      <p>Thank you for reaching out to PixieDVC.</p>
+      <p>Thank you for reaching out to HannaDVC.</p>
       <p>We received your request and our team will review the opportunity. If it appears to be a fit, we may reach out for additional details or next steps.</p>
       <p>Please note that submission does not guarantee placement, booking, or sale.</p>
-      <p>— PixieDVC</p>
+      <p>— HannaDVC Team</p>
     </div>
   `;
 

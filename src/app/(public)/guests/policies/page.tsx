@@ -25,7 +25,7 @@ export default function GuestPoliciesPage() {
     {
       icon: "✓",
       title: "Concierge Managed",
-      body: "PixieDVC coordinates the process from request through confirmation.",
+      body: "HannaDVC coordinates the process from request through confirmation.",
     },
   ];
 
@@ -63,7 +63,7 @@ export default function GuestPoliciesPage() {
               Request → Review → Confirm → Done
             </p>
             <p className="text-sm text-[#0F2148]/72">
-              Booked through verified DVC owners, coordinated by PixieDVC.
+              Booked through verified DVC owners, coordinated by HannaDVC.
             </p>
           </div>
           <p className="mt-6 text-sm font-semibold text-[#0F2148]/88">
