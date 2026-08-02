@@ -69,9 +69,9 @@ A stay is treated as confirmed when a trusted Disney confirmation exists through
 Verified payout statuses:
 
 - `pending` -> Pending
-- `eligible` -> Eligible for payout
-- `released` -> Released
-- `failed` -> Status unavailable
+- `eligible` -> Ready for payout
+- `released` -> Paid
+- `failed` -> Payment issue
 
 Unknown statuses are not displayed raw. They produce partial-data warnings and are not included in financial totals.
 
@@ -159,13 +159,16 @@ The overview uses responsive grids:
 - Recent activity uses notifications only because no broader safe activity stream exists.
 - Distributed owner analytics and realtime updates are not implemented.
 
+## Phase C1 Subpage Alignment
+
+Phase C1 aligns `/owner/payouts`, `/owner/rentals`, and `/owner/matches` with the owner shell and the status vocabulary above. The pages now use owner-safe list view models and do not show raw payout, rental, or match enum values in list views.
+
+See `docs/owner-operational-subpages.md` for the Phase C1 contract.
+
 ## Next Phase
 
-Phase C can align owner subpages with the shell and status vocabulary:
+The remaining Phase C work can align additional owner subpages with the shell and status vocabulary:
 
-- payouts page;
-- rentals page;
-- matches pages;
 - Ready Stay owner pages;
 - memberships/account page.
 

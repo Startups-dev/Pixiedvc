@@ -36,9 +36,9 @@ export const VERIFIED_MILESTONE_CODES = [
 
 const payoutStatusLabels: Record<string, string> = {
   pending: "Pending",
-  eligible: "Eligible for payout",
-  released: "Released",
-  failed: "Status unavailable",
+  eligible: "Ready for payout",
+  released: "Paid",
+  failed: "Payment issue",
 };
 
 const rentalStatusLabels: Record<string, string> = {
@@ -60,10 +60,10 @@ const rentalStatusLabels: Record<string, string> = {
 };
 
 const matchStatusLabels: Record<string, string> = {
-  pending_owner: "Awaiting owner response",
+  pending_owner: "Awaiting your response",
   accepted: "Accepted",
   declined: "Declined",
-  booked: "Booked",
+  booked: "Reservation created",
 };
 
 const milestoneLabels: Record<string, string> = {

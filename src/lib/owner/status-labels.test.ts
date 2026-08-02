@@ -42,4 +42,13 @@ describe("owner status labels", () => {
     expect(getOwnerRentalStatusLabel("waiting_on_magic")).toBe("Status unavailable");
     expect(getOwnerPayoutStageLabel(10)).toBe("Payout stage unavailable");
   });
+
+  it("uses Phase C1 owner-facing payout and match vocabulary", () => {
+    expect(getOwnerPayoutStatusLabel("pending")).toBe("Pending");
+    expect(getOwnerPayoutStatusLabel("eligible")).toBe("Ready for payout");
+    expect(getOwnerPayoutStatusLabel("released")).toBe("Paid");
+    expect(getOwnerPayoutStatusLabel("failed")).toBe("Payment issue");
+    expect(getOwnerMatchStatusLabel("pending_owner")).toBe("Awaiting your response");
+    expect(getOwnerMatchStatusLabel("booked")).toBe("Reservation created");
+  });
 });

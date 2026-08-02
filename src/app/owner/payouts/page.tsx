@@ -3,11 +3,43 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Card } from "@pixiedvc/design-system";
+import OwnerEmptyState from "@/components/owner/shared/OwnerEmptyState";
+import OwnerFilterTabs from "@/components/owner/shared/OwnerFilterTabs";
+import OwnerPageHeader from "@/components/owner/shared/OwnerPageHeader";
+import OwnerRecordStatusBadge from "@/components/owner/shared/OwnerRecordStatusBadge";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getOwnerPayouts } from "@/lib/owner-data";
-import { formatCurrency } from "@/lib/owner-portal";
+import {
+  buildOwnerPayoutListItems,
+  buildOwnerPayoutSummaryCards,
+  filterOwnerPayoutItems,
+  type OwnerPayoutFilter,
+} from "@/lib/owner/operational-subpages";
 
-export default async function OwnerPayoutsPage() {
+const PAYOUT_FILTERS: { label: string; value: OwnerPayoutFilter }[] = [
+  { label: "All", value: "all" },
+  { label: "Pending", value: "pending" },
+  { label: "Ready for payout", value: "eligible" },
+  { label: "Paid", value: "released" },
+  { label: "Payment issue", value: "failed" },
+];
+
+function getPayoutFilter(value: string | undefined): OwnerPayoutFilter {
+  return PAYOUT_FILTERS.some((filter) => filter.value === value) ? (value as OwnerPayoutFilter) : "all";
+}
+
+function statusTone(status: string) {
+  if (status === "released") return "success";
+  if (status === "pending" || status === "eligible") return "attention";
+  if (status === "failed") return "issue";
+  return "neutral";
+}
+
+export default async function OwnerPayoutsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ status?: string }> | { status?: string };
+}) {
   const cookieStore = await cookies();
   const supabase = await createSupabaseServerClient();
   const {
@@ -18,58 +50,116 @@ export default async function OwnerPayoutsPage() {
     redirect("/login?redirect=/owner/payouts");
   }
 
+  const resolvedSearchParams = await searchParams;
+  const activeFilter = getPayoutFilter(resolvedSearchParams?.status);
   const payouts = await getOwnerPayouts(user.id, cookieStore);
+  const summaryCards = buildOwnerPayoutSummaryCards(payouts);
+  const items = buildOwnerPayoutListItems(payouts);
+  const filteredItems = filterOwnerPayoutItems(items, activeFilter);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 px-6 py-12">
-      <header className="space-y-3">
-        <Link href="/owner/dashboard" className="text-xs uppercase tracking-[0.3em] text-muted">
-          ← Back to dashboard
-        </Link>
-        <h1 className="text-3xl font-semibold text-ink">Payouts</h1>
-        <p className="text-sm text-muted">Track eligible and released payments per rental.</p>
-      </header>
+    <div className="space-y-8">
+      <OwnerPageHeader
+        eyebrow="Owner payouts"
+        title="Payouts"
+        description="Track owner payout ledger rows by reservation, stage, status, and release date."
+        summary={`${items.length} payout${items.length === 1 ? "" : "s"}`}
+      />
 
-      <Card>
-        {payouts.length === 0 ? (
-          <p className="text-sm text-muted">No payouts yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm text-slate-500">
-              <thead className="border-b border-slate-100 text-xs uppercase tracking-[0.2em] text-slate-400">
+      <div className="grid gap-4 md:grid-cols-2">
+        {summaryCards.map((card) => (
+          <Card key={card.label} className="rounded-[18px] border border-[#E7E7E4] bg-white p-5 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#7A8495]">{card.label}</p>
+            <p className="mt-3 text-3xl font-semibold tracking-tight text-[#10224A]">{card.valueLabel}</p>
+            <p className="mt-2 text-sm text-[#667085]">{card.helper}</p>
+          </Card>
+        ))}
+      </div>
+
+      <OwnerFilterTabs
+        tabs={PAYOUT_FILTERS.map((filter) => ({
+          label: filter.label,
+          href: `/owner/payouts?status=${filter.value}`,
+          active: activeFilter === filter.value,
+          count: filterOwnerPayoutItems(items, filter.value).length,
+        }))}
+        label="Filter payouts"
+      />
+
+      {filteredItems.length === 0 ? (
+        <OwnerEmptyState
+          title="No payouts yet."
+          body="Payouts appear here after a reservation reaches the relevant payout milestone. We only show owner payout ledger amounts, not guest totals."
+        />
+      ) : (
+        <Card className="rounded-[18px] border border-[#E7E7E4] bg-white p-0 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
+          <div className="hidden overflow-x-auto md:block">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b border-[#ECECE8] text-[11px] uppercase tracking-[0.18em] text-[#7A8495]">
                 <tr>
-                  <th className="px-2 py-3">Rental</th>
-                  <th className="px-2 py-3">Stage</th>
-                  <th className="px-2 py-3">Amount</th>
-                  <th className="px-2 py-3">Eligible</th>
-                  <th className="px-2 py-3">Released</th>
-                  <th className="px-2 py-3">Status</th>
+                  <th className="px-5 py-4 font-semibold">Reservation</th>
+                  <th className="px-5 py-4 font-semibold">Stage</th>
+                  <th className="px-5 py-4 font-semibold">Amount</th>
+                  <th className="px-5 py-4 font-semibold">Status</th>
+                  <th className="px-5 py-4 font-semibold">Eligible</th>
+                  <th className="px-5 py-4 font-semibold">Released</th>
+                  <th className="px-5 py-4 font-semibold">Details</th>
                 </tr>
               </thead>
-              <tbody>
-                {payouts.map((payout) => (
-                  <tr key={payout.id} className="border-b border-slate-100">
-                    <td className="px-2 py-3 text-xs text-slate-500">{payout.rental_id.slice(0, 8)}</td>
-                    <td className="px-2 py-3">{payout.stage === 70 ? "Stage 1" : "Stage 2"}</td>
-                    <td className="px-2 py-3 font-semibold text-ink">{formatCurrency(payout.amount_cents)}</td>
-                    <td className="px-2 py-3">
-                      {payout.eligible_at ? new Date(payout.eligible_at).toLocaleDateString() : "—"}
+              <tbody className="divide-y divide-[#F0F0EC]">
+                {filteredItems.map((payout) => (
+                  <tr key={payout.id}>
+                    <td className="px-5 py-4 font-medium text-[#10224A]">{payout.reservationLabel}</td>
+                    <td className="px-5 py-4 text-[#667085]">{payout.stageLabel}</td>
+                    <td className="px-5 py-4 font-semibold text-[#10224A]">{payout.amountLabel}</td>
+                    <td className="px-5 py-4">
+                      <OwnerRecordStatusBadge label={payout.statusLabel} tone={statusTone(payout.status)} />
                     </td>
-                    <td className="px-2 py-3">
-                      {payout.released_at ? new Date(payout.released_at).toLocaleDateString() : "—"}
-                    </td>
-                    <td className="px-2 py-3">
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                        {payout.status}
-                      </span>
+                    <td className="px-5 py-4 text-[#667085]">{payout.eligibleDateLabel}</td>
+                    <td className="px-5 py-4 text-[#667085]">{payout.releasedDateLabel}</td>
+                    <td className="px-5 py-4">
+                      <Link href={payout.detailHref} className="font-semibold text-[#10224A] underline-offset-4 hover:underline">
+                        View reservation
+                      </Link>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
-      </Card>
+
+          <div className="divide-y divide-[#F0F0EC] md:hidden">
+            {filteredItems.map((payout) => (
+              <article key={payout.id} className="space-y-4 p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="font-semibold text-[#10224A]">{payout.reservationLabel}</h2>
+                    <p className="mt-1 text-sm text-[#667085]">{payout.stageLabel}</p>
+                  </div>
+                  <OwnerRecordStatusBadge label={payout.statusLabel} tone={statusTone(payout.status)} />
+                </div>
+                <dl className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <dt className="text-xs uppercase tracking-[0.16em] text-[#7A8495]">Amount</dt>
+                    <dd className="mt-1 font-semibold text-[#10224A]">{payout.amountLabel}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-[0.16em] text-[#7A8495]">Eligible</dt>
+                    <dd className="mt-1 text-[#667085]">{payout.eligibleDateLabel}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-[0.16em] text-[#7A8495]">Released</dt>
+                    <dd className="mt-1 text-[#667085]">{payout.releasedDateLabel}</dd>
+                  </div>
+                </dl>
+                <Link href={payout.detailHref} className="inline-flex text-sm font-semibold text-[#10224A] underline-offset-4 hover:underline">
+                  View reservation
+                </Link>
+              </article>
+            ))}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
