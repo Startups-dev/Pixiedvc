@@ -3,10 +3,8 @@ import { cookies } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import {
-  ensureApprovalNotifications,
-  ensurePointsExpiringNotification,
-  ensureResaleRestrictionNotification,
-  getNextExpiringMembership,
+  type BookingRequestGuestRow,
+  type RentalRow,
   hasRestrictedResaleMembership,
   getOwnerMemberships,
   getOwnerMatches,
@@ -14,39 +12,20 @@ import {
   getOwnerPayouts,
   getOwnerProfile,
   getOwnerRentals,
-  getPointsSummary,
 } from "@/lib/owner-data";
 import { getCanonicalResorts } from "@/lib/resorts/getResorts";
-import { formatCurrency, normalizeMilestones, getMilestoneStatus } from "@/lib/owner-portal";
-import { getMembershipExpirationDate, getMembershipNudge } from "@/lib/owner-nudges";
+import { normalizeMilestones } from "@/lib/owner-portal";
 import { getOwnerPreferredBonusCents, getOwnerPreferredTier } from "@/lib/owner-rewards";
 import { getPromotionsSetting } from "@/lib/promotions-settings";
 import { requireOwnerAccess } from "@/lib/owner/requireOwnerAccess";
 import { getActiveFoundingOwnerBonusCents, isActiveFoundingOwner } from "@/lib/founding-owner-bonus";
+import {
+  buildOwnerDashboardViewModel,
+  type OwnerDashboardRentalRow,
+} from "@/lib/owner/dashboard-view-model";
 import OwnerDashboardClient from "./OwnerDashboardClient";
 
 export const dynamic = "force-dynamic";
-
-function formatDate(value: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString();
-}
-
-function formatUseYearPeriod(start: string | null | undefined, end: string | null | undefined) {
-  if (!start) return "—";
-  const startDate = new Date(start);
-  if (Number.isNaN(startDate.getTime())) return "—";
-  let endDate = end ? new Date(end) : null;
-  if (!endDate || Number.isNaN(endDate.getTime())) {
-    endDate = new Date(startDate);
-    endDate.setUTCFullYear(endDate.getUTCFullYear() + 1);
-    endDate.setUTCDate(endDate.getUTCDate() - 1);
-  }
-  const endISO = endDate.toISOString().slice(0, 10);
-  return `${formatDate(start)} – ${formatDate(endISO)}`;
-}
 
 function getUseYearEndDate(start: string | null | undefined, end: string | null | undefined) {
   if (!start) return null;
@@ -60,7 +39,9 @@ function getUseYearEndDate(start: string | null | undefined, end: string | null 
 }
 
 
-function buildDisplayMilestones(rental: any) {
+type DashboardPageRentalRow = RentalRow & OwnerDashboardRentalRow;
+
+function buildDisplayMilestones(rental: DashboardPageRentalRow) {
   const milestones = normalizeMilestones(rental.rental_milestones ?? []);
   const bookingPackage = (rental.booking_package ?? {}) as Record<string, unknown>;
   const leadGuestName = rental.lead_guest_name ?? (bookingPackage.lead_guest_name as string | null) ?? null;
@@ -96,10 +77,26 @@ type OwnerDashboardPageProps = {
   searchParams?: Promise<{ tab?: string; mode?: string }> | { tab?: string; mode?: string };
 };
 
+type ReadyStayDashboardRow = {
+  id: string;
+  sold_booking_request_id: string | null;
+  booking_request_id: string | null;
+  check_in: string | null;
+  check_out: string | null;
+  points: number | null;
+  resorts: { name: string | null } | { name: string | null }[] | null;
+};
+
+function getReadyStayResortName(stay: ReadyStayDashboardRow) {
+  const resort = Array.isArray(stay.resorts) ? stay.resorts[0] : stay.resorts;
+  return resort?.name ?? null;
+}
+
 export default async function OwnerDashboardPage({ searchParams }: OwnerDashboardPageProps) {
   const resolvedSearchParams = searchParams instanceof Promise ? await searchParams : searchParams;
   const cookieStore = await cookies();
-  const { user } = await requireOwnerAccess("/owner/dashboard", cookieStore);
+  const ownerCookieStore = cookieStore as unknown as Parameters<typeof requireOwnerAccess>[1];
+  const { user } = await requireOwnerAccess("/owner/dashboard", ownerCookieStore);
   const supabase = await createSupabaseServerClient();
 
   const onboardingMessage = cookieStore.get("onboarding_completed_message");
@@ -110,7 +107,7 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
 
   const adminClient = getSupabaseAdminClient();
   const client = adminClient ?? supabase;
-  const owner = await getOwnerProfile(user.id, cookieStore);
+  const owner = await getOwnerProfile(user.id, ownerCookieStore);
   const readyStayOwnerIds = Array.from(
     new Set(
       [user.id, owner?.id ?? null, owner?.user_id ?? null].filter(
@@ -121,12 +118,12 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
 
   const [memberships, rentals, payouts, notifications, matches, resorts, rewardsProfile, rewardsStats, rewardsFlag] =
     await Promise.all([
-      getOwnerMemberships(user.id, cookieStore),
-      getOwnerRentals(user.id, cookieStore),
-      getOwnerPayouts(user.id, cookieStore),
-      getOwnerNotifications(user.id, cookieStore),
-      getOwnerMatches(user.id, cookieStore),
-      getCanonicalResorts(supabase, { select: "id, name, calculator_code, slug" }),
+      getOwnerMemberships(user.id, ownerCookieStore),
+      getOwnerRentals(user.id, ownerCookieStore),
+      getOwnerPayouts(user.id, ownerCookieStore),
+      getOwnerNotifications(user.id, ownerCookieStore),
+      getOwnerMatches(user.id, ownerCookieStore),
+      getCanonicalResorts(supabase as unknown as Parameters<typeof getCanonicalResorts>[0], { select: "id, name, calculator_code, slug" }),
       client.from("profiles").select("id, owner_rewards_enrolled_at").eq("id", user.id).maybeSingle(),
       owner
         ? client
@@ -161,7 +158,7 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
     : { data: [] };
 
   const readyStayBookingById = new Map((readyStayBookings ?? []).map((booking) => [booking.id, booking]));
-  const pendingReadyStayTransfers = (readyStayRows ?? [])
+  const pendingReadyStayTransfers = ((readyStayRows ?? []) as ReadyStayDashboardRow[])
     .map((stay) => {
       const linkedBookingId = stay.sold_booking_request_id ?? stay.booking_request_id ?? null;
       const booking =
@@ -172,8 +169,7 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
       return {
         id: stay.id,
         bookingId: booking.id,
-        guestName: booking.lead_guest_name ?? null,
-        resortName: stay.resorts?.name ?? null,
+        resortName: getReadyStayResortName(stay),
         checkIn: stay.check_in ?? null,
         checkOut: stay.check_out ?? null,
         points: stay.points ?? null,
@@ -181,13 +177,7 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
     })
     .filter((value): value is NonNullable<typeof value> => Boolean(value));
 
-  await Promise.all([
-    ensurePointsExpiringNotification(user.id, memberships),
-    ensureApprovalNotifications(user.id, rentals),
-    ensureResaleRestrictionNotification(user.id, memberships),
-  ]);
-
-  const rentalsWithMilestones = rentals.map((rental) => ({
+  const rentalsWithMilestones = (rentals as OwnerDashboardRentalRow[]).map((rental) => ({
     ...rental,
     milestones: buildDisplayMilestones(rental),
   }));
@@ -205,18 +195,10 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
     })
     .sort((a, b) => (a.use_year_start ?? "").localeCompare(b.use_year_start ?? ""));
 
-  const pointsSummary = getPointsSummary(visibleMemberships);
-  const nextExpiring = getNextExpiringMembership(visibleMemberships);
   const showResaleRestrictionBanner = hasRestrictedResaleMembership(visibleMemberships);
-  const hasPremiumOnlyMembership = visibleMemberships.some(
-    (membership) => membership.matching_mode === "premium_only",
-  );
 
   const pendingPayouts = payouts.filter((payout) => payout.status === "eligible" || payout.status === "pending");
   const pendingPayoutAmount = pendingPayouts.reduce((sum, payout) => sum + Number(payout.amount_cents ?? 0), 0);
-
-  const pendingMatches = matches.filter((match) => match.status === "pending_owner");
-  const recentMatches = pendingMatches.slice(0, 3);
   const bookingIds = matches
     .map((match) => match.booking?.id)
     .filter((id): id is string => Boolean(id));
@@ -226,8 +208,8 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
         .select("id, booking_id, title, first_name, last_name, email, phone, age_category, age, created_at")
         .in("booking_id", bookingIds)
     : { data: [] };
-  const guestsByBookingId = new Map<string, any[]>();
-  (guestRows.data ?? []).forEach((guest) => {
+  const guestsByBookingId = new Map<string, BookingRequestGuestRow[]>();
+  ((guestRows.data ?? []) as BookingRequestGuestRow[]).forEach((guest) => {
     const key = guest.booking_id as string;
     const list = guestsByBookingId.get(key) ?? [];
     list.push(guest);
@@ -235,7 +217,7 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
   });
 
   const rentalsByMatchId = new Map(
-    rentals
+    rentalsWithMilestones
       .filter((rental) => Boolean(rental.match_id))
       .map((rental) => [rental.match_id as string, rental]),
   );
@@ -246,72 +228,6 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
     guests: match.booking?.id ? guestsByBookingId.get(match.booking.id) ?? [] : [],
   }));
 
-  const activeRentals = rentalsWithMilestones.filter((rental) => !["completed", "cancelled"].includes(rental.status));
-  const approvalNeeded = activeRentals.filter(
-    (rental) => getMilestoneStatus("owner_approved", rental.milestones) !== "completed",
-  );
-  const confirmationNeeded = activeRentals.filter((rental) => {
-    const approved = getMilestoneStatus("owner_approved", rental.milestones) === "completed";
-    const confirmation = getMilestoneStatus("disney_confirmation_uploaded", rental.milestones) === "completed";
-    return approved && !confirmation;
-  });
-
-  const expiringPoints = visibleMemberships
-    .map((membership) => {
-      const nudge = getMembershipNudge(membership);
-      if (!nudge) return null;
-      return {
-        ...membership,
-        nudge,
-      };
-    })
-    .filter((membership): membership is any => Boolean(membership));
-
-  const membershipRows = visibleMemberships.map((membership) => {
-    const resortCode = membership.resort?.calculator_code ?? membership.resort?.slug ?? null;
-    const resortLabel = resortCode ? `${membership.resort?.name ?? "Resort TBD"} (${resortCode})` : membership.resort?.name ?? "Resort TBD";
-    const useYearLabel =
-      membership.use_year ?? formatUseYearPeriod(membership.use_year_start, membership.use_year_end);
-    const nudge = getMembershipNudge(membership);
-    return {
-      ...membership,
-      resortLabel,
-      useYearLabel,
-      nudge,
-    };
-  });
-
-  const nextExpiringDate = nextExpiring ? getMembershipExpirationDate(nextExpiring) : null;
-  const nextExpiringNudge = nextExpiring ? getMembershipNudge(nextExpiring) : null;
-
-  const tiles = [
-    {
-      label: "Available points",
-      value: pointsSummary.available.toLocaleString("en-US"),
-      helper: "Total across memberships",
-    },
-    {
-      label: "Rented points",
-      value: pointsSummary.rented.toLocaleString("en-US"),
-      helper: "Booked to guests",
-    },
-    {
-      label: "Pending payouts",
-      value: formatCurrency(pendingPayoutAmount),
-      helper: `${pendingPayouts.length} payouts pending release`,
-    },
-    {
-      label: "Next expiring",
-      value: nextExpiringDate ? formatDate(nextExpiringDate) : "—",
-      helper: nextExpiring?.resort?.name ?? "No expirations soon",
-      badge: nextExpiringNudge
-        ? {
-            label: nextExpiringNudge.stage === "banking" ? "Banking" : "Expiring",
-            className: nextExpiringNudge.tier.classes,
-          }
-        : undefined,
-    },
-  ];
 
   const rewardsEnrolled = Boolean(rewardsProfile?.data?.owner_rewards_enrolled_at);
   const rewardsEnrollmentOpen = rewardsFlag?.data ?? true;
@@ -336,6 +252,16 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
       }
     : null;
 
+  const overview = buildOwnerDashboardViewModel({
+    owner,
+    memberships,
+    rentals: rentals as OwnerDashboardRentalRow[],
+    payouts,
+    notifications,
+    matches,
+    pendingReadyStayTransfers,
+  });
+
   const tabParam = resolvedSearchParams?.tab ?? "overview";
   const listingsMode = resolvedSearchParams?.mode === "add" ? "add" : "hub";
   const tabs = [
@@ -355,21 +281,11 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
       listingsMode={listingsMode}
       tabs={tabs}
       displayName={displayName}
+      overview={overview}
       showOnboardingMessage={showOnboardingMessage}
       showResaleRestrictionBanner={showResaleRestrictionBanner}
-      hasPremiumOnlyMembership={hasPremiumOnlyMembership}
-      tiles={tiles}
-      pendingMatches={pendingMatches}
-      recentMatches={recentMatches}
       matchItems={matchItems}
-      membershipRows={membershipRows}
-      visibleMemberships={visibleMemberships}
       resorts={resorts as { id: string; name: string; calculator_code: string | null }[]}
-      notifications={notifications}
-      expiringPoints={expiringPoints}
-      approvalNeeded={approvalNeeded}
-      confirmationNeeded={confirmationNeeded}
-      pendingReadyStayTransfers={pendingReadyStayTransfers}
       pendingPayoutAmount={pendingPayoutAmount}
       pendingPayouts={pendingPayouts}
       rewardsSummary={rewardsSummary}

@@ -107,7 +107,7 @@ The shell does not expose:
 
 ## Next Phase
 
-Phase B can redesign the owner overview dashboard content using existing data only:
+Phase B now redesigns the owner overview dashboard content using existing data only:
 
 - KPI cards;
 - recent payout activity;
@@ -116,3 +116,5 @@ Phase B can redesign the owner overview dashboard content using existing data on
 - premium empty states.
 
 Phase B should not change payout calculations or reservation statuses.
+
+See `docs/owner-dashboard-overview.md` for the Phase B data-source and view-model contract.
