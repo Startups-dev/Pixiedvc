@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Card } from "@pixiedvc/design-system";
+import OwnerPageHeader from "@/components/owner/shared/OwnerPageHeader";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 const FAQ_ITEMS = [
@@ -58,27 +59,26 @@ export default async function ReadyStaysFaqPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 px-6 py-12">
-      <Link href="/owner/ready-stays" className="text-sm font-semibold text-brand hover:underline">
-        Back to Ready Stays
-      </Link>
+    <div className="space-y-8">
+      <OwnerPageHeader
+        eyebrow="Owner resources"
+        title="Ready Stays FAQ"
+        description="Review how Ready Stays work, how owner payout pricing is presented, and what to expect after a listing sells."
+        summary="Owner resource"
+      />
 
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight text-ink">Ready Stays FAQ</h1>
-        <p className="text-sm text-muted">
-          Ready Stays let you list a confirmed DVC reservation so guests can book instantly. Here is how
-          it works, how pricing works, and what to expect.
-        </p>
-      </div>
-
-      <Card className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <Card className="space-y-3 rounded-[18px] border border-[#E7E7E4] bg-white p-6 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
         {FAQ_ITEMS.map((item) => (
-          <details key={item.q} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-            <summary className="cursor-pointer text-sm font-semibold text-ink">{item.q}</summary>
-            <p className="mt-2 text-sm text-slate-500">{item.a}</p>
+          <details key={item.q} className="rounded-[14px] border border-[#ECECE8] bg-white px-4 py-3">
+            <summary className="cursor-pointer text-sm font-semibold text-[#10224A]">{item.q}</summary>
+            <p className="mt-2 text-sm leading-6 text-[#667085]">{item.a}</p>
           </details>
         ))}
       </Card>
+
+      <Link href="/owner/ready-stays" className="inline-flex text-sm font-semibold text-[#10224A] underline-offset-4 hover:underline">
+        Back to Ready Stays
+      </Link>
     </div>
   );
 }

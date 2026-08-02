@@ -142,3 +142,5 @@ Existing owner detail and workflow routes remain the action surface:
 ## Future Route Consolidation
 
 Future Phase C work may align Ready Stay, memberships/account, rewards, and notification pages. Route merging should remain a later product decision after all subpages share the same owner-facing vocabulary and shell structure.
+
+Phase C2 now covers those remaining secondary subpages. See `docs/owner-secondary-subpages.md`.

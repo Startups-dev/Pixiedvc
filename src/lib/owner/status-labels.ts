@@ -17,6 +17,10 @@ export const VERIFIED_RENTAL_STATUSES = [
   "paid_balance",
 ] as const;
 export const VERIFIED_MATCH_STATUSES = ["pending_owner", "accepted", "declined", "booked"] as const;
+export const VERIFIED_READY_STAY_STATUSES = ["draft", "active", "paused", "sold", "expired", "removed", "test"] as const;
+export const VERIFIED_READY_STAY_VERIFICATION_STATUSES = ["proof_uploaded", "submitted", "rejected"] as const;
+export const VERIFIED_OWNER_VERIFICATION_STATUSES = ["not_started", "submitted", "approved", "rejected"] as const;
+export const VERIFIED_OWNER_REWARD_STATUSES = ["enrolled", "not_enrolled", "enrollment_closed"] as const;
 export const VERIFIED_MILESTONE_CODES = [
   "matched",
   "guest_verified",
@@ -83,6 +87,35 @@ const milestoneLabels: Record<string, string> = {
   archived: "Archived",
 };
 
+const readyStayStatusLabels: Record<string, string> = {
+  draft: "Draft",
+  active: "Active",
+  paused: "Pending review",
+  sold: "Booked",
+  expired: "Inactive",
+  removed: "Inactive",
+  test: "Test listing",
+};
+
+const readyStayVerificationStatusLabels: Record<string, string> = {
+  proof_uploaded: "Submitted for review",
+  submitted: "Submitted for review",
+  rejected: "Needs info",
+};
+
+const ownerVerificationStatusLabels: Record<string, string> = {
+  not_started: "Not started",
+  submitted: "Submitted",
+  approved: "Approved",
+  rejected: "Needs review",
+};
+
+const ownerRewardStatusLabels: Record<string, string> = {
+  enrolled: "Enrolled",
+  not_enrolled: "Not enrolled yet",
+  enrollment_closed: "Enrollment closed",
+};
+
 export function getOwnerPayoutStatusLabel(status: string | null | undefined) {
   if (!status) return "Status unavailable";
   return payoutStatusLabels[status] ?? "Status unavailable";
@@ -107,6 +140,24 @@ export function getOwnerMatchStatusLabel(status: string | null | undefined) {
 export function getOwnerMilestoneLabel(code: string | null | undefined) {
   if (!code) return "Milestone unavailable";
   return milestoneLabels[code] ?? "Milestone unavailable";
+}
+
+export function getOwnerReadyStayStatusLabel(status: string | null | undefined, verificationStatus?: string | null) {
+  if (verificationStatus && readyStayVerificationStatusLabels[verificationStatus]) {
+    return readyStayVerificationStatusLabels[verificationStatus];
+  }
+  if (!status) return "Status unavailable";
+  return readyStayStatusLabels[status] ?? "Status unavailable";
+}
+
+export function getOwnerVerificationStatusLabel(status: string | null | undefined) {
+  if (!status) return "Status unavailable";
+  return ownerVerificationStatusLabels[status] ?? "Status unavailable";
+}
+
+export function getOwnerRewardStatusLabel(status: string | null | undefined) {
+  if (!status) return "Status unavailable";
+  return ownerRewardStatusLabels[status] ?? "Status unavailable";
 }
 
 export function isReleasedOwnerPayoutStatus(status: string | null | undefined) {

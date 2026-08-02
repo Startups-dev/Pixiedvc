@@ -11,7 +11,6 @@ type PendingTransferRow = {
   checkIn: string | null;
   checkOut: string | null;
   points: number | null;
-  guestName: string | null;
 };
 
 type BannerState = {
@@ -111,18 +110,17 @@ export default function PendingTransfersCard({
       ) : null}
 
       {!hasPendingRows ? (
-        <p className="rounded-2xl bg-slate-50 p-4 text-sm text-muted">
+        <p className="rounded-[14px] border border-[#ECECE8] bg-white p-4 text-sm text-[#667085]">
           No transfers in progress.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-slate-200">
+        <div className="overflow-x-auto rounded-[14px] border border-[#ECECE8]">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50">
-              <tr className="text-left text-xs uppercase tracking-[0.2em] text-slate-500">
+            <thead className="bg-white">
+              <tr className="text-left text-xs uppercase tracking-[0.18em] text-[#7A8495]">
                 <th className="px-4 py-3 font-semibold">Resort</th>
                 <th className="px-4 py-3 font-semibold">Dates</th>
                 <th className="px-4 py-3 font-semibold">Points</th>
-                <th className="px-4 py-3 font-semibold">Guest</th>
                 <th className="px-4 py-3 font-semibold">Transfer</th>
               </tr>
             </thead>
@@ -133,12 +131,11 @@ export default function PendingTransfersCard({
 
                 return (
                   <tr key={row.id}>
-                    <td className="px-4 py-3 text-ink">{row.resortName || "Listing"}</td>
-                    <td className="px-4 py-3 text-slate-500">
+                    <td className="px-4 py-3 text-[#10224A]">{row.resortName || "Listing"}</td>
+                    <td className="px-4 py-3 text-[#667085]">
                       {formatDate(row.checkIn)} - {formatDate(row.checkOut)}
                     </td>
-                    <td className="px-4 py-3 text-slate-500">{row.points ?? 0}</td>
-                    <td className="px-4 py-3 text-slate-500">{row.guestName ?? "—"}</td>
+                    <td className="px-4 py-3 text-[#667085]">{row.points ?? 0}</td>
                     <td className="px-4 py-3">
                       {isCompleted ? (
                         <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">

@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase';
+import OwnerPageHeader from '@/components/owner/shared/OwnerPageHeader';
+import OwnerRecordStatusBadge from '@/components/owner/shared/OwnerRecordStatusBadge';
+import { getOwnerVerificationSummary } from '@/lib/owner/secondary-subpages';
 
 type ProofFile = {
   path: string;
@@ -58,14 +61,7 @@ export default function OwnerVerificationPage() {
     });
   }, [router, supabase]);
 
-  const statusLabel =
-    status?.status === 'approved'
-      ? 'Approved'
-      : status?.status === 'submitted'
-        ? 'Submitted'
-        : status?.status === 'rejected'
-          ? 'Rejected'
-          : 'Not started';
+  const statusLabel = getOwnerVerificationSummary(status?.status ?? 'not_started');
 
   async function handleSubmit() {
     if (!userId) return;
@@ -165,20 +161,20 @@ export default function OwnerVerificationPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-6 py-10">
-      <div>
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Owner verification</p>
-        <h1 className="text-3xl font-semibold text-slate-900">Submit verification</h1>
-        <p className="mt-2 text-sm text-slate-500">
-          Upload any supporting proof (membership screenshot, contract page, or recent statement).
-        </p>
-      </div>
+    <div className="max-w-3xl space-y-6">
+      <OwnerPageHeader
+        eyebrow="Owner verification"
+        title="Submit verification"
+        description="Upload supporting proof such as a membership screenshot, contract page, or recent statement."
+        summary={statusLabel}
+      />
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-[18px] border border-[#E7E7E4] bg-white p-5 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-            {statusLabel}
-          </span>
+          <OwnerRecordStatusBadge
+            label={statusLabel}
+            tone={status?.status === 'approved' ? 'success' : status?.status === 'rejected' ? 'issue' : 'attention'}
+          />
           {status?.review_notes ? (
             <span className="text-sm text-rose-600">Review notes: {status.review_notes}</span>
           ) : null}

@@ -5,10 +5,17 @@ import {
   getOwnerMilestoneLabel,
   getOwnerPayoutStageLabel,
   getOwnerPayoutStatusLabel,
+  getOwnerReadyStayStatusLabel,
   getOwnerRentalStatusLabel,
+  getOwnerRewardStatusLabel,
+  getOwnerVerificationStatusLabel,
   VERIFIED_MATCH_STATUSES,
   VERIFIED_MILESTONE_CODES,
+  VERIFIED_OWNER_REWARD_STATUSES,
+  VERIFIED_OWNER_VERIFICATION_STATUSES,
   VERIFIED_PAYOUT_STATUSES,
+  VERIFIED_READY_STAY_STATUSES,
+  VERIFIED_READY_STAY_VERIFICATION_STATUSES,
   VERIFIED_RENTAL_STATUSES,
 } from "@/lib/owner/status-labels";
 
@@ -37,10 +44,30 @@ describe("owner status labels", () => {
     }
   });
 
+  it("maps every verified Ready Stay status without exposing raw enums", () => {
+    for (const status of VERIFIED_READY_STAY_STATUSES) {
+      expect(getOwnerReadyStayStatusLabel(status)).not.toBe(status);
+    }
+    for (const status of VERIFIED_READY_STAY_VERIFICATION_STATUSES) {
+      expect(getOwnerReadyStayStatusLabel("draft", status)).not.toBe(status);
+    }
+  });
+
+  it("maps every verified account and reward status without exposing raw enums", () => {
+    for (const status of VERIFIED_OWNER_VERIFICATION_STATUSES) {
+      expect(getOwnerVerificationStatusLabel(status)).not.toBe(status);
+    }
+    for (const status of VERIFIED_OWNER_REWARD_STATUSES) {
+      expect(getOwnerRewardStatusLabel(status)).not.toBe(status);
+    }
+  });
+
   it("fails unknown statuses safely", () => {
     expect(getOwnerPayoutStatusLabel("scheduled")).toBe("Status unavailable");
     expect(getOwnerRentalStatusLabel("waiting_on_magic")).toBe("Status unavailable");
     expect(getOwnerPayoutStageLabel(10)).toBe("Payout stage unavailable");
+    expect(getOwnerReadyStayStatusLabel("private_internal")).toBe("Status unavailable");
+    expect(getOwnerVerificationStatusLabel("manual_review_pending")).toBe("Status unavailable");
   });
 
   it("uses Phase C1 owner-facing payout and match vocabulary", () => {

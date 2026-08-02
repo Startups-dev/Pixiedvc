@@ -1,16 +1,17 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Card } from "@pixiedvc/design-system";
+import OwnerPageHeader from "@/components/owner/shared/OwnerPageHeader";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getPromotionsSetting } from "@/lib/promotions-settings";
 import { getOwnerPreferredBonusCents, getOwnerPreferredTier } from "@/lib/owner-rewards";
+import { buildOwnerRewardSummary } from "@/lib/owner/secondary-subpages";
 
 export const dynamic = "force-dynamic";
 
 export default async function OwnerRewardsPage() {
-  const cookieStore = await cookies();
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -32,15 +33,14 @@ export default async function OwnerRewardsPage() {
   if (!owner) {
     redirect("/owner/dashboard");
   }
+
   const { data: profile } = await client
     .from("profiles")
     .select("id, owner_rewards_enrolled_at")
     .eq("id", user.id)
     .maybeSingle();
 
-  const { data: enrollmentEnabled } = await getPromotionsSetting(
-    "promotions_owner_enrollment_enabled",
-  );
+  const { data: enrollmentEnabled } = await getPromotionsSetting("promotions_owner_enrollment_enabled");
   const enrollmentFlag = enrollmentEnabled ?? true;
 
   const { data: stats } = await client
@@ -53,75 +53,61 @@ export default async function OwnerRewardsPage() {
   const tier = getOwnerPreferredTier(lifetimePoints);
   const bonusCents = getOwnerPreferredBonusCents(lifetimePoints);
   const enrolled = Boolean(profile?.owner_rewards_enrolled_at);
+  const rewardSummary = buildOwnerRewardSummary({
+    enrolled,
+    enrollmentEnabled: enrollmentFlag,
+    lifetimePoints,
+    tier,
+    bonusCents,
+  });
 
   return (
-    <div className="mx-auto max-w-4xl space-y-10 px-6 py-12">
-      <header className="rounded-3xl bg-[#0B1B3A] px-8 py-10 text-white shadow-sm">
-        <p className="text-xs uppercase tracking-[0.3em] text-white/60">Pixie Preferred™</p>
-        <h1 className="mt-3 text-3xl font-semibold text-white !text-white">Owner rewards</h1>
-        <p className="mt-2 max-w-2xl text-sm text-white/75">
-          Pixie Preferred recognizes consistent owners with higher per‑point earnings as stays complete.
-          Enrollment may close for new participants; existing members keep benefits.
-        </p>
-      </header>
+    <div className="space-y-8">
+      <OwnerPageHeader
+        eyebrow="Owner rewards"
+        title="Pixie Preferred rewards"
+        description="Review owner reward status and bonus eligibility without treating rewards as released earnings."
+        summary={rewardSummary.statusLabel}
+      />
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-slate-400">Your current status</p>
-            <p className="mt-2 text-lg font-semibold text-slate-900">
-              {enrolled ? "Enrolled" : enrollmentFlag ? "Not enrolled yet" : "Enrollment closed"}
-            </p>
-            <p className="mt-1 text-sm text-slate-500">Lifetime points: {lifetimePoints}</p>
+      <section className="grid gap-4 md:grid-cols-3">
+        {[
+          { label: "Current status", value: rewardSummary.statusLabel, helper: "Program enrollment state" },
+          { label: "Lifetime points", value: rewardSummary.lifetimePointsLabel, helper: "Completed owner activity" },
+          { label: "Current bonus", value: rewardSummary.bonusLabel, helper: `Tier: ${rewardSummary.tierLabel}` },
+        ].map((metric) => (
+          <Card key={metric.label} className="rounded-[18px] border border-[#E7E7E4] bg-white p-5 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#7A8495]">{metric.label}</p>
+            <p className="mt-3 text-2xl font-semibold tracking-tight text-[#10224A]">{metric.value}</p>
+            <p className="mt-2 text-sm leading-6 text-[#667085]">{metric.helper}</p>
+          </Card>
+        ))}
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <Card className="rounded-[18px] border border-[#E7E7E4] bg-white p-6 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
+          <h2 className="text-xl font-semibold text-[#10224A]">How bonuses grow</h2>
+          <ul className="mt-5 grid gap-3 text-sm text-[#667085] sm:grid-cols-2">
+            <li>0-299 points: +$0.00</li>
+            <li>300-599 points: +$0.50</li>
+            <li>600-999 points: +$1.00</li>
+            <li>1000-1499 points: +$1.50</li>
+            <li>1500+ points: +$2.00</li>
+          </ul>
+        </Card>
+
+        <Card className="rounded-[18px] border border-[#E7E7E4] bg-white p-6 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
+          <h2 className="text-xl font-semibold text-[#10224A]">Program notes</h2>
+          <div className="mt-4 space-y-3 text-sm leading-6 text-[#667085]">
+            <p>Reward tiers are honored without compromising guest fit or inventory quality.</p>
+            <p>Pixie Preferred can increase owner earnings only; it does not change guest pricing.</p>
+            <p>Enrollment may close for new participants, while existing enrolled owners keep benefits.</p>
           </div>
-          <div className="rounded-2xl bg-slate-50 px-5 py-4 text-center">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Current bonus</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-900">
-              +${(bonusCents / 100).toFixed(2)}/pt
-            </p>
-            <p className="text-xs text-slate-500">Tier: {tier}</p>
-          </div>
-        </div>
+          <Link href="/owner/dashboard" className="mt-5 inline-flex text-sm font-semibold text-[#10224A] underline-offset-4 hover:underline">
+            Return to overview
+          </Link>
+        </Card>
       </section>
-
-      <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900">How bonuses grow</h2>
-        <ul className="grid gap-3 text-sm text-slate-500 sm:grid-cols-2">
-          <li>0–299 points: +$0.00</li>
-          <li>300–599 points: +$0.50</li>
-          <li>600–999 points: +$1.00</li>
-          <li>1000–1499 points: +$1.50</li>
-          <li>1500+ points: +$2.00</li>
-        </ul>
-      </section>
-
-      <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900">How we prioritize</h2>
-        <p className="text-sm text-slate-500">
-          We balance speed and consistency across owners. Reward tiers are honored without
-          compromising guest fit or inventory quality.
-        </p>
-      </section>
-
-      <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900">FAQ</h2>
-        <div className="space-y-3 text-sm text-slate-500">
-          <p>
-            <strong>Does this change guest pricing?</strong> No. Pixie Preferred increases owner
-            earnings only.
-          </p>
-          <p>
-            <strong>What if enrollment closes?</strong> Enrollment may close for new participants;
-            existing members keep benefits.
-          </p>
-        </div>
-      </section>
-
-      <div>
-        <Link href="/owner/dashboard" className="text-sm font-semibold text-indigo-600 hover:underline">
-          ← Back to dashboard
-        </Link>
-      </div>
     </div>
   );
 }
