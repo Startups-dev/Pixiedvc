@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import OwnerShell from "@/components/owner/shell/OwnerShell";
+
 export default function OwnerLayout({ children }: { children: ReactNode }) {
-  return <div className="pixie-internal-buttons">{children}</div>;
+  return <OwnerShell>{children}</OwnerShell>;
 }

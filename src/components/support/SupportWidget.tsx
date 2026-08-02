@@ -24,7 +24,11 @@ export default function SupportWidget() {
   const isExcluded = useMemo(() => {
     if (!pathname) return false;
     return (
-      pathname.startsWith("/support") || pathname.startsWith("/affiliate") || pathname.startsWith("/pixie") || pathname.startsWith("/hara")
+      pathname.startsWith("/support") ||
+      pathname.startsWith("/affiliate") ||
+      pathname.startsWith("/owner") ||
+      pathname.startsWith("/pixie") ||
+      pathname.startsWith("/hara")
     );
   }, [pathname]);
 

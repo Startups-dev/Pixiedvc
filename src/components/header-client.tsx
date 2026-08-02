@@ -275,6 +275,10 @@ export default function HeaderClient({
     ],
   };
 
+  if (pathname?.startsWith("/owner")) {
+    return null;
+  }
+
   if (pathname?.startsWith("/affiliate")) {
     return (
       <AffiliatePortalHeader
