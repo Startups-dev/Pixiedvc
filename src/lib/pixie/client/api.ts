@@ -29,7 +29,7 @@ function parseStreamEvent(line: string): PixieChatEvent {
   } catch {
     throw new PixieChatApiError({
       code: "malformed_stream_event",
-      message: "Pixie returned an unreadable response. Your trip draft is still safe.",
+      message: "Hara returned an unreadable response. Your trip draft is still safe.",
     });
   }
 }
@@ -37,9 +37,9 @@ function parseStreamEvent(line: string): PixieChatEvent {
 async function readJsonError(response: Response): Promise<PixieClientError> {
   try {
     const data = (await response.json()) as { error?: PixieClientError };
-    return data.error ?? { code: "request_failed", message: "Pixie could not complete that request." };
+    return data.error ?? { code: "request_failed", message: "Hara could not complete that request." };
   } catch {
-    return { code: "request_failed", message: "Pixie could not complete that request." };
+    return { code: "request_failed", message: "Hara could not complete that request." };
   }
 }
 
@@ -64,7 +64,7 @@ export async function sendPixieMessage(input: SendPixieMessageInput) {
   }
 
   if (!response.body) {
-    throw new PixieChatApiError({ code: "empty_response", message: "Pixie returned an empty response." });
+    throw new PixieChatApiError({ code: "empty_response", message: "Hara returned an empty response." });
   }
 
   const reader = response.body.getReader();

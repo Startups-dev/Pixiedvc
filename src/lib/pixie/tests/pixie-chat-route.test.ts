@@ -78,7 +78,7 @@ describe("POST /api/pixie/chat", () => {
     process.env = originalEnv;
   });
 
-  it("streams a successful Pixie turn without raw provider data", async () => {
+  it("streams a successful Hara turn without raw provider data", async () => {
     const { POST } = await loadRoute();
     const response = await POST(
       request({
@@ -128,12 +128,12 @@ describe("POST /api/pixie/chat", () => {
     const text = await response.text();
     expect(text).toContain('"turn_failed"');
     expect(text).toContain('"provider_timeout"');
-    expect(text).toContain("Pixie is having trouble responding right now. Your trip draft is still safe.");
+    expect(text).toContain("Hara is having trouble responding right now. Your trip draft is still safe.");
     expect(text).not.toContain("OpenAI provider request timed out.");
     expect(text).not.toContain('"turn_completed"');
   });
 
-  it("accepts the first-turn recent messages produced by the Pixie client", async () => {
+  it("accepts the first-turn recent messages produced by the Hara client", async () => {
     const { POST } = await loadRoute();
     const clientState = beginPixieTurn(
       createInitialPixieChatState({ draftId: "draft_first_turn" }),

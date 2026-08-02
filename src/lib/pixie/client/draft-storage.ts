@@ -25,13 +25,13 @@ function canUseStorage() {
 function recoveryNotice(reason: string) {
   switch (reason) {
     case "corrupt_json":
-      return "Your previous Pixie draft could not be read, so Pixie started a fresh plan.";
+      return "Your previous Hara draft could not be read, so Hara started a fresh plan.";
     case "unsupported_draft_version":
-      return "Your previous Pixie draft used an older format, so Pixie started a fresh plan.";
+      return "Your previous Hara draft used an older format, so Hara started a fresh plan.";
     case "oversized":
-      return "Your previous Pixie draft was too large to restore safely, so Pixie started fresh.";
+      return "Your previous Hara draft was too large to restore safely, so Hara started fresh.";
     case "migrated":
-      return "Pixie updated your local draft format.";
+      return "Hara updated your local draft format.";
     default:
       return undefined;
   }

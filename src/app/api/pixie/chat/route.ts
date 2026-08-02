@@ -95,15 +95,15 @@ function safeErrorMessage(code: PixieAiError["code"]) {
     case "state_too_large":
       return "This draft is too large to process safely.";
     case "rate_limited":
-      return "Pixie is temporarily busy. Please try again in a moment.";
+      return "Hara is temporarily busy. Please try again in a moment.";
     case "configuration_error":
     case "model_not_found":
     case "authentication_failed":
     case "provider_unavailable":
     case "provider_timeout":
-      return "Pixie is having trouble responding right now. Your trip draft is still safe.";
+      return "Hara is having trouble responding right now. Your trip draft is still safe.";
     default:
-      return "Pixie could not complete that turn safely.";
+      return "Hara could not complete that turn safely.";
   }
 }
 
@@ -113,18 +113,18 @@ function ndjsonLine(value: unknown) {
 
 export async function POST(request: Request) {
   if (!isPixiePublicEnabled()) {
-    return safeError("pixie_disabled", "Pixie is not available yet.", 404);
+    return safeError("pixie_disabled", "Hara is not available yet.", 404);
   }
 
   const contentLength = Number.parseInt(request.headers.get("content-length") ?? "0", 10);
   if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
-    return safeError("state_too_large", "Pixie request is too large.", 413);
+    return safeError("state_too_large", "Hara request is too large.", 413);
   }
 
   try {
     getPixieAiConfig();
   } catch {
-    return safeError("configuration_error", "Pixie is not configured for public planning yet.", 503);
+    return safeError("configuration_error", "Hara is not configured for public planning yet.", 503);
   }
 
   let body: unknown;
@@ -136,20 +136,20 @@ export async function POST(request: Request) {
 
   const parsed = chatRequestSchema.safeParse(body);
   if (!parsed.success) {
-    return safeError("invalid_model_output", parsed.error.issues[0]?.message ?? "Invalid Pixie request.", 400);
+    return safeError("invalid_model_output", parsed.error.issues[0]?.message ?? "Invalid Hara request.", 400);
   }
 
   const windowMs = rateLimitWindowMs();
   const limit = rateLimitMaxRequests();
   const ipLimit = rateLimiter.check({ kind: "anonymous_ip", value: requestIpHash(request) }, { limit, windowMs });
   if (!ipLimit.allowed) {
-    return safeError("rate_limited", "Pixie is temporarily busy. Please try again in a moment.", 429, ipLimit.retryAfterMs);
+    return safeError("rate_limited", "Hara is temporarily busy. Please try again in a moment.", 429, ipLimit.retryAfterMs);
   }
 
   if (parsed.data.draftId) {
     const draftLimit = rateLimiter.check({ kind: "draft_session", value: parsed.data.draftId }, { limit: PIXIE_RATE_LIMIT_DEFAULTS.draftPerMinute, windowMs });
     if (!draftLimit.allowed) {
-      return safeError("rate_limited", "Pixie is temporarily busy. Please try again in a moment.", 429, draftLimit.retryAfterMs);
+      return safeError("rate_limited", "Hara is temporarily busy. Please try again in a moment.", 429, draftLimit.retryAfterMs);
     }
   }
 
@@ -172,7 +172,7 @@ export async function POST(request: Request) {
             ndjsonLine({
               type: "turn_failed",
               turnId: "pixie_turn_route_error",
-              error: pixieAiError("tool_execution_failed", "Pixie could not complete that turn safely."),
+              error: pixieAiError("tool_execution_failed", "Hara could not complete that turn safely."),
             }),
           ),
         );
