@@ -1,13 +1,11 @@
-import { Camera, Trash2 } from "lucide-react";
-
 import { Button, Card } from "@pixiedvc/design-system";
-import OwnerAvatar from "@/components/owner/shell/OwnerAvatar";
+import OwnerAvatarEditor from "@/components/owner/OwnerAvatarEditor";
 import OwnerPageHeader from "@/components/owner/shared/OwnerPageHeader";
 import { buildOwnerShellIdentity } from "@/lib/owner/identity";
 import { requireOwnerAccess } from "@/lib/owner/requireOwnerAccess";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
-import { removeOwnerAvatar, updateOwnerAccountDisplayName, uploadOwnerAvatar } from "./actions";
+import { updateOwnerAccountDisplayName } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -59,42 +57,12 @@ export default async function OwnerAccountPage({
 
       <section className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
         <Card className="rounded-[18px] border border-[#E7E7E4] bg-white p-6 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
-          <div className="flex flex-col items-start gap-5">
-            <OwnerAvatar
-              displayName={identity.displayName}
-              avatarUrl={identity.avatarUrl}
-              initials={identity.initials}
-              size="lg"
-            />
-            <div>
-              <h2 className="text-lg font-semibold text-[#10224A]">{identity.displayName ?? "Owner profile"}</h2>
-              <p className="mt-1 text-sm text-[#667085]">{identity.email ?? "Email unavailable"}</p>
-            </div>
-            <form action={uploadOwnerAvatar} className="w-full space-y-3">
-              <label className="block">
-                <span className="text-sm font-semibold text-[#10224A]">Profile photo</span>
-                <input
-                  name="avatar"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="mt-2 block w-full rounded-[12px] border border-[#E7E7E4] bg-white px-3 py-2 text-sm text-[#10224A] file:mr-4 file:rounded-full file:border-0 file:bg-[#10224A] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
-                />
-              </label>
-              <p className="text-xs leading-5 text-[#667085]">JPG, PNG, WebP, or GIF. Maximum 2 MB.</p>
-              <Button type="submit" className="gap-2">
-                <Camera aria-hidden="true" className="h-4 w-4" />
-                Upload photo
-              </Button>
-            </form>
-            {identity.avatarUrl ? (
-              <form action={removeOwnerAvatar}>
-                <Button type="submit" variant="ghost" className="gap-2">
-                  <Trash2 aria-hidden="true" className="h-4 w-4" />
-                  Remove photo
-                </Button>
-              </form>
-            ) : null}
-          </div>
+          <OwnerAvatarEditor
+            displayName={identity.displayName}
+            email={identity.email}
+            avatarUrl={identity.avatarUrl}
+            initials={identity.initials}
+          />
         </Card>
 
         <Card className="rounded-[18px] border border-[#E7E7E4] bg-white p-6 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
