@@ -50,15 +50,18 @@ export default function SiteFooter() {
   return (
     <footer className="border-t border-white/10 bg-[#0F2148] text-white">
       <div className="mx-auto max-w-6xl px-6 py-12 sm:py-14">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="grid gap-y-10 sm:grid-cols-2 lg:grid-cols-[170px_140px_140px_140px_150px_120px] lg:gap-x-9">
           <div className="space-y-3">
-            <Image
-              src="/images/hannadvc-logo.png"
-              alt="HannaDVC"
-              width={1962}
-              height={802}
-              className="h-auto w-[200px] object-contain"
-            />
+            <div className="relative h-[26px] w-[170px] overflow-hidden">
+              <Image
+                src="/images/hannadvc-logo.png"
+                alt="HannaDVC"
+                width={1962}
+                height={802}
+                className="h-auto w-[200px] max-w-none object-contain"
+                style={{ transform: "translate(-17px, -29px)" }}
+              />
+            </div>
             <p className="text-sm text-white/70">Disney Vacation Club rentals reimagined.</p>
           </div>
 
