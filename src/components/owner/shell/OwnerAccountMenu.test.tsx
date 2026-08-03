@@ -57,4 +57,22 @@ describe("OwnerAccountMenu", () => {
     expect(screen.getByRole("menuitem", { name: "Account settings" })).toHaveAttribute("href", "/owner/account");
     expect(screen.getByRole("menuitem", { name: "Sign out" })).toBeInTheDocument();
   });
+
+  it("falls back to initials when the avatar image fails to load", () => {
+    render(
+      <OwnerAccountMenu
+        identity={{
+          displayName: "Helena Aranha",
+          email: "helena@example.com",
+          avatarUrl: "https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/Owners-images/owners/user/avatar/missing.png",
+          initials: "HA",
+        }}
+      />,
+    );
+
+    fireEvent.error(screen.getByAltText("Helena Aranha profile photo"));
+
+    expect(screen.getByText("HA")).toBeInTheDocument();
+    expect(screen.queryByAltText("Helena Aranha profile photo")).not.toBeInTheDocument();
+  });
 });
