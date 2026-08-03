@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, LogOut, UserRound } from "lucide-react";
+import { ChevronDown, LogOut } from "lucide-react";
 
+import OwnerAvatar from "@/components/owner/shell/OwnerAvatar";
+import type { OwnerShellIdentity } from "@/lib/owner/identity-types";
 import { createClient } from "@/lib/supabase";
 
-export default function OwnerAccountMenu() {
+export default function OwnerAccountMenu({ identity }: { identity: OwnerShellIdentity }) {
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -61,12 +63,18 @@ export default function OwnerAccountMenu() {
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#D8B451]/20 text-[#0F1B33] ring-1 ring-[#D4AF37]/30">
-          <UserRound className="h-4 w-4" aria-hidden="true" />
-        </span>
+        <OwnerAvatar
+          displayName={identity.displayName}
+          avatarUrl={identity.avatarUrl}
+          initials={identity.initials}
+        />
         <span className="hidden leading-tight sm:block">
-          <span className="block text-[13px] font-semibold">Owner</span>
-          <span className="block text-[11px] font-medium text-[#64748B]">Account</span>
+          <span className="block max-w-[150px] truncate text-[13px] font-semibold">
+            {identity.displayName ?? identity.email ?? "Owner"}
+          </span>
+          <span className="block max-w-[150px] truncate text-[11px] font-medium text-[#64748B]">
+            {identity.email ?? "Account"}
+          </span>
         </span>
         <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
       </button>
@@ -78,7 +86,7 @@ export default function OwnerAccountMenu() {
           className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-[16px] border border-[#E7E3DA] bg-white p-2 text-sm text-[#10224A] shadow-[0_20px_45px_rgba(16,34,74,0.14)]"
         >
           <Link
-            href="/owner/memberships"
+            href="/owner/account"
             role="menuitem"
             className="block rounded-[12px] px-3 py-2 outline-none transition hover:bg-[#FAFAF8] focus-visible:bg-[#FAFAF8]"
             onClick={() => setOpen(false)}

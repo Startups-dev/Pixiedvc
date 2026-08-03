@@ -5,8 +5,9 @@ import { Bell } from "lucide-react";
 
 import OwnerAccountMenu from "@/components/owner/shell/OwnerAccountMenu";
 import OwnerMobileNav from "@/components/owner/shell/OwnerMobileNav";
+import type { OwnerShellIdentity } from "@/lib/owner/identity-types";
 
-export default function OwnerTopBar() {
+export default function OwnerTopBar({ identity }: { identity: OwnerShellIdentity }) {
   return (
     <header className="sticky top-0 z-40 border-b border-[#E7E3DA] bg-white/92 backdrop-blur supports-[backdrop-filter]:bg-white/82">
       <div className="flex min-h-[72px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
@@ -23,7 +24,7 @@ export default function OwnerTopBar() {
           >
             <Bell className="h-[18px] w-[18px]" aria-hidden="true" />
           </Link>
-          <OwnerAccountMenu />
+          <OwnerAccountMenu identity={identity} />
         </div>
       </div>
     </header>

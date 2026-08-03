@@ -3,8 +3,11 @@ import type { ReactNode } from "react";
 import OwnerSidebar from "@/components/owner/shell/OwnerSidebar";
 import OwnerStatusBadge from "@/components/owner/shell/OwnerStatusBadge";
 import OwnerTopBar from "@/components/owner/shell/OwnerTopBar";
+import { loadOwnerShellIdentity } from "@/lib/owner/identity";
 
-export default function OwnerShell({ children }: { children: ReactNode }) {
+export default async function OwnerShell({ children }: { children: ReactNode }) {
+  const identity = await loadOwnerShellIdentity();
+
   return (
     <div className="min-h-screen bg-[#FAFAF8] text-[#10224A]">
       <a
@@ -16,7 +19,7 @@ export default function OwnerShell({ children }: { children: ReactNode }) {
       <div className="flex min-h-screen">
         <OwnerSidebar />
         <div className="flex min-w-0 flex-1 flex-col">
-          <OwnerTopBar />
+          <OwnerTopBar identity={identity} />
           <main id="owner-main-content" tabIndex={-1} className="min-w-0 flex-1 outline-none">
             <div className="mx-auto w-full max-w-[1240px] px-0 py-0">
               {children}
