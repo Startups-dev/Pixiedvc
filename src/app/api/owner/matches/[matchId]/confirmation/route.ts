@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
@@ -13,7 +12,6 @@ export async function POST(
   { params }: { params: Promise<{ matchId: string }> },
 ) {
   const { matchId } = await params;
-  const cookieStore = await cookies();
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -45,10 +43,21 @@ export async function POST(
     return NextResponse.json({ error: "Invalid confirmation number." }, { status: 400 });
   }
 
+  const { data: owner } = await adminClient
+    .from("owners")
+    .select("id, user_id")
+    .or(`id.eq.${user.id},user_id.eq.${user.id}`)
+    .maybeSingle();
+
+  if (!owner) {
+    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 404 });
+  }
+
   const { data: match } = await adminClient
     .from("booking_matches")
     .select("id, booking_id, status, owner_id, owner_membership_id, points_reserved_current, points_reserved_borrowed")
     .eq("id", matchId)
+    .eq("owner_id", owner.id)
     .maybeSingle();
 
   if (!match) {

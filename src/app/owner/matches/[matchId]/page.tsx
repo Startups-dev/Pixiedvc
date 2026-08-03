@@ -6,6 +6,7 @@ import { Card } from "@pixiedvc/design-system";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getOwnerMatchDetail } from "@/lib/owner-data";
 import { formatCurrency } from "@/lib/owner-portal";
+import { canOwnerViewMatchGuestContact } from "@/lib/owner/security";
 import OwnerMatchActions from "@/components/owner/OwnerMatchActions";
 import styles from "./match-header.module.css";
 
@@ -102,10 +103,10 @@ export default async function OwnerMatchDetailPage({
   const ownerTotalCents =
     typeof match.owner_total_cents === "number" ? match.owner_total_cents : null;
   const premiumApplied = Boolean(match.owner_home_resort_premium_applied);
-  const guestTotalCents =
-    typeof booking?.guest_total_cents === "number" ? booking.guest_total_cents : null;
-  const guestRatePerPointCents =
-    typeof booking?.guest_rate_per_point_cents === "number" ? booking.guest_rate_per_point_cents : null;
+  const canViewGuestContactDetails = canOwnerViewMatchGuestContact({
+    matchStatus: match.status,
+    rentalId: match.rental_id ?? null,
+  });
 
   const serverNow = new Date().toISOString();
   const matchCreatedAt = match.created_at ? new Date(match.created_at).getTime() : null;
@@ -179,13 +180,23 @@ export default async function OwnerMatchDetailPage({
             </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Lead guest</p>
-            <p className="mt-2 font-semibold text-ink">{booking?.lead_guest_name ?? "Guest TBD"}</p>
-            <p>{booking?.lead_guest_email ?? "Email TBD"}</p>
-            <p>{booking?.lead_guest_phone ?? "Phone TBD"}</p>
-            <p className="mt-2 text-slate-500">{formatAddress(booking)}</p>
-          </div>
+          {canViewGuestContactDetails ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Lead guest</p>
+              <p className="mt-2 font-semibold text-ink">{booking?.lead_guest_name ?? "Guest TBD"}</p>
+              <p>{booking?.lead_guest_email ?? "Email TBD"}</p>
+              <p>{booking?.lead_guest_phone ?? "Phone TBD"}</p>
+              <p className="mt-2 text-slate-500">{formatAddress(booking)}</p>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Lead guest</p>
+              <p className="mt-2 font-semibold text-ink">{familyLabel}</p>
+              <p className="mt-2 text-slate-500">
+                Direct guest contact details are shared after you accept and a reservation workflow is created.
+              </p>
+            </div>
+          )}
 
           <div className="space-y-3 text-sm text-slate-700">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Guest roster</p>
@@ -199,8 +210,8 @@ export default async function OwnerMatchDetailPage({
                       <th className="px-2 py-2">Guest</th>
                       <th className="px-2 py-2">Type</th>
                       <th className="px-2 py-2">Age</th>
-                      <th className="px-2 py-2">Email</th>
-                      <th className="px-2 py-2">Phone</th>
+                      {canViewGuestContactDetails ? <th className="px-2 py-2">Email</th> : null}
+                      {canViewGuestContactDetails ? <th className="px-2 py-2">Phone</th> : null}
                     </tr>
                   </thead>
                   <tbody>
@@ -211,8 +222,8 @@ export default async function OwnerMatchDetailPage({
                         </td>
                         <td className="px-2 py-2">{guest.age_category ?? "—"}</td>
                         <td className="px-2 py-2">{guest.age ?? "—"}</td>
-                        <td className="px-2 py-2">{guest.email ?? "—"}</td>
-                        <td className="px-2 py-2">{guest.phone ?? "—"}</td>
+                        {canViewGuestContactDetails ? <td className="px-2 py-2">{guest.email ?? "—"}</td> : null}
+                        {canViewGuestContactDetails ? <td className="px-2 py-2">{guest.phone ?? "—"}</td> : null}
                       </tr>
                     ))}
                   </tbody>
@@ -224,17 +235,19 @@ export default async function OwnerMatchDetailPage({
             </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Deposit status</p>
-            <p className="mt-2 font-semibold text-ink">
-              {booking?.deposit_paid && booking.deposit_paid >= 99 ? "Deposit collected ($99)" : "Deposit pending"}
-            </p>
-            <p className="text-xs text-slate-500">
-              Paid: {booking?.deposit_paid ?? 0} {booking?.deposit_currency ?? "USD"} · Due: {booking?.deposit_due ?? 99} {booking?.deposit_currency ?? "USD"}
-            </p>
-          </div>
+          {canViewGuestContactDetails ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Deposit status</p>
+              <p className="mt-2 font-semibold text-ink">
+                {booking?.deposit_paid && booking.deposit_paid >= 99 ? "Deposit collected ($99)" : "Deposit pending"}
+              </p>
+              <p className="text-xs text-slate-500">
+                Paid: {booking?.deposit_paid ?? 0} {booking?.deposit_currency ?? "USD"} · Due: {booking?.deposit_due ?? 99} {booking?.deposit_currency ?? "USD"}
+              </p>
+            </div>
+          ) : null}
 
-          {(booking?.comments || booking?.requires_accessibility) ? (
+          {canViewGuestContactDetails && (booking?.comments || booking?.requires_accessibility) ? (
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
               <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Special needs / notes</p>
               <p className="mt-2">

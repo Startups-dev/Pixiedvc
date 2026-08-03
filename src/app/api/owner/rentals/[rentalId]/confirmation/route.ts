@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { ensureAffiliateConversionForBooking } from "@/lib/affiliate-conversions";
 import { calculatePayoutAmountCents } from "@/lib/owner-portal";
+import { isOwnerRentalDocumentStoragePath } from "@/lib/owner/security";
 import { ensureGuestAgreementForBooking } from "@/server/contracts";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ rentalId: string }> },
 ) {
-  const cookieStore = await cookies();
   const authClient = await createSupabaseServerClient();
   const {
     data: { user },
@@ -41,6 +40,14 @@ export async function POST(
 
   if (resolvedConfirmation.length < 6) {
     return NextResponse.json({ error: "Invalid confirmation number." }, { status: 400 });
+  }
+
+  if (
+    storage_path &&
+    (typeof storage_path !== "string" ||
+      !isOwnerRentalDocumentStoragePath({ storagePath: storage_path, userId: user.id, rentalId }))
+  ) {
+    return NextResponse.json({ error: "Invalid document path." }, { status: 403 });
   }
 
   const client = getSupabaseAdminClient() ?? authClient;

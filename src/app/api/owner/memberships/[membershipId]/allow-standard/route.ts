@@ -29,6 +29,20 @@ export async function POST(
     return NextResponse.json({ error: "Service role not configured" }, { status: 500 });
   }
 
+  const { data: owner, error: ownerError } = await adminClient
+    .from("owners")
+    .select("id, user_id")
+    .or(`id.eq.${user.id},user_id.eq.${user.id}`)
+    .maybeSingle();
+
+  if (ownerError) {
+    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
+  }
+
+  if (!owner) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const { data: membership, error: membershipError } = await adminClient
     .from("owner_memberships")
     .select("id, owner_id")
@@ -39,7 +53,7 @@ export async function POST(
     return NextResponse.json({ error: membershipError.message }, { status: 500 });
   }
 
-  if (!membership || membership.owner_id !== user.id) {
+  if (!membership || membership.owner_id !== owner.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

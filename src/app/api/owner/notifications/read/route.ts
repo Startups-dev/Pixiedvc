@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -23,6 +21,7 @@ export async function POST(request: Request) {
   const { error } = await supabase
     .from("notifications")
     .update({ read_at: new Date().toISOString() })
+    .eq("user_id", user.id)
     .in("id", ids);
 
   if (error) {
