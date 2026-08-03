@@ -151,77 +151,79 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
   } = props;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-12 px-6 py-12">
-      {showOnboardingMessage ? (
-        <Card className="rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-sm text-emerald-900 shadow-sm">
-          Thanks for finishing onboarding. Everything you need stays here on the dashboard.
-        </Card>
-      ) : null}
-      {showResaleRestrictionBanner ? (
-        <Card className="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-4 text-sm text-amber-900 shadow-sm">
-          Resale memberships acquired on/after Jan 19, 2019 have booking restrictions at certain resorts (including Riviera, Villas at Disneyland Hotel, and the Cabins at Fort Wilderness). HannaDVC will automatically avoid matching you to requests you can’t book.
-        </Card>
-      ) : null}
-
-      {activeTab !== "overview" ? (
-        <section className="space-y-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-semibold tracking-tight text-ink">
-              {displayName ? `${displayName}'s dashboard` : "Owner dashboard"}
-            </h1>
-            {foundingOwnerSummary?.active ? <FoundingOwnerBadge variant="artwork" /> : null}
-          </div>
-          {foundingOwnerSummary?.active ? (
-            <p className="text-sm text-slate-600">
-              You&apos;re part of the HannaDVC Founding Owner Circle.
-            </p>
+    <div className="mx-auto w-full max-w-[1380px] px-4 py-6 sm:px-6 lg:px-8">
+      <div className="rounded-[18px] border border-[#E7E7E4] bg-white p-5 shadow-[0_20px_70px_rgba(15,27,51,0.055)] sm:p-7 lg:p-8">
+        <div className="space-y-10">
+          {showOnboardingMessage ? (
+            <Card className="rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-4 text-sm text-emerald-900 shadow-sm">
+              Thanks for finishing onboarding. Everything you need stays here on the dashboard.
+            </Card>
           ) : null}
-        </section>
-      ) : null}
+          {showResaleRestrictionBanner ? (
+            <Card className="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-4 text-sm text-amber-900 shadow-sm">
+              Resale memberships acquired on/after Jan 19, 2019 have booking restrictions at certain resorts (including Riviera, Villas at Disneyland Hotel, and the Cabins at Fort Wilderness). HannaDVC will automatically avoid matching you to requests you can’t book.
+            </Card>
+          ) : null}
 
-      <OwnerDashboardTabs tabs={tabs} activeTab={activeTab} />
+          {activeTab !== "overview" ? (
+            <section className="space-y-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-3xl font-semibold tracking-tight text-ink">
+                  {displayName ? `${displayName}'s dashboard` : "Owner dashboard"}
+                </h1>
+                {foundingOwnerSummary?.active ? <FoundingOwnerBadge variant="artwork" /> : null}
+              </div>
+              {foundingOwnerSummary?.active ? (
+                <p className="text-sm text-slate-600">
+                  You&apos;re part of the HannaDVC Founding Owner Circle.
+                </p>
+              ) : null}
+            </section>
+          ) : null}
 
-      {activeTab === "listings" ? (
-        listingsMode === "add" ? (
-          <section className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted">Listings</p>
-            <h1 className="text-3xl font-semibold tracking-tight text-ink">Add a Ready Stay</h1>
-            <p className="text-sm text-muted">
-              Add and verify your Disney reservation to list it for instant booking.
-            </p>
-          </section>
-        ) : (
-          <section className="space-y-6">
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted">Listings</p>
-              <h1 className="text-3xl font-semibold tracking-tight text-ink">Ready Stay Listings</h1>
-              <p className="text-sm text-muted">Choose where you want to go.</p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card className="space-y-3">
-                <p className="text-xs uppercase tracking-[0.3em] text-muted">Manage</p>
-                <h2 className="text-xl font-semibold text-ink">My Posted Reservations</h2>
+          {activeTab !== "overview" ? <OwnerDashboardTabs tabs={tabs} activeTab={activeTab} /> : null}
+
+          {activeTab === "listings" ? (
+            listingsMode === "add" ? (
+              <section className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted">Listings</p>
+                <h1 className="text-3xl font-semibold tracking-tight text-ink">Add a Ready Stay</h1>
                 <p className="text-sm text-muted">
-                  View active, pending transfer, and sold Ready Stays.
+                  Add and verify your Disney reservation to list it for instant booking.
                 </p>
-                <Button asChild>
-                  <Link href="/owner/ready-stays">Open inventory</Link>
-                </Button>
-              </Card>
-              <Card className="space-y-3">
-                <p className="text-xs uppercase tracking-[0.3em] text-muted">Create</p>
-                <h2 className="text-xl font-semibold text-ink">Add Reservation</h2>
-                <p className="text-sm text-muted">
-                  Add a new reservation and publish it as a Ready Stay.
-                </p>
-                <Button asChild variant="ghost">
-                  <Link href="/owner/dashboard?tab=listings&mode=add">Add reservation</Link>
-                </Button>
-              </Card>
-            </div>
-          </section>
-        )
-      ) : null}
+              </section>
+            ) : (
+              <section className="space-y-6">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted">Listings</p>
+                  <h1 className="text-3xl font-semibold tracking-tight text-ink">Ready Stay Listings</h1>
+                  <p className="text-sm text-muted">Choose where you want to go.</p>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Card className="space-y-3">
+                    <p className="text-xs uppercase tracking-[0.3em] text-muted">Manage</p>
+                    <h2 className="text-xl font-semibold text-ink">My Posted Reservations</h2>
+                    <p className="text-sm text-muted">
+                      View active, pending transfer, and sold Ready Stays.
+                    </p>
+                    <Button asChild>
+                      <Link href="/owner/ready-stays">Open inventory</Link>
+                    </Button>
+                  </Card>
+                  <Card className="space-y-3">
+                    <p className="text-xs uppercase tracking-[0.3em] text-muted">Create</p>
+                    <h2 className="text-xl font-semibold text-ink">Add Reservation</h2>
+                    <p className="text-sm text-muted">
+                      Add a new reservation and publish it as a Ready Stay.
+                    </p>
+                    <Button asChild variant="ghost">
+                      <Link href="/owner/dashboard?tab=listings&mode=add">Add reservation</Link>
+                    </Button>
+                  </Card>
+                </div>
+              </section>
+            )
+          ) : null}
 
       {activeTab === "overview" ? (
         <OwnerDashboardOverview viewModel={overview} />
@@ -448,6 +450,8 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
           body="Secure document storage for agreements and confirmations is coming soon."
         />
       ) : null}
+      </div>
+      </div>
     </div>
   );
 }

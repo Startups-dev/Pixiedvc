@@ -38,15 +38,15 @@ export default function OwnerNavigation({ section, onNavigate }: OwnerNavigation
                 onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
                 className={[
-                  "group flex min-h-11 items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-medium outline-none transition",
-                  "focus-visible:ring-2 focus-visible:ring-[#E5C05A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#10224A]",
+                  "group flex min-h-10 items-center gap-3 rounded-[10px] px-3 py-2 text-[14px] font-medium outline-none transition",
+                  "focus-visible:ring-2 focus-visible:ring-[#E5C05A] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F1B33]",
                   active
-                    ? "bg-white/10 text-white shadow-[inset_3px_0_0_#E5C05A]"
-                    : "text-white/72 hover:bg-white/[0.07] hover:text-white",
+                    ? "bg-white/10 text-white shadow-[inset_3px_0_0_#D4AF37]"
+                    : "text-white/72 hover:bg-white/[0.065] hover:text-white",
                 ].join(" ")}
               >
                 <Icon
-                  className={active ? "h-[18px] w-[18px] text-[#E5C05A]" : "h-[18px] w-[18px] text-white/48 group-hover:text-white/72"}
+                  className={active ? "h-[17px] w-[17px] text-[#D4AF37]" : "h-[17px] w-[17px] text-white/52 group-hover:text-white/72"}
                   aria-hidden="true"
                 />
                 <span>{item.label}</span>

@@ -60,12 +60,12 @@ describe("OwnerDashboardOverview", () => {
   it("renders the Phase B KPI cards and empty states", () => {
     render(<OwnerDashboardOverview viewModel={viewModel} />);
 
-    expect(screen.getByRole("heading", { name: "Owner Earnings" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Good (morning|afternoon|evening), Helena/i })).toBeInTheDocument();
     expect(screen.getByText("Total earned")).toBeInTheDocument();
     expect(screen.getByText("Pending payout")).toBeInTheDocument();
     expect(screen.getByText("Active reservations")).toBeInTheDocument();
     expect(screen.getByText("Confirmed stays")).toBeInTheDocument();
-    expect(screen.getByText("You're all caught up")).toBeInTheDocument();
+    expect(screen.getByText("Nice work! You're all caught up.")).toBeInTheDocument();
     expect(screen.getByText("No payouts have been released yet.")).toBeInTheDocument();
     expect(screen.getByText("No active reservations.")).toBeInTheDocument();
   });

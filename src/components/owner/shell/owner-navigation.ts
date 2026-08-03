@@ -1,7 +1,6 @@
 import {
   Bell,
   BriefcaseBusiness,
-  CircleDollarSign,
   Gift,
   HelpCircle,
   Home,
@@ -25,7 +24,7 @@ export type OwnerNavigationItem = {
 
 export const OWNER_NAVIGATION_ITEMS: OwnerNavigationItem[] = [
   {
-    label: "Overview",
+    label: "Dashboard",
     href: "/owner/dashboard",
     icon: Home,
     section: "primary",
@@ -33,15 +32,15 @@ export const OWNER_NAVIGATION_ITEMS: OwnerNavigationItem[] = [
     mobilePriority: true,
   },
   {
-    label: "Listings",
-    href: "/owner/ready-stays",
+    label: "Matches",
+    href: "/owner/matches",
     icon: ListChecks,
     section: "primary",
     match: "prefix",
     mobilePriority: true,
   },
   {
-    label: "Reservations",
+    label: "Rentals",
     href: "/owner/rentals",
     icon: BriefcaseBusiness,
     section: "primary",
@@ -49,11 +48,11 @@ export const OWNER_NAVIGATION_ITEMS: OwnerNavigationItem[] = [
     mobilePriority: true,
   },
   {
-    label: "Earnings",
-    href: "/owner/dashboard?tab=earnings",
-    icon: CircleDollarSign,
+    label: "Ready Stays",
+    href: "/owner/ready-stays",
+    icon: Home,
     section: "primary",
-    match: "exact",
+    match: "prefix",
   },
   {
     label: "Payouts",
@@ -70,7 +69,7 @@ export const OWNER_NAVIGATION_ITEMS: OwnerNavigationItem[] = [
     match: "prefix",
   },
   {
-    label: "Account",
+    label: "Memberships",
     href: "/owner/memberships",
     icon: Settings,
     section: "secondary",
@@ -117,7 +116,7 @@ export const OWNER_ROUTE_TITLES: Array<{ href: string; title: string; match: "ex
 ];
 
 const ACTIVE_PARENT_BY_PREFIX: Array<{ prefix: string; parentHref: string }> = [
-  { prefix: "/owner/matches", parentHref: "/owner/rentals" },
+  { prefix: "/owner/matches", parentHref: "/owner/matches" },
   { prefix: "/owner/ready-stays", parentHref: "/owner/ready-stays" },
   { prefix: "/owner/rentals", parentHref: "/owner/rentals" },
   { prefix: "/owner/memberships", parentHref: "/owner/memberships" },

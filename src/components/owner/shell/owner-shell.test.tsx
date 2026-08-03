@@ -100,7 +100,7 @@ describe("owner shell navigation", () => {
     const hrefs = OWNER_NAVIGATION_ITEMS.map((item) => item.href);
 
     expect(hrefs).toContain("/owner/dashboard");
-    expect(hrefs).toContain("/owner/dashboard?tab=earnings");
+    expect(hrefs).toContain("/owner/matches");
     expect(hrefs).toContain("/owner/ready-stays");
     expect(hrefs).toContain("/owner/rentals");
     expect(hrefs).toContain("/owner/rewards");
@@ -111,21 +111,23 @@ describe("owner shell navigation", () => {
   });
 
   it("marks nested routes against the correct parent item", () => {
+    const matches = OWNER_NAVIGATION_ITEMS.find((item) => item.href === "/owner/matches");
     const reservations = OWNER_NAVIGATION_ITEMS.find((item) => item.href === "/owner/rentals");
     const listings = OWNER_NAVIGATION_ITEMS.find((item) => item.href === "/owner/ready-stays");
     const payouts = OWNER_NAVIGATION_ITEMS.find((item) => item.href === "/owner/payouts");
 
-    expect(reservations && isOwnerNavigationItemActive(reservations, "/owner/matches/abc")).toBe(true);
+    expect(matches && isOwnerNavigationItemActive(matches, "/owner/matches/abc")).toBe(true);
+    expect(reservations && isOwnerNavigationItemActive(reservations, "/owner/matches/abc")).toBe(false);
     expect(listings && isOwnerNavigationItemActive(listings, "/owner/ready-stays/abc/booking-package")).toBe(true);
     expect(payouts && isOwnerNavigationItemActive(payouts, "/owner/ready-stays/abc")).toBe(false);
   });
 
-  it("activates existing dashboard tab links without creating placeholder routes", () => {
-    const earnings = OWNER_NAVIGATION_ITEMS.find((item) => item.label === "Earnings");
-    const overview = OWNER_NAVIGATION_ITEMS.find((item) => item.label === "Overview");
+  it("activates the dashboard landing without creating placeholder routes", () => {
+    const dashboard = OWNER_NAVIGATION_ITEMS.find((item) => item.label === "Dashboard");
+    const matches = OWNER_NAVIGATION_ITEMS.find((item) => item.label === "Matches");
 
-    expect(earnings && isOwnerNavigationItemActive(earnings, "/owner/dashboard?tab=earnings")).toBe(true);
-    expect(overview && isOwnerNavigationItemActive(overview, "/owner/dashboard?tab=earnings")).toBe(false);
+    expect(dashboard && isOwnerNavigationItemActive(dashboard, "/owner/dashboard")).toBe(true);
+    expect(matches && isOwnerNavigationItemActive(matches, "/owner/dashboard")).toBe(false);
   });
 
   it("derives safe page titles from the owner route", () => {
@@ -139,8 +141,8 @@ describe("owner shell navigation", () => {
 
     render(<OwnerNavigation section="primary" />);
 
-    expect(screen.getByRole("link", { name: /listings/i })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("link", { name: /overview/i })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: /ready stays/i })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: /dashboard/i })).not.toHaveAttribute("aria-current");
   });
 });
 
