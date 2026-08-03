@@ -1,4 +1,5 @@
 import type { NotificationRow, OwnerMembership } from "@/lib/owner-data";
+import { POINT_STATUS_NOTIFICATION_TYPES, type PointStatusAction } from "@/lib/owner/point-status";
 import {
   getOwnerReadyStayStatusLabel,
   getOwnerRewardStatusLabel,
@@ -61,6 +62,11 @@ export type OwnerNotificationListItem = {
   createdAtLabel: string;
   read: boolean;
   canManageFallbackPrompt: boolean;
+  pointStatusAction: {
+    membershipId: string;
+    actions: PointStatusAction[];
+    contextLabel: string;
+  } | null;
 };
 
 function formatDate(value: string | null | undefined) {
@@ -169,16 +175,53 @@ function safeOwnerHref(link: string | null) {
   return null;
 }
 
+function getMembershipIdFromOwnerHref(href: string | null) {
+  if (!href) return null;
+  try {
+    const url = new URL(href, "https://hannadvc.local");
+    const membershipId = url.searchParams.get("membershipId");
+    return membershipId && /^[A-Za-z0-9_-]+$/.test(membershipId) ? membershipId : null;
+  } catch {
+    return null;
+  }
+}
+
+function buildPointStatusAction(notification: NotificationRow, href: string | null): OwnerNotificationListItem["pointStatusAction"] {
+  if (!POINT_STATUS_NOTIFICATION_TYPES.includes(notification.type as (typeof POINT_STATUS_NOTIFICATION_TYPES)[number])) return null;
+  const membershipId = getMembershipIdFromOwnerHref(href);
+  if (!membershipId) return null;
+
+  const actions: PointStatusAction[] =
+    notification.type === "point_status_banking_deadline"
+      ? ["mark_banked", "still_available", "remind_later"]
+      : ["mark_expired", "still_available", "remind_later"];
+
+  return {
+    membershipId,
+    actions,
+    contextLabel:
+      notification.type === "point_status_banking_deadline"
+        ? "Banking deadline review"
+        : notification.type === "point_status_expiring_soon"
+          ? "Expiration review"
+          : "Expired-points confirmation",
+  };
+}
+
 export function buildOwnerNotificationListItems(notifications: NotificationRow[]): OwnerNotificationListItem[] {
-  return notifications.map((notification) => ({
-    id: notification.id,
-    title: redactNotificationText(notification.title) ?? "Notification",
-    body: redactNotificationText(notification.body),
-    href: safeOwnerHref(notification.link),
-    createdAtLabel: formatDate(notification.created_at),
-    read: Boolean(notification.read_at),
-    canManageFallbackPrompt: notification.type === "premium_fallback_prompt",
-  }));
+  return notifications.map((notification) => {
+    const href = safeOwnerHref(notification.link);
+    return {
+      id: notification.id,
+      title: redactNotificationText(notification.title) ?? "Notification",
+      body: redactNotificationText(notification.body),
+      href,
+      createdAtLabel: formatDate(notification.created_at),
+      read: Boolean(notification.read_at),
+      canManageFallbackPrompt: notification.type === "premium_fallback_prompt",
+      pointStatusAction: buildPointStatusAction(notification, href),
+    };
+  });
 }
 
 export function getOwnerVerificationSummary(status: string | null | undefined) {

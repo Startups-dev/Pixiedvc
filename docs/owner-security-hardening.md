@@ -226,6 +226,8 @@ This phase sanitized owner document insert failures and kept cross-owner mutatio
 
 Existing audit coverage remains incomplete for owner-sensitive workflows.
 
+Point-status confirmation actions reuse `owner_points_events` for narrow audit metadata. Banked, expired, still-available, and remind-later actions record the owner membership, action type, timestamp, source, and resulting point amount where applicable. They do not log banking credentials, guest data, signed URLs, or full owner records.
+
 Recommended future audit events:
 
 - match accept/decline;

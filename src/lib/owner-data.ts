@@ -1,8 +1,9 @@
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
-import { getMilestoneStatus } from "@/lib/owner-portal";
+import { getMilestoneStatus, normalizeMilestones } from "@/lib/owner-portal";
 import { daysUntil } from "@/lib/dvc-dates";
 import { getMembershipExpirationDate } from "@/lib/owner-nudges";
+import { generatePointStatusNotifications } from "@/lib/owner/point-status";
 import type { RequestCookies } from "next/dist/compiled/@edge-runtime/cookies";
 
 export type OwnerProfile = {
@@ -188,7 +189,8 @@ async function getOwnerIdentity(userId: string, cookieStore?: RequestCookies) {
   return { owner, supabase, adminClient };
 }
 
-async function getServerClient(cookieStore?: RequestCookies) {
+async function getServerClient(_cookieStore?: RequestCookies) {
+  void _cookieStore;
   return createSupabaseServerClient();
 }
 
@@ -644,20 +646,12 @@ export async function ensurePointsExpiringNotification(userId: string, membershi
 export async function expireMembershipBuckets() {
   const adminClient = getSupabaseAdminClient();
   if (!adminClient) return;
-  const today = new Date().toISOString().slice(0, 10);
-  await adminClient
-    .from("owner_memberships")
-    .update({ expired_assumed_at: new Date().toISOString() })
-    .is("expired_assumed_at", null)
-    .is("banked_assumed_at", null)
-    .lt("use_year_end", today)
-    .eq("points_reserved", 0)
-    .eq("points_rented", 0);
+  await generatePointStatusNotifications({ client: adminClient });
 }
 
 export async function ensureApprovalNotifications(userId: string, rentals: RentalRow[]) {
   const needsApproval = rentals.some(
-    (rental) => getMilestoneStatus("owner_approved", (rental.rental_milestones ?? []) as any) !== "completed",
+    (rental) => getMilestoneStatus("owner_approved", normalizeMilestones(rental.rental_milestones ?? [])) !== "completed",
   );
 
   if (!needsApproval) return;

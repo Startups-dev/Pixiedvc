@@ -6,6 +6,7 @@ import OwnerPageHeader from "@/components/owner/shared/OwnerPageHeader";
 import { requireOwnerAccess } from "@/lib/owner/requireOwnerAccess";
 import { getOwnerMemberships } from "@/lib/owner-data";
 import { buildOwnerMembershipListItems } from "@/lib/owner/secondary-subpages";
+import { getMembershipNudge } from "@/lib/owner-nudges";
 
 import { updateOwnerMembershipMatchingPreferences } from "./actions";
 
@@ -38,6 +39,28 @@ export default async function OwnerMembershipPreferencesPage() {
           {memberships.map((membership) => {
             const item = membershipItems.find((entry) => entry.id === membership.id);
             const currentMode = membership.matching_mode === "premium_then_standard" ? "premium_then_standard" : "premium_only";
+            const nudge = getMembershipNudge(membership);
+            const pointStatus = membership.banked_assumed_at
+              ? {
+                  label: "Banked",
+                  body: "HannaDVC is treating these points as banked for matching purposes based on owner confirmation.",
+                }
+              : membership.expired_assumed_at
+                ? {
+                    label: "Expired",
+                    body: "HannaDVC is treating these points as expired for matching purposes based on owner confirmation.",
+                  }
+                : nudge?.stage === "banking"
+                  ? {
+                      label: "Banking deadline approaching",
+                      body: "If these points have been banked, use the owner notification action so matching stays accurate.",
+                    }
+                  : nudge?.stage === "expiration"
+                    ? {
+                        label: "Expiring soon",
+                        body: "Review the related notification when it appears so HannaDVC can confirm whether these points remain available.",
+                      }
+                    : null;
             return (
               <form
                 key={membership.id}
@@ -68,6 +91,13 @@ export default async function OwnerMembershipPreferencesPage() {
                       </div>
                     </dl>
                   </div>
+
+                  {pointStatus ? (
+                    <div className="rounded-[14px] border border-[#ECECE8] bg-white p-4">
+                      <p className="text-sm font-semibold text-[#10224A]">{pointStatus.label}</p>
+                      <p className="mt-1 text-xs leading-5 text-[#667085]">{pointStatus.body}</p>
+                    </div>
+                  ) : null}
 
                   <Card className="rounded-[14px] border border-[#ECECE8] bg-white p-4">
                     <label className="block">

@@ -123,4 +123,29 @@ describe("owner secondary subpage view models", () => {
     expect(items[0].href).toBeNull();
     expect(items[0]).not.toHaveProperty("type");
   });
+
+  it("maps point-status notifications to safe owner actions without exposing raw types", () => {
+    const items = buildOwnerNotificationListItems([
+      notification({
+        type: "point_status_banking_deadline",
+        title: "Review your banking deadline",
+        body: "Please confirm whether points are still available or banked.",
+        link: "/owner/notifications?membershipId=membership-1&pointStatus=banking_deadline",
+      }),
+      notification({
+        id: "notification-2",
+        type: "point_status_expired_confirmation_needed",
+        title: "Confirm the status of expired points",
+        link: "/owner/notifications?membershipId=membership-2&pointStatus=expired_confirmation",
+      }),
+    ]);
+
+    expect(items[0].pointStatusAction).toEqual({
+      membershipId: "membership-1",
+      actions: ["mark_banked", "still_available", "remind_later"],
+      contextLabel: "Banking deadline review",
+    });
+    expect(items[1].pointStatusAction?.actions).toEqual(["mark_expired", "still_available", "remind_later"]);
+    expect(items[0]).not.toHaveProperty("type");
+  });
 });

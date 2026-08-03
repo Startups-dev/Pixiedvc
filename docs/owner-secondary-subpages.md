@@ -125,6 +125,8 @@ The notifications page now only reads notifications during render. It no longer 
 
 Notification text is passed through a small redaction layer for email addresses and phone numbers. Non-owner links are dropped from the list view.
 
+Point-status notifications can now render owner-confirmation actions for banking deadlines and expiration review. The owner can mark points as banked, mark points as expired, confirm they are still available, review the membership, or request a reminder. Those actions call an owner-scoped API route and do not accept client-supplied point quantities.
+
 ## Account And Verification Behavior
 
 The verification page keeps the existing client-side upload and finalize workflow. It now uses the owner page header and shared status badge for owner-facing status wording. Sensitive file paths are not exposed beyond the existing proof-file display behavior.
@@ -154,7 +156,7 @@ No mutation action was replaced or added. Existing forms and buttons still call 
 - Full route consolidation is still deferred.
 - Onboarding and agreement pages remain mostly workflow-specific client experiences.
 - Ready Stay booking-package detail still displays guest details because it is an action/detail workflow, not a list-summary view.
-- Notification creation should move to cron, trigger, or explicit workflow events rather than page render.
+- Notification creation should stay in cron, trigger, or explicit workflow events rather than page render.
 - Broader owner access and RLS hardening from the audit remains future work.
 
 ## Future Consolidation

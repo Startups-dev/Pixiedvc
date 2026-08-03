@@ -8,6 +8,7 @@ import type { OwnerNotificationListItem } from "@/lib/owner/secondary-subpages";
 export default function NotificationList({ notifications }: { notifications: OwnerNotificationListItem[] }) {
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<Record<string, string>>({});
 
   const getMembershipId = (link: string | null) => {
     if (!link) return null;
@@ -28,6 +29,50 @@ export default function NotificationList({ notifications }: { notifications: Own
       body: JSON.stringify({ ids: notifications.map((note) => note.id) }),
     });
     setLoading(false);
+    window.location.reload();
+  };
+
+  const runPointStatusAction = async (
+    note: OwnerNotificationListItem,
+    action: NonNullable<OwnerNotificationListItem["pointStatusAction"]>["actions"][number],
+  ) => {
+    if (!note.pointStatusAction) return;
+    if (
+      action === "mark_banked" &&
+      !window.confirm(
+        "This will update these points as banked in HannaDVC and remove them from the currently available balance where applicable. Disney records are not changed.",
+      )
+    ) {
+      return;
+    }
+    if (
+      action === "mark_expired" &&
+      !window.confirm("This will mark these points as expired in HannaDVC and remove them from available inventory. Disney records are not changed.")
+    ) {
+      return;
+    }
+
+    setActionLoading(`${note.id}:${action}`);
+    setActionMessage((current) => ({ ...current, [note.id]: "" }));
+    const response = await fetch(`/api/owner/memberships/${note.pointStatusAction.membershipId}/point-status`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        notificationId: note.id,
+        action,
+        remindDays: action === "remind_later" ? 7 : undefined,
+      }),
+    });
+
+    if (!response.ok) {
+      setActionLoading(null);
+      setActionMessage((current) => ({
+        ...current,
+        [note.id]: "We could not update that membership status. Please review the membership or try again.",
+      }));
+      return;
+    }
+
     window.location.reload();
   };
 
@@ -71,7 +116,69 @@ export default function NotificationList({ notifications }: { notifications: Own
                 {note.body ? <p className="mt-1 text-sm leading-6 text-[#667085]">{note.body}</p> : null}
               </div>
             </div>
-            {note.canManageFallbackPrompt ? (
+            {note.pointStatusAction ? (
+              <div className="mt-4 space-y-3 rounded-[14px] border border-[#ECECE8] bg-white p-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#7A8495]">
+                    {note.pointStatusAction.contextLabel}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[#667085]">
+                    Record the owner-confirmed point status in HannaDVC. This does not change Disney records.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {note.pointStatusAction.actions.includes("mark_banked") ? (
+                    <button
+                      type="button"
+                      className="inline-flex min-h-10 items-center rounded-full bg-[#10224A] px-4 text-sm font-semibold text-white"
+                      disabled={actionLoading !== null}
+                      onClick={() => runPointStatusAction(note, "mark_banked")}
+                    >
+                      {actionLoading === `${note.id}:mark_banked` ? "Updating..." : "Mark as banked"}
+                    </button>
+                  ) : null}
+                  {note.pointStatusAction.actions.includes("mark_expired") ? (
+                    <button
+                      type="button"
+                      className="inline-flex min-h-10 items-center rounded-full bg-[#10224A] px-4 text-sm font-semibold text-white"
+                      disabled={actionLoading !== null}
+                      onClick={() => runPointStatusAction(note, "mark_expired")}
+                    >
+                      {actionLoading === `${note.id}:mark_expired` ? "Updating..." : "Mark as expired"}
+                    </button>
+                  ) : null}
+                  {note.pointStatusAction.actions.includes("still_available") ? (
+                    <button
+                      type="button"
+                      className="inline-flex min-h-10 items-center rounded-full border border-[#E7E7E4] bg-white px-4 text-sm font-semibold text-[#10224A]"
+                      disabled={actionLoading !== null}
+                      onClick={() => runPointStatusAction(note, "still_available")}
+                    >
+                      {actionLoading === `${note.id}:still_available` ? "Updating..." : "Still available"}
+                    </button>
+                  ) : null}
+                  {note.href ? (
+                    <Link
+                      href="/owner/memberships"
+                      className="inline-flex min-h-10 items-center rounded-full border border-[#E7E7E4] bg-white px-4 text-sm font-semibold text-[#10224A]"
+                    >
+                      Review membership
+                    </Link>
+                  ) : null}
+                  {note.pointStatusAction.actions.includes("remind_later") ? (
+                    <button
+                      type="button"
+                      className="inline-flex min-h-10 items-center rounded-full border border-[#E7E7E4] bg-white px-4 text-sm font-semibold text-[#667085]"
+                      disabled={actionLoading !== null}
+                      onClick={() => runPointStatusAction(note, "remind_later")}
+                    >
+                      {actionLoading === `${note.id}:remind_later` ? "Updating..." : "Remind me later"}
+                    </button>
+                  ) : null}
+                </div>
+                {actionMessage[note.id] ? <p className="text-xs leading-5 text-rose-700">{actionMessage[note.id]}</p> : null}
+              </div>
+            ) : note.canManageFallbackPrompt ? (
               <div className="mt-4 space-y-3 rounded-[14px] border border-[#ECECE8] bg-white p-4">
                 <button
                   type="button"
