@@ -21,8 +21,10 @@ export default function OwnerFilterTabs({ tabs, label = "Filter records" }: { ta
               : "border-[#E7E7E4] bg-white text-[#667085] hover:border-[#D8D8D2] hover:text-[#10224A]"
           }`}
         >
-          {tab.label}
-          {typeof tab.count === "number" ? <span className="ml-2 text-xs opacity-75">{tab.count}</span> : null}
+          <span className={tab.active ? "!text-white" : undefined}>{tab.label}</span>
+          {typeof tab.count === "number" ? (
+            <span className={`ml-2 text-xs opacity-75 ${tab.active ? "!text-white" : ""}`}>{tab.count}</span>
+          ) : null}
         </Link>
       ))}
     </nav>
