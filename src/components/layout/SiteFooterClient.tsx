@@ -7,7 +7,11 @@ import SiteFooter from "@/components/SiteFooter";
 export default function SiteFooterClient() {
   const pathname = usePathname();
 
-  if (pathname?.startsWith("/affiliate") || pathname?.startsWith("/owner")) {
+  if (
+    pathname?.startsWith("/affiliate") ||
+    pathname?.startsWith("/owner") ||
+    pathname?.startsWith("/my-trip")
+  ) {
     return null;
   }
 

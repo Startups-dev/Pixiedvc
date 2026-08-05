@@ -75,7 +75,6 @@ export default function SupportPanel({
   const [liveChatActive, setLiveChatActive] = useState(false);
   const [showFollowUpChoice, setShowFollowUpChoice] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
-  const [pathname, setPathname] = useState("");
   const [conciergeConnectionState, setConciergeConnectionState] =
     useState<ConciergeConnectionState>("idle");
   const [connectedAgentNickname, setConnectedAgentNickname] = useState("HannaDVC Concierge");
@@ -155,11 +154,6 @@ export default function SupportPanel({
     const container = listRef.current;
     if (!container) return;
     scrollToBottom("auto");
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    setPathname(window.location.pathname);
   }, []);
 
   function openConciergeFallbackForm() {
@@ -288,34 +282,40 @@ export default function SupportPanel({
   useEffect(() => {
     let alive = true;
     const supabase = createClient();
-    void supabase.auth.getUser().then(async ({ data }) => {
-      if (!alive || !data?.user) return;
-      const email = data.user.email ?? "";
-      const metadataName =
-        (typeof data.user.user_metadata?.full_name === "string" && data.user.user_metadata.full_name.trim()) ||
-        (typeof data.user.user_metadata?.name === "string" && data.user.user_metadata.name.trim()) ||
-        "";
-      let profileName = "";
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, display_name")
-        .eq("id", data.user.id)
-        .maybeSingle();
-      if (profile) {
-        profileName =
-          (typeof (profile as { full_name?: string | null }).full_name === "string" &&
-            (profile as { full_name?: string | null }).full_name?.trim()) ||
-          (typeof (profile as { display_name?: string | null }).display_name === "string" &&
-            (profile as { display_name?: string | null }).display_name?.trim()) ||
+    void supabase.auth
+      .getUser()
+      .then(async ({ data }) => {
+        if (!alive || !data?.user) return;
+        const email = data.user.email ?? "";
+        const metadataName =
+          (typeof data.user.user_metadata?.full_name === "string" && data.user.user_metadata.full_name.trim()) ||
+          (typeof data.user.user_metadata?.name === "string" && data.user.user_metadata.name.trim()) ||
           "";
-      }
-      const resolvedName = profileName || metadataName;
-      setHandoffForm((prev) => ({
-        ...prev,
-        name: prev.name || resolvedName,
-        email: prev.email || email,
-      }));
-    });
+        let profileName = "";
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, display_name")
+          .eq("id", data.user.id)
+          .maybeSingle();
+        if (profile) {
+          profileName =
+            (typeof (profile as { full_name?: string | null }).full_name === "string" &&
+              (profile as { full_name?: string | null }).full_name?.trim()) ||
+            (typeof (profile as { display_name?: string | null }).display_name === "string" &&
+              (profile as { display_name?: string | null }).display_name?.trim()) ||
+            "";
+        }
+        const resolvedName = profileName || metadataName;
+        setHandoffForm((prev) => ({
+          ...prev,
+          name: prev.name || resolvedName,
+          email: prev.email || email,
+        }));
+      })
+      .catch(() => {
+        // Best-effort profile prefill only. Network failures should not break pages
+        // where the support panel is mounted.
+      });
     return () => {
       alive = false;
     };

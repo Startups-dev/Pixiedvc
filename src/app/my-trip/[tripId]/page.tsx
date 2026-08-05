@@ -1,19 +1,21 @@
-// src/app/my-trip/[tripId]/page.tsx
-// Assumptions:
-// 1) tripId maps to booking_requests.id.
-// 2) resorts have { slug, calculator_code, name }.
-// 3) Resort images are in Supabase Storage bucket "resorts" and follow folder + prefix naming:
-//    Example: "Aulani/Aul1.png" ... "Aulani/Aul5.png".
-// 4) We build public URLs via NEXT_PUBLIC_SUPABASE_URL (no SDK required).
-// 5) This page is server-rendered (no React client hooks). Carousel/rotation is CSS-only.
-//
-// Notes:
-// - “Rotating images” here is implemented as a horizontally scrollable, snap-based strip with a subtle CSS
-//   auto-pan animation that pauses on hover. No JS required.
-// - If you later want true timed rotation (changing the primary image), we can add a tiny client helper.
-
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+
+import GuestTripHero from "@/components/guest/dashboard/GuestTripHero";
+import GuestTripOperations from "@/components/guest/dashboard/GuestTripOperations";
+import GuestTopBar from "@/components/guest/shell/GuestTopBar";
+import type { GuestTripSwitcherItem } from "@/components/guest/shell/GuestTripSwitcher";
+import {
+  buildGuestTripHeroViewModel,
+  formatDateRange,
+} from "@/lib/guest/hero-view-model";
+import {
+  buildGuestTripOperationsViewModel,
+  type GuestTripOperationsContract,
+  type GuestTripOperationsDocument,
+  type GuestTripOperationsTransaction,
+  type GuestTripOperationsTraveler,
+} from "@/lib/guest/trip-operations-view-model";
 import { ComingSoonOverlay, ConfirmationCopy } from "./TripDetailsClient";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
@@ -33,18 +35,42 @@ type BookingRequest = {
   check_in: string | null;
   check_out: string | null;
   created_at: string | null;
+  lead_guest_name: string | null;
+  primary_room: string | null;
+  guest_total_cents: number | null;
+  guest_total_cents_final: number | null;
+  deposit_due: number | null;
+  deposit_paid: number | null;
+  deposit_currency: string | null;
+  guest_profile_complete_at: string | null;
+  guest_agreement_accepted_at: string | null;
   adults: number | null;
   youths: number | null;
   primary_resort: ResortRecord | null;
   confirmed_resort: ResortRecord | null;
 };
 
+type ProfileRow = {
+  display_name: string | null;
+  full_name: string | null;
+  email: string | null;
+};
+
+type TripSwitcherRow = {
+  id: string;
+  check_in: string | null;
+  check_out: string | null;
+  primary_resort: ResortRecord | null;
+  confirmed_resort: ResortRecord | null;
+};
+
 type MatchRow = {
   id: string;
-  rental?: { dvc_confirmation_number: string | null; disney_confirmation_number: string | null } | null;
+  rental?: { id: string | null; dvc_confirmation_number: string | null; disney_confirmation_number: string | null } | null;
 };
 
 type RentalRow = {
+  id: string;
   dvc_confirmation_number: string | null;
   disney_confirmation_number: string | null;
 };
@@ -60,122 +86,6 @@ type EnhanceItem = {
   bgImageUrl: string;
   isAvailable: boolean;
 };
-
-function formatDate(d: string | null) {
-  if (!d) return "—";
-  const dt = new Date(d);
-  if (Number.isNaN(dt.getTime())) return d;
-  return dt.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-}
-
-function formatParty(adults: number | null, youths: number | null) {
-  if (adults === null && youths === null) return "Party details pending";
-  const adultCount = adults ?? 0;
-  const youthCount = youths ?? 0;
-  const adultLabel = adultCount === 1 ? "adult" : "adults";
-  const youthLabel = youthCount === 1 ? "child" : "children";
-  return `${adultCount} ${adultLabel} • ${youthCount} ${youthLabel}`;
-}
-
-function supabasePublicUrl(bucket: string, path: string) {
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!base) return ""; // fails closed; UI will show fallback colors
-  return `${base}/storage/v1/object/public/${bucket}/${path}`;
-}
-
-const DEFAULT_IMAGE_PATH = "saratoga-springs-resort/SSR1.png";
-
-/**
- * First images you confirmed (these are the "1" images).
- * We expand to 5 images by swapping the trailing digit 1→2..5.
- */
-const RESORT_IMAGE_BASE_BY_CODE: Record<string, { folder: string; prefix: string }> = {
-  // Provided list:
-  AUL: { folder: "Aulani", prefix: "Aul" },
-  BWV: { folder: "Boardwalk", prefix: "BDW" },
-  CCV: { folder: "Copper-creek-villas-and-cabins", prefix: "CCV" },
-  HHI: { folder: "Hilton-head", prefix: "HH" },
-  AKV: { folder: "Kidani", prefix: "AKV" }, // Kidani uses AKV prefix in your URL (AKV1.png)
-  PVB: { folder: "Polynesian-villas-and-bungalows", prefix: "PVB" },
-  RIV: { folder: "Riviera", prefix: "RR" },
-  AKL: { folder: "animal-kingdom-lodge", prefix: "AKL" },
-  BLT: { folder: "bay-lake-tower", prefix: "BTC" },
-  BCV: { folder: "beach-club-villa", prefix: "BCV" },
-  BRV: { folder: "boulder-ridge-villas", prefix: "BRV" },
-  VGC: { folder: "grand-californian", prefix: "VGC" },
-  VGF: { folder: "grand-floridian-villas", prefix: "GFV" },
-  OKW: { folder: "old-key-west", prefix: "OKW" },
-  SSR: { folder: "saratoga-springs-resort", prefix: "SSR" },
-  VB: { folder: "vero-beach", prefix: "VBR" },
-  VDH: { folder: "villas-at-disneyland-hotel", prefix: "VDH" },
-};
-
-const RESORT_IMAGE_BASE_BY_SLUG: Record<string, { folder: string; prefix: string }> = {
-  // Slugs can vary; keep this conservative, only the common ones.
-  "aulani-disney-vacation-club-villas": { folder: "Aulani", prefix: "Aul" },
-  "disney-s-boardwalk-villas": { folder: "Boardwalk", prefix: "BDW" },
-  "copper-creek-villas-cabins": { folder: "Copper-creek-villas-and-cabins", prefix: "CCV" },
-  "disney-s-copper-creek-villas-cabins": { folder: "Copper-creek-villas-and-cabins", prefix: "CCV" },
-  "disney-s-hilton-head-island-resort": { folder: "Hilton-head", prefix: "HH" },
-  "disney-s-animal-kingdom-villas-kidani-village": { folder: "Kidani", prefix: "AKV" },
-  "disney-s-animal-kingdom-villas-jambo-house": { folder: "animal-kingdom-lodge", prefix: "AKL" },
-  "disney-s-polynesian-villas-bungalows": { folder: "Polynesian-villas-and-bungalows", prefix: "PVB" },
-  "disney-s-riviera-resort": { folder: "Riviera", prefix: "RR" },
-  "bay-lake-tower": { folder: "bay-lake-tower", prefix: "BTC" },
-  "disney-s-beach-club-villas": { folder: "beach-club-villa", prefix: "BCV" },
-  "boulder-ridge-villas": { folder: "boulder-ridge-villas", prefix: "BRV" },
-  "the-villas-at-disney-s-grand-californian-hotel-spa": { folder: "grand-californian", prefix: "VGC" },
-  "disney-s-grand-floridian-resort-spa": { folder: "grand-floridian-villas", prefix: "GFV" },
-  "disney-s-old-key-west-resort": { folder: "old-key-west", prefix: "OKW" },
-  "disney-s-saratoga-springs-resort-spa": { folder: "saratoga-springs-resort", prefix: "SSR" },
-  "disney-s-vero-beach-resort": { folder: "vero-beach", prefix: "VBR" },
-  "the-villas-at-disneyland-hotel": { folder: "villas-at-disneyland-hotel", prefix: "VDH" },
-};
-
-function resolveResortImageBase(params: { resortCode?: string | null; resortSlug?: string | null }) {
-  const code = (params.resortCode ?? "").trim().toUpperCase();
-  if (code && RESORT_IMAGE_BASE_BY_CODE[code]) {
-    return { matchedBy: "code" as const, ...RESORT_IMAGE_BASE_BY_CODE[code] };
-  }
-  const slug = (params.resortSlug ?? "").trim().toLowerCase();
-  if (slug && RESORT_IMAGE_BASE_BY_SLUG[slug]) {
-    return { matchedBy: "slug" as const, ...RESORT_IMAGE_BASE_BY_SLUG[slug] };
-  }
-  return { matchedBy: "default" as const, folder: "saratoga-springs-resort", prefix: "SSR" };
-}
-
-function getResortHeroImages(params: { resortCode?: string | null; resortSlug?: string | null }) {
-  const base = resolveResortImageBase(params);
-
-  // Produce 5 images: prefix1..prefix5.png
-  const paths = Array.from({ length: 5 }, (_, idx) => {
-    const n = idx + 1;
-    return `${base.folder}/${base.prefix}${n}.png`;
-  });
-
-  const urls = paths.map((p) => supabasePublicUrl("resorts", p)).filter(Boolean);
-
-  // If env is missing, or something is empty, fall back to default single image.
-  if (!urls.length) {
-    return {
-      matchedBy: base.matchedBy,
-      imagePaths: [DEFAULT_IMAGE_PATH],
-      imageUrls: [supabasePublicUrl("resorts", DEFAULT_IMAGE_PATH)],
-    };
-  }
-
-  return { matchedBy: base.matchedBy, imagePaths: paths, imageUrls: urls };
-}
-
-function statusLabel(status: string | null) {
-  const s = (status ?? "").toLowerCase();
-  if (!s) return "Trip";
-  if (s === "confirmed") return "Confirmed";
-  if (s === "submitted") return "Submitted";
-  if (s === "cancelled" || s === "canceled") return "Cancelled";
-  if (s === "completed") return "Completed";
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
 
 function buildEnhanceItems(): EnhanceItem[] {
   return [
@@ -266,6 +176,15 @@ export default async function TripDetailsPage({
       check_in,
       check_out,
       created_at,
+      lead_guest_name,
+      primary_room,
+      guest_total_cents,
+      guest_total_cents_final,
+      deposit_due,
+      deposit_paid,
+      deposit_currency,
+      guest_profile_complete_at,
+      guest_agreement_accepted_at,
       adults,
       youths,
       primary_resort:resorts!booking_requests_primary_resort_id_fkey(name, slug, calculator_code),
@@ -288,15 +207,37 @@ export default async function TripDetailsPage({
     notFound();
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name, full_name, email")
+    .eq("id", user.id)
+    .maybeSingle<ProfileRow>();
+
+  const { data: switcherRows } = await dataClient
+    .from("booking_requests")
+    .select(
+      `
+      id,
+      check_in,
+      check_out,
+      primary_resort:resorts!booking_requests_primary_resort_id_fkey(name, slug, calculator_code),
+      confirmed_resort:resorts!booking_requests_confirmed_resort_id_fkey(name, slug, calculator_code)
+    `,
+    )
+    .eq("renter_id", user.id)
+    .order("created_at", { ascending: false });
+
   const { data: contract } = await relationClient
     .from("contracts")
-    .select("snapshot")
+    .select("id, status, guest_accept_token, guest_accepted_at, signed_at, snapshot")
     .eq("booking_request_id", tripId)
-    .maybeSingle<{ snapshot: Record<string, unknown> | null }>();
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<GuestTripOperationsContract>();
 
   const { data: matchRow } = await relationClient
     .from("booking_matches")
-    .select("id, rental:rentals!rentals_match_id_fkey(dvc_confirmation_number, disney_confirmation_number)")
+    .select("id, rental:rentals!rentals_match_id_fkey(id, dvc_confirmation_number, disney_confirmation_number)")
     .eq("booking_id", tripId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -315,7 +256,7 @@ export default async function TripDetailsPage({
   if (matchIds.length > 0) {
     const { data: rentals } = await relationClient
       .from("rentals")
-      .select("dvc_confirmation_number, disney_confirmation_number")
+      .select("id, dvc_confirmation_number, disney_confirmation_number")
       .in("match_id", matchIds);
 
     rentalsData = rentals as RentalRow[] | null;
@@ -331,7 +272,7 @@ export default async function TripDetailsPage({
   if (snapshotRentalId) {
     const { data: rentalById } = await relationClient
       .from("rentals")
-      .select("disney_confirmation_number, dvc_confirmation_number")
+      .select("id, disney_confirmation_number, dvc_confirmation_number")
       .eq("id", snapshotRentalId)
       .maybeSingle<RentalRow>();
     rentalByIdConfirmation =
@@ -403,146 +344,186 @@ export default async function TripDetailsPage({
   const resortRecord =
     bookingRequest.confirmed_resort ?? bookingRequest.primary_resort ?? null;
 
-  const resortName = resortRecord?.name ?? "Your Resort";
-  const resortSlug = resortRecord?.slug ?? null;
-  const resortCode = resortRecord?.calculator_code ?? null;
+  const tripSwitcherItems: GuestTripSwitcherItem[] = ((switcherRows as TripSwitcherRow[] | null) ?? [])
+    .filter((row) => row.id)
+    .map((row) => {
+      const rowResort = row.confirmed_resort ?? row.primary_resort ?? null;
+      return {
+        id: row.id,
+        resortName: rowResort?.name ?? "Your Disney villa stay",
+        dateRangeLabel: formatDateRange(row.check_in, row.check_out),
+        href: `/my-trip/${row.id}`,
+      };
+    });
 
-  const hero = getResortHeroImages({ resortCode, resortSlug });
-  const heroUrl = hero.imageUrls[0] || supabasePublicUrl("resorts", DEFAULT_IMAGE_PATH);
+  const heroViewModel = buildGuestTripHeroViewModel({
+    profileDisplayName: profile?.display_name ?? null,
+    profileFullName: profile?.full_name ?? null,
+    metadataDisplayName:
+      typeof user.user_metadata?.display_name === "string" ? user.user_metadata.display_name : null,
+    metadataFullName:
+      typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null,
+    metadataName:
+      typeof user.user_metadata?.name === "string" ? user.user_metadata.name : null,
+    email: profile?.email ?? user.email ?? null,
+    guestName: bookingRequest.lead_guest_name,
+    tripId: bookingRequest.id,
+    tripType: isReadyStayTrip ? "ready_stay" : "custom_request",
+    resort: resortRecord,
+    roomType: bookingRequest.primary_room,
+    checkIn: bookingRequest.check_in,
+    checkOut: bookingRequest.check_out,
+    adults: bookingRequest.adults,
+    youths: bookingRequest.youths,
+    status: bookingRequest.status,
+    transferConfirmed,
+    confirmationNumber,
+  });
+
+  const { data: bookingTransactions, error: bookingTransactionsError } = await relationClient
+    .from("transactions")
+    .select("id, direction, txn_type, amount_cents, currency, status, paid_at, created_at")
+    .eq("booking_request_id", tripId)
+    .order("created_at", { ascending: false });
+
+  let matchTransactions: GuestTripOperationsTransaction[] = [];
+  let matchTransactionsError = null;
+  if (matchIds.length > 0) {
+    const result = await relationClient
+      .from("transactions")
+      .select("id, direction, txn_type, amount_cents, currency, status, paid_at, created_at")
+      .in("match_id", matchIds)
+      .order("created_at", { ascending: false });
+    matchTransactions = (result.data as GuestTripOperationsTransaction[] | null) ?? [];
+    matchTransactionsError = result.error;
+  }
+
+  const { data: travelers } = await relationClient
+    .from("booking_request_guests")
+    .select("first_name, last_name, age_category")
+    .eq("booking_id", tripId);
+
+  const rentalIds = Array.from(
+    new Set(
+      [
+        ...((rentalsData ?? []).map((row) => row.id).filter(Boolean)),
+        readyStayLink?.rental_id,
+        snapshotRentalId,
+        matchRow?.rental?.id,
+      ].filter(Boolean) as string[],
+    ),
+  );
+
+  let tripDocuments: GuestTripOperationsDocument[] = [];
+  if (rentalIds.length > 0) {
+    const { data: documents } = await relationClient
+      .from("rental_documents")
+      .select("id, type, created_at, meta")
+      .in("rental_id", rentalIds)
+      .order("created_at", { ascending: false });
+    tripDocuments = (documents as GuestTripOperationsDocument[] | null) ?? [];
+  }
+
+  const operationsViewModel = buildGuestTripOperationsViewModel({
+    tripId: bookingRequest.id,
+    tripType: isReadyStayTrip ? "ready_stay" : "custom_request",
+    booking: bookingRequest,
+    contract,
+    transactions: [
+      ...((bookingTransactions as GuestTripOperationsTransaction[] | null) ?? []),
+      ...matchTransactions,
+    ],
+    travelers: (travelers as GuestTripOperationsTraveler[] | null) ?? [],
+    documents: tripDocuments,
+    paymentDataUnavailable: Boolean(bookingTransactionsError || matchTransactionsError),
+  });
+
   const enhanceItems = buildEnhanceItems();
+  const tripConfirmationNumber = isReadyStayTrip ? readyStayDisplayConfirmationNumber : displayConfirmationNumber;
+  const confirmationAvailable = Boolean(tripConfirmationNumber);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-      <Link
-        href="/my-trip"
-        className="inline-flex items-center text-xs uppercase tracking-[0.26em] text-[#0B1B3A]/55 hover:text-[#0B1B3A]"
-      >
-        Back to my trips
-      </Link>
+    <div className="min-h-screen bg-[#FBFAF7] text-[#10224A]">
+      <GuestTopBar currentTripId={bookingRequest.id} trips={tripSwitcherItems} />
+      <GuestTripHero trip={heroViewModel} />
 
-      {/* HERO */}
-      <section className="mt-4 overflow-hidden rounded-2xl border border-[#0B1B3A]/10 bg-[#071a33] shadow-sm lg:flex">
-        <div className="flex flex-col justify-between gap-6 px-6 py-8 text-white lg:w-[52%]">
-          <div className="text-xs uppercase tracking-[0.32em] text-white/60">
-            Disney Vacation Club
+      <main className="mx-auto w-full max-w-5xl px-6 py-12 sm:px-10 lg:px-12">
+      <section aria-labelledby="reservation-progress-title" className="border-y border-[#10224A]/12 py-8">
+        <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
+          <div>
+            <p className="text-sm text-[#10224A]/50">Trip details</p>
+            <h2 id="reservation-progress-title" className="mt-2 text-3xl font-semibold tracking-normal text-[#10224A]">
+              Your reservation
+            </h2>
           </div>
-
-          <div className="space-y-3">
-            <h1 className="text-3xl font-semibold tracking-tight !text-white sm:text-4xl">
-              {resortName}
-            </h1>
-            <p className="text-sm text-slate-200">
-              {formatDate(bookingRequest.check_in)} → {formatDate(bookingRequest.check_out)}
-            </p>
-            <p className="text-sm text-slate-200">
-              {formatParty(bookingRequest.adults, bookingRequest.youths)}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm text-slate-200">
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400/20 text-emerald-200">
-              <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none">
-                <path
-                  d="M3.5 8.5l3 3 6-6"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-            Your stay is confirmed. We’ll take care of the details.
-          </div>
-        </div>
-
-        <div className="relative h-[260px] w-full overflow-hidden lg:h-auto lg:flex-1">
-          <style
-            // eslint-disable-next-line react/no-danger
-            dangerouslySetInnerHTML={{
-              __html: `
-              @keyframes tripHeroFade {
-                0% { opacity: 0; }
-                6% { opacity: 1; }
-                20% { opacity: 1; }
-                26% { opacity: 0; }
-                100% { opacity: 0; }
-              }
-              `,
-            }}
-          />
-          {hero.imageUrls.slice(0, 5).map((url, index) => (
-            <div
-              key={`${url}-${index}`}
-              className="absolute inset-0 bg-cover bg-center"
-              style={{
-                backgroundImage: `url('${url}')`,
-                opacity: 0,
-                animation: "tripHeroFade 25s infinite",
-                animationDelay: `-${index * 5}s`,
-              }}
-              aria-hidden="true"
-            />
-          ))}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#071a33] via-[#071a33]/70 to-transparent" />
-        </div>
-      </section>
-
-      <section className="mt-8 rounded-2xl border border-[#0B1B3A]/10 bg-white p-6 text-center shadow-sm">
-        <div className="text-xs uppercase tracking-[0.32em] text-[#0B1B3A]/55">
-          Confirmation number
-        </div>
-        <div className="mt-4 flex justify-center">
-          <ConfirmationCopy
-            confirmationNumber={isReadyStayTrip ? readyStayDisplayConfirmationNumber : displayConfirmationNumber}
-          />
-        </div>
-        {isReadyStayTrip ? (
-          readyStayTransferConfirmed ? (
-            <>
-              <p className="mt-4 text-sm text-[#0B1B3A]/70">
-                Ready to link in My Disney Experience
-              </p>
-              <div className="mt-3 text-left text-sm text-[#0B1B3A]/70">
-                <p>1) Open My Disney Experience</p>
-                <p>2) My Plans → Link a Reservation</p>
-                <p>3) Paste your confirmation number</p>
+          <div className="divide-y divide-[#10224A]/10">
+            <div className="grid gap-3 py-5 first:pt-0 sm:grid-cols-[0.7fr_1.3fr]">
+              <p className="font-semibold text-[#10224A]">Reservation</p>
+              <div>
+                <p className="text-[#10224A]/78">
+                  {transferConfirmed ? "Reservation confirmed" : "Reservation details are being finalized"}
+                </p>
+                <p className="mt-1 text-sm leading-6 text-[#10224A]/54">
+                  {transferConfirmed
+                    ? "The owner transfer has been recorded for this trip."
+                    : "We will keep the reservation details here as the transfer is completed."}
+                </p>
               </div>
-            </>
-          ) : (
-            <p className="mt-4 text-sm text-[#0B1B3A]/70">
-              Owner transfer in progress. You&apos;ll be notified when it&apos;s ready to link.
-            </p>
-          )
-        ) : (
-          transferConfirmed ? (
-            <p className="mt-4 text-sm text-[#0B1B3A]/70">
-              Transferred — ready to link in My Disney Experience.
-            </p>
-          ) : (
-            <p className="mt-4 text-sm text-[#0B1B3A]/70">
-              Waiting for owner transfer. Your confirmation number will appear when transfer is complete.
-            </p>
-          )
-        )}
-        <Link
-          href="/guides/link-to-disney-experience"
-          className="mt-3 inline-flex items-center text-xs font-semibold uppercase tracking-[0.2em] text-[#0B1B3A]/70 hover:text-[#0B1B3A]"
-        >
-          How to link your reservation
-        </Link>
+            </div>
+
+            <div className="grid gap-3 py-5 sm:grid-cols-[0.7fr_1.3fr]">
+              <p className="font-semibold text-[#10224A]">Disney confirmation</p>
+              <div>
+                {confirmationAvailable ? (
+                  <div className="flex flex-col items-start gap-2">
+                    <ConfirmationCopy confirmationNumber={tripConfirmationNumber} />
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-[#10224A]/78">Waiting for transfer</p>
+                    <p className="mt-1 text-sm leading-6 text-[#10224A]/54">
+                      Your confirmation number will appear here when the transfer is complete.
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-3 py-5 last:pb-0 sm:grid-cols-[0.7fr_1.3fr]">
+              <p className="font-semibold text-[#10224A]">My Disney Experience</p>
+              <div>
+                <p className="text-[#10224A]/78">
+                  {confirmationAvailable ? "Ready to link" : "Available after confirmation"}
+                </p>
+                <Link
+                  href="/guides/link-to-disney-experience"
+                  className="mt-2 inline-flex min-h-10 items-center border-b border-[#C49A3A] pb-0.5 text-sm font-semibold text-[#10224A] transition hover:border-[#10224A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C49A3A]"
+                >
+                  How to link your reservation
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
-      <section className="mt-8 rounded-2xl border border-[#0B1B3A]/10 bg-white p-6 shadow-sm">
-        <div className="text-xs uppercase tracking-[0.32em] text-[#0B1B3A]/55">Cancellation &amp; Credits</div>
-        <p className="mt-3 text-sm text-[#0B1B3A]/70">
-          This reservation may be eligible for a Deferred Cancellation Credit.
-        </p>
-        <Link
-          href="/policies/deferred-cancellation"
-          className="mt-3 inline-flex items-center text-xs font-semibold uppercase tracking-[0.2em] text-[#0B1B3A]/70 hover:text-[#0B1B3A]"
-        >
-          View policy
-        </Link>
+      <GuestTripOperations operations={operationsViewModel} />
+
+      <section className="border-b border-[#10224A]/12 py-7">
+        <div className="grid gap-4 lg:grid-cols-[0.72fr_1.28fr]">
+          <h2 className="text-2xl font-semibold tracking-normal text-[#10224A]">If plans change</h2>
+          <div>
+            <p className="max-w-2xl text-sm leading-7 text-[#10224A]/62">
+              This reservation may be eligible for a Deferred Cancellation Credit.
+            </p>
+            <Link
+              href="/policies/deferred-cancellation"
+              className="mt-2 inline-flex min-h-10 items-center border-b border-[#C49A3A] pb-0.5 text-sm font-semibold text-[#10224A] transition hover:border-[#10224A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C49A3A]"
+            >
+              Review cancellation policy
+            </Link>
+          </div>
+        </div>
       </section>
 
       {/* ENHANCE YOUR STAY */}
@@ -637,6 +618,7 @@ export default async function TripDetailsPage({
           </Link>
         </div>
       </section>
-    </main>
+      </main>
+    </div>
   );
 }

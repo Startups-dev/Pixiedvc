@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 
 import OwnerSidebar from "@/components/owner/shell/OwnerSidebar";
-import OwnerStatusBadge from "@/components/owner/shell/OwnerStatusBadge";
 import OwnerTopBar from "@/components/owner/shell/OwnerTopBar";
 import { loadOwnerShellIdentity } from "@/lib/owner/identity";
 
@@ -25,12 +24,6 @@ export default async function OwnerShell({ children }: { children: ReactNode }) 
               {children}
             </div>
           </main>
-          <div className="border-t border-[#E7E3DA] px-4 py-4 sm:px-6 lg:px-8">
-            <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-2 text-xs text-[#7E8798] sm:flex-row sm:items-center sm:justify-between">
-              <OwnerStatusBadge />
-              <p>HannaDVC owner tools are protected by your existing account access.</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

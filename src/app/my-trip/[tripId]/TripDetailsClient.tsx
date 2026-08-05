@@ -19,13 +19,13 @@ export function ConfirmationCopy({ confirmationNumber }: { confirmationNumber?: 
   };
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <button
         type="button"
         onClick={handleCopy}
         disabled={!canCopy}
         aria-label={confirmationNumber ? 'Copy confirmation number' : 'Pending'}
-        className="text-3xl font-semibold tracking-[0.12em] text-[#0B1B3A] transition hover:text-[#0B1B3A]/85 disabled:cursor-not-allowed disabled:text-[#0B1B3A]/40"
+        className="font-mono text-lg font-semibold tracking-[0.08em] text-[#0B1B3A] transition hover:text-[#0B1B3A]/85 disabled:cursor-not-allowed disabled:text-[#0B1B3A]/40"
       >
         {confirmationNumber ?? 'Pending'}
       </button>
@@ -33,12 +33,12 @@ export function ConfirmationCopy({ confirmationNumber }: { confirmationNumber?: 
         <button
           type="button"
           onClick={handleCopy}
-          className="rounded-full border border-[#0B1B3A]/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0B1B3A]/70 hover:border-[#0B1B3A]/35 hover:text-[#0B1B3A]"
+          className="border-b border-[#C49A3A] pb-0.5 text-sm font-semibold text-[#0B1B3A]/72 transition hover:border-[#0B1B3A] hover:text-[#0B1B3A]"
         >
           Copy
         </button>
       ) : null}
-      <div className="h-4 text-[0.65rem] uppercase tracking-[0.2em] text-[#0B1B3A]/50">{copied ? 'Copied' : ''}</div>
+      <div className="h-5 text-sm text-[#0B1B3A]/50" aria-live="polite">{copied ? 'Copied' : ''}</div>
     </div>
   );
 }
@@ -60,7 +60,7 @@ export function ComingSoonOverlay({
   return (
     <>
       <div className="pointer-events-none absolute inset-0 z-30 bg-[#071a33]/10" aria-hidden="true" />
-      <div className="pointer-events-none absolute right-[-54px] top-[18px] z-40 w-[220px] rotate-[35deg] border border-[#d4a43a]/40 bg-[linear-gradient(180deg,#f3cf76_0%,#d4a43a_100%)] px-3 py-1.5 text-center text-[0.65rem] font-bold uppercase tracking-[0.28em] text-[#0B1B3A] shadow-[0_12px_28px_rgba(11,27,58,0.18)]">
+      <div className="pointer-events-none absolute right-4 top-4 z-40 border border-white/24 bg-[#071a33]/72 px-3 py-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-white/82 backdrop-blur-sm">
         Coming Soon
       </div>
       <div

@@ -196,6 +196,24 @@ describe("owner public chrome exclusions", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it("does not render public marketing chrome on my-trip routes", () => {
+    pathname = "/my-trip/trip-1";
+
+    const header = render(
+      <HeaderClient
+        userLabel="Guest"
+        userRole="guest"
+        isAdmin={false}
+        isAuthenticated
+        hasAffiliateAccess={false}
+      />,
+    );
+    expect(header.container).toBeEmptyDOMElement();
+
+    const footer = render(<SiteFooterClient />);
+    expect(footer.container).toBeEmptyDOMElement();
+  });
+
   it("does not render the floating support widget on owner routes", () => {
     render(<SupportWidget />);
 

@@ -6,16 +6,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import SupportPanel from "./SupportPanel";
 
+const getUserMock = vi.fn().mockResolvedValue({ data: { user: null } });
+const fromMock = vi.fn(() => ({
+  select: vi.fn().mockReturnThis(),
+  eq: vi.fn().mockReturnThis(),
+  maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+}));
+
 vi.mock("@/lib/supabase", () => ({
   createClient: () => ({
     auth: {
-      getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+      getUser: getUserMock,
     },
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn().mockResolvedValue({ data: null }),
-    })),
+    from: fromMock,
   }),
 }));
 
@@ -24,6 +27,7 @@ describe("SupportPanel concierge handoff", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    getUserMock.mockResolvedValue({ data: { user: null } });
     Object.defineProperty(HTMLElement.prototype, "scrollTo", {
       configurable: true,
       value: scrollToMock,
@@ -37,10 +41,19 @@ describe("SupportPanel concierge handoff", () => {
   it("renders the initial concierge chat UI", () => {
     render(<SupportPanel />);
 
-    expect(screen.getByText("✨ PixieDVC Concierge")).toBeInTheDocument();
+    expect(screen.getByText("✨ HannaDVC Concierge")).toBeInTheDocument();
     expect(
       screen.getByText("Hi. How can I help with your plans today?"),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
+  });
+
+  it("keeps rendering if profile prefill cannot reach Supabase", () => {
+    getUserMock.mockRejectedValueOnce(new TypeError("NetworkError when attempting to fetch resource."));
+
+    render(<SupportPanel />);
+
+    expect(screen.getByText("✨ HannaDVC Concierge")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
   });
 
@@ -112,7 +125,7 @@ describe("SupportPanel concierge handoff", () => {
     await user.click(screen.getByRole("button", { name: "Send" }));
 
     const conciergeButtons = await screen.findAllByRole("button", {
-      name: "💬 Talk to a Concierge Now",
+      name: "Talk to concierge",
     });
     expect(conciergeButtons.length).toBeGreaterThan(0);
 

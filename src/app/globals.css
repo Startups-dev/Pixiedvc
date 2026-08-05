@@ -214,6 +214,30 @@ a {
   text-decoration: none;
 }
 
+@keyframes guest-image-settle {
+  from {
+    opacity: 0.92;
+    transform: scale(1.015);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes guest-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .pixie-internal-buttons [data-slot="pixie-button"][data-variant="primary"] {
   background-image: linear-gradient(to right, #2b3a70, #384b94, #9aa7ff) !important;
   color: #ffffff !important;

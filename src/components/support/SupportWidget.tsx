@@ -27,6 +27,7 @@ export default function SupportWidget() {
       pathname.startsWith("/support") ||
       pathname.startsWith("/affiliate") ||
       pathname.startsWith("/owner") ||
+      pathname.startsWith("/my-trip") ||
       pathname.startsWith("/pixie") ||
       pathname.startsWith("/hara")
     );
