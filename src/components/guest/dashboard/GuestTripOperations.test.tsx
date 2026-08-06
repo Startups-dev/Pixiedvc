@@ -7,7 +7,15 @@ import type { GuestTripHeroViewModel } from "@/lib/guest/hero-view-model";
 import type { GuestTripOperationsViewModel } from "@/lib/guest/trip-operations-view-model";
 
 vi.mock("next/image", () => ({
-  default: ({ src, alt, className }: { src: string; alt: string; className?: string }) => (
+  default: ({
+    src,
+    alt,
+    className,
+  }: {
+    src: string;
+    alt: string;
+    className?: string;
+  }) => (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={src} alt={alt} className={className} />
   ),
@@ -35,10 +43,47 @@ const heroTrip: GuestTripHeroViewModel = {
 const operations: GuestTripOperationsViewModel = {
   tripId: "trip-1",
   tripType: "custom_request",
+  reservation: {
+    reference: "trip-1",
+    statusLabel: "Your Disney confirmation is ready",
+    statusDescription: "The owner transfer has been recorded for this trip.",
+    resortName: "Bay Lake Tower",
+    roomCategory: "Deluxe Studio",
+    view: "Theme Park View",
+    buildingPreference: null,
+    checkIn: "2026-10-10",
+    checkOut: "2026-10-17",
+    nights: 7,
+    travelPartyLabel: "2 adults",
+    points: 120,
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-03T00:00:00Z",
+    ownerBookingDate: "2026-01-03T00:00:00Z",
+    transferDate: "2026-01-04T00:00:00Z",
+    disneyConfirmationStatus: "Your Disney confirmation is ready",
+    disneyConfirmationNumber: "ABC123",
+  },
+  statusChecklist: [
+    {
+      key: "request",
+      label: "Request received",
+      state: "complete",
+      responsibility: "HannaDVC",
+      detail: "Your trip is in the HannaDVC guest portal.",
+    },
+    {
+      key: "travelers",
+      label: "Traveler details complete",
+      state: "current",
+      responsibility: "You",
+      detail: "Partially completed",
+    },
+  ],
   attention: {
     key: "agreement-signature",
     title: "Agreement needs your signature",
-    description: "Review the rental agreement so your reservation can continue moving forward.",
+    description:
+      "Review the rental agreement so your reservation can continue moving forward.",
     actionLabel: "Review and sign agreement",
     actionHref: "/contracts/token-1",
     priority: 2,
@@ -51,6 +96,24 @@ const operations: GuestTripOperationsViewModel = {
     nextDueCents: 240100,
     nextDueDate: null,
     statusLabel: "Payment received",
+    schedule: [
+      {
+        key: "deposit",
+        label: "Deposit",
+        amountCents: 9900,
+        receivedCents: 9900,
+        dueDate: null,
+        statusLabel: "Received",
+      },
+      {
+        key: "balance",
+        label: "Remaining balance",
+        amountCents: 240100,
+        receivedCents: 0,
+        dueDate: null,
+        statusLabel: "Due date not available yet",
+      },
+    ],
     history: [
       {
         id: "payment-1",
@@ -65,6 +128,7 @@ const operations: GuestTripOperationsViewModel = {
   },
   agreement: {
     statusLabel: "Ready for signature",
+    sentAt: "2026-01-02T00:00:00Z",
     signedAt: null,
     agreementHref: "/contracts/token-1",
     action: {
@@ -115,25 +179,40 @@ describe("GuestTripOperations", () => {
     );
 
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Bay Lake Tower");
-    expect(screen.getByRole("heading", { name: "Cost and payments" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Agreement" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Travelers" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Trip documents" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Bay Lake Tower",
+    );
+    expect(
+      screen.getByRole("heading", { name: "Cost and payments" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Agreement" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Travelers" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Trip documents" }),
+    ).toBeInTheDocument();
   });
 
   it("renders trusted values, real actions, and no raw internal labels", () => {
-    const { container } = render(<GuestTripOperations operations={operations} />);
+    const { container } = render(
+      <GuestTripOperations operations={operations} />,
+    );
 
     expect(screen.getByText("$2,500.00")).toBeInTheDocument();
     expect(screen.getAllByText("$2,401.00").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Ready for signature").length).toBeGreaterThan(0);
-    const agreementLinks = screen.getAllByRole("link", { name: "Review and sign agreement" });
-    expect(agreementLinks[0]).toHaveAttribute("href", "/contracts/token-1");
-    expect(screen.getByRole("link", { name: "Complete traveler details" })).toHaveAttribute(
-      "href",
-      "/guest/requests/trip-1#guest-details",
+    expect(screen.getAllByText("Ready for signature").length).toBeGreaterThan(
+      0,
     );
+    const agreementLinks = screen.getAllByRole("link", {
+      name: "Review and sign agreement",
+    });
+    expect(agreementLinks[0]).toHaveAttribute("href", "/contracts/token-1");
+    expect(
+      screen.getByRole("link", { name: "Complete traveler details" }),
+    ).toHaveAttribute("href", "/guest/requests/trip-1#guest-details");
     expect(container).not.toHaveTextContent("pending_payment");
     expect(container).not.toHaveTextContent("Action needed");
     expect(container).not.toHaveTextContent("owner payout");
@@ -154,6 +233,7 @@ describe("GuestTripOperations", () => {
             nextDueCents: null,
             statusLabel: "Payment details are not available yet",
             history: [],
+            schedule: [],
             warnings: ["Total trip cost is not available yet."],
           },
           documents: [],
@@ -161,9 +241,17 @@ describe("GuestTripOperations", () => {
       />,
     );
 
-    expect(screen.getByText("Nothing needs your attention right now. We will keep the next important trip step here.")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Nothing needs your attention right now. We will keep the next important trip step here.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.getAllByText("Not available yet").length).toBeGreaterThan(0);
-    expect(screen.getByText("No payment history is available yet.")).toBeInTheDocument();
-    expect(screen.getByText("No trip documents are available yet.")).toBeInTheDocument();
+    expect(
+      screen.getByText("No payment history is available yet."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("No trip documents are available yet."),
+    ).toBeInTheDocument();
   });
 });

@@ -107,3 +107,33 @@ The operational layer uses editorial sections, thin dividers, labeled rows, and 
 ## Next Phase
 
 The next safe phase is a dedicated guest operational-page alignment pass for existing payment, contract, traveler, and document workflows, followed by guest security hardening for tokenized and document access.
+
+## Canonical My Vacation transparency consolidation
+
+`/my-trip/[tripId]` is the canonical premium Guest Portal. `/guest/requests/[requestId]` remains the authenticated request-management surface for traveler/contact edits and legacy workflow actions, but guests should use My Vacation to understand reservation state, agreement access, payments, documents, support references, and next steps.
+
+### Surface comparison matrix
+
+| Field | My Vacation before consolidation | Added on old request page in `7bfb521` | Authoritative source | Belongs in canonical portal | Duplicates My Vacation | Remain visible on old page | Safe to expose |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Request/reference number | Partial via route context | Request detail context | `booking_requests.id` | Yes | No | Yes for edit workflow | Yes |
+| Resort/dates/nights | Yes in hero | Yes | `booking_requests`, resort relation | Yes | Yes | Yes | Yes |
+| Room/view/building | Room only | Room/view | Trusted request fields | Yes when present | Partial | Yes for request review | Yes |
+| Travel party | Yes | Yes | `booking_requests`, guest rows | Yes | Yes | Yes | Yes |
+| DVC points | No/partial | Yes | `booking_requests.total_points` | Yes | No | Yes | Yes |
+| Request/update dates | No | Yes | `created_at`, `updated_at` | Yes | No | Optional | Yes |
+| Owner match/booking/transfer progress | Partial confirmation status | Timeline wording | Request/match/rental/transfer fields | Yes | Partial | Minimal only | Yes, without owner identity |
+| Disney confirmation | Yes with transfer gating | Not canonical | Existing confirmation resolution and transfer rules | Yes | Partial | No new dashboard | Yes when disclosure allows |
+| Vacation cost/received/balance | Yes operations model | Estimated total/deposit/balance | Guest operations view model | Yes | Yes | Minimal legacy estimate okay | Yes |
+| Payment schedule/history | Partial | Financial overview | Transactions plus trusted totals | Yes | No | Avoid competing dashboard | Yes, inbound guest rows only |
+| Agreement status/link | Yes | Yes | Latest contract | Yes | Yes | Yes for action | Yes without token text |
+| Documents | Yes, limited | Agreement card | Contract/rental documents | Yes | Partial | No premium center | Yes without storage paths |
+| Cancellation/support | Policy link | Not central | Existing routes | Yes | No | Optional | Yes |
+
+The My Vacation implementation extends `buildGuestTripOperationsViewModel` rather than adding another page-level financial or status pipeline. Existing workflow routes remain unchanged: traveler edits continue through `/guest/requests/[requestId]#guest-details`, agreement review/signing continues through `/contracts/[token]`, cancellation information uses `/policies/deferred-cancellation`, and support uses `/support`. Legacy `/pay/[token]` and `/receipt/[paymentId]` CTAs remain intentionally disabled until separately approved as safe.
+
+### Presentation model
+
+The operations view model now exposes guest-safe reservation details, a non-linear status/responsibility checklist, payment schedule rows, agreement sent/signed dates, and document availability. It excludes owner identity, owner payout, affiliate commission, platform margin, raw storage paths, raw enums, admin notes, and unavailable fake zero values.
+
+Known limitations: future installment due dates appear only when a trusted existing date is available; otherwise the portal says the due date is not available yet. Rental documents can be listed as available through concierge unless a secure route already exists.

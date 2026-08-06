@@ -27,13 +27,20 @@ describe("guest trip operations view model", () => {
       snapshot: { summary: { totalPayableByGuestCents: 200000 } },
     };
 
-    expect(resolveTrustedTotalCents({ ...baseBooking, guest_total_cents_final: 240000 }, contract)).toBe(
-      240000,
-    );
+    expect(
+      resolveTrustedTotalCents(
+        { ...baseBooking, guest_total_cents_final: 240000 },
+        contract,
+      ),
+    ).toBe(240000);
     expect(resolveTrustedTotalCents(baseBooking, contract)).toBe(250000);
     expect(
       resolveTrustedTotalCents(
-        { ...baseBooking, guest_total_cents: null, guest_total_cents_final: null },
+        {
+          ...baseBooking,
+          guest_total_cents: null,
+          guest_total_cents_final: null,
+        },
         contract,
       ),
     ).toBe(200000);
@@ -43,13 +50,19 @@ describe("guest trip operations view model", () => {
     const model = buildGuestTripOperationsViewModel({
       tripId: "trip-1",
       tripType: "custom_request",
-      booking: { ...baseBooking, guest_total_cents: null, guest_total_cents_final: null },
+      booking: {
+        ...baseBooking,
+        guest_total_cents: null,
+        guest_total_cents_final: null,
+      },
       transactions: [],
     });
 
     expect(model.payment.totalCents).toBeNull();
     expect(model.payment.remainingCents).toBeNull();
-    expect(model.payment.statusLabel).toBe("Payment details are not available yet");
+    expect(model.payment.statusLabel).toBe(
+      "Payment details are not available yet",
+    );
   });
 
   it("uses Ready Stay stored booking totals without recalculating listing price", () => {
@@ -120,6 +133,83 @@ describe("guest trip operations view model", () => {
     });
   });
 
+  it("renders a two-payment schedule from trusted totals and deposit", () => {
+    const model = buildGuestTripOperationsViewModel({
+      tripId: "trip-1",
+      tripType: "custom_request",
+      booking: { ...baseBooking, deposit_due: 100, deposit_paid: 100 },
+      transactions: [],
+    });
+
+    expect(model.payment.schedule).toEqual([
+      expect.objectContaining({
+        key: "deposit",
+        amountCents: 10000,
+        receivedCents: 10000,
+        statusLabel: "Received",
+      }),
+      expect.objectContaining({
+        key: "balance",
+        amountCents: 240000,
+        dueDate: null,
+        statusLabel: "Due date not available yet",
+      }),
+    ]);
+  });
+
+  it("renders a three-payment schedule when booking and check-in installments exist", () => {
+    const model = buildGuestTripOperationsViewModel({
+      tripId: "trip-1",
+      tripType: "custom_request",
+      booking: { ...baseBooking, check_in: "2026-10-10", deposit_due: 100 },
+      transactions: [
+        {
+          id: "deposit",
+          direction: "in",
+          txn_type: "deposit",
+          amount_cents: 10000,
+          status: "succeeded",
+        },
+        {
+          id: "booking",
+          direction: "in",
+          txn_type: "booking",
+          amount_cents: 140000,
+          status: "succeeded",
+        },
+        {
+          id: "checkin",
+          direction: "in",
+          txn_type: "checkin",
+          amount_cents: 100000,
+          status: "pending",
+        },
+      ],
+    });
+
+    expect(model.payment.schedule).toEqual([
+      expect.objectContaining({
+        key: "deposit",
+        amountCents: 10000,
+        receivedCents: 10000,
+        statusLabel: "Received",
+      }),
+      expect.objectContaining({
+        key: "installment-1",
+        amountCents: 140000,
+        receivedCents: 140000,
+        statusLabel: "Received",
+      }),
+      expect.objectContaining({
+        key: "installment-2",
+        amountCents: 100000,
+        receivedCents: 0,
+        dueDate: "2026-10-10",
+      }),
+    ]);
+    expect(model.payment.paidCents).toBe(150000);
+  });
+
   it("surfaces agreement and traveler actions using existing routes", () => {
     const model = buildGuestTripOperationsViewModel({
       tripId: "trip-1",
@@ -131,7 +221,9 @@ describe("guest trip operations view model", () => {
         guest_accept_token: "token-1",
         guest_accepted_at: null,
       },
-      travelers: [{ first_name: "Helena", last_name: "Aranha", age_category: "adult" }],
+      travelers: [
+        { first_name: "Helena", last_name: "Aranha", age_category: "adult" },
+      ],
       transactions: [],
     });
 
@@ -142,7 +234,9 @@ describe("guest trip operations view model", () => {
     });
     expect(model.travelers.statusLabel).toBe("Partially completed");
     expect(model.travelers.names).toEqual(["Helena Aranha"]);
-    expect(model.travelers.action?.href).toBe("/guest/requests/trip-1#guest-details");
+    expect(model.travelers.action?.href).toBe(
+      "/guest/requests/trip-1#guest-details",
+    );
     expect(model.attention?.title).toBe("Agreement needs your signature");
   });
 
@@ -177,7 +271,10 @@ describe("guest trip operations view model", () => {
           id: "doc-1",
           type: "disney_confirmation_email",
           created_at: "2026-01-03T00:00:00Z",
-          meta: { original_name: "confirmation.pdf", storage_path: "private/path.pdf" },
+          meta: {
+            original_name: "confirmation.pdf",
+            storage_path: "private/path.pdf",
+          },
         },
       ],
       transactions: [],
@@ -204,15 +301,23 @@ describe("guest trip operations view model", () => {
     expect(getGuestPaymentStatusLabel("failed")).toBe("Payment issue");
     expect(getGuestPaymentStatusLabel("pending")).toBe("Pending");
     expect(getGuestPaymentStatusLabel("refunded")).toBe("Refunded");
-    expect(getGuestPaymentStatusLabel("raw_new_status")).toBe("Status unavailable");
+    expect(getGuestPaymentStatusLabel("raw_new_status")).toBe(
+      "Status unavailable",
+    );
 
     expect(getGuestAgreementStatusLabel("sent")).toBe("Ready for signature");
     expect(getGuestAgreementStatusLabel("accepted")).toBe("Signed");
-    expect(getGuestAgreementStatusLabel("draft")).toBe("Agreement being prepared");
-    expect(getGuestAgreementStatusLabel("raw_new_status")).toBe("Agreement being prepared");
+    expect(getGuestAgreementStatusLabel("draft")).toBe(
+      "Agreement being prepared",
+    );
+    expect(getGuestAgreementStatusLabel("raw_new_status")).toBe(
+      "Agreement being prepared",
+    );
 
     expect(getGuestDocumentTypeLabel("agreement_pdf")).toBe("Agreement");
-    expect(getGuestDocumentTypeLabel("disney_confirmation_email")).toBe("Disney confirmation");
+    expect(getGuestDocumentTypeLabel("disney_confirmation_email")).toBe(
+      "Disney confirmation",
+    );
     expect(getGuestDocumentTypeLabel("raw_new_status")).toBe("Trip document");
   });
 });

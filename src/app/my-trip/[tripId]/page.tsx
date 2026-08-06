@@ -37,6 +37,10 @@ type BookingRequest = {
   created_at: string | null;
   lead_guest_name: string | null;
   primary_room: string | null;
+  primary_view: string | null;
+  building_preference: string | null;
+  total_points: number | null;
+  updated_at: string | null;
   guest_total_cents: number | null;
   guest_total_cents_final: number | null;
   deposit_due: number | null;
@@ -66,7 +70,11 @@ type TripSwitcherRow = {
 
 type MatchRow = {
   id: string;
-  rental?: { id: string | null; dvc_confirmation_number: string | null; disney_confirmation_number: string | null } | null;
+  rental?: {
+    id: string | null;
+    dvc_confirmation_number: string | null;
+    disney_confirmation_number: string | null;
+  } | null;
 };
 
 type RentalRow = {
@@ -176,8 +184,12 @@ export default async function TripDetailsPage({
       check_in,
       check_out,
       created_at,
+      updated_at,
       lead_guest_name,
       primary_room,
+      primary_view,
+      building_preference,
+      total_points,
       guest_total_cents,
       guest_total_cents_final,
       deposit_due,
@@ -189,7 +201,7 @@ export default async function TripDetailsPage({
       youths,
       primary_resort:resorts!booking_requests_primary_resort_id_fkey(name, slug, calculator_code),
       confirmed_resort:resorts!booking_requests_confirmed_resort_id_fkey(name, slug, calculator_code)
-    `
+    `,
     )
     .eq("id", tripId);
 
@@ -197,7 +209,8 @@ export default async function TripDetailsPage({
     bookingQuery = bookingQuery.eq("renter_id", user.id);
   }
 
-  const { data: bookingRequest, error } = await bookingQuery.maybeSingle<BookingRequest>();
+  const { data: bookingRequest, error } =
+    await bookingQuery.maybeSingle<BookingRequest>();
 
   if (error) {
     // Avoid leaking details to user; surface 404-ish UX.
@@ -229,7 +242,9 @@ export default async function TripDetailsPage({
 
   const { data: contract } = await relationClient
     .from("contracts")
-    .select("id, status, guest_accept_token, guest_accepted_at, signed_at, snapshot")
+    .select(
+      "id, status, sent_at, guest_accept_token, guest_accepted_at, signed_at, snapshot",
+    )
     .eq("booking_request_id", tripId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -237,7 +252,9 @@ export default async function TripDetailsPage({
 
   const { data: matchRow } = await relationClient
     .from("booking_matches")
-    .select("id, rental:rentals!rentals_match_id_fkey(id, dvc_confirmation_number, disney_confirmation_number)")
+    .select(
+      "id, rental:rentals!rentals_match_id_fkey(id, dvc_confirmation_number, disney_confirmation_number)",
+    )
     .eq("booking_id", tripId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -261,8 +278,10 @@ export default async function TripDetailsPage({
 
     rentalsData = rentals as RentalRow[] | null;
     rentalConfirmation =
-      rentalsData?.find((row) => row.disney_confirmation_number)?.disney_confirmation_number ??
-      rentalsData?.find((row) => row.dvc_confirmation_number)?.dvc_confirmation_number ??
+      rentalsData?.find((row) => row.disney_confirmation_number)
+        ?.disney_confirmation_number ??
+      rentalsData?.find((row) => row.dvc_confirmation_number)
+        ?.dvc_confirmation_number ??
       null;
   }
 
@@ -304,10 +323,14 @@ export default async function TripDetailsPage({
   if (process.env.NODE_ENV !== "production") {
     const matchCount = matchRows?.length ?? 0;
     const rentalsCount = rentalsData?.length ?? 0;
-    const snapshotConfirmation = (contract?.snapshot as { confirmationNumber?: string } | null)?.confirmationNumber;
+    const snapshotConfirmation = (
+      contract?.snapshot as { confirmationNumber?: string } | null
+    )?.confirmationNumber;
     const hasContractSnapshot = Boolean(snapshotConfirmation);
     const hasMatchRental = Boolean(matchRow?.rental?.dvc_confirmation_number);
-    const hasAnyRental = Boolean(rentalsData?.some((row) => Boolean(row.dvc_confirmation_number)));
+    const hasAnyRental = Boolean(
+      rentalsData?.some((row) => Boolean(row.dvc_confirmation_number)),
+    );
 
     console.info("[my-trip] confirmation lookup", {
       tripId,
@@ -321,7 +344,8 @@ export default async function TripDetailsPage({
   }
 
   const snapshotConfirmation =
-    (contract?.snapshot as { confirmationNumber?: string } | null)?.confirmationNumber ?? null;
+    (contract?.snapshot as { confirmationNumber?: string } | null)
+      ?.confirmationNumber ?? null;
 
   const confirmationNumber =
     bookingRequest.disney_confirmation_number ??
@@ -333,18 +357,25 @@ export default async function TripDetailsPage({
     rentalConfirmation ??
     null;
   const transferConfirmed =
-    Boolean(bookingRequest.owner_transfer_confirmed_at) || bookingRequest.status === "transferred";
+    Boolean(bookingRequest.owner_transfer_confirmed_at) ||
+    bookingRequest.status === "transferred";
   const isReadyStayTrip = Boolean(readyStayLink);
-  const readyStayTransferConfirmed = Boolean(bookingRequest.owner_transfer_confirmed_at);
+  const readyStayTransferConfirmed = Boolean(
+    bookingRequest.owner_transfer_confirmed_at,
+  );
   const readyStayDisplayConfirmationNumber = readyStayTransferConfirmed
-    ? bookingRequest.disney_confirmation_number ?? confirmationNumber
+    ? (bookingRequest.disney_confirmation_number ?? confirmationNumber)
     : null;
-  const displayConfirmationNumber = transferConfirmed ? confirmationNumber : null;
+  const displayConfirmationNumber = transferConfirmed
+    ? confirmationNumber
+    : null;
 
   const resortRecord =
     bookingRequest.confirmed_resort ?? bookingRequest.primary_resort ?? null;
 
-  const tripSwitcherItems: GuestTripSwitcherItem[] = ((switcherRows as TripSwitcherRow[] | null) ?? [])
+  const tripSwitcherItems: GuestTripSwitcherItem[] = (
+    (switcherRows as TripSwitcherRow[] | null) ?? []
+  )
     .filter((row) => row.id)
     .map((row) => {
       const rowResort = row.confirmed_resort ?? row.primary_resort ?? null;
@@ -360,11 +391,17 @@ export default async function TripDetailsPage({
     profileDisplayName: profile?.display_name ?? null,
     profileFullName: profile?.full_name ?? null,
     metadataDisplayName:
-      typeof user.user_metadata?.display_name === "string" ? user.user_metadata.display_name : null,
+      typeof user.user_metadata?.display_name === "string"
+        ? user.user_metadata.display_name
+        : null,
     metadataFullName:
-      typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null,
+      typeof user.user_metadata?.full_name === "string"
+        ? user.user_metadata.full_name
+        : null,
     metadataName:
-      typeof user.user_metadata?.name === "string" ? user.user_metadata.name : null,
+      typeof user.user_metadata?.name === "string"
+        ? user.user_metadata.name
+        : null,
     email: profile?.email ?? user.email ?? null,
     guestName: bookingRequest.lead_guest_name,
     tripId: bookingRequest.id,
@@ -380,21 +417,27 @@ export default async function TripDetailsPage({
     confirmationNumber,
   });
 
-  const { data: bookingTransactions, error: bookingTransactionsError } = await relationClient
-    .from("transactions")
-    .select("id, direction, txn_type, amount_cents, currency, status, paid_at, created_at")
-    .eq("booking_request_id", tripId)
-    .order("created_at", { ascending: false });
+  const { data: bookingTransactions, error: bookingTransactionsError } =
+    await relationClient
+      .from("transactions")
+      .select(
+        "id, direction, txn_type, amount_cents, currency, status, paid_at, created_at",
+      )
+      .eq("booking_request_id", tripId)
+      .order("created_at", { ascending: false });
 
   let matchTransactions: GuestTripOperationsTransaction[] = [];
   let matchTransactionsError = null;
   if (matchIds.length > 0) {
     const result = await relationClient
       .from("transactions")
-      .select("id, direction, txn_type, amount_cents, currency, status, paid_at, created_at")
+      .select(
+        "id, direction, txn_type, amount_cents, currency, status, paid_at, created_at",
+      )
       .in("match_id", matchIds)
       .order("created_at", { ascending: false });
-    matchTransactions = (result.data as GuestTripOperationsTransaction[] | null) ?? [];
+    matchTransactions =
+      (result.data as GuestTripOperationsTransaction[] | null) ?? [];
     matchTransactionsError = result.error;
   }
 
@@ -406,7 +449,7 @@ export default async function TripDetailsPage({
   const rentalIds = Array.from(
     new Set(
       [
-        ...((rentalsData ?? []).map((row) => row.id).filter(Boolean)),
+        ...(rentalsData ?? []).map((row) => row.id).filter(Boolean),
         readyStayLink?.rental_id,
         snapshotRentalId,
         matchRow?.rental?.id,
@@ -424,200 +467,252 @@ export default async function TripDetailsPage({
     tripDocuments = (documents as GuestTripOperationsDocument[] | null) ?? [];
   }
 
+  const tripConfirmationNumber = isReadyStayTrip
+    ? readyStayDisplayConfirmationNumber
+    : displayConfirmationNumber;
+  const confirmationAvailable = Boolean(tripConfirmationNumber);
+  const ownerBookingDate = rentalsData?.find(
+    (row) => row.disney_confirmation_number || row.dvc_confirmation_number,
+  )
+    ? bookingRequest.updated_at
+    : null;
+
   const operationsViewModel = buildGuestTripOperationsViewModel({
     tripId: bookingRequest.id,
     tripType: isReadyStayTrip ? "ready_stay" : "custom_request",
-    booking: bookingRequest,
+    booking: {
+      ...bookingRequest,
+      ownerBookingDate,
+      transferDate: bookingRequest.owner_transfer_confirmed_at,
+      displayConfirmationNumber: tripConfirmationNumber,
+      confirmationDisclosureAllowed: confirmationAvailable,
+    },
     contract,
     transactions: [
-      ...((bookingTransactions as GuestTripOperationsTransaction[] | null) ?? []),
+      ...((bookingTransactions as GuestTripOperationsTransaction[] | null) ??
+        []),
       ...matchTransactions,
     ],
     travelers: (travelers as GuestTripOperationsTraveler[] | null) ?? [],
     documents: tripDocuments,
-    paymentDataUnavailable: Boolean(bookingTransactionsError || matchTransactionsError),
+    paymentDataUnavailable: Boolean(
+      bookingTransactionsError || matchTransactionsError,
+    ),
   });
 
   const enhanceItems = buildEnhanceItems();
-  const tripConfirmationNumber = isReadyStayTrip ? readyStayDisplayConfirmationNumber : displayConfirmationNumber;
-  const confirmationAvailable = Boolean(tripConfirmationNumber);
 
   return (
     <div className="min-h-screen bg-[#FBFAF7] text-[#10224A]">
-      <GuestTopBar currentTripId={bookingRequest.id} trips={tripSwitcherItems} />
+      <GuestTopBar
+        currentTripId={bookingRequest.id}
+        trips={tripSwitcherItems}
+      />
       <GuestTripHero trip={heroViewModel} />
 
       <main className="mx-auto w-full max-w-5xl px-6 py-12 sm:px-10 lg:px-12">
-      <section aria-labelledby="reservation-progress-title" className="border-y border-[#10224A]/12 py-8">
-        <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
-          <div>
-            <p className="text-sm text-[#10224A]/50">Trip details</p>
-            <h2 id="reservation-progress-title" className="mt-2 text-3xl font-semibold tracking-normal text-[#10224A]">
-              Your reservation
+        <section
+          aria-labelledby="reservation-progress-title"
+          className="border-y border-[#10224A]/12 py-8"
+        >
+          <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
+            <div>
+              <p className="text-sm text-[#10224A]/50">Trip details</p>
+              <h2
+                id="reservation-progress-title"
+                className="mt-2 text-3xl font-semibold tracking-normal text-[#10224A]"
+              >
+                Your reservation
+              </h2>
+            </div>
+            <div className="divide-y divide-[#10224A]/10">
+              <div className="grid gap-3 py-5 first:pt-0 sm:grid-cols-[0.7fr_1.3fr]">
+                <p className="font-semibold text-[#10224A]">Reservation</p>
+                <div>
+                  <p className="text-[#10224A]/78">
+                    {transferConfirmed
+                      ? "Reservation confirmed"
+                      : "Reservation details are being finalized"}
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-[#10224A]/54">
+                    {transferConfirmed
+                      ? "The owner transfer has been recorded for this trip."
+                      : "We will keep the reservation details here as the transfer is completed."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-3 py-5 sm:grid-cols-[0.7fr_1.3fr]">
+                <p className="font-semibold text-[#10224A]">
+                  Disney confirmation
+                </p>
+                <div>
+                  {confirmationAvailable ? (
+                    <div className="flex flex-col items-start gap-2">
+                      <ConfirmationCopy
+                        confirmationNumber={tripConfirmationNumber}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-[#10224A]/78">Waiting for transfer</p>
+                      <p className="mt-1 text-sm leading-6 text-[#10224A]/54">
+                        Your confirmation number will appear here when the
+                        transfer is complete.
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid gap-3 py-5 last:pb-0 sm:grid-cols-[0.7fr_1.3fr]">
+                <p className="font-semibold text-[#10224A]">
+                  My Disney Experience
+                </p>
+                <div>
+                  <p className="text-[#10224A]/78">
+                    {confirmationAvailable
+                      ? "Ready to link"
+                      : "Available after confirmation"}
+                  </p>
+                  <Link
+                    href="/guides/link-to-disney-experience"
+                    className="mt-2 inline-flex min-h-10 items-center border-b border-[#C49A3A] pb-0.5 text-sm font-semibold text-[#10224A] transition hover:border-[#10224A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C49A3A]"
+                  >
+                    How to link your reservation
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <GuestTripOperations operations={operationsViewModel} />
+
+        <section className="border-b border-[#10224A]/12 py-7">
+          <div className="grid gap-4 lg:grid-cols-[0.72fr_1.28fr]">
+            <h2 className="text-2xl font-semibold tracking-normal text-[#10224A]">
+              If plans change
             </h2>
-          </div>
-          <div className="divide-y divide-[#10224A]/10">
-            <div className="grid gap-3 py-5 first:pt-0 sm:grid-cols-[0.7fr_1.3fr]">
-              <p className="font-semibold text-[#10224A]">Reservation</p>
-              <div>
-                <p className="text-[#10224A]/78">
-                  {transferConfirmed ? "Reservation confirmed" : "Reservation details are being finalized"}
-                </p>
-                <p className="mt-1 text-sm leading-6 text-[#10224A]/54">
-                  {transferConfirmed
-                    ? "The owner transfer has been recorded for this trip."
-                    : "We will keep the reservation details here as the transfer is completed."}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-3 py-5 sm:grid-cols-[0.7fr_1.3fr]">
-              <p className="font-semibold text-[#10224A]">Disney confirmation</p>
-              <div>
-                {confirmationAvailable ? (
-                  <div className="flex flex-col items-start gap-2">
-                    <ConfirmationCopy confirmationNumber={tripConfirmationNumber} />
-                  </div>
-                ) : (
-                  <>
-                    <p className="text-[#10224A]/78">Waiting for transfer</p>
-                    <p className="mt-1 text-sm leading-6 text-[#10224A]/54">
-                      Your confirmation number will appear here when the transfer is complete.
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="grid gap-3 py-5 last:pb-0 sm:grid-cols-[0.7fr_1.3fr]">
-              <p className="font-semibold text-[#10224A]">My Disney Experience</p>
-              <div>
-                <p className="text-[#10224A]/78">
-                  {confirmationAvailable ? "Ready to link" : "Available after confirmation"}
-                </p>
-                <Link
-                  href="/guides/link-to-disney-experience"
-                  className="mt-2 inline-flex min-h-10 items-center border-b border-[#C49A3A] pb-0.5 text-sm font-semibold text-[#10224A] transition hover:border-[#10224A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C49A3A]"
-                >
-                  How to link your reservation
-                </Link>
-              </div>
+            <div>
+              <p className="max-w-2xl text-sm leading-7 text-[#10224A]/62">
+                This reservation may be eligible for a Deferred Cancellation
+                Credit.
+              </p>
+              <Link
+                href="/policies/deferred-cancellation"
+                className="mt-2 inline-flex min-h-10 items-center border-b border-[#C49A3A] pb-0.5 text-sm font-semibold text-[#10224A] transition hover:border-[#10224A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C49A3A]"
+              >
+                Review cancellation policy
+              </Link>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <GuestTripOperations operations={operationsViewModel} />
-
-      <section className="border-b border-[#10224A]/12 py-7">
-        <div className="grid gap-4 lg:grid-cols-[0.72fr_1.28fr]">
-          <h2 className="text-2xl font-semibold tracking-normal text-[#10224A]">If plans change</h2>
-          <div>
-            <p className="max-w-2xl text-sm leading-7 text-[#10224A]/62">
-              This reservation may be eligible for a Deferred Cancellation Credit.
-            </p>
+        {/* ENHANCE YOUR STAY */}
+        <section className="mt-10">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-base font-semibold text-[#0B1B3A]/85">
+                Enhance your stay
+              </h2>
+              <p className="mt-1 text-xs text-[#0B1B3A]/55">
+                Concierge recommendations
+              </p>
+            </div>
             <Link
-              href="/policies/deferred-cancellation"
-              className="mt-2 inline-flex min-h-10 items-center border-b border-[#C49A3A] pb-0.5 text-sm font-semibold text-[#10224A] transition hover:border-[#10224A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C49A3A]"
+              href="/services"
+              className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0B1B3A]/60 hover:text-[#0B1B3A]"
             >
-              Review cancellation policy
+              View all
             </Link>
           </div>
-        </div>
-      </section>
 
-      {/* ENHANCE YOUR STAY */}
-      <section className="mt-10">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-base font-semibold text-[#0B1B3A]/85">Enhance your stay</h2>
-            <p className="mt-1 text-xs text-[#0B1B3A]/55">Concierge recommendations</p>
-          </div>
-          <Link
-            href="/services"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0B1B3A]/60 hover:text-[#0B1B3A]"
-          >
-            View all
-          </Link>
-        </div>
-
-        <div className="mt-4 flex gap-4 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] snap-x snap-mandatory">
-          {enhanceItems.map((item) => (
-            <div
-              key={item.title}
-              title={
-                item.isAvailable
-                  ? undefined
-                  : "This feature is currently in development and will be available soon."
-              }
-              aria-disabled={!item.isAvailable}
-              className={`group/soon relative min-w-[260px] snap-start overflow-hidden rounded-xl border border-[#0B1B3A]/10 bg-white ${
-                item.isAvailable
-                  ? "transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-[#0B1B3A]/15"
-                  : "cursor-default opacity-75"
-              }`}
-            >
-              {!item.isAvailable ? <ComingSoonOverlay /> : null}
-              <div className="relative flex min-h-[320px] flex-col">
-                {/* Top navy block */}
-                <div className="relative overflow-hidden rounded-t-2xl bg-[#071a33]">
-                  <div
-                    className="pointer-events-none absolute inset-0 z-10"
-                    style={{
-                      background:
-                        "radial-gradient(140% 120% at 0% 0%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.06) 35%, rgba(255,255,255,0.00) 65%)",
-                    }}
-                  />
-                  <div className="relative z-20 flex w-full flex-col justify-between px-5 pb-4 pt-5 text-white">
-                    <div>
-                      <div className="text-base font-semibold text-white">{item.title}</div>
-                      <p className="mt-2 text-xs leading-relaxed text-white/75">{item.body}</p>
+          <div className="mt-4 flex gap-4 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] snap-x snap-mandatory">
+            {enhanceItems.map((item) => (
+              <div
+                key={item.title}
+                title={
+                  item.isAvailable
+                    ? undefined
+                    : "This feature is currently in development and will be available soon."
+                }
+                aria-disabled={!item.isAvailable}
+                className={`group/soon relative min-w-[260px] snap-start overflow-hidden rounded-xl border border-[#0B1B3A]/10 bg-white ${
+                  item.isAvailable
+                    ? "transition-transform duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-[#0B1B3A]/15"
+                    : "cursor-default opacity-75"
+                }`}
+              >
+                {!item.isAvailable ? <ComingSoonOverlay /> : null}
+                <div className="relative flex min-h-[320px] flex-col">
+                  {/* Top navy block */}
+                  <div className="relative overflow-hidden rounded-t-2xl bg-[#071a33]">
+                    <div
+                      className="pointer-events-none absolute inset-0 z-10"
+                      style={{
+                        background:
+                          "radial-gradient(140% 120% at 0% 0%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.06) 35%, rgba(255,255,255,0.00) 65%)",
+                      }}
+                    />
+                    <div className="relative z-20 flex w-full flex-col justify-between px-5 pb-4 pt-5 text-white">
+                      <div>
+                        <div className="text-base font-semibold text-white">
+                          {item.title}
+                        </div>
+                        <p className="mt-2 text-xs leading-relaxed text-white/75">
+                          {item.body}
+                        </p>
+                      </div>
+                      {item.isAvailable ? (
+                        <span className="mt-4 inline-flex items-center rounded-full border border-white/30 px-2.5 py-1 text-[0.7rem] font-semibold text-white/90 transition group-hover/soon:border-white/50 group-hover/soon:text-white">
+                          {item.cta}
+                        </span>
+                      ) : (
+                        <span className="mt-4 inline-flex items-center rounded-full border border-white/20 px-2.5 py-1 text-[0.7rem] font-semibold text-white/70">
+                          {item.cta}
+                        </span>
+                      )}
                     </div>
-                    {item.isAvailable ? (
-                      <span className="mt-4 inline-flex items-center rounded-full border border-white/30 px-2.5 py-1 text-[0.7rem] font-semibold text-white/90 transition group-hover/soon:border-white/50 group-hover/soon:text-white">
-                        {item.cta}
-                      </span>
-                    ) : (
-                      <span className="mt-4 inline-flex items-center rounded-full border border-white/20 px-2.5 py-1 text-[0.7rem] font-semibold text-white/70">
-                        {item.cta}
-                      </span>
-                    )}
+                  </div>
+
+                  {/* Image area */}
+                  <div className="relative h-[180px] w-full">
+                    <div
+                      className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-[1.02]"
+                      style={{ backgroundImage: `url('${item.bgImageUrl}')` }}
+                      aria-hidden="true"
+                    />
+                    <div
+                      className="absolute -top-[5px] inset-x-0 bottom-0"
+                      style={{
+                        background:
+                          "linear-gradient(180deg, rgba(7,26,51,0.90) 0%, rgba(7,26,51,0.70) 35%, rgba(7,26,51,0.32) 55%, rgba(7,26,51,0.00) 70%)",
+                      }}
+                      aria-hidden="true"
+                    />
                   </div>
                 </div>
-
-                {/* Image area */}
-                <div className="relative h-[180px] w-full">
-                  <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-[1.02]"
-                    style={{ backgroundImage: `url('${item.bgImageUrl}')` }}
-                    aria-hidden="true"
+                {item.isAvailable ? (
+                  <Link
+                    href={item.href}
+                    className="absolute inset-0 z-20"
+                    aria-label={item.title}
                   />
-                  <div
-                    className="absolute -top-[5px] inset-x-0 bottom-0"
-                    style={{
-                      background:
-                        "linear-gradient(180deg, rgba(7,26,51,0.90) 0%, rgba(7,26,51,0.70) 35%, rgba(7,26,51,0.32) 55%, rgba(7,26,51,0.00) 70%)",
-                    }}
-                    aria-hidden="true"
-                  />
-                </div>
+                ) : null}
               </div>
-              {item.isAvailable ? (
-                <Link href={item.href} className="absolute inset-0 z-20" aria-label={item.title} />
-              ) : null}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <div className="mt-4">
-          <Link
-            href="/services/catalog"
-            className="inline-flex items-center rounded-full border border-[#0B1B3A]/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#0B1B3A]/70 hover:border-[#0B1B3A]/30 hover:text-[#0B1B3A]"
-          >
-            Service catalog
-          </Link>
-        </div>
-      </section>
+          <div className="mt-4">
+            <Link
+              href="/services/catalog"
+              className="inline-flex items-center rounded-full border border-[#0B1B3A]/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#0B1B3A]/70 hover:border-[#0B1B3A]/30 hover:text-[#0B1B3A]"
+            >
+              Service catalog
+            </Link>
+          </div>
+        </section>
       </main>
     </div>
   );
