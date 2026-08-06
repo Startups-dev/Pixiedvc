@@ -13,10 +13,14 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 
-export default function GuestTripOperations({ operations }: GuestTripOperationsProps) {
+export default function GuestTripOperations({
+  operations,
+}: GuestTripOperationsProps) {
   return (
     <div className="space-y-0">
       <NeedsAttention operations={operations} />
+      <ReservationSection reservation={operations.reservation} />
+      <StatusChecklist items={operations.statusChecklist} />
       <PaymentSection payment={operations.payment} />
       <div className="grid border-b border-[#10224A]/12 lg:grid-cols-2 lg:divide-x lg:divide-[#10224A]/12">
         <AgreementSection agreement={operations.agreement} />
@@ -30,11 +34,17 @@ export default function GuestTripOperations({ operations }: GuestTripOperationsP
 function NeedsAttention({ operations }: GuestTripOperationsProps) {
   if (!operations.attention) {
     return (
-      <section aria-label="Needs attention" className="border-b border-[#10224A]/12 py-7">
+      <section
+        aria-label="Needs attention"
+        className="border-b border-[#10224A]/12 py-7"
+      >
         <div className="grid gap-4 lg:grid-cols-[0.72fr_1.28fr]">
-          <h2 className="text-2xl font-semibold tracking-normal text-[#10224A]">Next step</h2>
+          <h2 className="text-2xl font-semibold tracking-normal text-[#10224A]">
+            Next step
+          </h2>
           <p className="max-w-2xl text-sm leading-7 text-[#10224A]/62">
-            Nothing needs your attention right now. We will keep the next important trip step here.
+            Nothing needs your attention right now. We will keep the next
+            important trip step here.
           </p>
         </div>
       </section>
@@ -42,11 +52,17 @@ function NeedsAttention({ operations }: GuestTripOperationsProps) {
   }
 
   return (
-    <section aria-labelledby="guest-attention-title" className="border-b border-[#10224A]/12 py-8">
+    <section
+      aria-labelledby="guest-attention-title"
+      className="border-b border-[#10224A]/12 py-8"
+    >
       <div className="grid gap-5 lg:grid-cols-[0.72fr_1.28fr]">
         <div>
           <p className="text-sm text-[#A77A12]">Needs attention</p>
-          <h2 id="guest-attention-title" className="mt-2 text-3xl font-semibold tracking-normal text-[#10224A]">
+          <h2
+            id="guest-attention-title"
+            className="mt-2 text-3xl font-semibold tracking-normal text-[#10224A]"
+          >
             {operations.attention.title}
           </h2>
         </div>
@@ -66,7 +82,131 @@ function NeedsAttention({ operations }: GuestTripOperationsProps) {
   );
 }
 
-function PaymentSection({ payment }: { payment: GuestTripOperationsViewModel["payment"] }) {
+function ReservationSection({
+  reservation,
+}: {
+  reservation: GuestTripOperationsViewModel["reservation"];
+}) {
+  const stayDates =
+    reservation.checkIn && reservation.checkOut
+      ? `${formatDate(reservation.checkIn)} – ${formatDate(reservation.checkOut)}`
+      : "Dates not available yet";
+  const details = [
+    ["Reference", reservation.reference],
+    ["Resort", reservation.resortName],
+    ["Room category", reservation.roomCategory],
+    ["Villa / view", reservation.view],
+    ["Building preference", reservation.buildingPreference],
+    ["Dates", stayDates],
+    ["Nights", reservation.nights == null ? null : `${reservation.nights}`],
+    ["Travel party", reservation.travelPartyLabel],
+    ["DVC points", reservation.points == null ? null : `${reservation.points}`],
+    ["Request created", formatDate(reservation.createdAt)],
+    ["Last update", formatDate(reservation.updatedAt)],
+    ["Owner booking", formatDate(reservation.ownerBookingDate)],
+    ["Reservation transfer", formatDate(reservation.transferDate)],
+  ].filter(([, value]) => value && value !== "Not available yet");
+
+  return (
+    <section
+      aria-labelledby="guest-reservation-title"
+      className="border-b border-[#10224A]/12 py-10"
+    >
+      <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
+        <div>
+          <p className="text-sm text-[#10224A]/50">Reservation details</p>
+          <h2
+            id="guest-reservation-title"
+            className="mt-2 text-3xl font-semibold tracking-normal text-[#10224A]"
+          >
+            Your reservation
+          </h2>
+        </div>
+        <div className="space-y-7">
+          <div>
+            <p className="text-lg font-semibold text-[#10224A]">
+              {reservation.statusLabel}
+            </p>
+            <p className="mt-2 text-sm leading-7 text-[#10224A]/62">
+              {reservation.statusDescription}
+            </p>
+          </div>
+          <div className="divide-y divide-[#10224A]/10">
+            {details.map(([label, value]) => (
+              <OperationRow
+                key={label}
+                label={label}
+                value={value ?? "Not available yet"}
+              />
+            ))}
+            <OperationRow
+              label="Disney confirmation"
+              value={reservation.disneyConfirmationStatus}
+            />
+            {reservation.disneyConfirmationNumber ? (
+              <OperationRow
+                label="Confirmation number"
+                value={reservation.disneyConfirmationNumber}
+              />
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StatusChecklist({
+  items,
+}: {
+  items: GuestTripOperationsViewModel["statusChecklist"];
+}) {
+  return (
+    <section
+      aria-labelledby="guest-status-title"
+      className="border-b border-[#10224A]/12 py-10"
+    >
+      <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
+        <div>
+          <p className="text-sm text-[#10224A]/50">What happens next</p>
+          <h2
+            id="guest-status-title"
+            className="mt-2 text-3xl font-semibold tracking-normal text-[#10224A]"
+          >
+            Trip status
+          </h2>
+        </div>
+        <div className="divide-y divide-[#10224A]/10">
+          {items.map((item) => (
+            <div
+              key={item.key}
+              className="grid gap-3 py-4 first:pt-0 sm:grid-cols-[1fr_auto]"
+            >
+              <div>
+                <p className="font-semibold text-[#10224A]">{item.label}</p>
+                <p className="mt-1 text-sm leading-6 text-[#10224A]/56">
+                  {item.detail}
+                </p>
+              </div>
+              <p className="text-sm text-[#10224A]/62">
+                Next responsibility:{" "}
+                <span className="font-semibold text-[#10224A]">
+                  {item.responsibility}
+                </span>
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PaymentSection({
+  payment,
+}: {
+  payment: GuestTripOperationsViewModel["payment"];
+}) {
   const canShowProgress =
     typeof payment.totalCents === "number" &&
     payment.totalCents > 0 &&
@@ -76,11 +216,17 @@ function PaymentSection({ payment }: { payment: GuestTripOperationsViewModel["pa
     : "0%";
 
   return (
-    <section aria-labelledby="guest-payments-title" className="border-b border-[#10224A]/12 py-10">
+    <section
+      aria-labelledby="guest-payments-title"
+      className="border-b border-[#10224A]/12 py-10"
+    >
       <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
         <div>
           <p className="text-sm text-[#10224A]/50">Trip essentials</p>
-          <h2 id="guest-payments-title" className="mt-2 text-3xl font-semibold tracking-normal text-[#10224A]">
+          <h2
+            id="guest-payments-title"
+            className="mt-2 text-3xl font-semibold tracking-normal text-[#10224A]"
+          >
             Cost and payments
           </h2>
         </div>
@@ -101,16 +247,35 @@ function PaymentSection({ payment }: { payment: GuestTripOperationsViewModel["pa
           </div>
 
           {canShowProgress ? (
-            <div aria-label="Payment progress" className="h-px overflow-hidden bg-[#10224A]/12">
-              <div className="h-px bg-[#C49A3A]" style={{ width: progressWidth }} />
+            <div
+              aria-label="Payment progress"
+              className="h-px overflow-hidden bg-[#10224A]/12"
+            >
+              <div
+                className="h-px bg-[#C49A3A]"
+                style={{ width: progressWidth }}
+              />
             </div>
           ) : null}
 
           <div className="divide-y divide-[#10224A]/10">
             <OperationRow label="Status" value={payment.statusLabel} />
-            <OperationRow label="Amount paid" value={formatMoney(payment.paidCents, payment.currency)} />
-            <OperationRow label="Next payment" value={formatMoney(payment.nextDueCents, payment.currency)} />
-            <OperationRow label="Due date" value={formatDate(payment.nextDueDate)} />
+            <OperationRow
+              label="Amount paid"
+              value={formatMoney(payment.paidCents, payment.currency)}
+            />
+            <OperationRow
+              label="Next payment"
+              value={formatMoney(payment.nextDueCents, payment.currency)}
+            />
+            <OperationRow
+              label="Due date"
+              value={
+                payment.nextDueDate
+                  ? formatDate(payment.nextDueDate)
+                  : "Due date not available yet"
+              }
+            />
           </div>
 
           {payment.action ? (
@@ -122,15 +287,57 @@ function PaymentSection({ payment }: { payment: GuestTripOperationsViewModel["pa
             </Link>
           ) : null}
 
+          {payment.schedule.length ? (
+            <div>
+              <h3 className="text-sm font-semibold text-[#10224A]">
+                Payment schedule
+              </h3>
+              <div className="mt-3 divide-y divide-[#10224A]/10">
+                {payment.schedule.map((row) => (
+                  <div
+                    key={row.key}
+                    className="grid gap-2 py-4 sm:grid-cols-[1fr_auto_auto] sm:items-center"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-[#10224A]">
+                        {row.label}
+                      </p>
+                      <p className="mt-1 text-xs text-[#10224A]/50">
+                        {row.dueDate
+                          ? formatDate(row.dueDate)
+                          : "Due date not available yet"}
+                      </p>
+                    </div>
+                    <p className="text-sm font-semibold text-[#10224A]">
+                      {formatMoney(row.amountCents, payment.currency)}
+                    </p>
+                    <p className="text-sm text-[#10224A]/58">
+                      {row.statusLabel}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           {payment.history.length ? (
             <div>
-              <h3 className="text-sm font-semibold text-[#10224A]">Payment history</h3>
+              <h3 className="text-sm font-semibold text-[#10224A]">
+                Payment history
+              </h3>
               <div className="mt-3 divide-y divide-[#10224A]/10">
                 {payment.history.map((row) => (
-                  <div key={row.id} className="grid gap-2 py-4 sm:grid-cols-[1fr_auto_auto] sm:items-center">
+                  <div
+                    key={row.id}
+                    className="grid gap-2 py-4 sm:grid-cols-[1fr_auto_auto] sm:items-center"
+                  >
                     <div>
-                      <p className="text-sm font-semibold text-[#10224A]">{row.statusLabel}</p>
-                      <p className="mt-1 text-xs text-[#10224A]/50">{formatDate(row.paidAt)}</p>
+                      <p className="text-sm font-semibold text-[#10224A]">
+                        {row.statusLabel}
+                      </p>
+                      <p className="mt-1 text-xs text-[#10224A]/50">
+                        {formatDate(row.paidAt)}
+                      </p>
                     </div>
                     <p className="text-sm font-semibold text-[#10224A]">
                       {formatMoney(row.amountCents, payment.currency)}
@@ -148,11 +355,15 @@ function PaymentSection({ payment }: { payment: GuestTripOperationsViewModel["pa
               </div>
             </div>
           ) : (
-            <p className="text-sm leading-7 text-[#10224A]/56">No payment history is available yet.</p>
+            <p className="text-sm leading-7 text-[#10224A]/56">
+              No payment history is available yet.
+            </p>
           )}
 
           {payment.warnings.length ? (
-            <p className="text-sm leading-7 text-[#10224A]/56">{payment.warnings[0]}</p>
+            <p className="text-sm leading-7 text-[#10224A]/56">
+              {payment.warnings[0]}
+            </p>
           ) : null}
         </div>
       </div>
@@ -160,14 +371,22 @@ function PaymentSection({ payment }: { payment: GuestTripOperationsViewModel["pa
   );
 }
 
-function AgreementSection({ agreement }: { agreement: GuestTripOperationsViewModel["agreement"] }) {
+function AgreementSection({
+  agreement,
+}: {
+  agreement: GuestTripOperationsViewModel["agreement"];
+}) {
   return (
     <section aria-labelledby="guest-agreement-title" className="py-9 lg:pr-10">
-      <h2 id="guest-agreement-title" className="text-2xl font-semibold tracking-normal text-[#10224A]">
+      <h2
+        id="guest-agreement-title"
+        className="text-2xl font-semibold tracking-normal text-[#10224A]"
+      >
         Agreement
       </h2>
       <div className="mt-6 divide-y divide-[#10224A]/10">
         <OperationRow label="Status" value={agreement.statusLabel} />
+        <OperationRow label="Sent" value={formatDate(agreement.sentAt)} />
         <OperationRow label="Signed" value={formatDate(agreement.signedAt)} />
       </div>
       {agreement.action ? (
@@ -186,26 +405,46 @@ function AgreementSection({ agreement }: { agreement: GuestTripOperationsViewMod
   );
 }
 
-function TravelersSection({ travelers }: { travelers: GuestTripOperationsViewModel["travelers"] }) {
+function TravelersSection({
+  travelers,
+}: {
+  travelers: GuestTripOperationsViewModel["travelers"];
+}) {
   const counts = [
-    travelers.totalTravelers == null ? null : `${travelers.totalTravelers} total`,
-    travelers.adults == null ? null : `${travelers.adults} ${travelers.adults === 1 ? "adult" : "adults"}`,
-    travelers.children == null ? null : `${travelers.children} ${travelers.children === 1 ? "child" : "children"}`,
+    travelers.totalTravelers == null
+      ? null
+      : `${travelers.totalTravelers} total`,
+    travelers.adults == null
+      ? null
+      : `${travelers.adults} ${travelers.adults === 1 ? "adult" : "adults"}`,
+    travelers.children == null
+      ? null
+      : `${travelers.children} ${travelers.children === 1 ? "child" : "children"}`,
   ].filter(Boolean);
 
   return (
     <section aria-labelledby="guest-travelers-title" className="py-9 lg:pl-10">
-      <h2 id="guest-travelers-title" className="text-2xl font-semibold tracking-normal text-[#10224A]">
+      <h2
+        id="guest-travelers-title"
+        className="text-2xl font-semibold tracking-normal text-[#10224A]"
+      >
         Travelers
       </h2>
       <div className="mt-6 divide-y divide-[#10224A]/10">
         <OperationRow label="Status" value={travelers.statusLabel} />
-        <OperationRow label="Party" value={counts.length ? counts.join(" · ") : "Not available yet"} />
+        <OperationRow
+          label="Party"
+          value={counts.length ? counts.join(" · ") : "Not available yet"}
+        />
       </div>
       {travelers.names.length ? (
-        <p className="mt-5 text-sm leading-7 text-[#10224A]/62">{travelers.names.join(", ")}</p>
+        <p className="mt-5 text-sm leading-7 text-[#10224A]/62">
+          {travelers.names.join(", ")}
+        </p>
       ) : (
-        <p className="mt-5 text-sm leading-7 text-[#10224A]/56">Traveler names are not available yet.</p>
+        <p className="mt-5 text-sm leading-7 text-[#10224A]/56">
+          Traveler names are not available yet.
+        </p>
       )}
       {travelers.action ? (
         <Link
@@ -219,13 +458,23 @@ function TravelersSection({ travelers }: { travelers: GuestTripOperationsViewMod
   );
 }
 
-function DocumentsSection({ documents }: { documents: GuestTripOperationsViewModel["documents"] }) {
+function DocumentsSection({
+  documents,
+}: {
+  documents: GuestTripOperationsViewModel["documents"];
+}) {
   return (
-    <section aria-labelledby="guest-documents-title" className="border-b border-[#10224A]/12 py-10">
+    <section
+      aria-labelledby="guest-documents-title"
+      className="border-b border-[#10224A]/12 py-10"
+    >
       <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
         <div>
           <p className="text-sm text-[#10224A]/50">Files and confirmations</p>
-          <h2 id="guest-documents-title" className="mt-2 text-3xl font-semibold tracking-normal text-[#10224A]">
+          <h2
+            id="guest-documents-title"
+            className="mt-2 text-3xl font-semibold tracking-normal text-[#10224A]"
+          >
             Trip documents
           </h2>
         </div>
@@ -233,13 +482,20 @@ function DocumentsSection({ documents }: { documents: GuestTripOperationsViewMod
           {documents.length ? (
             <div className="divide-y divide-[#10224A]/10">
               {documents.map((document) => (
-                <div key={document.id} className="grid gap-3 py-5 first:pt-0 sm:grid-cols-[1fr_auto] sm:items-center">
+                <div
+                  key={document.id}
+                  className="grid gap-3 py-5 first:pt-0 sm:grid-cols-[1fr_auto] sm:items-center"
+                >
                   <div>
-                    <p className="font-semibold text-[#10224A]">{document.label}</p>
+                    <p className="font-semibold text-[#10224A]">
+                      {document.label}
+                    </p>
                     <p className="mt-1 text-sm text-[#10224A]/54">
                       {document.typeLabel}
                       {document.statusLabel ? ` · ${document.statusLabel}` : ""}
-                      {document.createdAt ? ` · ${formatDate(document.createdAt)}` : ""}
+                      {document.createdAt
+                        ? ` · ${formatDate(document.createdAt)}`
+                        : ""}
                     </p>
                   </div>
                   {document.downloadHref ? (
@@ -250,13 +506,17 @@ function DocumentsSection({ documents }: { documents: GuestTripOperationsViewMod
                       Open
                     </Link>
                   ) : (
-                    <span className="text-sm text-[#10224A]/50">Available through concierge</span>
+                    <span className="text-sm text-[#10224A]/50">
+                      Available through concierge
+                    </span>
                   )}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm leading-7 text-[#10224A]/56">No trip documents are available yet.</p>
+            <p className="text-sm leading-7 text-[#10224A]/56">
+              No trip documents are available yet.
+            </p>
           )}
         </div>
       </div>

@@ -104,7 +104,9 @@ export default async function GuestRequestPage({
 
   const { data: contractsData } = await supabase
     .from("contracts")
-    .select("id, status, sent_at, guest_accept_token, booking_request_id, created_at")
+    .select(
+      "id, status, sent_at, guest_accept_token, booking_request_id, created_at",
+    )
     .eq("booking_request_id", request.id)
     .order("created_at", { ascending: false });
 
@@ -115,17 +117,26 @@ export default async function GuestRequestPage({
     imageIndex: 1,
   }).url;
   const nightlyAverage =
-    typeof request.est_cash === "number" && request.check_in && request.check_out
-      ? request.est_cash / Math.max(1, nightsBetween(request.check_in, request.check_out))
+    typeof request.est_cash === "number" &&
+    request.check_in &&
+    request.check_out
+      ? request.est_cash /
+        Math.max(1, nightsBetween(request.check_in, request.check_out))
       : null;
-  const estimatedTotal = typeof request.est_cash === "number" ? request.est_cash : null;
-  const depositPaid = typeof request.deposit_paid === "number" ? request.deposit_paid : 0;
+  const estimatedTotal =
+    typeof request.est_cash === "number" ? request.est_cash : null;
+  const depositPaid =
+    typeof request.deposit_paid === "number" ? request.deposit_paid : 0;
   const remainingBalance =
-    typeof estimatedTotal === "number" ? Math.max(estimatedTotal - depositPaid, 0) : null;
+    typeof estimatedTotal === "number"
+      ? Math.max(estimatedTotal - depositPaid, 0)
+      : null;
 
   if (process.env.NODE_ENV !== "production") {
     if (contracts.length === 0) {
-      console.info("[guest-request-details] no contracts found", { requestId: request.id });
+      console.info("[guest-request-details] no contracts found", {
+        requestId: request.id,
+      });
     } else {
       console.info("[guest-request-details] contracts found", {
         requestId: request.id,
@@ -139,13 +150,28 @@ export default async function GuestRequestPage({
       <header className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
         <div className="grid lg:grid-cols-[1.1fr_1fr]">
           <div className="relative min-h-[260px] overflow-hidden bg-slate-200">
-            <img src={resortImage} alt={request.primary_resort?.name ?? "Disney villa resort"} className="absolute inset-0 h-full w-full object-cover" />
+            <img
+              src={resortImage}
+              alt={request.primary_resort?.name ?? "Disney villa resort"}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
             <div className="absolute inset-0 bg-gradient-to-r from-[rgba(10,20,40,0.28)] via-[rgba(10,20,40,0.12)] to-transparent" />
           </div>
           <div className="p-7 sm:p-8">
-            <Link href="/guest" className="text-sm font-medium text-slate-500 hover:text-slate-700">
-              ← Back to reservations
-            </Link>
+            <div className="flex flex-wrap gap-4 text-sm font-medium">
+              <Link
+                href="/guest"
+                className="text-slate-500 hover:text-slate-700"
+              >
+                ← Back to reservations
+              </Link>
+              <Link
+                href={`/my-trip/${request.id}`}
+                className="text-[#4457c7] hover:text-[#263891]"
+              >
+                Open My Vacation
+              </Link>
+            </div>
             <div className="mt-5 space-y-4">
               <div className="flex flex-wrap items-center gap-3">
                 <span className="inline-flex rounded-full bg-[#eef2ff] px-3 py-1.5 text-sm font-medium text-[#4457c7] shadow-[0_8px_18px_rgba(68,87,199,0.12)]">
@@ -160,24 +186,44 @@ export default async function GuestRequestPage({
                   {formatStayDateRange(request.check_in, request.check_out)}
                 </p>
                 <p className="text-base text-slate-600">
-                  {request.primary_room ?? "Villa"}{request.primary_view ? ` · ${request.primary_view}` : ""} · {partyLabel(request.adults, request.youths)}
+                  {request.primary_room ?? "Villa"}
+                  {request.primary_view
+                    ? ` · ${request.primary_view}`
+                    : ""} · {partyLabel(request.adults, request.youths)}
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl bg-slate-50 px-4 py-4">
-                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Estimated total</div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                    Estimated total
+                  </div>
                   <div className="mt-2 text-2xl font-semibold text-slate-900">
-                    {formatCurrency(request.est_cash, request.deposit_currency)} <span className="text-sm font-medium text-slate-500">USD</span>
+                    {formatCurrency(request.est_cash, request.deposit_currency)}{" "}
+                    <span className="text-sm font-medium text-slate-500">
+                      USD
+                    </span>
                   </div>
                 </div>
                 <div className="rounded-2xl bg-slate-50 px-4 py-4">
-                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Average per night</div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                    Average per night
+                  </div>
                   <div className="mt-2 text-2xl font-semibold text-slate-900">
-                    {nightlyAverage ? formatShortCurrency(nightlyAverage, request.deposit_currency) : "—"} <span className="text-sm font-medium text-slate-500">USD</span>
+                    {nightlyAverage
+                      ? formatShortCurrency(
+                          nightlyAverage,
+                          request.deposit_currency,
+                        )
+                      : "—"}{" "}
+                    <span className="text-sm font-medium text-slate-500">
+                      USD
+                    </span>
                   </div>
                 </div>
               </div>
-              <p className="text-sm text-slate-500">Your concierge team is now reviewing availability.</p>
+              <p className="text-sm text-slate-500">
+                Your concierge team is now reviewing availability.
+              </p>
             </div>
           </div>
         </div>
@@ -185,7 +231,9 @@ export default async function GuestRequestPage({
 
       <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
-          <h2 className="text-xl font-semibold text-slate-900">Reservation timeline</h2>
+          <h2 className="text-xl font-semibold text-slate-900">
+            Reservation timeline
+          </h2>
           <div className="mt-6 space-y-6">
             <TimelineItem
               complete
@@ -214,20 +262,46 @@ export default async function GuestRequestPage({
         </div>
 
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
-          <h2 className="text-xl font-semibold text-slate-900">Reservation overview</h2>
+          <h2 className="text-xl font-semibold text-slate-900">
+            Reservation overview
+          </h2>
           <div className="mt-5 space-y-4 text-sm text-slate-600">
-            <SummaryRow label="Room type" value={request.primary_room ?? "TBD"} />
+            <SummaryRow
+              label="Room type"
+              value={request.primary_room ?? "TBD"}
+            />
             <SummaryRow label="View" value={request.primary_view ?? "TBD"} />
-            <SummaryRow label="Guests" value={partyLabel(request.adults, request.youths)} />
-            <SummaryRow label="DVC points" value={request.total_points ? `${request.total_points}` : "TBD"} />
-            <SummaryRow label="Pricing tier" value={request.max_price_per_point ? `${formatPricePerPoint(request.max_price_per_point)} per point` : "Estimate in progress"} />
-            <SummaryRow label="Deposit paid" value={formatCurrency(request.deposit_paid, request.deposit_currency)} />
+            <SummaryRow
+              label="Guests"
+              value={partyLabel(request.adults, request.youths)}
+            />
+            <SummaryRow
+              label="DVC points"
+              value={request.total_points ? `${request.total_points}` : "TBD"}
+            />
+            <SummaryRow
+              label="Pricing tier"
+              value={
+                request.max_price_per_point
+                  ? `${formatPricePerPoint(request.max_price_per_point)} per point`
+                  : "Estimate in progress"
+              }
+            />
+            <SummaryRow
+              label="Deposit paid"
+              value={formatCurrency(
+                request.deposit_paid,
+                request.deposit_currency,
+              )}
+            />
           </div>
         </div>
       </section>
 
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
-        <h2 className="text-xl font-semibold text-slate-900">Reservation financial overview</h2>
+        <h2 className="text-xl font-semibold text-slate-900">
+          Reservation financial overview
+        </h2>
         <div className="mt-5 grid gap-4 md:grid-cols-3">
           <SoftMetric
             label="Estimated total"
@@ -246,7 +320,8 @@ export default async function GuestRequestPage({
           />
         </div>
         <p className="mt-4 text-sm text-slate-500">
-          Final payment is only collected after we review availability and send your reservation agreement for approval.
+          Final payment is only collected after we review availability and send
+          your reservation agreement for approval.
         </p>
       </section>
 
@@ -259,12 +334,16 @@ export default async function GuestRequestPage({
       />
 
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
-        <h2 className="text-xl font-semibold text-slate-900">Reservation agreement</h2>
+        <h2 className="text-xl font-semibold text-slate-900">
+          Reservation agreement
+        </h2>
         {contract?.guest_accept_token ? (
           <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-emerald-700">Agreement ready</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-emerald-700">
+                  Agreement ready
+                </p>
                 <p className="mt-1 text-sm text-emerald-800">
                   {formatAgreementStatus(contract.status)}
                 </p>
@@ -282,8 +361,13 @@ export default async function GuestRequestPage({
             <div className="flex items-start gap-3">
               <DocumentTextIcon className="mt-0.5 h-5 w-5 text-slate-400" />
               <div>
-                <div className="font-medium text-slate-900">Reservation agreement pending</div>
-                <div className="mt-1">Your agreement will become available once a matching reservation is secured.</div>
+                <div className="font-medium text-slate-900">
+                  Reservation agreement pending
+                </div>
+                <div className="mt-1">
+                  Your agreement will become available once a matching
+                  reservation is secured.
+                </div>
               </div>
             </div>
           </div>
@@ -292,8 +376,13 @@ export default async function GuestRequestPage({
             <div className="flex items-start gap-3">
               <DocumentTextIcon className="mt-0.5 h-5 w-5 text-slate-400" />
               <div>
-                <div className="font-medium text-slate-900">Reservation agreement pending</div>
-                <div className="mt-1">Your agreement will become available once a matching reservation is secured.</div>
+                <div className="font-medium text-slate-900">
+                  Reservation agreement pending
+                </div>
+                <div className="mt-1">
+                  Your agreement will become available once a matching
+                  reservation is secured.
+                </div>
               </div>
             </div>
           </div>
@@ -313,9 +402,15 @@ function SoftMetric({
   emphasis?: "primary" | "secondary";
 }) {
   return (
-    <div className={`rounded-2xl p-4 text-sm ${emphasis === "secondary" ? "bg-slate-50/70" : "bg-slate-50"}`}>
-      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{label}</p>
-      <p className={`mt-1 ${emphasis === "secondary" ? "text-sm font-medium text-slate-600" : "text-lg font-semibold text-slate-900"}`}>
+    <div
+      className={`rounded-2xl p-4 text-sm ${emphasis === "secondary" ? "bg-slate-50/70" : "bg-slate-50"}`}
+    >
+      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+        {label}
+      </p>
+      <p
+        className={`mt-1 ${emphasis === "secondary" ? "text-sm font-medium text-slate-600" : "text-lg font-semibold text-slate-900"}`}
+      >
         {value}
       </p>
     </div>
@@ -358,10 +453,16 @@ function TimelineItem({
         >
           {icon}
         </span>
-        {last ? null : <span className="mt-2 h-full w-px bg-slate-200" aria-hidden />}
+        {last ? null : (
+          <span className="mt-2 h-full w-px bg-slate-200" aria-hidden />
+        )}
       </div>
       <div className="pb-2">
-        <div className={`font-medium ${active ? "text-slate-900" : "text-slate-700"}`}>{title}</div>
+        <div
+          className={`font-medium ${active ? "text-slate-900" : "text-slate-700"}`}
+        >
+          {title}
+        </div>
         <div className="mt-1 text-sm text-slate-500">{body}</div>
       </div>
     </div>
@@ -377,7 +478,8 @@ function formatDate(value: string | null) {
 
 function formatStatus(status: string | null) {
   if (!status) return "—";
-  if (status === "pending_match" || status === "pending_owner") return "Pending";
+  if (status === "pending_match" || status === "pending_owner")
+    return "Pending";
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
@@ -397,7 +499,9 @@ function nightsBetween(checkIn: string, checkOut: string) {
   const start = new Date(`${checkIn}T00:00:00`);
   const end = new Date(`${checkOut}T00:00:00`);
   const diff = end.getTime() - start.getTime();
-  return Number.isNaN(diff) ? 0 : Math.max(0, Math.round(diff / (1000 * 60 * 60 * 24)));
+  return Number.isNaN(diff)
+    ? 0
+    : Math.max(0, Math.round(diff / (1000 * 60 * 60 * 24)));
 }
 
 function partyLabel(adults: number | null, youths: number | null) {

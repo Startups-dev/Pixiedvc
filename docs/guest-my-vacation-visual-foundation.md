@@ -185,3 +185,11 @@ This phase avoids:
 ## Next Approved Phase
 
 The next safe phase is a guest shell pass that decides whether protected guest routes should suppress the public marketing header/footer and how `/guest`, `/my-trip`, and Ready Stay guest workflows should share navigation without changing business logic.
+
+## Canonical transparency direction
+
+`/my-trip/[tripId]` is the canonical guest-facing My Vacation route. The older `/guest/requests/[requestId]` page remains a secure workflow destination for traveler/contact editing and legacy actions, but it should not grow into a second premium dashboard.
+
+My Vacation should present reservation facts, agreement status/access, calm payment totals and schedules, document availability, cancellation/support links, and a responsibility-oriented next-step checklist using editorial spacing, thin dividers, and narrative copy. It should not use KPI grids, administrative tables, giant badges, colored dashboard tiles, or fake progress percentages.
+
+Payment and receipt CTAs are intentionally disabled unless a safe existing route is separately approved. The page may link to existing secure flows for signing agreements, editing travelers, support, and cancellation policy review. Workflows intentionally unchanged include payment processing, Stripe, payment initiation, agreement generation/signing, booking creation, reservation transfer, Ready Stay logic, traveler update APIs, authentication/authorization, RLS, database schema, migrations, emails, and business rules.
