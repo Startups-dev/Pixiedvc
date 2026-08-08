@@ -20,7 +20,10 @@ export default function GuestTripOperations({
     <div className="space-y-0">
       <NeedsAttention operations={operations} />
       <ReservationSection reservation={operations.reservation} />
-      <StatusChecklist items={operations.statusChecklist} />
+      <StatusChecklist
+        items={operations.statusChecklist}
+        hasAttention={Boolean(operations.attention)}
+      />
       <PaymentSection payment={operations.payment} />
       <div className="grid border-b border-[#10224A]/12 lg:grid-cols-2 lg:divide-x lg:divide-[#10224A]/12">
         <AgreementSection agreement={operations.agreement} />
@@ -33,22 +36,7 @@ export default function GuestTripOperations({
 
 function NeedsAttention({ operations }: GuestTripOperationsProps) {
   if (!operations.attention) {
-    return (
-      <section
-        aria-label="Needs attention"
-        className="border-b border-[#10224A]/12 py-7"
-      >
-        <div className="grid gap-4 lg:grid-cols-[0.72fr_1.28fr]">
-          <h2 className="text-2xl font-semibold tracking-normal text-[#10224A]">
-            Next step
-          </h2>
-          <p className="max-w-2xl text-sm leading-7 text-[#10224A]/62">
-            Nothing needs your attention right now. We will keep the next
-            important trip step here.
-          </p>
-        </div>
-      </section>
-    );
+    return null;
   }
 
   return (
@@ -105,7 +93,7 @@ function ReservationSection({
     ["Last update", formatDate(reservation.updatedAt)],
     ["Owner booking", formatDate(reservation.ownerBookingDate)],
     ["Reservation transfer", formatDate(reservation.transferDate)],
-  ].filter(([, value]) => value && value !== "Not available yet");
+  ].filter(([, value]) => isHelpfulValue(value));
 
   return (
     <section
@@ -114,23 +102,15 @@ function ReservationSection({
     >
       <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
         <div>
-          <p className="text-sm text-[#10224A]/50">Reservation details</p>
+          <p className="text-sm text-[#10224A]/50">Trip details</p>
           <h2
             id="guest-reservation-title"
             className="mt-2 text-3xl font-semibold tracking-normal text-[#10224A]"
           >
-            Your reservation
+            Reservation details
           </h2>
         </div>
         <div className="space-y-7">
-          <div>
-            <p className="text-lg font-semibold text-[#10224A]">
-              {reservation.statusLabel}
-            </p>
-            <p className="mt-2 text-sm leading-7 text-[#10224A]/62">
-              {reservation.statusDescription}
-            </p>
-          </div>
           <div className="divide-y divide-[#10224A]/10">
             {details.map(([label, value]) => (
               <OperationRow
@@ -158,8 +138,10 @@ function ReservationSection({
 
 function StatusChecklist({
   items,
+  hasAttention,
 }: {
   items: GuestTripOperationsViewModel["statusChecklist"];
+  hasAttention: boolean;
 }) {
   return (
     <section
@@ -168,15 +150,21 @@ function StatusChecklist({
     >
       <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
         <div>
-          <p className="text-sm text-[#10224A]/50">What happens next</p>
+          <p className="text-sm text-[#10224A]/50">Current status</p>
           <h2
             id="guest-status-title"
             className="mt-2 text-3xl font-semibold tracking-normal text-[#10224A]"
           >
-            Trip status
+            What happens next
           </h2>
         </div>
-        <div className="divide-y divide-[#10224A]/10">
+        <div>
+          {!hasAttention ? (
+            <p className="mb-5 text-sm leading-7 text-[#10224A]/62">
+              You&apos;re all set for now.
+            </p>
+          ) : null}
+          <div className="divide-y divide-[#10224A]/10">
           {items.map((item) => (
             <div
               key={item.key}
@@ -188,14 +176,12 @@ function StatusChecklist({
                   {item.detail}
                 </p>
               </div>
-              <p className="text-sm text-[#10224A]/62">
-                Next responsibility:{" "}
-                <span className="font-semibold text-[#10224A]">
-                  {item.responsibility}
-                </span>
+              <p className="text-sm font-semibold text-[#10224A]/68">
+                {formatChecklistState(item.state)}
               </p>
             </div>
           ))}
+          </div>
         </div>
       </div>
     </section>
@@ -270,11 +256,7 @@ function PaymentSection({
             />
             <OperationRow
               label="Due date"
-              value={
-                payment.nextDueDate
-                  ? formatDate(payment.nextDueDate)
-                  : "Due date not available yet"
-              }
+              value={payment.nextDueDate ? formatDate(payment.nextDueDate) : null}
             />
           </div>
 
@@ -302,11 +284,11 @@ function PaymentSection({
                       <p className="text-sm font-semibold text-[#10224A]">
                         {row.label}
                       </p>
-                      <p className="mt-1 text-xs text-[#10224A]/50">
-                        {row.dueDate
-                          ? formatDate(row.dueDate)
-                          : "Due date not available yet"}
-                      </p>
+                      {row.dueDate ? (
+                        <p className="mt-1 text-xs text-[#10224A]/50">
+                          {formatDate(row.dueDate)}
+                        </p>
+                      ) : null}
                     </div>
                     <p className="text-sm font-semibold text-[#10224A]">
                       {formatMoney(row.amountCents, payment.currency)}
@@ -354,11 +336,7 @@ function PaymentSection({
                 ))}
               </div>
             </div>
-          ) : (
-            <p className="text-sm leading-7 text-[#10224A]/56">
-              No payment history is available yet.
-            </p>
-          )}
+          ) : null}
 
           {payment.warnings.length ? (
             <p className="text-sm leading-7 text-[#10224A]/56">
@@ -386,8 +364,8 @@ function AgreementSection({
       </h2>
       <div className="mt-6 divide-y divide-[#10224A]/10">
         <OperationRow label="Status" value={agreement.statusLabel} />
-        <OperationRow label="Sent" value={formatDate(agreement.sentAt)} />
-        <OperationRow label="Signed" value={formatDate(agreement.signedAt)} />
+        <OperationRow label="Sent" value={agreement.sentAt ? formatDate(agreement.sentAt) : null} />
+        <OperationRow label="Signed" value={agreement.signedAt ? formatDate(agreement.signedAt) : null} />
       </div>
       {agreement.action ? (
         <Link
@@ -463,6 +441,8 @@ function DocumentsSection({
 }: {
   documents: GuestTripOperationsViewModel["documents"];
 }) {
+  if (!documents.length) return null;
+
   return (
     <section
       aria-labelledby="guest-documents-title"
@@ -479,7 +459,6 @@ function DocumentsSection({
           </h2>
         </div>
         <div>
-          {documents.length ? (
             <div className="divide-y divide-[#10224A]/10">
               {documents.map((document) => (
                 <div
@@ -513,24 +492,46 @@ function DocumentsSection({
                 </div>
               ))}
             </div>
-          ) : (
-            <p className="text-sm leading-7 text-[#10224A]/56">
-              No trip documents are available yet.
-            </p>
-          )}
         </div>
       </div>
     </section>
   );
 }
 
-function OperationRow({ label, value }: { label: string; value: string }) {
+function OperationRow({ label, value }: { label: string; value: string | null }) {
+  if (!isHelpfulValue(value)) return null;
+
   return (
     <div className="grid gap-2 py-4 first:pt-0 last:pb-0 sm:grid-cols-[0.72fr_1.28fr]">
       <p className="text-sm text-[#10224A]/50">{label}</p>
       <p className="text-sm font-semibold text-[#10224A]">{value}</p>
     </div>
   );
+}
+
+function isHelpfulValue(value: string | null | undefined) {
+  if (!value) return false;
+  const normalized = value.trim().toLowerCase();
+  return ![
+    "none",
+    "not available yet",
+    "sent not available yet",
+    "signed not available yet",
+    "due date not available yet",
+  ].includes(normalized);
+}
+
+function formatChecklistState(state: GuestTripOperationsViewModel["statusChecklist"][number]["state"]) {
+  switch (state) {
+    case "complete":
+      return "Complete";
+    case "current":
+      return "In progress";
+    case "upcoming":
+      return "Upcoming";
+    default:
+      return "Upcoming";
+  }
 }
 
 function formatMoney(cents: number | null, currency: string) {

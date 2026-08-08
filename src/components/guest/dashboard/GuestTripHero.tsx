@@ -21,7 +21,7 @@ export default function GuestTripHero({ trip }: { trip: GuestTripHeroViewModel }
         <div className="relative z-10 flex flex-col justify-center px-6 py-12 sm:px-10 sm:py-14 lg:px-14 lg:py-16 xl:px-20">
           <div className="max-w-[650px]">
             <p className="text-base leading-7 text-[#10224A]/62">
-              {trip.guestName ? `Welcome back, ${trip.guestName}.` : "Your vacation is getting closer."}
+              {trip.guestName ? `Welcome back, ${trip.guestName}.` : "Welcome back."}
             </p>
             <div className="mt-8">
               <GuestTripStatus label={trip.statusLabel} />

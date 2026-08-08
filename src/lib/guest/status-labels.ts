@@ -2,6 +2,7 @@ export type GuestTripStatusLabel =
   | "Your reservation is taking shape"
   | "Agreement needs your signature"
   | "Traveler details needed"
+  | "Owner match in progress"
   | "Disney confirmation pending"
   | "Reservation confirmed"
   | "Final details are being prepared"
@@ -10,6 +11,7 @@ export type GuestTripStatusLabel =
 
 const CONFIRMED_STATUSES = new Set(["confirmed", "booked", "complete", "completed", "contract_signed"]);
 const TRAVELER_DETAIL_STATUSES = new Set(["draft"]);
+const MATCHING_STATUSES = new Set(["draft", "submitted", "matched"]);
 const PREPARING_STATUSES = new Set(["matched", "accepted", "paid", "signed"]);
 const CANCELLED_STATUSES = new Set(["cancelled", "canceled", "expired", "declined"]);
 
@@ -17,6 +19,7 @@ export function getGuestTripStatusLabel(input: {
   status?: string | null;
   transferConfirmed?: boolean;
   confirmationNumber?: string | null;
+  travelerDetailsComplete?: boolean;
   checkOut?: string | null;
   now?: Date;
 }): GuestTripStatusLabel {
@@ -42,8 +45,12 @@ export function getGuestTripStatusLabel(input: {
     return "Agreement needs your signature";
   }
 
-  if (TRAVELER_DETAIL_STATUSES.has(rawStatus)) {
+  if (TRAVELER_DETAIL_STATUSES.has(rawStatus) && !input.travelerDetailsComplete) {
     return "Traveler details needed";
+  }
+
+  if (MATCHING_STATUSES.has(rawStatus)) {
+    return "Owner match in progress";
   }
 
   if (PREPARING_STATUSES.has(rawStatus)) {

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildGuestTripOperationsViewModel,
+  formatGuestTripReference,
   getGuestAgreementStatusLabel,
   getGuestDocumentTypeLabel,
   getGuestPaymentStatusLabel,
@@ -21,6 +22,12 @@ const baseBooking = {
 };
 
 describe("guest trip operations view model", () => {
+  it("formats a short guest-facing trip reference without changing the source id", () => {
+    expect(formatGuestTripReference("34ab294f-587f-4e3e-b9ec-4886b9991958")).toBe(
+      "HDVC-01958",
+    );
+  });
+
   it("uses final stored total before original stored total or contract snapshot", () => {
     const contract: GuestTripOperationsContract = {
       id: 1,

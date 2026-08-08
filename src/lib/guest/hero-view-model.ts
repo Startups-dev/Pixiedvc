@@ -34,6 +34,8 @@ type ResortRecord = {
 };
 
 export type GuestTripHeroInput = {
+  profileFirstName?: string | null;
+  metadataFirstName?: string | null;
   guestName?: string | null;
   profileDisplayName?: string | null;
   profileFullName?: string | null;
@@ -50,6 +52,7 @@ export type GuestTripHeroInput = {
   adults?: number | null;
   youths?: number | null;
   status?: string | null;
+  travelerDetailsComplete?: boolean;
   transferConfirmed?: boolean;
   confirmationNumber?: string | null;
   now?: Date;
@@ -73,10 +76,14 @@ export function buildGuestTripHeroViewModel(input: GuestTripHeroInput): GuestTri
   const image = resolveGuestTripResortImage(input.resort ?? null);
   const nights = deriveNights(input.checkIn, input.checkOut);
   const partySummary = formatPartySummary(input.adults, input.youths);
-  const countdown = getCountdownPresentation(input.checkIn, input.now);
+  const reservationConfirmed = isReservationConfirmedForCountdown(input);
+  const countdown = getCountdownPresentation(input.checkIn, input.now, {
+    reservationConfirmed,
+  });
   const countdownLabel = countdown?.accessibleLabel ?? null;
   const statusLabel = getGuestTripStatusLabel({
     status: input.status,
+    travelerDetailsComplete: input.travelerDetailsComplete,
     transferConfirmed: input.transferConfirmed,
     confirmationNumber: input.confirmationNumber,
     checkOut: input.checkOut,
@@ -125,11 +132,19 @@ export function deriveNights(checkIn?: string | null, checkOut?: string | null) 
   return Math.round(diff / 86_400_000);
 }
 
-export function getCountdownLabel(checkIn?: string | null, now = new Date()) {
-  return getCountdownPresentation(checkIn, now)?.accessibleLabel ?? null;
+export function getCountdownLabel(
+  checkIn?: string | null,
+  now = new Date(),
+  options: { reservationConfirmed?: boolean } = {},
+) {
+  return getCountdownPresentation(checkIn, now, options)?.accessibleLabel ?? null;
 }
 
-export function getCountdownPresentation(checkIn?: string | null, now = new Date()) {
+export function getCountdownPresentation(
+  checkIn?: string | null,
+  now = new Date(),
+  options: { reservationConfirmed?: boolean } = {},
+) {
   if (!checkIn) return null;
   const start = parseUtcDate(checkIn);
   if (!start) return null;
@@ -144,6 +159,13 @@ export function getCountdownPresentation(checkIn?: string | null, now = new Date
     };
   }
   if (diffDays === 1) {
+    if (!options.reservationConfirmed) {
+      return {
+        value: "Tomorrow",
+        context: "requested stay begins",
+        accessibleLabel: "Requested stay begins tomorrow",
+      };
+    }
     return {
       value: "Tomorrow",
       context: "your vacation begins",
@@ -203,6 +225,8 @@ function formatPartySummary(adults?: number | null, youths?: number | null) {
 }
 
 export function resolveGuestDisplayName(input: {
+  profileFirstName?: string | null;
+  metadataFirstName?: string | null;
   profileDisplayName?: string | null;
   profileFullName?: string | null;
   metadataDisplayName?: string | null;
@@ -212,12 +236,13 @@ export function resolveGuestDisplayName(input: {
   guestName?: string | null;
 }) {
   const candidates = [
-    input.profileDisplayName,
+    input.profileFirstName,
+    input.metadataFirstName,
     input.profileFullName,
-    input.metadataDisplayName,
+    input.profileDisplayName,
     input.metadataFullName,
+    input.metadataDisplayName,
     input.metadataName,
-    emailPrefix(input.email),
     input.guestName,
   ];
 
@@ -227,6 +252,21 @@ export function resolveGuestDisplayName(input: {
   }
 
   return null;
+}
+
+function isReservationConfirmedForCountdown(input: {
+  status?: string | null;
+  transferConfirmed?: boolean;
+  confirmationNumber?: string | null;
+}) {
+  const rawStatus = clean(input.status)?.toLowerCase();
+  return Boolean(
+    input.confirmationNumber &&
+      (input.transferConfirmed ||
+        rawStatus === "confirmed" ||
+        rawStatus === "booked" ||
+        rawStatus === "transferred"),
+  );
 }
 
 function normalizeGuestName(value?: string | null) {
@@ -244,15 +284,9 @@ function clean(value?: string | null) {
   return normalized ? normalized : null;
 }
 
-function emailPrefix(value?: string | null) {
-  const email = clean(value);
-  const prefix = email?.split("@")[0];
-  return prefix?.replace(/[._+-]+/g, " ") ?? null;
-}
-
 function isBlockedName(value: string) {
   const normalized = value.trim().replace(/\.+$/g, "").toLowerCase();
-  return !normalized || ["mr", "mrs", "ms", "miss", "guest", "null", "undefined", "unknown"].includes(normalized);
+  return !normalized || ["mr", "mrs", "ms", "miss", "guest", "hello", "null", "undefined", "unknown"].includes(normalized);
 }
 
 function isHonorific(value: string) {

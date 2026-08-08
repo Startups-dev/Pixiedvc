@@ -43,6 +43,13 @@ describe("guest trip hero view model", () => {
 
   it("handles tomorrow, check-in day, and past trips", () => {
     expect(getCountdownLabel("2026-10-10", new Date("2026-10-09T12:00:00Z"))).toBe(
+      "Requested stay begins tomorrow",
+    );
+    expect(
+      getCountdownLabel("2026-10-10", new Date("2026-10-09T12:00:00Z"), {
+        reservationConfirmed: true,
+      }),
+    ).toBe(
       "Your vacation begins tomorrow",
     );
     expect(getCountdownLabel("2026-10-10", new Date("2026-10-10T12:00:00Z"))).toBe(
@@ -103,8 +110,16 @@ describe("guest trip hero view model", () => {
   it("resolves guest identity from profile fields before metadata or email", () => {
     expect(
       resolveGuestDisplayName({
+        profileFullName: "Cristiano Santos",
+        profileDisplayName: "Display Name",
+        metadataFullName: "Metadata Name",
+        email: "email.person@example.com",
+      }),
+    ).toBe("Cristiano");
+
+    expect(
+      resolveGuestDisplayName({
         profileDisplayName: "Cristiano Santos",
-        profileFullName: "Profile Full",
         metadataFullName: "Metadata Name",
         email: "email.person@example.com",
       }),
@@ -125,20 +140,21 @@ describe("guest trip hero view model", () => {
         metadataFullName: "Metadata Full",
         email: "email.person@example.com",
       }),
-    ).toBe("Rafaela");
+    ).toBe("Metadata");
   });
 
-  it("uses email prefix only after profile and metadata names are unavailable", () => {
+  it("does not derive guest identity from email addresses", () => {
     expect(
       resolveGuestDisplayName({
         email: "first.last+trip@example.com",
       }),
-    ).toBe("first");
+    ).toBeNull();
   });
 
   it("does not display honorifics, generic names, or double punctuation sources", () => {
     expect(resolveGuestDisplayName({ profileDisplayName: "Mr." })).toBeNull();
     expect(resolveGuestDisplayName({ profileDisplayName: "Guest" })).toBeNull();
+    expect(resolveGuestDisplayName({ profileDisplayName: "hello" })).toBeNull();
     expect(resolveGuestDisplayName({ profileDisplayName: "Mr. Cristiano Santos" })).toBe("Cristiano");
     expect(
       buildGuestTripHeroViewModel({
@@ -155,6 +171,16 @@ describe("guest trip hero view model", () => {
     );
     expect(buildGuestTripHeroViewModel({ tripId: "trip-1", status: "draft" }).statusLabel).toBe(
       "Traveler details needed",
+    );
+    expect(
+      buildGuestTripHeroViewModel({
+        tripId: "trip-1",
+        status: "draft",
+        travelerDetailsComplete: true,
+      }).statusLabel,
+    ).toBe("Owner match in progress");
+    expect(buildGuestTripHeroViewModel({ tripId: "trip-1", status: "submitted" }).statusLabel).toBe(
+      "Owner match in progress",
     );
     expect(buildGuestTripHeroViewModel({ tripId: "trip-1", status: "paid" }).statusLabel).toBe(
       "Disney confirmation pending",

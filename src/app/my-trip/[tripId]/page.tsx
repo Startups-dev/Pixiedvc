@@ -388,6 +388,10 @@ export default async function TripDetailsPage({
     });
 
   const heroViewModel = buildGuestTripHeroViewModel({
+    metadataFirstName:
+      typeof user.user_metadata?.first_name === "string"
+        ? user.user_metadata.first_name
+        : null,
     profileDisplayName: profile?.display_name ?? null,
     profileFullName: profile?.full_name ?? null,
     metadataDisplayName:
@@ -413,6 +417,7 @@ export default async function TripDetailsPage({
     adults: bookingRequest.adults,
     youths: bookingRequest.youths,
     status: bookingRequest.status,
+    travelerDetailsComplete: Boolean(bookingRequest.guest_profile_complete_at),
     transferConfirmed,
     confirmationNumber,
   });

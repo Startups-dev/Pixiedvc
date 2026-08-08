@@ -215,16 +215,27 @@ describe("GuestTripOperations", () => {
     ).toHaveAttribute("href", "/guest/requests/trip-1#guest-details");
     expect(container).not.toHaveTextContent("pending_payment");
     expect(container).not.toHaveTextContent("Action needed");
+    expect(container).not.toHaveTextContent("Next responsibility");
     expect(container).not.toHaveTextContent("owner payout");
     expect(container).not.toHaveTextContent("platform margin");
   });
 
-  it("renders safe empty states for unavailable payments and documents", () => {
-    render(
+  it("hides low-value empty fields and avoids standalone empty next-step blocks", () => {
+    const { container } = render(
       <GuestTripOperations
         operations={{
           ...operations,
           attention: null,
+          reservation: {
+            ...operations.reservation,
+            reference: "HDVC-01958",
+            buildingPreference: "none",
+          },
+          agreement: {
+            ...operations.agreement,
+            sentAt: null,
+            signedAt: null,
+          },
           payment: {
             ...operations.payment,
             totalCents: null,
@@ -241,17 +252,16 @@ describe("GuestTripOperations", () => {
       />,
     );
 
-    expect(
-      screen.getByText(
-        "Nothing needs your attention right now. We will keep the next important trip step here.",
-      ),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Next step" })).not.toBeInTheDocument();
+    expect(screen.getByText("You're all set for now.")).toBeInTheDocument();
     expect(screen.getAllByText("Not available yet").length).toBeGreaterThan(0);
-    expect(
-      screen.getByText("No payment history is available yet."),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("No trip documents are available yet."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("HDVC-01958")).toBeInTheDocument();
+    expect(container).not.toHaveTextContent("Building preference");
+    expect(container).not.toHaveTextContent("none");
+    expect(container).not.toHaveTextContent("Sent");
+    expect(container).not.toHaveTextContent("Signed");
+    expect(container).not.toHaveTextContent("Due date not available yet");
+    expect(container).not.toHaveTextContent("No payment history is available yet.");
+    expect(container).not.toHaveTextContent("No trip documents are available yet.");
   });
 });

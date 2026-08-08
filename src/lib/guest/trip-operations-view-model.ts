@@ -306,6 +306,14 @@ export function buildGuestTripOperationsViewModel(
   };
 }
 
+export function formatGuestTripReference(id: string) {
+  const digits = id.replace(/\D/g, "");
+  if (digits) {
+    return `HDVC-${digits.slice(-4).padStart(5, "0")}`;
+  }
+  return `HDVC-${id.replace(/-/g, "").slice(-5).toUpperCase().padStart(5, "0")}`;
+}
+
 export function resolveTrustedTotalCents(
   booking: GuestTripOperationsBooking,
   contract?: GuestTripOperationsContract | null,
@@ -522,7 +530,7 @@ function buildReservationSummary(input: {
     ? clean(booking.displayConfirmationNumber)
     : null;
   return {
-    reference: booking.id,
+    reference: formatGuestTripReference(booking.id),
     statusLabel,
     statusDescription: transferred
       ? "The owner transfer has been recorded for this trip."
