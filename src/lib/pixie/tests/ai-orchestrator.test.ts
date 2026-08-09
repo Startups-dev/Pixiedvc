@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { PixieAiException } from "@/lib/pixie/ai/errors";
-import { createFixturePixieProvider } from "@/lib/pixie/ai/provider";
+import { createFixturePixieProvider, type PixieModelOptions, type PixiePlannerTurnInput } from "@/lib/pixie/ai/provider";
 import { runPixiePlannerTurn, streamPixiePlannerTurn } from "@/lib/pixie/ai/orchestrator";
 import { createEmptyPixieTripState, normalizePixieTripState } from "@/lib/pixie/planner-state";
 
@@ -16,6 +16,38 @@ describe("Pixie AI orchestrator", () => {
     if (originalPixieModel === undefined) delete process.env.PIXIE_MODEL;
     else process.env.PIXIE_MODEL = originalPixieModel;
   });
+
+  function successfulProvider(onCall?: (input: PixiePlannerTurnInput, options?: PixieModelOptions) => void) {
+    return {
+      async createPlannerTurn(input: PixiePlannerTurnInput, options?: PixieModelOptions) {
+        onCall?.(input, options);
+        return {
+          result: {
+            assistantResponse: "I can work with those details.",
+            tripPatch: {},
+            requestedTools: [],
+            planningIntent: "update_trip" as const,
+            confidence: 0.8,
+            warnings: [],
+          },
+          metadata: {
+            provider: "fixture",
+            model: "fixture-model",
+            promptVersion: "fixture-prompt",
+            sourceVersion: "fixture",
+          },
+          usage: {
+            provider: "fixture",
+            model: "fixture-model",
+            promptVersion: "fixture-prompt",
+            inputTokens: 0,
+            outputTokens: 0,
+            totalTokens: 0,
+          },
+        };
+      },
+    };
+  }
 
   it("applies dates and party from a structured model patch", async () => {
     const result = await runPixiePlannerTurn({
@@ -147,6 +179,148 @@ describe("Pixie AI orchestrator", () => {
       expect(patchEvent.updatedState.party.totalPartySize).toBe(0);
       expect(patchEvent.updatedState.budget.budgetType).toBe("unknown");
     }
+  });
+
+  it("does not retain stale complete dates when a new message contains unparsed September availability dates", async () => {
+    const previousState = normalizePixieTripState({
+      ...createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      dates: { arrivalDate: "2026-10-28", departureDate: "2026-11-04" },
+    });
+    const events = [];
+    for await (const event of streamPixiePlannerTurn({
+      state: previousState,
+      message:
+        "Sept 1 has Bay Lake Tower for 18 points. Sept 2 has Polynesian for 22 points. Sept 3 has Copper Creek. Sept 4 has BoardWalk. Sept 5 only waitlists. We want to save points.",
+      provider: {
+        async createPlannerTurn() {
+          throw new PixieAiException("provider_timeout", "OpenAI provider request timed out.");
+        },
+      },
+      now: "2026-08-09T12:01:00.000Z",
+    })) {
+      events.push(event);
+    }
+
+    const patchEvent = events.find((event) => event.type === "trip_patch_applied");
+    expect(patchEvent?.type).toBe("trip_patch_applied");
+    if (patchEvent?.type === "trip_patch_applied") {
+      expect(patchEvent.updatedState.dates.arrivalDate).toBeUndefined();
+      expect(patchEvent.updatedState.dates.departureDate).toBeUndefined();
+      expect(patchEvent.updatedState.dates.numberOfNights).toBeUndefined();
+      expect(patchEvent.updatedState.preferences.generalNotes).toContain("Sept 1");
+      expect(patchEvent.updatedState.preferences.generalNotes).not.toContain("Oct 28");
+    }
+  });
+
+  it("extracts explicit arrival without fabricating checkout from availability dates", async () => {
+    const events = [];
+    for await (const event of streamPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      message:
+        "Arriving Sept 1, 2026. Sept 2 has Bay Lake Tower. Sept 3 has Polynesian. Sept 4 has Copper Creek. Sept 5 only waitlists.",
+      provider: {
+        async createPlannerTurn() {
+          throw new PixieAiException("provider_timeout", "OpenAI provider request timed out.");
+        },
+      },
+      now: "2026-08-09T12:01:00.000Z",
+    })) {
+      events.push(event);
+    }
+
+    const patchEvent = events.find((event) => event.type === "trip_patch_applied");
+    expect(patchEvent?.type).toBe("trip_patch_applied");
+    if (patchEvent?.type === "trip_patch_applied") {
+      expect(patchEvent.updatedState.dates.arrivalDate).toBe("2026-09-01");
+      expect(patchEvent.updatedState.dates.departureDate).toBeUndefined();
+      expect(patchEvent.updatedState.dates.numberOfNights).toBeUndefined();
+      expect(patchEvent.updatedState.preferences.generalNotes).toContain("Sept 5");
+    }
+  });
+
+  it("extracts explicit checkout when supplied without keeping stale arrival", async () => {
+    const previousState = normalizePixieTripState({
+      ...createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      dates: { arrivalDate: "2026-10-28", departureDate: "2026-11-04" },
+    });
+    const events = [];
+    for await (const event of streamPixiePlannerTurn({
+      state: previousState,
+      message: "Checking out Sept 5, 2026. Bay Lake Tower has waitlists and we want to save points.",
+      provider: {
+        async createPlannerTurn() {
+          throw new PixieAiException("provider_timeout", "OpenAI provider request timed out.");
+        },
+      },
+      now: "2026-08-09T12:01:00.000Z",
+    })) {
+      events.push(event);
+    }
+
+    const patchEvent = events.find((event) => event.type === "trip_patch_applied");
+    expect(patchEvent?.type).toBe("trip_patch_applied");
+    if (patchEvent?.type === "trip_patch_applied") {
+      expect(patchEvent.updatedState.dates.arrivalDate).toBeUndefined();
+      expect(patchEvent.updatedState.dates.departureDate).toBe("2026-09-05");
+      expect(patchEvent.updatedState.dates.numberOfNights).toBeUndefined();
+    }
+  });
+
+  it("extracts clear me-wife-and-two-year-old party details", async () => {
+    const result = await runPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      message: "It is for me, my wife and my 2 year old.",
+      provider: successfulProvider(),
+      now: "2026-08-09T12:01:00.000Z",
+    });
+
+    expect(result.updatedState.party.adults).toBe(2);
+    expect(result.updatedState.party.children).toBe(1);
+    expect(result.updatedState.party.totalPartySize).toBe(3);
+    expect(result.updatedState.party.travellers).toHaveLength(1);
+    expect(result.updatedState.party.travellers[0]?.age).toBe(2);
+    expect(result.updatedState.party.travellers[0]?.category).toBe("child");
+  });
+
+  it("does not guess ambiguous traveler wording", async () => {
+    const result = await runPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      message: "It is for my family.",
+      provider: successfulProvider(),
+      now: "2026-08-09T12:01:00.000Z",
+    });
+
+    expect(result.updatedState.party.totalPartySize).toBe(0);
+    expect(result.updatedState.party.travellers).toHaveLength(0);
+  });
+
+  it("keeps the normal provider timeout for simple planning turns", async () => {
+    let timeoutMs: number | undefined;
+    await runPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      message: "We are two adults.",
+      provider: successfulProvider((_, options) => {
+        timeoutMs = options?.timeoutMs;
+      }),
+      now: "2026-08-09T12:01:00.000Z",
+    });
+
+    expect(timeoutMs).toBe(30_000);
+  });
+
+  it("uses a bounded extended provider timeout for complex multi-resort planning turns", async () => {
+    let timeoutMs: number | undefined;
+    await runPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      message:
+        "Sept 1 Bay Lake Tower 18 points, Sept 2 Polynesian 22 points, Sept 3 Copper Creek 17 points, Sept 4 BoardWalk 20 points, Sept 5 Riviera 23 points. There are waitlists, save points, and stay near Magic Kingdom.",
+      provider: successfulProvider((_, options) => {
+        timeoutMs = options?.timeoutMs;
+      }),
+      now: "2026-08-09T12:01:00.000Z",
+    });
+
+    expect(timeoutMs).toBe(45_000);
   });
 
   it("keeps valid lightweight facts when an extracted date range is invalid", async () => {

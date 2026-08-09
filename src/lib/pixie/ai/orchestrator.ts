@@ -87,6 +87,7 @@ type PreparedPixiePlannerTurn = {
   completeness: PixieCompletenessResult;
   usage: PixieTurnUsage;
   provider: PixieModelProvider;
+  providerTimeoutMs: number;
   extractedState?: PixieTripState;
 };
 
@@ -132,6 +133,8 @@ const RESORT_MENTIONS = [
   { pattern: /\bsaratoga(?: springs)?\b/i, label: "Saratoga Springs" },
 ] as const;
 
+const COMPLEX_PLANNING_TIMEOUT_MS = 45_000;
+
 function dateOnly(year: number, month: number, day: number) {
   const date = new Date(Date.UTC(year, month - 1, day));
   const value = date.toISOString().slice(0, 10);
@@ -158,6 +161,74 @@ function firstDateRange(message: string) {
   const departureDate = dateOnly(year, departureMonth, departureDay);
   if (!arrivalDate || !departureDate || !calculateDateOnlyNights(arrivalDate, departureDate)) return undefined;
   return { arrivalDate, departureDate };
+}
+
+type DateExtractionResult = {
+  dates?: NonNullable<PixieTripPatch["dates"]>;
+  hasDateInformation: boolean;
+  hasPartialTripDates: boolean;
+  dateNotes: string[];
+};
+
+function parseMonthDay(match: RegExpExecArray, monthIndex: number, dayIndex: number, yearIndex: number, fallbackYear?: number) {
+  const monthText = match[monthIndex];
+  const dayText = match[dayIndex];
+  if (!monthText || !dayText) return undefined;
+  const month = MONTHS[monthText.toLowerCase()];
+  const day = Number(dayText);
+  const year = Number(match[yearIndex] ?? fallbackYear);
+  if (!month || !day || !year) return undefined;
+  return dateOnly(year, month, day);
+}
+
+function extractDateMentions(message: string) {
+  const monthPattern = Object.keys(MONTHS).join("|");
+  const pattern = new RegExp(`\\b(${monthPattern})\\s+(\\d{1,2})(?:,\\s*(\\d{4}))?\\b`, "gi");
+  const mentions: string[] = [];
+  const years: number[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(message))) {
+    mentions.push(match[0]);
+    if (match[3]) years.push(Number(match[3]));
+  }
+  return { mentions: normalizeStringArray(mentions, 20), years };
+}
+
+function extractExplicitDate(pattern: RegExp, message: string, fallbackYear?: number) {
+  const match = pattern.exec(message);
+  if (!match) return undefined;
+  return parseMonthDay(match, 1, 2, 3, fallbackYear);
+}
+
+function extractLightweightDates(message: string): DateExtractionResult {
+  const explicitRange = firstDateRange(message);
+  const dateMentions = extractDateMentions(message);
+  const fallbackYear = dateMentions.years.length === 1 ? dateMentions.years[0] : undefined;
+  const monthPattern = Object.keys(MONTHS).join("|");
+  const arrivalPattern = new RegExp(`\\b(?:arriving|arrive|check(?:ing)?\\s*in)\\s+(?:on\\s+)?(${monthPattern})\\s+(\\d{1,2})(?:,\\s*(\\d{4}))?\\b`, "i");
+  const checkoutPattern = new RegExp(`\\b(?:check(?:ing)?\\s*out|checkout)\\s+(?:on\\s+)?(${monthPattern})\\s+(\\d{1,2})(?:,\\s*(\\d{4}))?\\b`, "i");
+  const arrivalDate = extractExplicitDate(arrivalPattern, message, fallbackYear);
+  const departureDate = extractExplicitDate(checkoutPattern, message, fallbackYear);
+  const dateNotes = dateMentions.mentions.length ? [`Availability or planning dates mentioned: ${dateMentions.mentions.join(", ")}.`] : [];
+
+  if (explicitRange) return { dates: explicitRange, hasDateInformation: true, hasPartialTripDates: false, dateNotes };
+  if (arrivalDate || departureDate) {
+    return {
+      dates: {
+        ...(arrivalDate ? { arrivalDate } : {}),
+        ...(departureDate ? { departureDate } : {}),
+      },
+      hasDateInformation: true,
+      hasPartialTripDates: !(arrivalDate && departureDate),
+      dateNotes,
+    };
+  }
+
+  return {
+    hasDateInformation: dateMentions.mentions.length > 0,
+    hasPartialTripDates: dateMentions.mentions.length > 0,
+    dateNotes,
+  };
 }
 
 function extractPreferenceFacts(message: string) {
@@ -200,21 +271,97 @@ function extractPreferenceFacts(message: string) {
   };
 }
 
+function extractPartyPatch(message: string, state: PixieTripState): NonNullable<PixieTripPatch["party"]> | undefined {
+  const normalized = message.toLowerCase().replace(/\s+/g, " ");
+  const patch: NonNullable<PixieTripPatch["party"]> = {};
+  const childOperations: NonNullable<NonNullable<PixieTripPatch["party"]>["travellerOperations"]> = [];
+
+  const adultChildMatch = /\b(\d{1,2})\s+adults?\b(?:.*?\b(\d{1,2})\s+(?:children|kids?|child)\b)?/.exec(normalized);
+  if (adultChildMatch) {
+    patch.adults = Number(adultChildMatch[1]);
+    if (adultChildMatch[2]) patch.children = Number(adultChildMatch[2]);
+  }
+
+  const childOnlyMatch = /\b(\d{1,2})\s+(?:children|kids?|child)\b/.exec(normalized);
+  if (childOnlyMatch && patch.children === undefined) patch.children = Number(childOnlyMatch[1]);
+
+  const wifePattern = /\b(?:me|myself|i)\b[\s\S]{0,24}\bmy wife\b|\bmy wife\b[\s\S]{0,24}\b(?:me|myself|i)\b/;
+  if (wifePattern.test(normalized)) patch.adults = Math.max(patch.adults ?? 0, 2);
+
+  const ageMatch = /\bmy\s+(\d{1,2})\s*(?:year|yr)[-\s]*old\b/.exec(normalized);
+  if (ageMatch && patch.adults !== undefined) {
+    const age = Number(ageMatch[1]);
+    patch.children = Math.max(patch.children ?? 0, 1);
+    if (!state.party.travellers.some((traveller) => traveller.age === age)) {
+      childOperations.push({
+        op: "addTraveller",
+        traveller: {
+          category: "child",
+          age,
+          label: `${age} year old`,
+          interests: [],
+        },
+      });
+    }
+  }
+
+  if (childOperations.length) patch.travellerOperations = childOperations;
+  return Object.keys(patch).length ? patch : undefined;
+}
+
 function extractLightweightTripPatch(message: string, state: PixieTripState): PixieTripPatch {
-  const dates = firstDateRange(message);
+  const dateExtraction = extractLightweightDates(message);
   const facts = extractPreferenceFacts(message);
+  const party = extractPartyPatch(message, state);
   const preferences: NonNullable<PixieTripPatch["preferences"]> = {};
 
   if (facts.preferredResorts.length) preferences.preferredResorts = normalizeStringArray([...state.preferences.preferredResorts, ...facts.preferredResorts]);
   if (facts.resortPriorities.length) preferences.resortPriorities = normalizeStringArray([...state.preferences.resortPriorities, ...facts.resortPriorities]);
   if (facts.parkPriorities.length) preferences.parkPriorities = normalizeStringArray([...state.preferences.parkPriorities, ...facts.parkPriorities]);
-  if (facts.generalNotes) preferences.generalNotes = [state.preferences.generalNotes, facts.generalNotes].filter(Boolean).join(" ").slice(0, 1000);
+  const notes = [...dateExtraction.dateNotes, facts.generalNotes].filter(Boolean);
+  if (notes.length) preferences.generalNotes = [state.preferences.generalNotes, ...notes].filter(Boolean).join(" ").slice(0, 1000);
   if (/\bsplit stay\b/i.test(message)) preferences.splitStayOpenness = true;
 
   return {
-    ...(dates ? { dates } : {}),
+    ...(dateExtraction.dates ? { dates: dateExtraction.dates } : {}),
+    ...(party ? { party } : {}),
     ...(Object.keys(preferences).length ? { preferences } : {}),
   };
+}
+
+function shouldClearExistingDatesForExtraction(message: string) {
+  const dateExtraction = extractLightweightDates(message);
+  return dateExtraction.hasDateInformation && dateExtraction.hasPartialTripDates;
+}
+
+function complexPlanningSignals(message: string) {
+  const dateMentions = extractDateMentions(message).mentions.length;
+  const resortMentions = RESORT_MENTIONS.filter((resort) => resort.pattern.test(message)).length;
+  const pointValues = message.match(/\b\d{1,3}\s+points?\b/gi)?.length ?? 0;
+  const normalized = message.toLowerCase();
+  const constraints = [
+    /\bwaitlist\b/.test(normalized),
+    /\bminimi[sz]e resort changes\b|\bfew(?:er)? resort changes\b/.test(normalized),
+    /\bsave points\b|\blower points\b/.test(normalized),
+    /\bnear magic kingdom\b|\bclose to magic kingdom\b/.test(normalized),
+    /\bhalloween party\b|\bmickey'?s not so scary halloween party\b/.test(normalized),
+  ].filter(Boolean).length;
+
+  return { dateMentions, resortMentions, pointValues, constraints };
+}
+
+function isClearlyComplexPlanningTurn(message: string) {
+  const signals = complexPlanningSignals(message);
+  return (
+    (signals.dateMentions >= 4 && signals.resortMentions >= 3) ||
+    (signals.resortMentions >= 3 && signals.pointValues >= 5) ||
+    (signals.pointValues >= 5 && signals.constraints >= 2) ||
+    (signals.dateMentions >= 3 && signals.constraints >= 3)
+  );
+}
+
+function providerTimeoutForTurn(message: string, defaultTimeoutMs: number) {
+  return isClearlyComplexPlanningTurn(message) ? Math.max(defaultTimeoutMs, COMPLEX_PLANNING_TIMEOUT_MS) : defaultTimeoutMs;
 }
 
 function extractTrustedToolOutputs(toolResults: PixieToolResult[]) {
@@ -294,10 +441,12 @@ function preparePixiePlannerTurn(input: RunPixiePlannerTurnInput): PreparedPixie
   const injection = detectPromptInjectionAttempt(message.message);
   if (injection) warnings.push(injection.message);
 
-  const extractionPatch = extractLightweightTripPatch(message.message, state);
+  const clearExistingDates = shouldClearExistingDatesForExtraction(message.message);
+  const extractionBaseState = clearExistingDates ? normalizePixieTripState({ ...state, dates: {} }, { now: generatedAt }) : state;
+  const extractionPatch = extractLightweightTripPatch(message.message, extractionBaseState);
   let extractedState: PixieTripState | undefined;
   if (Object.keys(extractionPatch).length > 0) {
-    const extractionResult = applyPixieTripPatch(state, extractionPatch, { now: generatedAt });
+    const extractionResult = applyPixieTripPatch(extractionBaseState, extractionPatch, { now: generatedAt });
     if (extractionResult.ok) {
       state = extractionResult.state;
       extractedState = state;
@@ -309,6 +458,7 @@ function preparePixiePlannerTurn(input: RunPixiePlannerTurnInput): PreparedPixie
   let completeness = evaluatePixieCompleteness(state);
   let usage = emptyPixieUsage("openai", config.model, PIXIE_AI_PROMPT_VERSION);
   const provider = input.provider ?? createOpenAiPixieProvider();
+  const providerTimeoutMs = providerTimeoutForTurn(message.message, config.modelTimeoutMs);
 
   return {
     id,
@@ -321,6 +471,7 @@ function preparePixiePlannerTurn(input: RunPixiePlannerTurnInput): PreparedPixie
     completeness,
     usage,
     provider,
+    providerTimeoutMs,
     extractedState,
   };
 }
@@ -340,7 +491,7 @@ async function completePixiePlannerTurn(prepared: PreparedPixiePlannerTurn, inpu
         destinationScope: "walt_disney_world",
         safeContext: input.context,
       },
-      { model: prepared.config.model, maxOutputTokens: prepared.config.maxOutputTokens, timeoutMs: prepared.config.modelTimeoutMs },
+      { model: prepared.config.model, maxOutputTokens: prepared.config.maxOutputTokens, timeoutMs: prepared.providerTimeoutMs },
     );
   } catch (error) {
     const pixieError = pixieErrorFromProviderFailure(error);
