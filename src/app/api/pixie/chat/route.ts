@@ -79,7 +79,7 @@ function sanitizeStreamEvent(event: PixiePlannerStreamEvent): PixiePlannerStream
     return {
       type: "turn_failed",
       turnId: event.turnId,
-      error: pixieAiError(event.error.code, safeErrorMessage(event.error.code), event.error.path, {
+      error: pixieAiError(event.error.code, safeErrorMessage(event.error), event.error.path, {
         status: event.error.status,
         retryAfterMs: event.error.retryAfterMs,
       }),
@@ -88,8 +88,12 @@ function sanitizeStreamEvent(event: PixiePlannerStreamEvent): PixiePlannerStream
   return event;
 }
 
-function safeErrorMessage(code: PixieAiError["code"]) {
-  switch (code) {
+function safeErrorMessage(error: PixieAiError) {
+  if (error.code === "invalid_model_output" && /planning turn within the current model capacity/i.test(error.message)) {
+    return "Hara could not finish this planning turn in one pass. Please send the availability details in two smaller parts, and Hara can continue from there.";
+  }
+
+  switch (error.code) {
     case "message_too_large":
       return "That message is a little too long. Try sending it in two parts.";
     case "state_too_large":

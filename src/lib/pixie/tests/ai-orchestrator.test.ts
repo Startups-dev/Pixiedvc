@@ -115,6 +115,66 @@ describe("Pixie AI orchestrator", () => {
     }
   });
 
+  it("streams lightweight trip extraction before a later provider failure", async () => {
+    const events = [];
+    for await (const event of streamPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      message:
+        "We are planning October 28 through November 4, 2026. Bay Lake Tower is 18 points, Polynesian is 22 points, and Bay Lake has a waitlist. We have a Magic Kingdom Halloween party and want to minimize resort changes, save points, and stay near Magic Kingdom.",
+      provider: {
+        async createPlannerTurn() {
+          throw new PixieAiException("provider_timeout", "OpenAI provider request timed out.");
+        },
+      },
+      now: "2026-08-09T12:01:00.000Z",
+    })) {
+      events.push(event);
+    }
+
+    expect(events.map((event) => event.type)).toEqual(["turn_started", "trip_patch_applied", "turn_failed"]);
+    const patchEvent = events[1];
+    expect(patchEvent?.type).toBe("trip_patch_applied");
+    if (patchEvent?.type === "trip_patch_applied") {
+      expect(patchEvent.updatedState.dates.arrivalDate).toBe("2026-10-28");
+      expect(patchEvent.updatedState.dates.departureDate).toBe("2026-11-04");
+      expect(patchEvent.updatedState.preferences.preferredResorts).toEqual(expect.arrayContaining(["Bay Lake Tower", "Polynesian Villas"]));
+      expect(patchEvent.updatedState.preferences.parkPriorities).toContain("Magic Kingdom");
+      expect(patchEvent.updatedState.preferences.resortPriorities).toEqual(
+        expect.arrayContaining(["minimize resort changes", "save points where reasonable", "stay near Magic Kingdom"]),
+      );
+      expect(patchEvent.updatedState.preferences.generalNotes).toContain("Point values mentioned");
+      expect(patchEvent.updatedState.preferences.generalNotes).toContain("Waitlist alternatives mentioned");
+      expect(patchEvent.updatedState.party.totalPartySize).toBe(0);
+      expect(patchEvent.updatedState.budget.budgetType).toBe("unknown");
+    }
+  });
+
+  it("keeps valid lightweight facts when an extracted date range is invalid", async () => {
+    const events = [];
+    for await (const event of streamPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      message:
+        "We are planning November 4 through October 28, 2026. Bay Lake Tower has a waitlist, costs 18 points, and we want to stay near Magic Kingdom.",
+      provider: {
+        async createPlannerTurn() {
+          throw new PixieAiException("provider_timeout", "OpenAI provider request timed out.");
+        },
+      },
+      now: "2026-08-09T12:01:00.000Z",
+    })) {
+      events.push(event);
+    }
+
+    const patchEvent = events.find((event) => event.type === "trip_patch_applied");
+    expect(patchEvent?.type).toBe("trip_patch_applied");
+    if (patchEvent?.type === "trip_patch_applied") {
+      expect(patchEvent.updatedState.dates.arrivalDate).toBeUndefined();
+      expect(patchEvent.updatedState.preferences.preferredResorts).toContain("Bay Lake Tower");
+      expect(patchEvent.updatedState.preferences.resortPriorities).toContain("stay near Magic Kingdom");
+      expect(patchEvent.updatedState.preferences.generalNotes).toContain("18 points");
+    }
+  });
+
   it("streaming contract emits final authoritative result", async () => {
     const events = [];
     for await (const event of streamPixiePlannerTurn({

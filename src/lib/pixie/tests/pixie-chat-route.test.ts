@@ -133,6 +133,38 @@ describe("POST /api/pixie/chat", () => {
     expect(text).not.toContain('"turn_completed"');
   });
 
+  it("does not show the generic safely message for provider capacity failures", async () => {
+    streamMock.mockImplementation(() =>
+      events([
+        { type: "turn_started", turnId: "pixie_turn_capacity" },
+        {
+          type: "turn_failed",
+          turnId: "pixie_turn_capacity",
+          error: {
+            code: "invalid_model_output",
+            message:
+              "Hara could not finish this planning turn within the current model capacity. Please send the availability details in two smaller parts, and Hara can continue from there.",
+          },
+        },
+      ]),
+    );
+    const { POST } = await loadRoute();
+    const response = await POST(
+      request({
+        state: createEmptyPixieTripState("2026-07-12T12:00:00.000Z"),
+        message: "Here is a complex night-by-night DVC availability comparison.",
+        recentMessages: [],
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const text = await response.text();
+    expect(text).toContain('"turn_failed"');
+    expect(text).toContain('"invalid_model_output"');
+    expect(text).toContain("Hara could not finish this planning turn in one pass.");
+    expect(text).not.toContain("Hara could not complete that turn safely.");
+  });
+
   it("accepts the first-turn recent messages produced by the Hara client", async () => {
     const { POST } = await loadRoute();
     const clientState = beginPixieTurn(

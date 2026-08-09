@@ -1,8 +1,8 @@
 import { evaluatePixieCompleteness } from "@/lib/pixie/completeness";
-import { applyPixieTripPatch, normalizePixieTripState } from "@/lib/pixie/planner-state";
+import { applyPixieTripPatch, calculateDateOnlyNights, normalizePixieTripState, normalizeStringArray } from "@/lib/pixie/planner-state";
 import type { PixieRecommendationResult } from "@/lib/pixie/resorts/recommendation-service";
 import type { PixieReadyStayMatchResult } from "@/lib/pixie/ready-stays/types";
-import type { PixieTripState } from "@/lib/pixie/schema";
+import type { PixieTripPatch, PixieTripState } from "@/lib/pixie/schema";
 import type { PixieCompletenessResult, PixieQuestionKey } from "@/lib/pixie/types";
 import type { PixieAiError } from "@/lib/pixie/ai/errors";
 import { PixieAiException, pixieAiError } from "@/lib/pixie/ai/errors";
@@ -76,8 +76,145 @@ type RunPixiePlannerTurnInput = {
   turnId?: string;
 };
 
+type PreparedPixiePlannerTurn = {
+  id: string;
+  generatedAt: string;
+  config: ReturnType<typeof getPixieAiConfig>;
+  warnings: string[];
+  state: PixieTripState;
+  message: string;
+  recentMessages: PixieRecentMessage[];
+  completeness: PixieCompletenessResult;
+  usage: PixieTurnUsage;
+  provider: PixieModelProvider;
+  extractedState?: PixieTripState;
+};
+
 function turnId(now: string) {
   return `pixie_turn_${now.replace(/[^0-9]/g, "").slice(0, 14)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+const MONTHS: Record<string, number> = {
+  january: 1,
+  jan: 1,
+  february: 2,
+  feb: 2,
+  march: 3,
+  mar: 3,
+  april: 4,
+  apr: 4,
+  may: 5,
+  june: 6,
+  jun: 6,
+  july: 7,
+  jul: 7,
+  august: 8,
+  aug: 8,
+  september: 9,
+  sept: 9,
+  sep: 9,
+  october: 10,
+  oct: 10,
+  november: 11,
+  nov: 11,
+  december: 12,
+  dec: 12,
+};
+
+const RESORT_MENTIONS = [
+  { pattern: /\bbay lake(?: tower)?\b/i, label: "Bay Lake Tower" },
+  { pattern: /\bpolynesian\b/i, label: "Polynesian Villas" },
+  { pattern: /\bcopper creek\b/i, label: "Copper Creek Villas" },
+  { pattern: /\bboulder ridge\b/i, label: "Boulder Ridge Villas" },
+  { pattern: /\bgrand floridian\b/i, label: "Grand Floridian Villas" },
+  { pattern: /\bboardwalk\b/i, label: "BoardWalk Villas" },
+  { pattern: /\briviera\b/i, label: "Riviera Resort" },
+  { pattern: /\bsaratoga(?: springs)?\b/i, label: "Saratoga Springs" },
+] as const;
+
+function dateOnly(year: number, month: number, day: number) {
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const value = date.toISOString().slice(0, 10);
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day ? value : undefined;
+}
+
+function firstDateRange(message: string) {
+  const monthPattern = Object.keys(MONTHS).join("|");
+  const pattern = new RegExp(
+    `\\b(${monthPattern})\\s+(\\d{1,2})(?:,\\s*(\\d{4}))?\\s+(?:to|through|thru|-)\\s+(?:(${monthPattern})\\s+)?(\\d{1,2})(?:,\\s*(\\d{4}))?\\b`,
+    "i",
+  );
+  const match = pattern.exec(message);
+  if (!match) return undefined;
+
+  const arrivalMonth = MONTHS[match[1].toLowerCase()];
+  const departureMonth = match[4] ? MONTHS[match[4].toLowerCase()] : arrivalMonth;
+  const year = Number(match[6] ?? match[3]);
+  const arrivalDay = Number(match[2]);
+  const departureDay = Number(match[5]);
+  if (!arrivalMonth || !departureMonth || !year) return undefined;
+
+  const arrivalDate = dateOnly(year, arrivalMonth, arrivalDay);
+  const departureDate = dateOnly(year, departureMonth, departureDay);
+  if (!arrivalDate || !departureDate || !calculateDateOnlyNights(arrivalDate, departureDate)) return undefined;
+  return { arrivalDate, departureDate };
+}
+
+function extractPreferenceFacts(message: string) {
+  const preferredResorts = RESORT_MENTIONS.filter((resort) => resort.pattern.test(message)).map((resort) => resort.label);
+  const resortPriorities: string[] = [];
+  const parkPriorities: string[] = [];
+  const noteFacts: string[] = [];
+  const normalized = message.toLowerCase();
+
+  if (/\bminimi[sz]e resort changes\b|\bfew(?:er)? resort changes\b|\bavoid (?:a )?(?:resort )?transfer\b|\bleast annoying (?:split stay|version)\b/.test(normalized)) {
+    resortPriorities.push("minimize resort changes");
+  }
+  if (/\bsave points\b|\blower points\b|\bfew(?:er)? points\b|\bpoint saving\b/.test(normalized)) {
+    resortPriorities.push("save points where reasonable");
+  }
+  if (/\bnear magic kingdom\b|\bclose to magic kingdom\b|\bmagic kingdom.*first night\b|\bfirst night.*magic kingdom\b/.test(normalized)) {
+    resortPriorities.push("stay near Magic Kingdom");
+    parkPriorities.push("Magic Kingdom");
+  }
+  if (/\bmagic kingdom\b/.test(normalized)) parkPriorities.push("Magic Kingdom");
+  if (/\bhalloween party\b|\bmickey'?s not so scary halloween party\b/.test(normalized)) {
+    parkPriorities.push("Magic Kingdom");
+    noteFacts.push("Magic Kingdom Halloween party constraint mentioned.");
+  }
+  if (/\bwaitlist\b/.test(normalized)) noteFacts.push("Waitlist alternatives mentioned.");
+
+  const pointMatches = message.match(/\b\d{1,3}\s+points?\b/gi) ?? [];
+  if (pointMatches.length) {
+    noteFacts.push(`Point values mentioned: ${normalizeStringArray(pointMatches, 20).slice(0, 12).join(", ")}.`);
+  }
+  if (preferredResorts.length) {
+    noteFacts.push(`Resorts mentioned: ${normalizeStringArray(preferredResorts).join(", ")}.`);
+  }
+
+  return {
+    preferredResorts: normalizeStringArray(preferredResorts),
+    resortPriorities: normalizeStringArray(resortPriorities),
+    parkPriorities: normalizeStringArray(parkPriorities),
+    generalNotes: noteFacts.join(" ").slice(0, 1000),
+  };
+}
+
+function extractLightweightTripPatch(message: string, state: PixieTripState): PixieTripPatch {
+  const dates = firstDateRange(message);
+  const facts = extractPreferenceFacts(message);
+  const preferences: NonNullable<PixieTripPatch["preferences"]> = {};
+
+  if (facts.preferredResorts.length) preferences.preferredResorts = normalizeStringArray([...state.preferences.preferredResorts, ...facts.preferredResorts]);
+  if (facts.resortPriorities.length) preferences.resortPriorities = normalizeStringArray([...state.preferences.resortPriorities, ...facts.resortPriorities]);
+  if (facts.parkPriorities.length) preferences.parkPriorities = normalizeStringArray([...state.preferences.parkPriorities, ...facts.parkPriorities]);
+  if (facts.generalNotes) preferences.generalNotes = [state.preferences.generalNotes, facts.generalNotes].filter(Boolean).join(" ").slice(0, 1000);
+  if (/\bsplit stay\b/i.test(message)) preferences.splitStayOpenness = true;
+
+  return {
+    ...(dates ? { dates } : {}),
+    ...(Object.keys(preferences).length ? { preferences } : {}),
+  };
 }
 
 function extractTrustedToolOutputs(toolResults: PixieToolResult[]) {
@@ -120,7 +257,7 @@ function pixieErrorFromProviderFailure(error: unknown): PixieAiError {
   );
 }
 
-export async function runPixiePlannerTurn(input: RunPixiePlannerTurnInput): Promise<PixiePlannerTurnResult> {
+function preparePixiePlannerTurn(input: RunPixiePlannerTurnInput): PreparedPixiePlannerTurn {
   const generatedAt = input.now ?? new Date().toISOString();
   const id = input.turnId ?? turnId(generatedAt);
   const config = getPixieAiConfig();
@@ -157,23 +294,53 @@ export async function runPixiePlannerTurn(input: RunPixiePlannerTurnInput): Prom
   const injection = detectPromptInjectionAttempt(message.message);
   if (injection) warnings.push(injection.message);
 
+  const extractionPatch = extractLightweightTripPatch(message.message, state);
+  let extractedState: PixieTripState | undefined;
+  if (Object.keys(extractionPatch).length > 0) {
+    const extractionResult = applyPixieTripPatch(state, extractionPatch, { now: generatedAt });
+    if (extractionResult.ok) {
+      state = extractionResult.state;
+      extractedState = state;
+    } else {
+      warnings.push(...extractionResult.errors.map((error) => `Lightweight extraction rejected: ${error.message}`));
+    }
+  }
+
   let completeness = evaluatePixieCompleteness(state);
   let usage = emptyPixieUsage("openai", config.model, PIXIE_AI_PROMPT_VERSION);
   const provider = input.provider ?? createOpenAiPixieProvider();
+
+  return {
+    id,
+    generatedAt,
+    config,
+    warnings,
+    state,
+    message: message.message,
+    recentMessages: limitRecentMessages(requestParsed.data.recentMessages, config.maxRecentMessages),
+    completeness,
+    usage,
+    provider,
+    extractedState,
+  };
+}
+
+async function completePixiePlannerTurn(prepared: PreparedPixiePlannerTurn, input: RunPixiePlannerTurnInput): Promise<PixiePlannerTurnResult> {
+  let { state, completeness, usage } = prepared;
   let providerResult: PixieModelProviderResult;
 
   try {
-    providerResult = await provider.createPlannerTurn(
+    providerResult = await prepared.provider.createPlannerTurn(
       {
         currentState: state,
-        latestUserMessage: message.message,
-        recentMessages: limitRecentMessages(requestParsed.data.recentMessages, config.maxRecentMessages),
+        latestUserMessage: prepared.message,
+        recentMessages: prepared.recentMessages,
         completeness,
         availableTools: getPixieModelToolDefinitions(),
         destinationScope: "walt_disney_world",
         safeContext: input.context,
       },
-      { model: config.model, maxOutputTokens: config.maxOutputTokens, timeoutMs: config.modelTimeoutMs },
+      { model: prepared.config.model, maxOutputTokens: prepared.config.maxOutputTokens, timeoutMs: prepared.config.modelTimeoutMs },
     );
   } catch (error) {
     const pixieError = pixieErrorFromProviderFailure(error);
@@ -187,8 +354,8 @@ export async function runPixiePlannerTurn(input: RunPixiePlannerTurnInput): Prom
       modelResult: safeFallbackModelResult("I understood your message, but I need to ask a cleaner follow-up before updating the plan.", completeness.suggestedNextQuestionKey),
       completeness,
       toolResults: [],
-      warnings: [...warnings, "invalid_model_output"],
-      latestUserMessage: message.message,
+      warnings: [...prepared.warnings, "invalid_model_output"],
+      latestUserMessage: prepared.message,
     });
     return {
       assistantResponse: response.message,
@@ -200,15 +367,16 @@ export async function runPixiePlannerTurn(input: RunPixiePlannerTurnInput): Prom
       warnings: response.warnings,
       providerMetadata: providerResult.metadata,
       usage,
-      turnId: id,
-      generatedAt,
+      turnId: prepared.id,
+      generatedAt: prepared.generatedAt,
     };
   }
 
   const modelResult = parsedModel.data;
+  const warnings = [...prepared.warnings];
   warnings.push(...modelResult.warnings);
 
-  const patchResult = applyPixieTripPatch(state, modelResult.tripPatch, { now: generatedAt });
+  const patchResult = applyPixieTripPatch(state, modelResult.tripPatch, { now: prepared.generatedAt });
   if (patchResult.ok) {
     state = patchResult.state;
   } else if (Object.keys(modelResult.tripPatch).length > 0) {
@@ -220,7 +388,7 @@ export async function runPixiePlannerTurn(input: RunPixiePlannerTurnInput): Prom
   const toolRequests = dedupePixieToolRequests(ensureImplicitTools(modelResult.requestedTools, completeness), PIXIE_AI_LIMITS.maxToolCallsPerTurn);
   const toolResults: PixieToolResult[] = [];
   for (const request of toolRequests) {
-    const toolResult = await executePixieTool({ toolRequest: request, currentState: state, now: generatedAt });
+    const toolResult = await executePixieTool({ toolRequest: request, currentState: state, now: prepared.generatedAt });
     toolResults.push(toolResult);
     if (toolResult.ok && toolResult.toolName === "apply_trip_patch") {
       const maybeState = toolResult.result as { applied?: boolean; state?: PixieTripState };
@@ -233,7 +401,7 @@ export async function runPixiePlannerTurn(input: RunPixiePlannerTurnInput): Prom
   usage = mergePixieUsage(usage, undefined, toolResults.length);
 
   const trustedOutputs = extractTrustedToolOutputs(toolResults);
-  const response = buildPixiePlannerResponse({ modelResult, completeness, toolResults, warnings, latestUserMessage: message.message });
+  const response = buildPixiePlannerResponse({ modelResult, completeness, toolResults, warnings, latestUserMessage: prepared.message });
 
   return {
     assistantResponse: response.message,
@@ -248,9 +416,13 @@ export async function runPixiePlannerTurn(input: RunPixiePlannerTurnInput): Prom
     warnings: response.warnings,
     providerMetadata: providerResult.metadata,
     usage,
-    turnId: id,
-    generatedAt,
+    turnId: prepared.id,
+    generatedAt: prepared.generatedAt,
   };
+}
+
+export async function runPixiePlannerTurn(input: RunPixiePlannerTurnInput): Promise<PixiePlannerTurnResult> {
+  return completePixiePlannerTurn(preparePixiePlannerTurn(input), input);
 }
 
 function ensureImplicitTools(requests: PixieAiToolRequest[], completeness: PixieCompletenessResult): PixieAiToolRequest[] {
@@ -266,7 +438,9 @@ export async function* streamPixiePlannerTurn(input: RunPixiePlannerTurnInput): 
   const id = turnId(startedAt);
   yield { type: "turn_started", turnId: id };
   try {
-    const result = await runPixiePlannerTurn({ ...input, now: startedAt, turnId: id });
+    const prepared = preparePixiePlannerTurn({ ...input, now: startedAt, turnId: id });
+    if (prepared.extractedState) yield { type: "trip_patch_applied", turnId: id, updatedState: prepared.extractedState };
+    const result = await completePixiePlannerTurn(prepared, { ...input, now: startedAt, turnId: id });
     yield { type: "assistant_text_delta", turnId: id, text: result.assistantResponse };
     if (result.recommendations) yield { type: "recommendations_ready", turnId: id, recommendations: result.recommendations };
     if (result.readyStayMatches) yield { type: "ready_stays_ready", turnId: id, readyStayMatches: result.readyStayMatches };

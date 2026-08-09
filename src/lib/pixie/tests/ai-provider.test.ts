@@ -51,6 +51,20 @@ describe("Pixie AI provider contract", () => {
     };
   }
 
+  function maxOutputIncompletePayload() {
+    return {
+      id: "resp_incomplete_test",
+      status: "incomplete",
+      incomplete_details: { reason: "max_output_tokens" },
+      output: [{ type: "reasoning", content: [] }],
+      usage: {
+        input_tokens: 120,
+        output_tokens: 800,
+        total_tokens: 920,
+      },
+    };
+  }
+
   function mockOpenAiResponse(response: Response) {
     return vi.spyOn(globalThis, "fetch").mockResolvedValue(response);
   }
@@ -180,6 +194,80 @@ describe("Pixie AI provider contract", () => {
     mockOpenAiResponse(Response.json(validOpenAiPayload({ output_text: "{not-json" })));
     const provider = createOpenAiPixieProvider(testEnv({ OPENAI_API_KEY: "sk-test-redacted", PIXIE_MODEL: "gpt-5.6-sol" }));
     await expect(provider.createPlannerTurn(plannerInput())).rejects.toMatchObject({ code: "invalid_model_output" });
+  });
+
+  it("detects incomplete max-output responses and retries once with a larger output budget", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(Response.json(maxOutputIncompletePayload()))
+      .mockResolvedValueOnce(Response.json(maxOutputIncompletePayload()));
+    const provider = createOpenAiPixieProvider(testEnv({
+      OPENAI_API_KEY: "sk-test-redacted",
+      PIXIE_MODEL: "gpt-5.6-sol",
+      PIXIE_MAX_OUTPUT_TOKENS: "800",
+    }));
+
+    await expect(provider.createPlannerTurn(plannerInput())).rejects.toMatchObject({
+      code: "invalid_model_output",
+      message: expect.stringMatching(/current model capacity/i),
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const firstBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as { max_output_tokens?: number };
+    const secondBody = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)) as { max_output_tokens?: number };
+    expect(firstBody.max_output_tokens).toBe(800);
+    expect(secondBody.max_output_tokens).toBe(2000);
+  });
+
+  it("returns a valid planner result when the max-output retry succeeds", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(Response.json(maxOutputIncompletePayload()))
+      .mockResolvedValueOnce(Response.json(validOpenAiPayload()));
+    const provider = createOpenAiPixieProvider(testEnv({
+      OPENAI_API_KEY: "sk-test-redacted",
+      PIXIE_MODEL: "gpt-5.6-sol",
+      PIXIE_MAX_OUTPUT_TOKENS: "800",
+    }));
+
+    const result = await provider.createPlannerTurn(plannerInput());
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.result.assistantResponse).toBe("I can help. When are you hoping to travel?");
+    expect(result.metadata.provider).toBe("openai");
+  });
+
+  it("maps a timeout during the max-output retry to the planning-capacity fallback", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchMock = vi
+        .spyOn(globalThis, "fetch")
+        .mockResolvedValueOnce(Response.json(maxOutputIncompletePayload()))
+        .mockImplementationOnce(
+          () =>
+            new Promise((_, reject) => {
+              setTimeout(() => reject(new Error("timeout")), 20);
+            }) as Promise<Response>,
+        );
+      const provider = createOpenAiPixieProvider(testEnv({
+        OPENAI_API_KEY: "sk-test-redacted",
+        PIXIE_MODEL: "gpt-5.6-sol",
+        PIXIE_MAX_OUTPUT_TOKENS: "800",
+        PIXIE_MODEL_TIMEOUT_MS: "10",
+      }));
+
+      const turn = provider.createPlannerTurn(plannerInput());
+      const rejection = expect(turn).rejects.toMatchObject({
+        code: "invalid_model_output",
+        message: expect.stringMatching(/current model capacity/i),
+      });
+      await vi.advanceTimersByTimeAsync(20);
+
+      await rejection;
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("does not expose secrets or raw provider payloads in successful output", async () => {

@@ -111,6 +111,15 @@ export function applyPixieStreamEvent(state: PixieChatState, event: PixieChatEve
     };
   }
 
+  if (event.type === "trip_patch_applied") {
+    return {
+      ...state,
+      status: statusForEvent(event),
+      tripState: event.updatedState,
+      completeness: evaluatePixieCompleteness(event.updatedState),
+    };
+  }
+
   if (event.type === "recommendations_ready") {
     return {
       ...state,

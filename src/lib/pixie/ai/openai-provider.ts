@@ -27,6 +27,10 @@ import {
 
 type OpenAIResponsesPayload = {
   id?: string;
+  status?: string;
+  incomplete_details?: {
+    reason?: string;
+  } | null;
   output_text?: string;
   output?: Array<{
     content?: Array<{ type?: string; text?: string }>;
@@ -268,6 +272,8 @@ const pixieTripPatchJsonSchemaBase = {
   },
 };
 const pixieTripPatchJsonSchema = makeOpenAiStrictSchema(pixieTripPatchJsonSchemaBase);
+const OUTPUT_LIMIT_FALLBACK_MESSAGE =
+  "Hara could not finish this planning turn within the current model capacity. Please send the availability details in two smaller parts, and Hara can continue from there.";
 
 function requireOpenAiApiKey(env: NodeJS.ProcessEnv = process.env) {
   const apiKey = env.OPENAI_API_KEY?.trim();
@@ -291,6 +297,14 @@ function parseStructuredOutput(text: string) {
   } catch {
     throw new PixieAiException("invalid_model_output", "OpenAI structured response was not valid JSON.");
   }
+}
+
+function isMaxOutputIncomplete(payload: OpenAIResponsesPayload) {
+  return payload.status === "incomplete" && payload.incomplete_details?.reason === "max_output_tokens";
+}
+
+function retryMaxOutputTokens(initialMaxOutputTokens: number) {
+  return Math.max(initialMaxOutputTokens + 1200, Math.ceil(initialMaxOutputTokens * 1.75));
 }
 
 function retryAfterMs(response: Response) {
@@ -340,144 +354,160 @@ export function createOpenAiPixieProvider(env: NodeJS.ProcessEnv = process.env):
       const config = getPixieAiConfig(env);
       const model = options.model ?? config.model;
       const timeoutMs = options.timeoutMs ?? config.modelTimeoutMs;
-      const timeout = withTimeoutSignal(timeoutMs, options.signal);
+      const initialMaxOutputTokens = options.maxOutputTokens ?? config.maxOutputTokens;
+      const maxOutputTokenAttempts = [initialMaxOutputTokens, retryMaxOutputTokens(initialMaxOutputTokens)];
+      let retriedAfterOutputLimit = false;
 
-      let response: Response;
-      try {
-        response = await fetch("https://api.openai.com/v1/responses", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          signal: timeout.signal,
-          body: JSON.stringify({
-            model,
-            instructions: buildPixieSystemPrompt(input.availableTools.length ? input.availableTools : getPixieModelToolDefinitions()),
-            input: [
-              {
-                role: "user",
-                content: JSON.stringify({
-                  latestUserMessage: input.latestUserMessage,
-                  currentState: input.currentState,
-                  completeness: input.completeness,
-                  recentMessages: input.recentMessages,
-                  destinationScope: input.destinationScope,
-                  priorToolResults: input.priorToolResults ?? [],
-                }),
-              },
-            ],
-            max_output_tokens: options.maxOutputTokens ?? config.maxOutputTokens,
-            text: {
-              format: {
-                type: "json_schema",
-                name: "pixie_model_turn_result",
-                strict: true,
-                schema: {
-                  type: "object",
-                  additionalProperties: false,
-                  required: [
-                    "assistantResponse",
-                    "tripPatch",
-                    "requestedTools",
-                    "nextQuestionKey",
-                    "planningIntent",
-                    "conversationMode",
-                    "activeDecisionKey",
-                    "delightMomentKey",
-                    "confidence",
-                    "warnings",
-                  ],
-                  properties: {
-                    assistantResponse: { type: "string" },
-                    tripPatch: pixieTripPatchJsonSchema,
-                    requestedTools: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        additionalProperties: false,
-                        required: ["name", "input", "requestId", "reason"],
-                        properties: {
-                          name: { type: "string", enum: PIXIE_TOOL_NAMES },
-                          input: { type: "object", additionalProperties: false, required: [], properties: {} },
-                          requestId: { type: ["string", "null"] },
-                          reason: { type: ["string", "null"] },
+      for (let attempt = 0; attempt < maxOutputTokenAttempts.length; attempt += 1) {
+        const timeout = withTimeoutSignal(timeoutMs, options.signal);
+        let response: Response;
+        try {
+          response = await fetch("https://api.openai.com/v1/responses", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            signal: timeout.signal,
+            body: JSON.stringify({
+              model,
+              instructions: buildPixieSystemPrompt(input.availableTools.length ? input.availableTools : getPixieModelToolDefinitions()),
+              input: [
+                {
+                  role: "user",
+                  content: JSON.stringify({
+                    latestUserMessage: input.latestUserMessage,
+                    currentState: input.currentState,
+                    completeness: input.completeness,
+                    recentMessages: input.recentMessages,
+                    destinationScope: input.destinationScope,
+                    priorToolResults: input.priorToolResults ?? [],
+                  }),
+                },
+              ],
+              max_output_tokens: maxOutputTokenAttempts[attempt],
+              text: {
+                format: {
+                  type: "json_schema",
+                  name: "pixie_model_turn_result",
+                  strict: true,
+                  schema: {
+                    type: "object",
+                    additionalProperties: false,
+                    required: [
+                      "assistantResponse",
+                      "tripPatch",
+                      "requestedTools",
+                      "nextQuestionKey",
+                      "planningIntent",
+                      "conversationMode",
+                      "activeDecisionKey",
+                      "delightMomentKey",
+                      "confidence",
+                      "warnings",
+                    ],
+                    properties: {
+                      assistantResponse: { type: "string" },
+                      tripPatch: pixieTripPatchJsonSchema,
+                      requestedTools: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          additionalProperties: false,
+                          required: ["name", "input", "requestId", "reason"],
+                          properties: {
+                            name: { type: "string", enum: PIXIE_TOOL_NAMES },
+                            input: { type: "object", additionalProperties: false, required: [], properties: {} },
+                            requestId: { type: ["string", "null"] },
+                            reason: { type: ["string", "null"] },
+                          },
                         },
                       },
+                      nextQuestionKey: {
+                        type: ["string", "null"],
+                        enum: ["ask_dates", "ask_party", "ask_budget_context", "ask_trip_priorities", "ask_pace", "ask_park_days", "ask_resort_choice", "ask_room_type", null],
+                      },
+                      planningIntent: {
+                        type: "string",
+                        enum: PIXIE_PLANNING_INTENTS,
+                      },
+                      conversationMode: {
+                        type: ["string", "null"],
+                        enum: [...PIXIE_CONVERSATION_MODES, null],
+                      },
+                      activeDecisionKey: {
+                        type: ["string", "null"],
+                        enum: [...PIXIE_ACTIVE_DECISION_KEYS, null],
+                      },
+                      delightMomentKey: {
+                        type: ["string", "null"],
+                        enum: [...PIXIE_DELIGHT_MOMENT_KEYS, null],
+                      },
+                      confidence: { type: "number" },
+                      warnings: { type: "array", items: { type: "string" } },
                     },
-                    nextQuestionKey: {
-                      type: ["string", "null"],
-                      enum: ["ask_dates", "ask_party", "ask_budget_context", "ask_trip_priorities", "ask_pace", "ask_park_days", "ask_resort_choice", "ask_room_type", null],
-                    },
-                    planningIntent: {
-                      type: "string",
-                      enum: PIXIE_PLANNING_INTENTS,
-                    },
-                    conversationMode: {
-                      type: ["string", "null"],
-                      enum: [...PIXIE_CONVERSATION_MODES, null],
-                    },
-                    activeDecisionKey: {
-                      type: ["string", "null"],
-                      enum: [...PIXIE_ACTIVE_DECISION_KEYS, null],
-                    },
-                    delightMomentKey: {
-                      type: ["string", "null"],
-                      enum: [...PIXIE_DELIGHT_MOMENT_KEYS, null],
-                    },
-                    confidence: { type: "number" },
-                    warnings: { type: "array", items: { type: "string" } },
                   },
                 },
               },
-            },
-          }),
-        });
-      } catch (error) {
-        if (timeout.signal.aborted) {
-          throw new PixieAiException("provider_timeout", "OpenAI provider request timed out.");
+            }),
+          });
+        } catch (error) {
+          if (timeout.signal.aborted) {
+            if (retriedAfterOutputLimit) throw new PixieAiException("invalid_model_output", OUTPUT_LIMIT_FALLBACK_MESSAGE);
+            throw new PixieAiException("provider_timeout", "OpenAI provider request timed out.");
+          }
+          if (error instanceof PixieAiException) throw error;
+          throw new PixieAiException("provider_unavailable", "OpenAI provider request failed before a response was received.");
+        } finally {
+          timeout.clear();
         }
-        if (error instanceof PixieAiException) throw error;
-        throw new PixieAiException("provider_unavailable", "OpenAI provider request failed before a response was received.");
-      } finally {
-        timeout.clear();
-      }
 
-      if (!response.ok) await throwOpenAiProviderError(response);
+        if (!response.ok) await throwOpenAiProviderError(response);
 
-      try {
-        const payload = (await response.json()) as OpenAIResponsesPayload;
-        const outputText = extractOutputText(payload);
-        if (!outputText) {
-          throw new PixieAiException("invalid_model_output", "OpenAI structured response was empty.");
-        }
-        const parsed = pixieModelTurnResultSchema.parse(parseStructuredOutput(outputText));
-        const usage = {
-          provider: "openai",
-          model,
-          promptVersion: PIXIE_AI_PROMPT_VERSION,
-          inputTokens: payload.usage?.input_tokens,
-          outputTokens: payload.usage?.output_tokens,
-          cachedInputTokens: payload.usage?.input_tokens_details?.cached_tokens,
-          totalTokens: payload.usage?.total_tokens,
-          durationMs: Date.now() - started,
-        };
+        try {
+          const payload = (await response.json()) as OpenAIResponsesPayload;
+          if (isMaxOutputIncomplete(payload)) {
+            if (attempt === 0) {
+              retriedAfterOutputLimit = true;
+              continue;
+            }
+            throw new PixieAiException("invalid_model_output", OUTPUT_LIMIT_FALLBACK_MESSAGE);
+          }
 
-        return {
-          result: parsed,
-          metadata: {
+          const outputText = extractOutputText(payload);
+          if (!outputText) {
+            throw new PixieAiException("invalid_model_output", "OpenAI structured response was empty.");
+          }
+          const parsed = pixieModelTurnResultSchema.parse(parseStructuredOutput(outputText));
+          const usage = {
             provider: "openai",
             model,
             promptVersion: PIXIE_AI_PROMPT_VERSION,
-            sourceVersion: PIXIE_AI_PROVIDER_VERSION,
-          },
-          usage,
-          rawResponseId: payload.id,
-        };
-      } catch (error) {
-        if (error instanceof PixieAiException) throw error;
-        throw new PixieAiException("invalid_model_output", "OpenAI structured response did not match PixieModelTurnResult.");
+            inputTokens: payload.usage?.input_tokens,
+            outputTokens: payload.usage?.output_tokens,
+            cachedInputTokens: payload.usage?.input_tokens_details?.cached_tokens,
+            totalTokens: payload.usage?.total_tokens,
+            durationMs: Date.now() - started,
+          };
+
+          return {
+            result: parsed,
+            metadata: {
+              provider: "openai",
+              model,
+              promptVersion: PIXIE_AI_PROMPT_VERSION,
+              sourceVersion: PIXIE_AI_PROVIDER_VERSION,
+            },
+            usage,
+            rawResponseId: payload.id,
+          };
+        } catch (error) {
+          if (error instanceof PixieAiException) throw error;
+          throw new PixieAiException("invalid_model_output", "OpenAI structured response did not match PixieModelTurnResult.");
+        }
       }
+
+      throw new PixieAiException("invalid_model_output", OUTPUT_LIMIT_FALLBACK_MESSAGE);
     },
   };
 }

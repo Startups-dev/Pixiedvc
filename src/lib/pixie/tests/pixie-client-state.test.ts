@@ -101,7 +101,7 @@ describe("Pixie client chat state", () => {
   it("starts with the Pixie introduction and an empty valid draft", () => {
     const state = createInitialPixieChatState({ draftId: "draft_test" });
     expect(state.draftId).toBe("draft_test");
-    expect(state.messages[0]?.content).toMatch(/Hi, I.m Pixie/i);
+    expect(state.messages[0]?.content).toMatch(/Hi, I.m Hara/i);
     expect(state.tripState.destination).toBe("walt_disney_world");
     expect(state.status).toBe("idle");
   });
@@ -148,6 +148,31 @@ describe("Pixie client chat state", () => {
     expect(state.recommendations?.recommendations[0]?.resortId).toBe("vgf");
     expect(state.readyStayMatches?.inventoryDisclaimerKey).toBe("recheck_required_before_booking");
     expect(state.planOutline).toEqual({ days: [] });
+  });
+
+  it("applies streamed trip patch state and keeps it after a later failure", () => {
+    const extractedTripState = createEmptyPixieTripState("2026-07-12T12:00:00.000Z");
+    extractedTripState.dates.arrivalDate = "2026-10-28";
+    extractedTripState.dates.departureDate = "2026-11-04";
+    extractedTripState.dates.numberOfNights = 7;
+    extractedTripState.preferences.parkPriorities = ["Magic Kingdom"];
+    extractedTripState.preferences.resortPriorities = ["minimize resort changes"];
+
+    let state = beginPixieTurn(createInitialPixieChatState(), "Complex DVC details...");
+    state = applyPixieStreamEvent(state, { type: "turn_started", turnId: TEST_TURN_ID });
+    state = applyPixieStreamEvent(state, { type: "trip_patch_applied", turnId: TEST_TURN_ID, updatedState: extractedTripState });
+    expect(state.tripState.dates.arrivalDate).toBe("2026-10-28");
+    expect(state.completeness.missingRequired).not.toContain("ask_dates");
+
+    state = applyPixieStreamEvent(state, {
+      type: "turn_failed",
+      turnId: TEST_TURN_ID,
+      error: { code: "invalid_model_output", message: "Hara could not finish this planning turn in one pass." },
+    });
+
+    expect(state.status).toBe("error");
+    expect(state.tripState.dates.arrivalDate).toBe("2026-10-28");
+    expect(state.tripState.preferences.resortPriorities).toContain("minimize resort changes");
   });
 
   it("ignores stale events from an older turn", () => {
