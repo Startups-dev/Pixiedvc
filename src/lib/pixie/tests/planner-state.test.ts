@@ -193,6 +193,73 @@ describe("Pixie planner state", () => {
     }
   });
 
+  it("retains working itinerary, traveler-reported availability, DVC points, and active risk state", () => {
+    const patched = applyPixieTripPatch(createEmptyPixieTripState("2026-08-10T12:00:00.000Z"), {
+      dvcContext: {
+        lodgingContext: "dvc_points",
+        useYear: "September",
+        currentUseYearPoints: { points: 9, source: "user_provided" },
+        nextUseYearPoints: { points: 220, source: "user_provided" },
+        borrowingContemplated: true,
+        planningRisks: ["Unknown account-specific point allocation should not be invented."],
+      },
+      planningWorkspace: {
+        workingItinerary: [
+          {
+            date: "2026-09-01",
+            resort: "Saratoga Springs",
+            roomType: "Studio",
+            points: 9,
+            status: "planned",
+            alternatives: [{ resort: "Bay Lake Tower", roomType: "Studio", points: 16, status: "waitlist_candidate" }],
+          },
+          { date: "2026-09-05", status: "unresolved" },
+        ],
+        availabilityObservations: [
+          { date: "2026-09-01", resort: "Bay Lake Tower", roomType: "Studio", points: 16, status: "reported_waitlist", source: "traveler_reported" },
+        ],
+        activeDecisions: [
+          {
+            id: "sept_1_blt_waitlist",
+            label: "Sept 1 BLT waitlist",
+            currentSecureOption: "Saratoga Springs",
+            potentialBenefit: "Walk to Magic Kingdom party.",
+            risk: "Modification within 30-day window.",
+            status: "needs_decision",
+          },
+        ],
+      },
+    });
+
+    expect(patched.ok).toBe(true);
+    if (!patched.ok) return;
+    expect(patched.state.dvcContext.useYear).toBe("September");
+    expect(patched.state.dvcContext.currentUseYearPoints?.points).toBe(9);
+    expect(patched.state.dvcContext.nextUseYearPoints?.points).toBe(220);
+    expect(patched.state.dvcContext.borrowedPoints).toBeUndefined();
+    expect(patched.state.planningWorkspace.workingItinerary).toHaveLength(2);
+    expect(patched.state.planningWorkspace.workingItinerary[1]?.status).toBe("unresolved");
+    expect(patched.state.planningWorkspace.availabilityObservations[0]?.source).toBe("traveler_reported");
+    expect(patched.state.planningWorkspace.availabilityObservations[0]?.source).not.toBe("HannaDVC_verified");
+    expect(patched.state.planningWorkspace.activeDecisions[0]?.risk).toBe("Modification within 30-day window.");
+  });
+
+  it("merges repeated nightly workspace patches by date instead of duplicating nights", () => {
+    const first = applyPixieTripPatch(createEmptyPixieTripState(), {
+      planningWorkspace: { workingItinerary: [{ date: "2026-09-03", resort: "BoardWalk Villas", points: 10, status: "planned" }] },
+    });
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+
+    const second = applyPixieTripPatch(first.state, {
+      planningWorkspace: { workingItinerary: [{ date: "2026-09-03", resort: "BoardWalk Villas", roomType: "Studio", points: 10, status: "planned" }] },
+    });
+    expect(second.ok).toBe(true);
+    if (!second.ok) return;
+    expect(second.state.planningWorkspace.workingItinerary).toHaveLength(1);
+    expect(second.state.planningWorkspace.workingItinerary[0]?.roomType).toBe("Studio");
+  });
+
   it("normalizes budget currency only when an amount is supplied", () => {
     const noAmount = normalizePixieTripState(createEmptyPixieTripState());
     const withAmount = normalizePixieTripState({

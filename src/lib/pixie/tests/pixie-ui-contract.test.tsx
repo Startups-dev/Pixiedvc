@@ -1,17 +1,18 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import PixieComposer from "@/components/pixie/PixieComposer";
 import PixieHeader from "@/components/pixie/PixieHeader";
 import PixieMessage from "@/components/pixie/PixieMessage";
+import PixiePlanPanel from "@/components/pixie/PixiePlanPanel";
 import PixieQuickReplies from "@/components/pixie/PixieQuickReplies";
 import PixieReadyStayCard from "@/components/pixie/PixieReadyStayCard";
 import PixieSavePrompt from "@/components/pixie/PixieSavePrompt";
 import SupportWidget from "@/components/support/SupportWidget";
 import { createInitialPixieChatState } from "@/lib/pixie/client/chat-state";
 import { evaluatePixieCompleteness } from "@/lib/pixie/completeness";
-import { createEmptyPixieTripState } from "@/lib/pixie/planner-state";
+import { applyPixieTripPatch, createEmptyPixieTripState } from "@/lib/pixie/planner-state";
 import type { PixieRecommendationResult } from "@/lib/pixie/resorts/recommendation-service";
 import type { PixieReadyStayMatch } from "@/lib/pixie/ready-stays/types";
 
@@ -153,11 +154,24 @@ function recommendationResult(): PixieRecommendationResult {
 }
 
 describe("Pixie UI contracts", () => {
+  beforeEach(() => {
+    const store = new Map<string, string>();
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: {
+        getItem: (key: string) => store.get(key) ?? null,
+        setItem: (key: string, value: string) => store.set(key, value),
+        removeItem: (key: string) => store.delete(key),
+        clear: () => store.clear(),
+      },
+    });
+  });
+
   it("renders Pixie disclosure and Disney non-affiliation language", () => {
     render(<PixieHeader state={createInitialPixieChatState()} enabled onResetClick={() => undefined} />);
 
     expect(screen.getByRole("heading", { name: /walt disney world planning workspace/i })).toBeInTheDocument();
-    expect(screen.getByText(/AI planning assistant inside PixieDVC/i)).toBeInTheDocument();
+    expect(screen.getByText(/Hara helps you compare resorts/i)).toBeInTheDocument();
     expect(screen.getByText(/not Disney or an official Disney representative/i)).toBeInTheDocument();
   });
 
@@ -177,7 +191,7 @@ describe("Pixie UI contracts", () => {
       />,
     );
 
-    const input = screen.getByLabelText(/tell pixie about your trip/i);
+    const input = screen.getByLabelText(/tell hara about your trip/i);
     await user.click(input);
     await user.keyboard("{Shift>}{Enter}{/Shift}");
     expect(onSend).not.toHaveBeenCalled();
@@ -264,9 +278,56 @@ describe("Pixie UI contracts", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /keep pixie.s favorite/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /keep hara.s favorite/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /compare top two/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /check ready stays/i })).toBeInTheDocument();
     expect(screen.getAllByRole("button")).toHaveLength(4);
+  });
+
+  it("shows DVC discussion quick replies instead of resort comparison chips when point risk is active", () => {
+    const state = createInitialPixieChatState();
+    const patched = applyPixieTripPatch(state.tripState, {
+      dvcContext: { lodgingContext: "dvc_points", borrowingContemplated: true, planningRisks: ["Unknown point allocation."] },
+      planningWorkspace: { activeDecisions: [{ id: "cancel_saratoga", label: "Cancel Saratoga", status: "needs_account_specific_verification" }] },
+    });
+    expect(patched.ok).toBe(true);
+    if (!patched.ok) return;
+
+    render(
+      <PixieQuickReplies
+        state={{ ...state, tripState: patched.state, recommendations: recommendationResult() }}
+        nextQuestionKey="ask_resort_choice"
+        disabled={false}
+        onSend={() => undefined}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /explain holding points/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /review point risk/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /compare top two/i })).not.toBeInTheDocument();
+  });
+
+  it("renders working itinerary and labels traveler-reported availability in the plan panel", () => {
+    const state = createInitialPixieChatState();
+    const patched = applyPixieTripPatch(state.tripState, {
+      planningWorkspace: {
+        workingItinerary: [
+          { date: "2026-09-01", resort: "Saratoga Springs", roomType: "Studio", points: 9, status: "planned" },
+          { date: "2026-09-05", status: "unresolved" },
+        ],
+        availabilityObservations: [
+          { date: "2026-09-01", resort: "Bay Lake Tower", roomType: "Studio", points: 16, status: "reported_waitlist", source: "traveler_reported" },
+        ],
+      },
+    });
+    expect(patched.ok).toBe(true);
+    if (!patched.ok) return;
+
+    render(<PixiePlanPanel state={{ ...state, tripState: patched.state, recommendations: recommendationResult() }} onSavePromptShown={() => undefined} />);
+
+    expect(screen.getByText(/working itinerary/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/2026-09-05/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/traveler-reported availability/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Beach Club Villas/i)).not.toBeInTheDocument();
   });
 });

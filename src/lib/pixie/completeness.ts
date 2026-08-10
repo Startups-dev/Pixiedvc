@@ -46,6 +46,9 @@ export function evaluatePixieCompleteness(state: PixieTripState): PixieCompleten
   const hasRoomType = Boolean(normalized.selectedOptions.selectedRoomType || normalized.preferences.roomPreferences.length);
   const hasParkDayIntent = normalized.preferences.parkDayIntention === true || normalized.preferences.parkPriorities.length > 0;
   const hasPace = normalized.preferences.vacationPace !== "unknown";
+  const unresolvedItineraryNights = normalized.planningWorkspace.workingItinerary.filter((night) => night.status === "unresolved").length;
+  const openDecisions = normalized.planningWorkspace.activeDecisions.filter((decision) => decision.status !== "resolved").length;
+  const unresolvedDvcRisks = normalized.dvcContext.planningRisks.length + normalized.dvcContext.unresolvedDecisions.length;
 
   const readyForResortRecommendations = normalized.destination === "walt_disney_world" && hasUsableDates && partyComplete && hasPreferences;
   const readyForPointEstimates = datesComplete && partyComplete && hasCandidateResort && hasRoomType;
@@ -75,6 +78,12 @@ export function evaluatePixieCompleteness(state: PixieTripState): PixieCompleten
   if (readyForBookingDraft) {
     warnings.push("Booking draft readiness still requires authentication and booking-form guest details later.");
   }
+  if (unresolvedItineraryNights > 0) {
+    warnings.push(`${unresolvedItineraryNights} itinerary ${unresolvedItineraryNights === 1 ? "night is" : "nights are"} still unresolved.`);
+  }
+  if (openDecisions > 0 || unresolvedDvcRisks > 0) {
+    warnings.push("Open DVC decisions or risks remain before this plan should be treated as complete.");
+  }
 
   let score = 10;
   if (hasUsableDates) score += 20;
@@ -84,6 +93,9 @@ export function evaluatePixieCompleteness(state: PixieTripState): PixieCompleten
   if (budgetUnderstood) score += 10;
   if (readyForItinerary) score += 10;
   if (readyForBookingDraft) score += 10;
+  score -= Math.min(20, unresolvedItineraryNights * 12);
+  score -= Math.min(15, openDecisions * 8 + unresolvedDvcRisks * 4);
+  score = Math.max(10, score);
   score = Math.min(100, score);
 
   const planningStage = evaluateStage({

@@ -72,6 +72,20 @@ function normalizeTraveller(traveller: PixieTraveller): PixieTraveller {
   };
 }
 
+function normalizeOptionalText(value: string | undefined) {
+  return value?.trim().replace(/\s+/g, " ") || undefined;
+}
+
+function mergeByKey<T>(current: T[], incoming: T[] | undefined, keyFor: (item: T) => string, maxItems = PIXIE_LIMITS.maxArrayItems) {
+  const byKey = new Map<string, T>();
+  for (const item of current) byKey.set(keyFor(item), item);
+  for (const item of incoming ?? []) {
+    const key = keyFor(item);
+    byKey.set(key, { ...byKey.get(key), ...item });
+  }
+  return Array.from(byKey.values()).slice(-maxItems);
+}
+
 function derivePlanningStageFromState(state: PixieTripState): PixiePlanningStage {
   const datesComplete = Boolean(state.dates.arrivalDate && state.dates.departureDate && state.dates.numberOfNights);
   const hasUsableDates = datesComplete || Boolean(state.dates.flexibleDates && (state.dates.dateNotes || state.dates.arrivalDate));
@@ -177,6 +191,47 @@ export function normalizePixieTripState(
       celebrationNotes: parsed.preferences.celebrationNotes?.trim() || undefined,
       generalNotes: parsed.preferences.generalNotes?.trim() || undefined,
     },
+    dvcContext: {
+      ...parsed.dvcContext,
+      homeResort: normalizeOptionalText(parsed.dvcContext.homeResort),
+      bookingWindowContext: parsed.dvcContext.bookingWindowContext?.trim() || undefined,
+      useYear: normalizeOptionalText(parsed.dvcContext.useYear),
+      existingReservationSegments: normalizeStringArray(parsed.dvcContext.existingReservationSegments, PIXIE_LIMITS.maxArrayItems),
+      proposedReservationChanges: normalizeStringArray(parsed.dvcContext.proposedReservationChanges, PIXIE_LIMITS.maxArrayItems),
+      planningRisks: normalizeStringArray(parsed.dvcContext.planningRisks, PIXIE_LIMITS.maxArrayItems),
+      unresolvedDecisions: normalizeStringArray(parsed.dvcContext.unresolvedDecisions, PIXIE_LIMITS.maxArrayItems),
+    },
+    planningWorkspace: {
+      workingItinerary: [...parsed.planningWorkspace.workingItinerary]
+        .map((night) => ({
+          ...night,
+          resort: normalizeOptionalText(night.resort),
+          roomType: normalizeOptionalText(night.roomType),
+          alternatives: night.alternatives.map((alternative) => ({
+            ...alternative,
+            resort: normalizeOptionalText(alternative.resort),
+            roomType: normalizeOptionalText(alternative.roomType),
+            rationale: alternative.rationale?.trim() || undefined,
+          })),
+          rationale: night.rationale?.trim() || undefined,
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date)),
+      availabilityObservations: [...parsed.planningWorkspace.availabilityObservations]
+        .map((observation) => ({
+          ...observation,
+          resort: normalizeOptionalText(observation.resort) ?? observation.resort,
+          roomType: normalizeOptionalText(observation.roomType),
+          notes: observation.notes?.trim() || undefined,
+        }))
+        .sort((a, b) => `${a.date}|${a.resort}`.localeCompare(`${b.date}|${b.resort}`)),
+      activeDecisions: parsed.planningWorkspace.activeDecisions.map((decision) => ({
+        ...decision,
+        label: normalizeOptionalText(decision.label) ?? decision.label,
+        currentSecureOption: normalizeOptionalText(decision.currentSecureOption),
+        potentialBenefit: decision.potentialBenefit?.trim() || undefined,
+        risk: decision.risk?.trim() || undefined,
+      })),
+    },
     metadata: {
       ...parsed.metadata,
       createdAt,
@@ -199,6 +254,8 @@ export function createEmptyPixieTripState(now = nowIso()): PixieTripState {
       budget: {},
       preferences: {},
       accessibility: {},
+      dvcContext: {},
+      planningWorkspace: {},
       generated: {},
       selectedOptions: {},
       metadata: {
@@ -259,6 +316,25 @@ export function applyPixieTripPatch(
   if (safePatch.budget) next.budget = { ...next.budget, ...safePatch.budget };
   if (safePatch.preferences) next.preferences = { ...next.preferences, ...safePatch.preferences };
   if (safePatch.accessibility) next.accessibility = { ...next.accessibility, ...safePatch.accessibility };
+  if (safePatch.dvcContext) next.dvcContext = { ...next.dvcContext, ...safePatch.dvcContext };
+  if (safePatch.planningWorkspace) {
+    next.planningWorkspace = {
+      ...next.planningWorkspace,
+      ...safePatch.planningWorkspace,
+      workingItinerary: mergeByKey(
+        next.planningWorkspace.workingItinerary,
+        safePatch.planningWorkspace.workingItinerary,
+        (night) => night.date,
+        PIXIE_LIMITS.maxTripDurationNights,
+      ),
+      availabilityObservations: mergeByKey(
+        next.planningWorkspace.availabilityObservations,
+        safePatch.planningWorkspace.availabilityObservations,
+        (observation) => `${observation.date}|${observation.resort.toLowerCase()}|${observation.roomType?.toLowerCase() ?? ""}|${observation.source}`,
+      ),
+      activeDecisions: mergeByKey(next.planningWorkspace.activeDecisions, safePatch.planningWorkspace.activeDecisions, (decision) => decision.id),
+    };
+  }
   if (safePatch.selectedOptions) next.selectedOptions = { ...next.selectedOptions, ...safePatch.selectedOptions };
   if (safePatch.metadata) next.metadata = { ...next.metadata, ...safePatch.metadata };
 

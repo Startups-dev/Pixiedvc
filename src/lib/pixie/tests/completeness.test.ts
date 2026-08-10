@@ -171,4 +171,27 @@ describe("Pixie completeness evaluator", () => {
     if (!patched.ok) return;
     expect(evaluatePixieCompleteness(patched.state).suggestedNextQuestionKey).toBe("ask_budget_context");
   });
+
+  it("reduces plan completeness when a working itinerary has unresolved nights and DVC risks", () => {
+    const patched = applyPixieTripPatch(createEmptyPixieTripState(), {
+      dates: { arrivalDate: "2026-09-01", departureDate: "2026-09-06" },
+      party: { adults: 2, children: 1 },
+      preferences: { resortPriorities: ["minimize resort changes"], parkPriorities: ["Magic Kingdom"], vacationPace: "balanced", parkDayIntention: true },
+      planningWorkspace: {
+        workingItinerary: [
+          { date: "2026-09-01", resort: "Saratoga Springs", points: 9, status: "planned" },
+          { date: "2026-09-05", status: "unresolved" },
+        ],
+        activeDecisions: [{ id: "dvc_waitlist", label: "BLT waitlist", status: "needs_decision", risk: "Could affect the secure reservation." }],
+      },
+      dvcContext: { lodgingContext: "dvc_points", planningRisks: ["Unknown point allocation."] },
+    });
+
+    expect(patched.ok).toBe(true);
+    if (!patched.ok) return;
+    const result = evaluatePixieCompleteness(patched.state);
+    expect(result.score).toBeLessThan(90);
+    expect(result.warnings).toContain("1 itinerary night is still unresolved.");
+    expect(result.warnings).toContain("Open DVC decisions or risks remain before this plan should be treated as complete.");
+  });
 });

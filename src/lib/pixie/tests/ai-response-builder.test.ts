@@ -168,6 +168,51 @@ describe("Pixie response builder", () => {
     expect(response.message).toBe("For steak, I would keep the evening near the EPCOT resort area and verify current dining options closer to the trip.");
   });
 
+  it("does not prepend generic resort ranking for a narrow DVC cancellation question", () => {
+    const result = recommendationResult();
+    const response = buildPixiePlannerResponse({
+      modelResult: modelResult({
+        assistantResponse: "You are right to pause. Before canceling Saratoga, review whether the returned points would go into Holding and whether any borrowed points would retain their borrowed status.",
+        planningIntent: "revise_plan",
+        conversationMode: "decision_support",
+        activeDecisionKey: "resort_choice",
+      }),
+      completeness: result.recommendationReadiness,
+      toolResults: [
+        {
+          ok: true,
+          toolName: "recommend_resorts",
+          result,
+          durationMs: 1,
+          trusted: true,
+        } satisfies PixieToolResult,
+      ],
+      latestUserMessage: "How will I cancel Saratoga? Won't we be in the non-cancelling window soon?",
+      warnings: [],
+    });
+
+    expect(response.message).toMatch(/^You are right to pause/);
+    expect(response.message).not.toContain("resort options worth considering");
+    expect(response.message).not.toContain("Beach Club Villas");
+  });
+
+  it("removes a model-generated resort ranking intro before a narrow DVC answer", () => {
+    const state = createEmptyPixieTripState("2026-07-15T12:00:00.000Z");
+    const response = buildPixiePlannerResponse({
+      modelResult: modelResult({
+        assistantResponse:
+          "I have 3 resort options worth considering, and Bay Lake Tower is the strongest fit right now.\n\nYou are right to check cancellation timing before touching Saratoga.",
+      }),
+      completeness: evaluatePixieCompleteness(state),
+      toolResults: [],
+      latestUserMessage: "How will I cancel Saratoga? Won't we be in the non-cancelling window soon?",
+      warnings: [],
+    });
+
+    expect(response.message).toBe("You are right to check cancellation timing before touching Saratoga.");
+    expect(response.warnings).toContain("immediate_intent_guard: generic resort ranking intro was removed for a narrow DVC question.");
+  });
+
   it("removes mechanical questions for facts the completeness engine already knows", () => {
     const state = normalizePixieTripState({
       ...createEmptyPixieTripState("2026-07-15T12:00:00.000Z"),

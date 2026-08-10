@@ -59,8 +59,15 @@ function buildRecommendationIntroduction(recommendations: PixieRecommendationRes
   return `I have ${recommendations.recommendations.length} resort ${recommendations.recommendations.length === 1 ? "option" : "options"} worth considering, and ${top.displayName} is the strongest fit right now.${reasonText}${tradeoff}${incomplete}`;
 }
 
+function isNarrowDvcIntent(message: string) {
+  return /\b(dvc rules?|cancel(?:lation)?|holding|borrow(?:ing)?|point allocation|use year|waitlist|wait-list|existing reservation|modify|modification|non-cancell|30-day|30 days)\b/i.test(
+    message,
+  );
+}
+
 function shouldAddRecommendationIntroduction(modelResult: PixieModelTurnResult, recommendations?: PixieRecommendationResult, latestUserMessage = "") {
   if (!recommendations?.recommendations.length) return false;
+  if (isNarrowDvcIntent(latestUserMessage)) return false;
   if (/\b(dining|dinner|restaurant|steak|sushi|pasta|eat|food|meal|meals)\b/i.test(latestUserMessage)) return false;
   if (modelResult.activeDecisionKey === "resort_choice") return true;
   return false;
@@ -83,6 +90,14 @@ export function buildPixiePlannerResponse(params: {
   if (unsafeAvailabilityPattern.test(message)) {
     message = message.replace(unsafeAvailabilityPattern, "available to review");
     additionalWarnings.push("unsafe_model_claim: availability language was softened because Ready Stays require recheck before booking.");
+  }
+
+  if (isNarrowDvcIntent(params.latestUserMessage ?? "") && /^I have \d+ resort options? worth considering\b/i.test(message)) {
+    const [, ...rest] = message.split(/\n{2,}/);
+    if (rest.length) {
+      message = rest.join("\n\n").trim();
+      additionalWarnings.push("immediate_intent_guard: generic resort ranking intro was removed for a narrow DVC question.");
+    }
   }
 
   const hasReadyStayTool = params.toolResults.some((result) => result.toolName === "find_ready_stays" && result.ok);

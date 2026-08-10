@@ -49,7 +49,30 @@ const replies: Record<PixieQuestionKey, Array<{ label: string; message: string }
   ],
 };
 
+const dvcReplies = [
+  { label: "Explain Holding points", message: "Explain how Holding points could affect this change." },
+  { label: "Compare modifications", message: "Compare the reservation modification options and risks." },
+  { label: "Review point risk", message: "Review the current-year, next-year, and borrowing risk." },
+];
+
+const itineraryReplies = [
+  { label: "Resolve open night", message: "Help me resolve the unresolved night." },
+  { label: "Review split stay", message: "Review this split stay and the resort-move tradeoffs." },
+  { label: "Compare party night", message: "Compare the party-night lodging options." },
+];
+
 function contextualReplies(state?: PixieChatState, nextQuestionKey?: PixieQuestionKey) {
+  const openDecisions = state?.tripState.planningWorkspace.activeDecisions.some((decision) => decision.status !== "resolved");
+  const hasDvcRisk = Boolean(
+    state?.tripState.dvcContext.holdingExposure ||
+      state?.tripState.dvcContext.borrowingContemplated ||
+      state?.tripState.dvcContext.planningRisks.length ||
+      state?.tripState.dvcContext.unresolvedDecisions.length ||
+      openDecisions,
+  );
+  if (hasDvcRisk) return dvcReplies;
+  const hasWorkingItinerary = Boolean(state?.tripState.planningWorkspace.workingItinerary.length);
+  if (hasWorkingItinerary) return itineraryReplies;
   if (state?.recommendations?.recommendations.length) return replies.ask_resort_choice;
   if (nextQuestionKey === "ask_budget_context" && state?.tripState.budget.budgetType !== "unknown" && state?.tripState.budget.amountCents !== undefined) {
     return replies.ask_resort_choice;

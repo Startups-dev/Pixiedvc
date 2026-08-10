@@ -141,6 +141,97 @@ const generatedRecommendationSchema = z
   })
   .strict();
 
+const pixieFactSourceSchema = z.enum(["system_fact", "user_provided", "inference", "requires_live_verification"]);
+
+const pixiePointBucketSchema = z
+  .object({
+    points: z.number().int().min(0).max(5000),
+    source: pixieFactSourceSchema.default("user_provided"),
+    notes: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
+  })
+  .strict();
+
+export const pixieDvcContextSchema = z
+  .object({
+    lodgingContext: z.enum(["dvc_points", "ready_stay", "other", "unknown"]).default("unknown"),
+    homeResort: optionalTrimmedString(),
+    bookingWindowContext: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
+    useYear: optionalTrimmedString(40),
+    currentUseYearPoints: pixiePointBucketSchema.optional(),
+    bankedPoints: pixiePointBucketSchema.optional(),
+    borrowedPoints: pixiePointBucketSchema.optional(),
+    transferredPoints: pixiePointBucketSchema.optional(),
+    nextUseYearPoints: pixiePointBucketSchema.optional(),
+    borrowingContemplated: z.boolean().optional(),
+    holdingExposure: z
+      .object({
+        isExposed: z.boolean().optional(),
+        source: pixieFactSourceSchema.default("inference"),
+        notes: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
+      })
+      .strict()
+      .optional(),
+    existingReservationSegments: z.array(z.string().trim().min(1).max(PIXIE_LIMITS.maxShortTextLength)).max(PIXIE_LIMITS.maxArrayItems).default([]),
+    proposedReservationChanges: z.array(z.string().trim().min(1).max(PIXIE_LIMITS.maxShortTextLength)).max(PIXIE_LIMITS.maxArrayItems).default([]),
+    planningRisks: z.array(z.string().trim().min(1).max(PIXIE_LIMITS.maxShortTextLength)).max(PIXIE_LIMITS.maxArrayItems).default([]),
+    unresolvedDecisions: z.array(z.string().trim().min(1).max(PIXIE_LIMITS.maxShortTextLength)).max(PIXIE_LIMITS.maxArrayItems).default([]),
+  })
+  .strict();
+
+const pixieWorkingItineraryAlternativeSchema = z
+  .object({
+    resort: optionalTrimmedString(),
+    roomType: optionalTrimmedString(),
+    points: z.number().int().min(0).max(1000).optional(),
+    status: z.enum(["planned", "confirmed", "traveler_reported_available", "waitlist_candidate", "unresolved"]).default("planned"),
+    rationale: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
+  })
+  .strict();
+
+export const pixieWorkingItineraryNightSchema = z
+  .object({
+    date: pixieDateOnlySchema,
+    resort: optionalTrimmedString(),
+    roomType: optionalTrimmedString(),
+    points: z.number().int().min(0).max(1000).optional(),
+    status: z.enum(["planned", "confirmed", "traveler_reported_available", "waitlist_candidate", "unresolved"]).default("planned"),
+    alternatives: z.array(pixieWorkingItineraryAlternativeSchema).max(5).default([]),
+    rationale: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
+  })
+  .strict();
+
+export const pixieAvailabilityObservationSchema = z
+  .object({
+    date: pixieDateOnlySchema,
+    resort: z.string().trim().min(1).max(PIXIE_LIMITS.maxShortTextLength),
+    roomType: optionalTrimmedString(),
+    points: z.number().int().min(0).max(1000).optional(),
+    status: z.enum(["reported_available", "reported_waitlist", "unavailable"]),
+    source: z.enum(["traveler_reported", "HannaDVC_verified"]).default("traveler_reported"),
+    notes: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
+  })
+  .strict();
+
+export const pixieActivePlanningDecisionSchema = z
+  .object({
+    id: z.string().trim().regex(localIdPattern),
+    label: z.string().trim().min(1).max(PIXIE_LIMITS.maxShortTextLength),
+    currentSecureOption: optionalTrimmedString(),
+    potentialBenefit: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
+    risk: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
+    status: z.enum(["needs_decision", "needs_account_specific_verification", "resolved"]).default("needs_decision"),
+    source: pixieFactSourceSchema.default("user_provided"),
+  })
+  .strict();
+
+export const pixiePlanningWorkspaceSchema = z
+  .object({
+    workingItinerary: z.array(pixieWorkingItineraryNightSchema).max(PIXIE_LIMITS.maxTripDurationNights).default([]),
+    availabilityObservations: z.array(pixieAvailabilityObservationSchema).max(PIXIE_LIMITS.maxArrayItems).default([]),
+    activeDecisions: z.array(pixieActivePlanningDecisionSchema).max(PIXIE_LIMITS.maxArrayItems).default([]),
+  })
+  .strict();
+
 export const pixieGeneratedSchema = z
   .object({
     completeness: z.number().int().min(0).max(100).optional(),
@@ -196,6 +287,8 @@ export const pixieTripStateSchema = z
     budget: pixieBudgetSchema.default({}),
     preferences: pixiePreferencesSchema.default({}),
     accessibility: pixieAccessibilitySchema.default({}),
+    dvcContext: pixieDvcContextSchema.default({}),
+    planningWorkspace: pixiePlanningWorkspaceSchema.default({}),
     generated: pixieGeneratedSchema.default({}),
     selectedOptions: pixieSelectedOptionsSchema.default({}),
     metadata: pixieMetadataSchema.default({}),
@@ -264,6 +357,8 @@ export const pixieTripPatchSchema = z
     budget: pixieBudgetSchema.partial().strict().optional(),
     preferences: pixiePreferencesSchema.partial().strict().optional(),
     accessibility: pixieAccessibilitySchema.partial().strict().optional(),
+    dvcContext: pixieDvcContextSchema.partial().strict().optional(),
+    planningWorkspace: pixiePlanningWorkspaceSchema.partial().strict().optional(),
     selectedOptions: pixieSelectedOptionsSchema.partial().strict().optional(),
     metadata: pixieMetadataSchema.pick({ source: true, affiliate: true, draftId: true, lastInteractionAt: true }).partial().strict().optional(),
   })

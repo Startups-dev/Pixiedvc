@@ -123,6 +123,36 @@ describe("Pixie AI orchestrator", () => {
     expect(result.recommendations?.recommendations[0].score).toBeTypeOf("number");
   });
 
+  it("does not call resort recommendations for a narrow DVC cancellation question", async () => {
+    const state = normalizePixieTripState({
+      ...createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      dates: { arrivalDate: "2026-09-01", departureDate: "2026-09-06" },
+      party: { adults: 2, children: 1 },
+      preferences: { resortPriorities: ["monorail"], parkPriorities: ["Magic Kingdom"] },
+    });
+    const result = await runPixiePlannerTurn({
+      state,
+      message: "How will I cancel Saratoga? Won't we be in the non-cancelling window soon?",
+      provider: createFixturePixieProvider({
+        result: {
+          assistantResponse: "You are right to check the cancellation window before changing Saratoga.",
+          tripPatch: {},
+          requestedTools: [{ name: "recommend_resorts", input: {} }],
+          planningIntent: "revise_plan",
+          conversationMode: "decision_support",
+          activeDecisionKey: "resort_choice",
+          confidence: 0.8,
+          warnings: [],
+        },
+      }),
+      now: "2026-08-09T12:01:00.000Z",
+    });
+
+    expect(result.toolResults.some((tool) => tool.toolName === "recommend_resorts")).toBe(false);
+    expect(result.recommendations).toBeUndefined();
+    expect(result.assistantResponse).toMatch(/^You are right to check/);
+  });
+
   it("provider failure emits a typed stream failure instead of a completed fallback turn", async () => {
     const state = createEmptyPixieTripState("2026-07-11T12:00:00.000Z");
     const events = [];
@@ -178,6 +208,37 @@ describe("Pixie AI orchestrator", () => {
       expect(patchEvent.updatedState.preferences.generalNotes).toContain("Waitlist alternatives mentioned");
       expect(patchEvent.updatedState.party.totalPartySize).toBe(0);
       expect(patchEvent.updatedState.budget.budgetType).toBe("unknown");
+    }
+  });
+
+  it("extracts DVC planning workspace facts before a later provider failure", async () => {
+    const events = [];
+    for await (const event of streamPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      message:
+        "September Use Year. Current-year 9 points remaining, next-year 220 points, borrowing contemplated. Saratoga Studio Sept 1-2 is 9 points and traveler availability says BoardWalk Studio Sept 3 is available for 10 points. Sept 5 unresolved. BLT waitlist Sept 1. Worried about Holding if we cancel Saratoga inside 30 days.",
+      provider: {
+        async createPlannerTurn() {
+          throw new PixieAiException("provider_timeout", "OpenAI provider request timed out.");
+        },
+      },
+      now: "2026-08-09T12:01:00.000Z",
+    })) {
+      events.push(event);
+    }
+
+    const patchEvent = events.find((event) => event.type === "trip_patch_applied");
+    expect(patchEvent?.type).toBe("trip_patch_applied");
+    if (patchEvent?.type === "trip_patch_applied") {
+      expect(patchEvent.updatedState.dvcContext.useYear).toBe("September");
+      expect(patchEvent.updatedState.dvcContext.currentUseYearPoints?.points).toBe(9);
+      expect(patchEvent.updatedState.dvcContext.nextUseYearPoints?.points).toBe(220);
+      expect(patchEvent.updatedState.dvcContext.borrowingContemplated).toBe(true);
+      expect(patchEvent.updatedState.dvcContext.borrowedPoints).toBeUndefined();
+      expect(patchEvent.updatedState.planningWorkspace.workingItinerary.some((night) => night.date === "2026-09-05" && night.status === "unresolved")).toBe(true);
+      expect(patchEvent.updatedState.planningWorkspace.availabilityObservations[0]?.source).toBe("traveler_reported");
+      expect(patchEvent.updatedState.planningWorkspace.availabilityObservations[0]?.source).not.toBe("HannaDVC_verified");
+      expect(patchEvent.updatedState.planningWorkspace.activeDecisions.some((decision) => decision.id === "dvc_cancellation_modification_risk")).toBe(true);
     }
   });
 

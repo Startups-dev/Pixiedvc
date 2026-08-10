@@ -123,7 +123,7 @@ const MONTHS: Record<string, number> = {
 };
 
 const RESORT_MENTIONS = [
-  { pattern: /\bbay lake(?: tower)?\b/i, label: "Bay Lake Tower" },
+  { pattern: /\b(?:bay lake(?: tower)?|blt)\b/i, label: "Bay Lake Tower" },
   { pattern: /\bpolynesian\b/i, label: "Polynesian Villas" },
   { pattern: /\bcopper creek\b/i, label: "Copper Creek Villas" },
   { pattern: /\bboulder ridge\b/i, label: "Boulder Ridge Villas" },
@@ -133,12 +133,26 @@ const RESORT_MENTIONS = [
   { pattern: /\bsaratoga(?: springs)?\b/i, label: "Saratoga Springs" },
 ] as const;
 
+function resortLabelFromText(value: string) {
+  return RESORT_MENTIONS.find((resort) => resort.pattern.test(value))?.label;
+}
+
 const COMPLEX_PLANNING_TIMEOUT_MS = 45_000;
 
 function dateOnly(year: number, month: number, day: number) {
   const date = new Date(Date.UTC(year, month - 1, day));
   const value = date.toISOString().slice(0, 10);
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day ? value : undefined;
+}
+
+function addDateOnlyDays(value: string, days: number) {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return undefined;
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+}
+
+function yearForPlanningWorkspace(state: PixieTripState, generatedAt: string) {
+  return Number(state.dates.arrivalDate?.slice(0, 4) ?? generatedAt.slice(0, 4));
 }
 
 function firstDateRange(message: string) {
@@ -271,6 +285,148 @@ function extractPreferenceFacts(message: string) {
   };
 }
 
+function parseWorkspaceDate(monthText: string, dayText: string, fallbackYear: number) {
+  const month = MONTHS[monthText.toLowerCase()];
+  const day = Number(dayText);
+  return month && day ? dateOnly(fallbackYear, month, day) : undefined;
+}
+
+function workspaceDatesFromRange(monthText: string, startDayText: string, endDayText: string | undefined, fallbackYear: number) {
+  const startDate = parseWorkspaceDate(monthText, startDayText, fallbackYear);
+  if (!startDate) return [];
+  const endDay = endDayText ? Number(endDayText) : Number(startDayText);
+  const startDay = Number(startDayText);
+  const dates: string[] = [];
+  for (let offset = 0; offset <= Math.max(0, endDay - startDay); offset += 1) {
+    const next = addDateOnlyDays(startDate, offset);
+    if (next) dates.push(next);
+  }
+  return dates;
+}
+
+function statusFromPlanningText(text: string) {
+  const normalized = text.toLowerCase();
+  if (/\bunresolved\b|\bnot resolved\b|\bopen night\b|\bneed(?:s)? to resolve\b/.test(normalized)) return "unresolved" as const;
+  if (/\bwaitlist\b|\bwait-list\b/.test(normalized)) return "waitlist_candidate" as const;
+  if (/\bavailable\b|\bavailability\b/.test(normalized)) return "traveler_reported_available" as const;
+  if (/\bconfirmed\b|\bbooked\b|\breserved\b/.test(normalized)) return "confirmed" as const;
+  return "planned" as const;
+}
+
+function availabilityStatusFromText(text: string) {
+  const normalized = text.toLowerCase();
+  if (/\bunavailable\b|\bnot available\b|\bno availability\b/.test(normalized)) return "unavailable" as const;
+  if (/\bwaitlist\b|\bwait-list\b/.test(normalized)) return "reported_waitlist" as const;
+  if (/\bavailable\b|\bavailability\b/.test(normalized)) return "reported_available" as const;
+  return undefined;
+}
+
+function extractPlanningWorkspacePatch(message: string, state: PixieTripState, generatedAt: string): NonNullable<PixieTripPatch["planningWorkspace"]> | undefined {
+  const fallbackYear = yearForPlanningWorkspace(state, generatedAt);
+  const monthPattern = Object.keys(MONTHS).join("|");
+  const resortPattern = "(bay lake tower|bay lake|blt|polynesian|copper creek|boulder ridge|grand floridian|boardwalk|riviera|saratoga(?: springs)?)";
+  const workingItinerary: NonNullable<NonNullable<PixieTripPatch["planningWorkspace"]>["workingItinerary"]> = [];
+  const availabilityObservations: NonNullable<NonNullable<PixieTripPatch["planningWorkspace"]>["availabilityObservations"]> = [];
+
+  const resortFirstPattern = new RegExp(
+    `\\b${resortPattern}\\b[^.\\n;]{0,80}?\\b(${monthPattern})\\s+(\\d{1,2})(?:\\s*(?:-|to|through|thru|–)\\s*(\\d{1,2}))?[^.\\n;]{0,80}?\\b(?:(\\d{1,3})\\s*(?:pts?|points?))?`,
+    "gi",
+  );
+  let resortFirstMatch: RegExpExecArray | null;
+  while ((resortFirstMatch = resortFirstPattern.exec(message))) {
+    const resort = resortLabelFromText(resortFirstMatch[1]);
+    if (!resort) continue;
+    const points = resortFirstMatch[5] ? Number(resortFirstMatch[5]) : undefined;
+    const status = statusFromPlanningText(resortFirstMatch[0]);
+    for (const date of workspaceDatesFromRange(resortFirstMatch[2], resortFirstMatch[3], resortFirstMatch[4], fallbackYear)) {
+      workingItinerary.push({ date, resort, roomType: /studio/i.test(resortFirstMatch[0]) ? "Studio" : undefined, points, status });
+      const availabilityStatus = availabilityStatusFromText(resortFirstMatch[0]);
+      if (availabilityStatus) {
+        availabilityObservations.push({ date, resort, roomType: /studio/i.test(resortFirstMatch[0]) ? "Studio" : undefined, points, status: availabilityStatus, source: "traveler_reported" });
+      }
+    }
+  }
+
+  const dateFirstPattern = new RegExp(
+    `\\b(${monthPattern})\\s+(\\d{1,2})\\b[^.\\n;]{0,80}?\\b${resortPattern}\\b[^.\\n;]{0,80}?\\b(?:(\\d{1,3})\\s*(?:pts?|points?))?`,
+    "gi",
+  );
+  let dateFirstMatch: RegExpExecArray | null;
+  while ((dateFirstMatch = dateFirstPattern.exec(message))) {
+    const date = parseWorkspaceDate(dateFirstMatch[1], dateFirstMatch[2], fallbackYear);
+    const resort = resortLabelFromText(dateFirstMatch[3]);
+    if (!date || !resort) continue;
+    const points = dateFirstMatch[4] ? Number(dateFirstMatch[4]) : undefined;
+    const status = statusFromPlanningText(dateFirstMatch[0]);
+    workingItinerary.push({ date, resort, roomType: /studio/i.test(dateFirstMatch[0]) ? "Studio" : undefined, points, status });
+    const availabilityStatus = availabilityStatusFromText(dateFirstMatch[0]);
+    if (availabilityStatus) {
+      availabilityObservations.push({ date, resort, roomType: /studio/i.test(dateFirstMatch[0]) ? "Studio" : undefined, points, status: availabilityStatus, source: "traveler_reported" });
+    }
+  }
+
+  const unresolvedPattern = new RegExp(`\\b(${monthPattern})\\s+(\\d{1,2})\\b[^.\\n;]{0,80}?\\b(unresolved|open night|still need|not resolved)\\b`, "gi");
+  let unresolvedMatch: RegExpExecArray | null;
+  while ((unresolvedMatch = unresolvedPattern.exec(message))) {
+    const date = parseWorkspaceDate(unresolvedMatch[1], unresolvedMatch[2], fallbackYear);
+    if (date) workingItinerary.push({ date, status: "unresolved", rationale: "Night remains unresolved." });
+  }
+
+  const activeDecisions: NonNullable<NonNullable<PixieTripPatch["planningWorkspace"]>["activeDecisions"]> = [];
+  if (/\bwaitlist\b|\bwait-list\b/i.test(message)) {
+    const waitlistResort = resortLabelFromText(message.match(new RegExp(`\\b${resortPattern}\\b`, "i"))?.[0] ?? "") ?? "DVC waitlist";
+    activeDecisions.push({
+      id: "dvc_waitlist_decision",
+      label: `${waitlistResort} waitlist`,
+      potentialBenefit: /magic kingdom|halloween/i.test(message) ? "Better access for the Magic Kingdom party night." : "Could improve the lodging plan if it matches the trip constraints.",
+      risk: /cancel|holding|30 days|non-cancell/i.test(message) ? "Existing reservation changes may have Holding or cancellation consequences." : "Waitlist replacement can affect the secure option.",
+      status: "needs_decision",
+      source: "user_provided",
+    });
+  }
+  if (/\bcancel|holding|30 days|non-cancell|modify|modification/i.test(message)) {
+    activeDecisions.push({
+      id: "dvc_cancellation_modification_risk",
+      label: "DVC cancellation/modification risk",
+      currentSecureOption: resortLabelFromText(message),
+      risk: "Needs consequence-first review before changing an existing reservation.",
+      status: "needs_account_specific_verification",
+      source: "inference",
+    });
+  }
+
+  if (!workingItinerary.length && !availabilityObservations.length && !activeDecisions.length) return undefined;
+  return {
+    ...(workingItinerary.length ? { workingItinerary } : {}),
+    ...(availabilityObservations.length ? { availabilityObservations } : {}),
+    ...(activeDecisions.length ? { activeDecisions } : {}),
+  };
+}
+
+function extractDvcContextPatch(message: string): NonNullable<PixieTripPatch["dvcContext"]> | undefined {
+  const normalized = message.toLowerCase();
+  const patch: NonNullable<PixieTripPatch["dvcContext"]> = {};
+  if (/\bdvc\b|\buse year\b|\bpoints?\b|\bborrow/i.test(message)) patch.lodgingContext = "dvc_points";
+  const useYearMatch = /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+use\s+year\b/i.exec(message);
+  if (useYearMatch) patch.useYear = `${useYearMatch[1][0].toUpperCase()}${useYearMatch[1].slice(1).toLowerCase()}`;
+  const currentMatch = /\b(?:current(?:-|\s*)year|current\s+use\s+year)[^.。\n]{0,60}?\b(\d{1,4})\s+points?\b/i.exec(message);
+  if (currentMatch) patch.currentUseYearPoints = { points: Number(currentMatch[1]), source: "user_provided" };
+  const nextMatch = /\b(?:next(?:-|\s*)year|next\s+use\s+year)[^.。\n]{0,60}?\b(\d{1,4})\s+points?\b/i.exec(message);
+  if (nextMatch) patch.nextUseYearPoints = { points: Number(nextMatch[1]), source: "user_provided" };
+  if (/\bborrow(?:ing)?\b/.test(normalized)) patch.borrowingContemplated = true;
+  if (/\bholding\b|\bwithin\s+30\s+days\b|\b30-day\b|\bnon-cancell/i.test(message)) {
+    patch.holdingExposure = {
+      isExposed: true,
+      source: "inference",
+      notes: "User raised cancellation/Holding timing risk; exact point allocation remains account-specific.",
+    };
+    patch.planningRisks = ["Cancellation or modification may create Holding exposure.", "Unknown account-specific point allocation should not be invented."];
+  }
+  if (/\bwaitlist\b|\bwait-list\b/i.test(message)) patch.unresolvedDecisions = ["Waitlist choice remains unresolved."];
+  if (/\bcancel|modify|modification/i.test(message)) patch.proposedReservationChanges = ["Review cancellation or modification before changing the secure reservation."];
+  return Object.keys(patch).length ? patch : undefined;
+}
+
 function extractPartyPatch(message: string, state: PixieTripState): NonNullable<PixieTripPatch["party"]> | undefined {
   const normalized = message.toLowerCase().replace(/\s+/g, " ");
   const patch: NonNullable<PixieTripPatch["party"]> = {};
@@ -309,7 +465,7 @@ function extractPartyPatch(message: string, state: PixieTripState): NonNullable<
   return Object.keys(patch).length ? patch : undefined;
 }
 
-function extractLightweightTripPatch(message: string, state: PixieTripState): PixieTripPatch {
+function extractLightweightTripPatch(message: string, state: PixieTripState, generatedAt: string): PixieTripPatch {
   const dateExtraction = extractLightweightDates(message);
   const facts = extractPreferenceFacts(message);
   const party = extractPartyPatch(message, state);
@@ -321,11 +477,15 @@ function extractLightweightTripPatch(message: string, state: PixieTripState): Pi
   const notes = [...dateExtraction.dateNotes, facts.generalNotes].filter(Boolean);
   if (notes.length) preferences.generalNotes = [state.preferences.generalNotes, ...notes].filter(Boolean).join(" ").slice(0, 1000);
   if (/\bsplit stay\b/i.test(message)) preferences.splitStayOpenness = true;
+  const dvcContext = extractDvcContextPatch(message);
+  const planningWorkspace = extractPlanningWorkspacePatch(message, state, generatedAt);
 
   return {
     ...(dateExtraction.dates ? { dates: dateExtraction.dates } : {}),
     ...(party ? { party } : {}),
     ...(Object.keys(preferences).length ? { preferences } : {}),
+    ...(dvcContext ? { dvcContext } : {}),
+    ...(planningWorkspace ? { planningWorkspace } : {}),
   };
 }
 
@@ -443,7 +603,7 @@ function preparePixiePlannerTurn(input: RunPixiePlannerTurnInput): PreparedPixie
 
   const clearExistingDates = shouldClearExistingDatesForExtraction(message.message);
   const extractionBaseState = clearExistingDates ? normalizePixieTripState({ ...state, dates: {} }, { now: generatedAt }) : state;
-  const extractionPatch = extractLightweightTripPatch(message.message, extractionBaseState);
+  const extractionPatch = extractLightweightTripPatch(message.message, extractionBaseState, generatedAt);
   let extractedState: PixieTripState | undefined;
   if (Object.keys(extractionPatch).length > 0) {
     const extractionResult = applyPixieTripPatch(extractionBaseState, extractionPatch, { now: generatedAt });
@@ -536,7 +696,7 @@ async function completePixiePlannerTurn(prepared: PreparedPixiePlannerTurn, inpu
 
   completeness = evaluatePixieCompleteness(state);
 
-  const toolRequests = dedupePixieToolRequests(ensureImplicitTools(modelResult.requestedTools, completeness), PIXIE_AI_LIMITS.maxToolCallsPerTurn);
+  const toolRequests = dedupePixieToolRequests(ensureImplicitTools(modelResult.requestedTools, completeness, prepared.message), PIXIE_AI_LIMITS.maxToolCallsPerTurn);
   const toolResults: PixieToolResult[] = [];
   for (const request of toolRequests) {
     const toolResult = await executePixieTool({ toolRequest: request, currentState: state, now: prepared.generatedAt });
@@ -576,8 +736,15 @@ export async function runPixiePlannerTurn(input: RunPixiePlannerTurnInput): Prom
   return completePixiePlannerTurn(preparePixiePlannerTurn(input), input);
 }
 
-function ensureImplicitTools(requests: PixieAiToolRequest[], completeness: PixieCompletenessResult): PixieAiToolRequest[] {
-  const next = [...requests];
+function isNarrowDvcIntent(message: string) {
+  return /\b(dvc rules?|cancel(?:lation)?|holding|borrow(?:ing)?|point allocation|use year|waitlist|wait-list|existing reservation|modify|modification|non-cancell|30-day|30 days)\b/i.test(
+    message,
+  );
+}
+
+function ensureImplicitTools(requests: PixieAiToolRequest[], completeness: PixieCompletenessResult, latestUserMessage: string): PixieAiToolRequest[] {
+  const next = isNarrowDvcIntent(latestUserMessage) ? requests.filter((request) => request.name !== "recommend_resorts") : [...requests];
+  if (isNarrowDvcIntent(latestUserMessage)) return next;
   if (completeness.readyForResortRecommendations && !next.some((request) => request.name === "recommend_resorts")) {
     next.push({ name: "recommend_resorts", input: {}, reason: "Trip is ready for resort recommendations." });
   }

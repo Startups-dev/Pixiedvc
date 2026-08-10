@@ -75,6 +75,8 @@ export const PIXIE_PATCHABLE_SECTIONS = [
   "budget",
   "preferences",
   "accessibility",
+  "dvcContext",
+  "planningWorkspace",
   "selectedOptions",
   "metadata",
 ] as const;
