@@ -14,7 +14,7 @@ vi.mock("@/lib/pixie/client/analytics", () => ({
   trackPixieEvent: vi.fn(),
 }));
 
-describe("Hara preview UI", () => {
+describe("Hara UI", () => {
   beforeEach(() => {
     Element.prototype.scrollTo = vi.fn();
     const store = new Map<string, string>();
@@ -30,26 +30,20 @@ describe("Hara preview UI", () => {
     vi.mocked(sendPixieMessage).mockClear();
   });
 
-  it("keeps the public disabled experience blocked without preview access", async () => {
-    const user = userEvent.setup();
-    render(<PixieClient enabled={false} />);
+  it("renders the composer enabled without preview or disabled banners", () => {
+    render(<PixieClient />);
 
     const input = screen.getByLabelText(/tell hara about your trip/i);
-    expect(input).toBeDisabled();
-    expect(screen.getByText("not enabled")).toBeInTheDocument();
-    expect(screen.getByText(/Hara is not publicly enabled in this environment yet/i)).toBeInTheDocument();
+    expect(input).toBeEnabled();
+    expect(screen.queryByText("not enabled")).not.toBeInTheDocument();
     expect(screen.queryByText(/Preview mode/i)).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /send message to hara/i }));
-    expect(sendPixieMessage).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Hara is not publicly enabled/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Hara preview mode/i)).not.toBeInTheDocument();
   });
 
-  it("lets authorized preview testers send messages and see preview messaging", async () => {
+  it("submits Hara messages normally", async () => {
     const user = userEvent.setup();
-    render(<PixieClient enabled previewMode />);
-
-    expect(screen.getByText("Preview mode")).toBeInTheDocument();
-    expect(screen.getByText(/Hara preview mode - not yet available to public users/i)).toBeInTheDocument();
+    render(<PixieClient />);
 
     const input = screen.getByLabelText(/tell hara about your trip/i);
     await user.type(input, "We are testing Hara.");

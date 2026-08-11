@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import PixieShell from "@/components/pixie/PixieShell";
 import {
@@ -18,7 +18,7 @@ import { trackPixieEvent } from "@/lib/pixie/client/analytics";
 import type { PixieChatState } from "@/lib/pixie/client/types";
 import { evaluatePixieCompleteness } from "@/lib/pixie/completeness";
 
-export default function PixieClient({ enabled, previewMode = false }: { enabled: boolean; previewMode?: boolean }) {
+export default function PixieClient() {
   const [state, setState] = useState<PixieChatState>(() => createInitialPixieChatState());
   const [hydrated, setHydrated] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
@@ -31,9 +31,8 @@ export default function PixieClient({ enabled, previewMode = false }: { enabled:
   const failedTurnIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
-    console.info("[hara-client-props]", { enabled, previewMode });
-    trackPixieEvent("pixie_page_viewed", { enabled });
-  }, [enabled, previewMode]);
+    trackPixieEvent("pixie_page_viewed", { enabled: true });
+  }, []);
 
   useEffect(() => {
     if (restoredRef.current) return;
@@ -72,11 +71,11 @@ export default function PixieClient({ enabled, previewMode = false }: { enabled:
     return () => clearTimeout(timeout);
   }, [hydrated, state.tripState, state.recentMessages]);
 
-  const canSend = enabled && state.status !== "sending" && state.status !== "thinking" && state.pendingInput.trim().length > 0;
+  const canSend = state.status !== "sending" && state.status !== "thinking" && state.pendingInput.trim().length > 0;
 
   async function sendMessage(message: string) {
     const trimmed = message.trim();
-    if (!trimmed || !enabled) return;
+    if (!trimmed) return;
 
     if (!firstMessageTrackedRef.current) {
       firstMessageTrackedRef.current = true;
@@ -176,18 +175,9 @@ export default function PixieClient({ enabled, previewMode = false }: { enabled:
     trackPixieEvent("pixie_trip_reset");
   }
 
-  const disabledReason = useMemo(() => {
-    if (previewMode) return "Hara preview mode - not yet available to public users.";
-    if (enabled) return undefined;
-    return "Hara is not publicly enabled in this environment yet.";
-  }, [enabled, previewMode]);
-
   return (
     <PixieShell
       state={state}
-      enabled={enabled}
-      statusLabel={previewMode ? "Preview mode" : undefined}
-      disabledReason={disabledReason}
       canSend={canSend}
       planOpen={planOpen}
       resetOpen={resetOpen}

@@ -10,7 +10,6 @@ import type { PixieChatState } from "@/lib/pixie/client/types";
 
 export default function PixieChat({
   state,
-  enabled,
   canSend,
   onInputChange,
   onSend,
@@ -18,7 +17,6 @@ export default function PixieChat({
   onPlanOpen,
 }: {
   state: PixieChatState;
-  enabled: boolean;
   canSend: boolean;
   onInputChange: (value: string) => void;
   onSend: (message: string) => void;
@@ -49,10 +47,10 @@ export default function PixieChat({
           {state.error.message}
         </div>
       ) : null}
-      <PixieQuickReplies state={state} nextQuestionKey={state.nextQuestionKey ?? state.completeness.suggestedNextQuestionKey} onSend={onSend} disabled={!enabled || active} />
+      <PixieQuickReplies state={state} nextQuestionKey={state.nextQuestionKey ?? state.completeness.suggestedNextQuestionKey} onSend={onSend} disabled={active} />
       <PixieComposer
         value={state.pendingInput}
-        disabled={!enabled}
+        disabled={active}
         active={active}
         canSend={canSend}
         onChange={onInputChange}

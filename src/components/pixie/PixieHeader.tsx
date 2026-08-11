@@ -7,13 +7,9 @@ import type { PixieChatState } from "@/lib/pixie/client/types";
 
 export default function PixieHeader({
   state,
-  enabled,
-  statusLabel,
   onResetClick,
 }: {
   state: PixieChatState;
-  enabled: boolean;
-  statusLabel?: string;
   onResetClick: () => void;
 }) {
   return (
@@ -30,7 +26,7 @@ export default function PixieHeader({
       </div>
       <div className="flex items-center justify-between gap-3 lg:justify-end">
         <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
-          {statusLabel ?? (enabled ? state.tripState.planningStage.replace(/_/g, " ") : "not enabled")}
+          {state.tripState.planningStage.replace(/_/g, " ")}
         </span>
         <button
           type="button"

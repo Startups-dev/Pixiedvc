@@ -31,18 +31,11 @@ async function* events(eventsToYield: PixiePlannerStreamEvent[]) {
   for (const event of eventsToYield) yield event;
 }
 
-async function loadRoute(access?: { enabled: boolean; mode: "public" | "preview" | "disabled" }) {
+async function loadRoute() {
   vi.resetModules();
   vi.doMock("@/lib/pixie/ai/orchestrator", () => ({
     streamPixiePlannerTurn: streamMock,
   }));
-  if (access) {
-    vi.doMock("@/lib/pixie/hara-access", () => {
-      return {
-        getHaraAccessState: vi.fn(async () => access),
-      };
-    });
-  }
   return import("@/app/api/pixie/chat/route");
 }
 
@@ -82,7 +75,6 @@ describe("POST /api/pixie/chat", () => {
 
   afterEach(() => {
     vi.doUnmock("@/lib/pixie/ai/orchestrator");
-    vi.doUnmock("@/lib/pixie/hara-access");
     vi.resetModules();
     vi.unstubAllEnvs();
     process.env = originalEnv;
@@ -269,9 +261,9 @@ describe("POST /api/pixie/chat", () => {
     expect(json.error.message).not.toContain("PIXIE_MODEL");
   });
 
-  it("blocks public use when the feature flag is disabled", async () => {
+  it("does not gate Hara chat on the public feature flag", async () => {
     process.env.PIXIE_PUBLIC_ENABLED = "false";
-    const { POST } = await loadRoute({ enabled: false, mode: "disabled" });
+    const { POST } = await loadRoute();
     const response = await POST(
       request({
         state: createEmptyPixieTripState("2026-07-12T12:00:00.000Z"),
@@ -280,36 +272,15 @@ describe("POST /api/pixie/chat", () => {
       }),
     );
 
-    expect(response.status).toBe(404);
-    expect(streamMock).not.toHaveBeenCalled();
-  });
-
-  it("allows authorized preview testers through the normal chat route when public access is disabled", async () => {
-    process.env.PIXIE_PUBLIC_ENABLED = "false";
-    const { POST } = await loadRoute({ enabled: true, mode: "preview" });
-    const response = await POST(
-      request({
-        state: createEmptyPixieTripState("2026-07-12T12:00:00.000Z"),
-        message: "We are two adults and two children.",
-        recentMessages: [],
-        draftId: "draft_preview",
-      }),
-    );
-
     expect(response.status).toBe(200);
     expect(await response.text()).toContain('"turn_completed"');
-    expect(streamMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        message: "We are two adults and two children.",
-        context: { sessionId: "draft_preview" },
-      }),
-    );
+    expect(streamMock).toHaveBeenCalled();
   });
 
-  it("keeps production disabled when the feature flag is missing or invalid", async () => {
+  it("keeps production Hara chat available when the feature flag is missing or invalid", async () => {
     delete process.env.PIXIE_PUBLIC_ENABLED;
     vi.stubEnv("NODE_ENV", "production");
-    let route = await loadRoute({ enabled: false, mode: "disabled" });
+    let route = await loadRoute();
     let response = await route.POST(
       request({
         state: createEmptyPixieTripState("2026-07-12T12:00:00.000Z"),
@@ -317,10 +288,10 @@ describe("POST /api/pixie/chat", () => {
         recentMessages: [],
       }),
     );
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(200);
 
     process.env.PIXIE_PUBLIC_ENABLED = "maybe";
-    route = await loadRoute({ enabled: false, mode: "disabled" });
+    route = await loadRoute();
     response = await route.POST(
       request({
         state: createEmptyPixieTripState("2026-07-12T12:00:00.000Z"),
@@ -328,8 +299,8 @@ describe("POST /api/pixie/chat", () => {
         recentMessages: [],
       }),
     );
-    expect(response.status).toBe(404);
-    expect(streamMock).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(streamMock).toHaveBeenCalled();
   });
 
   it("returns safe retry metadata when rate limited", async () => {

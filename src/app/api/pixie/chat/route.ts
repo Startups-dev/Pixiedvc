@@ -7,7 +7,6 @@ import { streamPixiePlannerTurn, type PixiePlannerStreamEvent } from "@/lib/pixi
 import { createMemoryPixieRateLimiter, PIXIE_RATE_LIMIT_DEFAULTS } from "@/lib/pixie/ai/rate-limit";
 import { getPixieAiConfig, PIXIE_AI_LIMITS } from "@/lib/pixie/ai/safety";
 import { pixieRecentMessageSchema } from "@/lib/pixie/ai/schemas";
-import { getHaraAccessState } from "@/lib/pixie/hara-access";
 import { pixieTripStateSchema } from "@/lib/pixie/schema";
 
 export const dynamic = "force-dynamic";
@@ -59,7 +58,7 @@ function requestIpHash(request: Request) {
   return createHash("sha256").update(`pixie:${raw}`).digest("hex").slice(0, 32);
 }
 
-function safeError(code: PixieAiError["code"] | "pixie_disabled" | "invalid_json", message: string, status: number, retryAfterMs?: number) {
+function safeError(code: PixieAiError["code"] | "invalid_json", message: string, status: number, retryAfterMs?: number) {
   return NextResponse.json(
     { ok: false, error: { code, message, retryAfterMs } },
     {
@@ -111,11 +110,6 @@ function ndjsonLine(value: unknown) {
 }
 
 export async function POST(request: Request) {
-  const access = await getHaraAccessState();
-  if (!access.enabled) {
-    return safeError("pixie_disabled", "Hara is not available yet.", 404);
-  }
-
   const contentLength = Number.parseInt(request.headers.get("content-length") ?? "0", 10);
   if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
     return safeError("state_too_large", "Hara request is too large.", 413);
