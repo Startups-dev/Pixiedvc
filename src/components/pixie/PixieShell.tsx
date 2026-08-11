@@ -10,6 +10,7 @@ import type { PixieChatState } from "@/lib/pixie/client/types";
 type PixieShellProps = {
   state: PixieChatState;
   enabled: boolean;
+  statusLabel?: string;
   disabledReason?: string;
   canSend: boolean;
   planOpen: boolean;
@@ -27,7 +28,12 @@ export default function PixieShell(props: PixieShellProps) {
   return (
     <div className="min-h-[calc(100vh-72px)] bg-[#f5f7fb]">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
-        <PixieHeader state={props.state} enabled={props.enabled} onResetClick={() => props.onResetOpenChange(true)} />
+        <PixieHeader
+          state={props.state}
+          enabled={props.enabled}
+          statusLabel={props.statusLabel}
+          onResetClick={() => props.onResetOpenChange(true)}
+        />
         {props.disabledReason ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             {props.disabledReason}
@@ -63,4 +69,3 @@ export default function PixieShell(props: PixieShellProps) {
     </div>
   );
 }
-

@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 
-import { createSupabaseServerClient } from './supabase-server';
 import { emailIsAllowedForAdmin, isAdminEmailStrict } from './admin-emails';
+
+type SupabaseServerClient = Awaited<ReturnType<typeof import('./supabase-server').createSupabaseServerClient>>;
 
 export function isUserAdmin(input: {
   profileRole?: string | null;
@@ -15,8 +16,12 @@ export function isUserAdmin(input: {
   );
 }
 
-export async function getCurrentUserAdminState(supabaseParam?: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
-  const supabase = supabaseParam ?? (await createSupabaseServerClient());
+export async function getCurrentUserAdminState(supabaseParam?: SupabaseServerClient) {
+  const supabase =
+    supabaseParam ??
+    (await import('./supabase-server').then(({ createSupabaseServerClient }) =>
+      createSupabaseServerClient(),
+    ));
   const {
     data: { user },
   } = await supabase.auth.getUser();

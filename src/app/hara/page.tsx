@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import PixieClient from "@/app/pixie/PixieClient";
+import { getHaraAccessState } from "@/lib/pixie/hara-access";
 
 export const metadata: Metadata = {
   title: "Ask Hara | HannaDVC",
@@ -11,13 +12,7 @@ export const metadata: Metadata = {
   },
 };
 
-function pixieEnabled() {
-  if (process.env.PIXIE_PUBLIC_ENABLED === "true") return true;
-  if (process.env.PIXIE_PUBLIC_ENABLED === "false") return false;
-  return process.env.NODE_ENV !== "production";
-}
-
-export default function HaraPage() {
-  const enabled = pixieEnabled();
-  return <PixieClient enabled={enabled} />;
+export default async function HaraPage() {
+  const access = await getHaraAccessState();
+  return <PixieClient enabled={access.enabled} previewMode={access.mode === "preview"} />;
 }

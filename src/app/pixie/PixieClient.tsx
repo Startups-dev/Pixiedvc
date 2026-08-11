@@ -18,7 +18,7 @@ import { trackPixieEvent } from "@/lib/pixie/client/analytics";
 import type { PixieChatState } from "@/lib/pixie/client/types";
 import { evaluatePixieCompleteness } from "@/lib/pixie/completeness";
 
-export default function PixieClient({ enabled }: { enabled: boolean }) {
+export default function PixieClient({ enabled, previewMode = false }: { enabled: boolean; previewMode?: boolean }) {
   const [state, setState] = useState<PixieChatState>(() => createInitialPixieChatState());
   const [hydrated, setHydrated] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
@@ -176,14 +176,16 @@ export default function PixieClient({ enabled }: { enabled: boolean }) {
   }
 
   const disabledReason = useMemo(() => {
+    if (previewMode) return "Hara preview mode - not yet available to public users.";
     if (enabled) return undefined;
     return "Hara is not publicly enabled in this environment yet.";
-  }, [enabled]);
+  }, [enabled, previewMode]);
 
   return (
     <PixieShell
       state={state}
       enabled={enabled}
+      statusLabel={previewMode ? "Preview mode" : undefined}
       disabledReason={disabledReason}
       canSend={canSend}
       planOpen={planOpen}

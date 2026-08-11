@@ -7,6 +7,7 @@ import { streamPixiePlannerTurn, type PixiePlannerStreamEvent } from "@/lib/pixi
 import { createMemoryPixieRateLimiter, PIXIE_RATE_LIMIT_DEFAULTS } from "@/lib/pixie/ai/rate-limit";
 import { getPixieAiConfig, PIXIE_AI_LIMITS } from "@/lib/pixie/ai/safety";
 import { pixieRecentMessageSchema } from "@/lib/pixie/ai/schemas";
+import { getHaraAccessState } from "@/lib/pixie/hara-access";
 import { pixieTripStateSchema } from "@/lib/pixie/schema";
 
 export const dynamic = "force-dynamic";
@@ -36,12 +37,6 @@ function noStoreHeaders(extra?: HeadersInit) {
     "Cache-Control": "no-store, max-age=0",
     ...extra,
   };
-}
-
-function isPixiePublicEnabled(env: NodeJS.ProcessEnv = process.env) {
-  if (env.PIXIE_PUBLIC_ENABLED === "true") return true;
-  if (env.PIXIE_PUBLIC_ENABLED === "false") return false;
-  return env.NODE_ENV !== "production";
 }
 
 function rateLimitWindowMs(env: NodeJS.ProcessEnv = process.env) {
@@ -116,7 +111,8 @@ function ndjsonLine(value: unknown) {
 }
 
 export async function POST(request: Request) {
-  if (!isPixiePublicEnabled()) {
+  const access = await getHaraAccessState();
+  if (!access.enabled) {
     return safeError("pixie_disabled", "Hara is not available yet.", 404);
   }
 

@@ -8,6 +8,8 @@ import type { PixiePlannerStreamEvent, PixiePlannerTurnResult } from "@/lib/pixi
 
 const streamMock = vi.fn();
 
+vi.mock("server-only", () => ({}));
+
 function baseTurnResult(): PixiePlannerTurnResult {
   const state = createEmptyPixieTripState("2026-07-12T12:00:00.000Z");
   const completeness = evaluatePixieCompleteness(state);
@@ -29,11 +31,18 @@ async function* events(eventsToYield: PixiePlannerStreamEvent[]) {
   for (const event of eventsToYield) yield event;
 }
 
-async function loadRoute() {
+async function loadRoute(access?: { enabled: boolean; mode: "public" | "preview" | "disabled" }) {
   vi.resetModules();
   vi.doMock("@/lib/pixie/ai/orchestrator", () => ({
     streamPixiePlannerTurn: streamMock,
   }));
+  if (access) {
+    vi.doMock("@/lib/pixie/hara-access", () => {
+      return {
+        getHaraAccessState: vi.fn(async () => access),
+      };
+    });
+  }
   return import("@/app/api/pixie/chat/route");
 }
 
@@ -73,6 +82,7 @@ describe("POST /api/pixie/chat", () => {
 
   afterEach(() => {
     vi.doUnmock("@/lib/pixie/ai/orchestrator");
+    vi.doUnmock("@/lib/pixie/hara-access");
     vi.resetModules();
     vi.unstubAllEnvs();
     process.env = originalEnv;
@@ -272,6 +282,28 @@ describe("POST /api/pixie/chat", () => {
 
     expect(response.status).toBe(404);
     expect(streamMock).not.toHaveBeenCalled();
+  });
+
+  it("allows authorized preview testers through the normal chat route when public access is disabled", async () => {
+    process.env.PIXIE_PUBLIC_ENABLED = "false";
+    const { POST } = await loadRoute({ enabled: true, mode: "preview" });
+    const response = await POST(
+      request({
+        state: createEmptyPixieTripState("2026-07-12T12:00:00.000Z"),
+        message: "We are two adults and two children.",
+        recentMessages: [],
+        draftId: "draft_preview",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('"turn_completed"');
+    expect(streamMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "We are two adults and two children.",
+        context: { sessionId: "draft_preview" },
+      }),
+    );
   });
 
   it("keeps production disabled when the feature flag is missing or invalid", async () => {
