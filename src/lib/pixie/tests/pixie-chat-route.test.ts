@@ -271,7 +271,7 @@ describe("POST /api/pixie/chat", () => {
 
   it("blocks public use when the feature flag is disabled", async () => {
     process.env.PIXIE_PUBLIC_ENABLED = "false";
-    const { POST } = await loadRoute();
+    const { POST } = await loadRoute({ enabled: false, mode: "disabled" });
     const response = await POST(
       request({
         state: createEmptyPixieTripState("2026-07-12T12:00:00.000Z"),
@@ -309,7 +309,7 @@ describe("POST /api/pixie/chat", () => {
   it("keeps production disabled when the feature flag is missing or invalid", async () => {
     delete process.env.PIXIE_PUBLIC_ENABLED;
     vi.stubEnv("NODE_ENV", "production");
-    let route = await loadRoute();
+    let route = await loadRoute({ enabled: false, mode: "disabled" });
     let response = await route.POST(
       request({
         state: createEmptyPixieTripState("2026-07-12T12:00:00.000Z"),
@@ -320,7 +320,7 @@ describe("POST /api/pixie/chat", () => {
     expect(response.status).toBe(404);
 
     process.env.PIXIE_PUBLIC_ENABLED = "maybe";
-    route = await loadRoute();
+    route = await loadRoute({ enabled: false, mode: "disabled" });
     response = await route.POST(
       request({
         state: createEmptyPixieTripState("2026-07-12T12:00:00.000Z"),

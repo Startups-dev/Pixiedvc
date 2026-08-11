@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { canUseHaraPreview, isPixiePublicEnabled } from "@/lib/pixie/hara-access";
+import { getHaraAccessState, isPixiePublicEnabled } from "@/lib/pixie/hara-access";
 
-vi.mock("server-only", () => ({}));
-vi.mock("@/lib/supabase-server", () => ({
-  createSupabaseServerClient: vi.fn(),
+const getCurrentUserAdminStateMock = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/admin", () => ({
+  getCurrentUserAdminState: getCurrentUserAdminStateMock,
 }));
 
 describe("Hara access", () => {
@@ -12,13 +13,40 @@ describe("Hara access", () => {
     expect(isPixiePublicEnabled({ PIXIE_PUBLIC_ENABLED: "false", NODE_ENV: "production" } as NodeJS.ProcessEnv)).toBe(false);
   });
 
-  it("authorizes preview testers through existing admin identity rules", () => {
-    expect(canUseHaraPreview({ profileRole: "admin" })).toBe(true);
-    expect(canUseHaraPreview({ appRole: "admin" })).toBe(true);
+  it("authorizes preview access from the existing computed admin state", async () => {
+    getCurrentUserAdminStateMock.mockResolvedValueOnce({
+      user: { email: null },
+      profileRole: null,
+      appRole: null,
+      isAdmin: true,
+    });
+
+    await expect(getHaraAccessState({ PIXIE_PUBLIC_ENABLED: "false", NODE_ENV: "production" } as NodeJS.ProcessEnv)).resolves.toEqual({
+      enabled: true,
+      mode: "preview",
+    });
   });
 
-  it("does not grant preview access to public users", () => {
-    expect(canUseHaraPreview({ profileRole: "guest", appRole: "guest", email: "guest@example.com" })).toBe(false);
-    expect(canUseHaraPreview({ profileRole: null, appRole: null, email: null })).toBe(false);
+  it("does not grant preview access to public non-admin users", async () => {
+    getCurrentUserAdminStateMock.mockResolvedValueOnce({
+      user: null,
+      profileRole: null,
+      appRole: null,
+      isAdmin: false,
+    });
+
+    await expect(getHaraAccessState({ PIXIE_PUBLIC_ENABLED: "false", NODE_ENV: "production" } as NodeJS.ProcessEnv)).resolves.toEqual({
+      enabled: false,
+      mode: "disabled",
+    });
+  });
+
+  it("does not silently treat auth infrastructure failures as normal disabled access", async () => {
+    const error = new Error("dynamic server usage");
+    getCurrentUserAdminStateMock.mockRejectedValueOnce(error);
+
+    await expect(getHaraAccessState({ PIXIE_PUBLIC_ENABLED: "false", NODE_ENV: "production" } as NodeJS.ProcessEnv)).rejects.toThrow(
+      "dynamic server usage",
+    );
   });
 });

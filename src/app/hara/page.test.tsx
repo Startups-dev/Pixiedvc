@@ -16,6 +16,7 @@ describe("Hara public route", () => {
 
     const page = await import("@/app/hara/page");
 
+    expect(page.dynamic).toBe("force-dynamic");
     expect(page.metadata.title).toBe("Ask Hara | HannaDVC");
     expect(page.metadata.description).toContain("Hara");
     expect(page.metadata.description).toContain("HannaDVC");

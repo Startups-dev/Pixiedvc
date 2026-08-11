@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   },
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function HaraPage() {
   const access = await getHaraAccessState();
   return <PixieClient enabled={access.enabled} previewMode={access.mode === "preview"} />;

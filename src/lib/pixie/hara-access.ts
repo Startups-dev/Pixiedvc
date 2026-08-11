@@ -1,4 +1,4 @@
-import { getCurrentUserAdminState, isUserAdmin } from "@/lib/admin";
+import { getCurrentUserAdminState } from "@/lib/admin";
 
 export type HaraAccessMode = "public" | "preview" | "disabled";
 
@@ -13,32 +13,14 @@ export function isPixiePublicEnabled(env: NodeJS.ProcessEnv = process.env) {
   return env.NODE_ENV !== "production";
 }
 
-export function canUseHaraPreview(input: {
-  profileRole?: string | null;
-  appRole?: string | null;
-  email?: string | null;
-}) {
-  return isUserAdmin(input);
-}
-
 export async function getHaraAccessState(env: NodeJS.ProcessEnv = process.env): Promise<HaraAccessState> {
   if (isPixiePublicEnabled(env)) {
     return { enabled: true, mode: "public" };
   }
 
-  try {
-    const adminState = await getCurrentUserAdminState();
-    if (
-      canUseHaraPreview({
-        profileRole: adminState.profileRole,
-        appRole: adminState.appRole,
-        email: adminState.user?.email ?? null,
-      })
-    ) {
-      return { enabled: true, mode: "preview" };
-    }
-  } catch {
-    return { enabled: false, mode: "disabled" };
+  const adminState = await getCurrentUserAdminState();
+  if (adminState.isAdmin) {
+    return { enabled: true, mode: "preview" };
   }
 
   return { enabled: false, mode: "disabled" };
