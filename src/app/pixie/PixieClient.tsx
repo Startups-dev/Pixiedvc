@@ -31,8 +31,9 @@ export default function PixieClient({ enabled, previewMode = false }: { enabled:
   const failedTurnIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
+    console.info("[hara-client-props]", { enabled, previewMode });
     trackPixieEvent("pixie_page_viewed", { enabled });
-  }, [enabled]);
+  }, [enabled, previewMode]);
 
   useEffect(() => {
     if (restoredRef.current) return;

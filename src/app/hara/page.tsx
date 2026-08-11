@@ -16,5 +16,11 @@ export const dynamic = "force-dynamic";
 
 export default async function HaraPage() {
   const access = await getHaraAccessState();
-  return <PixieClient enabled={access.enabled} previewMode={access.mode === "preview"} />;
+  const previewMode = access.mode === "preview";
+  console.info("[hara-page-props]", {
+    accessEnabled: access.enabled,
+    accessMode: access.mode,
+    previewMode,
+  });
+  return <PixieClient enabled={access.enabled} previewMode={previewMode} />;
 }
