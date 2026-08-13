@@ -263,10 +263,19 @@ export const pixieWorkspaceLodgingPlanSchema = z
     resort: z.string().trim().min(1).max(PIXIE_LIMITS.maxShortTextLength),
     startDate: pixieDateOnlySchema.optional(),
     endDate: pixieDateOnlySchema.optional(),
+    checkIn: pixieDateOnlySchema.optional(),
+    checkOut: pixieDateOnlySchema.optional(),
     status: pixieWorkspaceTextStatusSchema,
     source: pixieWorkspaceSourceSchema.default("deterministic_inference"),
     note: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
     dvcRelevant: z.boolean().optional(),
+    roomType: optionalTrimmedString(80),
+    numberOfNights: z.number().int().min(1).max(PIXIE_LIMITS.maxTripDurationNights).optional(),
+    estimatedPoints: z.number().int().min(0).max(5000).optional(),
+    pointsEstimateStatus: z.enum(["estimate", "unsupported", "not_requested"]).optional(),
+    estimatedRentalCostCents: z.number().int().min(0).optional(),
+    rentalEstimateStatus: z.enum(["estimate", "unsupported", "not_requested"]).optional(),
+    estimateNotes: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
   })
   .strict();
 

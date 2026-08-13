@@ -43,6 +43,49 @@ describe("Pixie local draft versioning", () => {
     expect(result.state.planningWorkspace.attentionItems[0]?.category).toBe("live_info");
   });
 
+  it("preserves enriched lodging segment estimates through draft persistence", () => {
+    const state = createEmptyPixieTripState("2026-08-13T12:00:00.000Z");
+    state.dates = { arrivalDate: "2026-09-01", departureDate: "2026-09-06", numberOfNights: 5 };
+    state.party = { ...state.party, adults: 2, children: 1 };
+    state.planningWorkspace = {
+      ...state.planningWorkspace,
+      lodgingPlans: [
+        {
+          id: "lodging_blt_2026_09_01",
+          resort: "Bay Lake Tower",
+          checkIn: "2026-09-01",
+          checkOut: "2026-09-02",
+          startDate: "2026-09-01",
+          endDate: "2026-09-02",
+          status: "selected",
+          source: "explicit_user",
+          roomType: "Deluxe Studio",
+          numberOfNights: 1,
+          estimatedPoints: 20,
+          pointsEstimateStatus: "estimate",
+          estimatedRentalCostCents: 46000,
+          rentalEstimateStatus: "estimate",
+          estimateNotes: "Planning estimate only; not availability or a booking.",
+        },
+      ],
+    };
+
+    const result = deserializePixieDraft(serializePixieDraft(state));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.planningWorkspace.lodgingPlans[0]).toMatchObject({
+      resort: "Bay Lake Tower",
+      checkIn: "2026-09-01",
+      checkOut: "2026-09-02",
+      roomType: "Deluxe Studio",
+      estimatedPoints: 20,
+      estimatedRentalCostCents: 46000,
+      pointsEstimateStatus: "estimate",
+      rentalEstimateStatus: "estimate",
+    });
+  });
+
   it("rejects corrupt JSON and oversized drafts safely", () => {
     const corrupt = deserializePixieDraft("{not json");
     expect(corrupt.ok).toBe(false);

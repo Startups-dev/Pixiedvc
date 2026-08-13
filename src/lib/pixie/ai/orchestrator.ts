@@ -203,7 +203,7 @@ function buildCurrentPlanSummary(state: PixieTripState): PixieCurrentPlanSummary
   const lodging = state.planningWorkspace.lodgingPlans
     .filter((plan) => activeWorkspaceStatus(plan.status))
     .slice(-6)
-    .map((plan) => `${plan.resort} - ${plan.status}${plan.startDate || plan.endDate ? ` (${plan.startDate ?? "?"} to ${plan.endDate ?? "?"})` : ""}${plan.note ? `: ${plan.note}` : ""}`);
+    .map((plan) => `${plan.resort} - ${plan.status}${plan.checkIn || plan.checkOut || plan.startDate || plan.endDate ? ` (${plan.checkIn ?? plan.startDate ?? "?"} to ${plan.checkOut ?? plan.endDate ?? "?"})` : ""}${plan.roomType ? ` - ${plan.roomType}` : ""}${plan.numberOfNights ? ` - ${plan.numberOfNights} night${plan.numberOfNights === 1 ? "" : "s"}` : ""}${plan.estimatedPoints ? ` - ${plan.estimatedPoints} points estimate` : ""}${plan.estimatedRentalCostCents ? ` - estimated $${Math.round(plan.estimatedRentalCostCents / 100).toLocaleString("en-US")}` : ""}${plan.note ? `: ${plan.note}` : ""}`);
   const parks = state.planningWorkspace.parkPlans
     .filter((plan) => activeWorkspaceStatus(plan.status))
     .slice(-10)
@@ -475,7 +475,7 @@ function availabilityStatusFromText(text: string) {
 function workspaceDecisionStatus(text: string): "confirmed" | "selected" | "planned" | "considering" | "recommended" {
   const normalized = text.toLowerCase();
   if (/\b(booked|reserved|confirmed|i booked|we booked|reservation confirmed|already have|j[aá] reservei|est[aá] reservado|consegui reservar|reserva est[aá] confirmada)\b/.test(normalized)) return "confirmed";
-  if (/\b(let'?s do|sounds perfect|i like that|go with|bay lake it is|decided on|vamos ficar|vamos fazer|vamos nessa|gostei dessa|vamos de|vamos nele|parece perfeito|est[aá] perfeito|sounds much better)\b/.test(normalized)) return "selected";
+  if (/\b(let'?s do|sounds perfect|i like that|go with|bay lake it is|decided on|vamos ficar|vamos fazer|vamos nessa|gostei dess[ae]s?|gostei das sugest[oõ]es|vamos de|vamos nele|parece perfeito|est[aá] perfeito|sounds much better)\b/.test(normalized)) return "selected";
   if (/\b(considering|thinking about|could stay|talvez|considerando)\b/.test(normalized)) return "considering";
   if (/\b(recommend|i'd choose|i would choose|hara recommends)\b/.test(normalized)) return "recommended";
   return "planned";
@@ -515,6 +515,31 @@ function extractSegmentEndDate(message: string, fallbackYear: number) {
   }
   const untilDate = new RegExp(`\\b(?:until|through|to|ate|até)\\s+(${monthPattern})\\s+(\\d{1,2})\\b`, "i").exec(message);
   return untilDate ? parseWorkspaceDate(untilDate[1], untilDate[2], fallbackYear) : undefined;
+}
+
+function segmentBoundaryFromOrdinal(message: string, state: PixieTripState, ordinal: number) {
+  if (!state.dates.arrivalDate || !state.dates.departureDate) return undefined;
+  const date = addDateOnlyDays(state.dates.arrivalDate, ordinal - 1);
+  return date && date <= state.dates.departureDate ? date : undefined;
+}
+
+function lodgingSegmentDatesFor(message: string, state: PixieTripState, fallbackYear: number, kind: "mk_first" | "disney_springs" | "epcot_final") {
+  const explicitStart = extractWorkspaceDateFromMessage(message, fallbackYear);
+  const explicitEnd = extractSegmentEndDate(message, fallbackYear);
+  if (kind === "mk_first") {
+    const start = explicitStart ?? state.dates.arrivalDate;
+    return { startDate: start, endDate: start ? addDateOnlyDays(start, 1) : undefined };
+  }
+  if (kind === "disney_springs") {
+    return {
+      startDate: explicitStart ?? segmentBoundaryFromOrdinal(message, state, /\bsegundo|second\b/i.test(message) ? 2 : 2),
+      endDate: explicitEnd ?? segmentBoundaryFromOrdinal(message, state, /\bquarto|fourth\b/i.test(message) ? 4 : 4),
+    };
+  }
+  return {
+    startDate: explicitEnd ?? explicitStart ?? segmentBoundaryFromOrdinal(message, state, /\bquarto|fourth\b/i.test(message) ? 4 : 4),
+    endDate: state.dates.departureDate,
+  };
 }
 
 function fallbackWorkspaceDate(state: PixieTripState, restaurant?: string) {
@@ -626,12 +651,19 @@ function extractPlanningWorkspacePatch(message: string, state: PixieTripState, g
   }
 
   const mentionedResort = resortLabelFromText(message);
+  if (!mentionedResort && decisionStatus === "selected" && /\b(sugest[oõ]es|suggestions|essas|these|that)\b/i.test(message)) {
+    for (const plan of state.planningWorkspace.lodgingPlans.filter((plan) => plan.status === "recommended").slice(-4)) {
+      lodgingPlans.push({ ...plan, status: "selected", source: "explicit_user" });
+    }
+  }
   if (mentionedResort && /\b(stay|staying|ficar|hospedar|resort|villa|tower|villas|considering|decided|booked|confirmed|let'?s do|sounds much better|parece perfeito|est[aá] perfeito|vamos nele)\b/i.test(message)) {
+    const mkFirstOnly = mentionedResort === "Bay Lake Tower" && /\b(first|primeiro|somente no primeiro|only.*first)\b/i.test(message);
+    const segment = mkFirstOnly ? lodgingSegmentDatesFor(message, state, fallbackYear, "mk_first") : undefined;
     lodgingPlans.push({
       id: stableId("lodging", mentionedResort),
       resort: mentionedResort,
-      startDate: state.dates.arrivalDate,
-      endDate: state.dates.departureDate,
+      startDate: segment?.startDate ?? state.dates.arrivalDate,
+      endDate: segment?.endDate ?? state.dates.departureDate,
       status: decisionStatus,
       source: decisionStatus === "recommended" ? "model_recommendation" : "explicit_user",
       note: /magic kingdom|festa|party/i.test(message) && /bay lake|blt/i.test(message) ? "Easy Magic Kingdom return." : undefined,
@@ -640,11 +672,12 @@ function extractPlanningWorkspacePatch(message: string, state: PixieTripState, g
   }
 
   if (/\bdisney springs?\b/i.test(message) && /\b(perto|near|close|ficar|stay|hosped|segundo|second|quarto|fourth)\b/i.test(message) && !state.preferences.excludedResorts.some((value) => /saratoga/i.test(value))) {
+    const segment = lodgingSegmentDatesFor(message, state, fallbackYear, "disney_springs");
     lodgingPlans.push({
-      id: stableId("lodging", `saratoga_springs_${workspaceDate ?? "segment"}`),
+      id: stableId("lodging", `saratoga_springs_${segment.startDate ?? workspaceDate ?? "segment"}`),
       resort: "Disney's Saratoga Springs Resort & Spa",
-      startDate: workspaceDate ?? addDateOnlyDays(state.dates.arrivalDate ?? "", 1),
-      endDate: segmentEndDate,
+      startDate: segment.startDate,
+      endDate: segment.endDate,
       status: "recommended",
       source: "model_recommendation",
       note: "Best fit for Disney Springs convenience.",
@@ -654,11 +687,12 @@ function extractPlanningWorkspacePatch(message: string, state: PixieTripState, g
 
   if (/\bepcot\b|international gateway/i.test(message) && /\b(perto|near|close|ficar|stay|hosped|depois|after)\b/i.test(message)) {
     const boardwalkExcluded = state.preferences.excludedResorts.some((value) => /boardwalk/i.test(value));
+    const segment = lodgingSegmentDatesFor(message, state, fallbackYear, "epcot_final");
     lodgingPlans.push({
-      id: stableId("lodging", `${boardwalkExcluded ? "beach_club" : "boardwalk"}_${workspaceDate ?? "segment"}`),
+      id: stableId("lodging", `${boardwalkExcluded ? "beach_club" : "boardwalk"}_${segment.startDate ?? workspaceDate ?? "segment"}`),
       resort: boardwalkExcluded ? "Beach Club Villas" : "BoardWalk Villas",
-      startDate: workspaceDate ?? segmentEndDate,
-      endDate: state.dates.departureDate,
+      startDate: segment.startDate,
+      endDate: segment.endDate,
       status: "recommended",
       source: "model_recommendation",
       note: boardwalkExcluded ? "EPCOT International Gateway fallback." : "Best fit for EPCOT International Gateway convenience.",

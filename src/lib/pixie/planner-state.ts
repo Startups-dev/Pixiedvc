@@ -1,4 +1,8 @@
 import { PIXIE_AGE_GROUPS, PIXIE_LIMITS, PIXIE_SCHEMA_VERSION } from "@/lib/pixie/constants";
+import { estimateGuestAccommodationPrice } from "@/lib/pixie/pricing/guest-price-adapter";
+import { estimateDvcPoints } from "@/lib/pixie/pricing/points-adapter";
+import { resolvePixieResortId } from "@/lib/pixie/resorts/identifiers";
+import { selectSmallestEligibleRoomType } from "@/lib/pixie/resorts/room-types";
 import {
   pixieTripPatchSchema,
   pixieTripStateSchema,
@@ -74,6 +78,46 @@ function normalizeTraveller(traveller: PixieTraveller): PixieTraveller {
 
 function normalizeOptionalText(value: string | undefined) {
   return value?.trim().replace(/\s+/g, " ") || undefined;
+}
+
+function enrichLodgingPlan<T extends {
+  resort: string;
+  startDate?: string;
+  endDate?: string;
+  checkIn?: string;
+  checkOut?: string;
+  roomType?: string;
+  numberOfNights?: number;
+  estimatedPoints?: number;
+  pointsEstimateStatus?: "estimate" | "unsupported" | "not_requested";
+  estimatedRentalCostCents?: number;
+  rentalEstimateStatus?: "estimate" | "unsupported" | "not_requested";
+  estimateNotes?: string;
+}>(plan: T, state: PixieTripState): T {
+  const checkIn = plan.checkIn ?? plan.startDate;
+  const checkOut = plan.checkOut ?? plan.endDate;
+  const numberOfNights = calculateDateOnlyNights(checkIn, checkOut);
+  const resolved = resolvePixieResortId(plan.resort);
+  const room = resolved.ok ? selectSmallestEligibleRoomType(resolved.resort, state.party) : null;
+  const points = resolved.ok && room && checkIn && checkOut ? estimateDvcPoints({ resortId: resolved.resort.id, roomTypeId: room.id, arrivalDate: checkIn, departureDate: checkOut }) : null;
+  const price = points?.supported
+    ? estimateGuestAccommodationPrice({ pricingContext: "custom_request_estimate", resortId: points.resortId, points: points.totalPoints, arrivalDate: checkIn })
+    : null;
+
+  return {
+    ...plan,
+    startDate: checkIn,
+    endDate: checkOut,
+    checkIn,
+    checkOut,
+    roomType: normalizeOptionalText(plan.roomType) ?? room?.displayName,
+    numberOfNights: plan.numberOfNights ?? numberOfNights,
+    estimatedPoints: plan.estimatedPoints ?? (points?.supported ? points.totalPoints : undefined),
+    pointsEstimateStatus: plan.pointsEstimateStatus ?? (points ? (points.supported ? "estimate" : "unsupported") : "not_requested"),
+    estimatedRentalCostCents: plan.estimatedRentalCostCents ?? (price?.supported ? price.estimatedTotalCents : undefined),
+    rentalEstimateStatus: plan.rentalEstimateStatus ?? (price ? (price.supported ? "estimate" : "unsupported") : "not_requested"),
+    estimateNotes: normalizeOptionalText(plan.estimateNotes) ?? (points?.supported ? "Planning estimate only; not availability or a booking." : undefined),
+  };
 }
 
 function normalizeById<T extends { id: string }>(values: T[] | undefined, normalizeItem: (item: T) => T, maxItems: number = PIXIE_LIMITS.maxArrayItems) {
@@ -154,13 +198,22 @@ function expectedDiningPark(restaurant: string) {
 }
 
 function resolveWorkspaceAttention(state: PixieTripState): PixieTripState {
-  const selectedDining = state.planningWorkspace.diningPlans.filter((plan) => plan.status === "selected" || plan.status === "confirmed");
+  const activeDining = state.planningWorkspace.diningPlans.filter((plan) =>
+    plan.status === "recommended" || plan.status === "planned" || plan.status === "selected" || plan.status === "confirmed"
+  );
   const attentionById = new Map(state.planningWorkspace.attentionItems.map((item) => [item.id, item]));
 
   for (const item of attentionById.values()) {
-    if (item.category !== "open_decision" || !/dinner|jantar/i.test(`${item.label} ${item.note ?? ""}`)) continue;
+    const decisionText = `${item.label} ${item.note ?? ""}`;
+    if (item.category !== "open_decision") continue;
+    const mealPeriod = /lunch|almo[cç]o/i.test(decisionText)
+      ? "lunch"
+      : /dinner|jantar/i.test(decisionText)
+        ? "dinner"
+        : undefined;
+    if (!mealPeriod) continue;
     const decisionDate = /\b\d{4}-\d{2}-\d{2}\b/.exec(`${item.label} ${item.note ?? ""}`)?.[0];
-    if (selectedDining.some((plan) => plan.mealPeriod === "dinner" && (!decisionDate || plan.date === decisionDate))) {
+    if (activeDining.some((plan) => plan.mealPeriod === mealPeriod && (!decisionDate || plan.date === decisionDate))) {
       attentionById.set(item.id, { ...item, status: "resolved" });
     }
   }
@@ -378,8 +431,14 @@ export function normalizePixieTripState(
       })),
       lodgingPlans: normalizeById(parsed.planningWorkspace.lodgingPlans, (plan) => ({
         ...plan,
+        startDate: plan.checkIn ?? plan.startDate,
+        endDate: plan.checkOut ?? plan.endDate,
+        checkIn: plan.checkIn ?? plan.startDate,
+        checkOut: plan.checkOut ?? plan.endDate,
         resort: normalizeOptionalText(plan.resort) ?? plan.resort,
         note: plan.note?.trim() || undefined,
+        roomType: normalizeOptionalText(plan.roomType),
+        estimateNotes: plan.estimateNotes?.trim() || undefined,
       }), 8),
       parkPlans: normalizeById(parsed.planningWorkspace.parkPlans, (plan) => ({
         ...plan,
@@ -413,6 +472,7 @@ export function normalizePixieTripState(
   };
 
   normalized.planningStage = derivePlanningStageFromState(normalized);
+  normalized.planningWorkspace.lodgingPlans = normalized.planningWorkspace.lodgingPlans.map((plan) => enrichLodgingPlan(plan, normalized));
   return pixieTripStateSchema.parse(normalized);
 }
 

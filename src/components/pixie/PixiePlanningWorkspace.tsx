@@ -26,6 +26,10 @@ function formatPoints(points?: number) {
   return typeof points === "number" ? ` · ${points} pts` : "";
 }
 
+function formatUsd(cents?: number) {
+  return typeof cents === "number" ? `$${Math.round(cents / 100).toLocaleString("en-US")}` : undefined;
+}
+
 export default function PixiePlanningWorkspace({ state }: { state: PixieTripState }) {
   const pt = isPortugueseState(state);
   const itinerary = state.planningWorkspace.workingItinerary;
@@ -62,7 +66,17 @@ export default function PixiePlanningWorkspace({ state }: { state: PixieTripStat
                   <p className="text-sm font-semibold text-ink">{plan.resort}</p>
                   <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold capitalize text-slate-600">{formatStatus(plan.status, pt)}</span>
                 </div>
-                {plan.startDate || plan.endDate ? <p className="mt-1 text-xs text-slate-500">{[plan.startDate, plan.endDate].filter(Boolean).join(pt ? " a " : " to ")}</p> : null}
+                {plan.checkIn || plan.checkOut || plan.startDate || plan.endDate ? <p className="mt-1 text-xs text-slate-500">{[plan.checkIn ?? plan.startDate, plan.checkOut ?? plan.endDate].filter(Boolean).join(pt ? " a " : " to ")}</p> : null}
+                {plan.roomType ? <p className="mt-1 text-xs leading-5 text-slate-500">{plan.roomType}</p> : null}
+                {plan.numberOfNights || plan.estimatedPoints || plan.estimatedRentalCostCents ? (
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    {[
+                      plan.numberOfNights ? `${plan.numberOfNights} ${pt ? (plan.numberOfNights === 1 ? "noite" : "noites") : plan.numberOfNights === 1 ? "night" : "nights"}` : undefined,
+                      plan.estimatedPoints ? `${plan.estimatedPoints} ${pt ? "pontos estimados" : "points est."}` : undefined,
+                      formatUsd(plan.estimatedRentalCostCents) ? `${pt ? "Est." : "Est."} ${formatUsd(plan.estimatedRentalCostCents)}` : undefined,
+                    ].filter(Boolean).join(" · ")}
+                  </p>
+                ) : null}
                 {plan.note ? <p className="mt-1 text-xs leading-5 text-slate-500">{plan.note}</p> : null}
               </div>
             ))}

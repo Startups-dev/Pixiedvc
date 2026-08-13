@@ -377,8 +377,10 @@ describe("Pixie UI contracts", () => {
   it("renders V2 workspace sections without treating selected plans as confirmed", () => {
     const state = createInitialPixieChatState();
     const patched = applyPixieTripPatch(state.tripState, {
+      dates: { arrivalDate: "2026-09-01", departureDate: "2026-09-02" },
+      party: { adults: 2, children: 1 },
       planningWorkspace: {
-        lodgingPlans: [{ id: "lodging_bay_lake", resort: "Bay Lake Tower", status: "selected", source: "explicit_user", note: "Easy Magic Kingdom return." }],
+        lodgingPlans: [{ id: "lodging_bay_lake", resort: "Bay Lake Tower", checkIn: "2026-09-01", checkOut: "2026-09-02", status: "selected", source: "explicit_user", note: "Easy Magic Kingdom return." }],
         parkPlans: [{ id: "park_2026_09_03_epcot", park: "EPCOT", date: "2026-09-03", status: "planned", source: "explicit_user" }],
         diningPlans: [{ id: "dining_2026_09_03_dinner_via_napoli", restaurant: "Via Napoli", date: "2026-09-03", mealPeriod: "dinner", targetTime: "18:00 target", status: "recommended", source: "model_recommendation", planningPriceEstimate: "$60-$112 before tax/tip" }],
         attentionItems: [{ id: "choose_dinner", label: "Choose dinner", category: "open_decision", status: "open", source: "deterministic_inference" }],
@@ -391,6 +393,9 @@ describe("Pixie UI contracts", () => {
 
     expect(screen.getByText(/lodging/i)).toBeInTheDocument();
     expect(screen.getByText(/Bay Lake Tower/i)).toBeInTheDocument();
+    expect(screen.getByText(/Deluxe Studio/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/1 night/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/points est/i)).toBeInTheDocument();
     expect(screen.getByText(/Dining plans/i)).toBeInTheDocument();
     expect(screen.getByText(/Via Napoli/i)).toBeInTheDocument();
     expect(screen.getByText(/recommended/i)).toBeInTheDocument();

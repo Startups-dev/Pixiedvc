@@ -421,8 +421,10 @@ describe("Pixie AI orchestrator", () => {
   it("golden Portuguese decisiveness scenario names obvious concrete recommendations and completes itinerary", async () => {
     let state = createEmptyPixieTripState("2026-08-13T12:00:00.000Z");
     const responses: string[] = [];
+    let latestProviderInput: PixiePlannerTurnInput | undefined;
     const provider = {
       async createPlannerTurn(input: PixiePlannerTurnInput) {
+        latestProviderInput = input;
         let assistantResponse = "Com esses detalhes, eu recomendaria seguir com a opção mais conveniente.";
         if (/onde eu deveria ficar/i.test(input.latestUserMessage)) assistantResponse = "Eu escolheria Bay Lake Tower para a primeira noite.";
         if (/segundo ao quarto|disney springs?/i.test(input.latestUserMessage)) assistantResponse = "Essa parte pede proximidade com Disney Springs.";
@@ -459,16 +461,19 @@ describe("Pixie AI orchestrator", () => {
     await turn("ola eu tenho uma viagem pro dia 1 de setembro e vamos participar de uma festa de halloween. onde eu deveria ficar");
     await turn("vamos de 1 a 6 de setembro, eu, meu marido e nossa filha de 2 anos. conveniencia vale mais que preco.");
     const bayLake = await turn("Bay Lake Tower parece perfeito. eu ficaria no bay lake somente no primeiro dia.");
-    expect(bayLake.updatedState.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([expect.objectContaining({ resort: "Bay Lake Tower", status: "selected" })]));
+    expect(bayLake.updatedState.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([expect.objectContaining({ resort: "Bay Lake Tower", status: "selected", checkIn: "2026-09-01", checkOut: "2026-09-02" })]));
 
     const saratoga = await turn("no segundo ao quarto dia eu gostaria de algo perto da disney springs e almocar num restaurante naquela area");
     expect(saratoga.assistantResponse).toContain("Disney's Saratoga Springs Resort & Spa");
     expect(saratoga.assistantResponse).not.toMatch(/voc[eê]s preferem/i);
-    expect(saratoga.updatedState.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([expect.objectContaining({ resort: "Disney's Saratoga Springs Resort & Spa", status: "recommended" })]));
+    expect(saratoga.updatedState.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([expect.objectContaining({ resort: "Disney's Saratoga Springs Resort & Spa", status: "recommended", checkIn: "2026-09-02", checkOut: "2026-09-04" })]));
 
     const boardwalk = await turn("ate o dia 4, depois queremos ficar perto do epcot tambem com um almoco");
     expect(boardwalk.assistantResponse).toMatch(/BoardWalk Villas|Beach Club Villas/);
-    expect(boardwalk.updatedState.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([expect.objectContaining({ resort: "BoardWalk Villas", status: "recommended" })]));
+    expect(boardwalk.updatedState.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([expect.objectContaining({ resort: "BoardWalk Villas", status: "recommended", checkIn: "2026-09-04", checkOut: "2026-09-06" })]));
+
+    await turn("ótimo, gostei dessas sugestões");
+    expect(state.planningWorkspace.lodgingPlans.filter((plan) => plan.status === "selected").length).toBeGreaterThanOrEqual(3);
 
     await turn("dentro da epcot");
     await turn("um almoco com personagens seria legal");
@@ -481,8 +486,27 @@ describe("Pixie AI orchestrator", () => {
     expect(itinerary.assistantResponse).toMatch(/Bay Lake Tower|Saratoga Springs|BoardWalk Villas|Akershus Royal Banquet Hall/);
     expect(itinerary.assistantResponse).not.toMatch(/vou montar|vou organizar|I have 3 resort|strongest fit|room fit/i);
     expect(responses.join("\n")).not.toMatch(/I have 3 resort|strongest fit|room fit|Budget fit will improve/);
+    expect(state.party.adults).toBe(2);
+    expect(state.party.children).toBe(1);
+    expect(state.party.travellers[0]?.age).toBe(2);
+    expect(state.dates.arrivalDate).toBe("2026-09-01");
+    expect(state.dates.departureDate).toBe("2026-09-06");
+    for (const resort of ["Bay Lake Tower", "Disney's Saratoga Springs Resort & Spa", "BoardWalk Villas"]) {
+      const segment = state.planningWorkspace.lodgingPlans.find((plan) => plan.resort === resort);
+      expect(segment).toMatchObject({ roomType: "Deluxe Studio", pointsEstimateStatus: "estimate", rentalEstimateStatus: "estimate" });
+      expect(segment?.numberOfNights).toBeGreaterThan(0);
+      expect(segment?.estimatedPoints).toBeGreaterThan(0);
+      expect(segment?.estimatedRentalCostCents).toBeGreaterThan(0);
+    }
+    expect(state.planningWorkspace.attentionItems).toEqual(expect.arrayContaining([expect.objectContaining({ label: "Choose lunch", status: "resolved" })]));
     expect(state.planningWorkspace.lodgingPlans.some((plan) => plan.status === "confirmed")).toBe(false);
     expect(state.planningWorkspace.diningPlans.some((plan) => plan.status === "confirmed")).toBe(false);
+    expect(itinerary.updatedState.planningWorkspace.diningPlans).toEqual(expect.arrayContaining([expect.objectContaining({ restaurant: "Akershus Royal Banquet Hall", status: "planned" })]));
+    expect(latestProviderInput?.currentPlanSummary?.lodging).toEqual(expect.arrayContaining([
+      expect.stringMatching(/Bay Lake Tower.*2026-09-01 to 2026-09-02.*Deluxe Studio.*point/i),
+      expect.stringMatching(/Saratoga Springs.*2026-09-02 to 2026-09-04.*Deluxe Studio.*point/i),
+      expect.stringMatching(/BoardWalk Villas.*2026-09-04 to 2026-09-06.*Deluxe Studio.*point/i),
+    ]));
   });
 
   it("passes compact DVC rule context to the provider for narrow DVC turns", async () => {
