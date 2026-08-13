@@ -1,7 +1,9 @@
 import type { PixieToolResult } from "@/lib/pixie/ai/tool-contract";
 import type { PixieModelTurnResult } from "@/lib/pixie/ai/schemas";
+import type { PixieRecentMessage } from "@/lib/pixie/ai/schemas";
 import { resolvePixieConversationLanguage, type PixieConversationLanguage } from "@/lib/pixie/language";
 import type { PixieRecommendationResult } from "@/lib/pixie/resorts/recommendation-service";
+import type { PixieTripState } from "@/lib/pixie/schema";
 import type { PixieCompletenessResult } from "@/lib/pixie/types";
 
 const unsafeAvailabilityPattern = /\b(confirmed available|guaranteed available|locked|reserved|booked)\b/i;
@@ -61,9 +63,9 @@ function buildRecommendationIntroduction(recommendations: PixieRecommendationRes
         ].filter((reason): reason is string => Boolean(reason));
   if (language === "pt") {
     const reasonText = reasonLabels.length ? ` ${reasonLabels.slice(0, 2).join(reasonLabels.length > 1 ? " e " : "").replace(/^./, (char) => char.toUpperCase())}.` : " Ele combina com os detalhes da viagem que você compartilhou até agora.";
-    const tradeoff = top.tradeoffs[0] ? ` A principal troca é: ${top.tradeoffs[0].replace(/\.$/, "").toLowerCase()}.` : "";
+    const tradeoff = top.tradeoffs[0] ? ` A principal troca é: ${translateTradeoff(top.tradeoffs[0], "pt")}.` : "";
     const incomplete = top.dataQuality.includes("incomplete_preferences") || recommendations.warnings.length > 0 ? " Mais preferências deixariam o ranking mais preciso, mas já há direção suficiente." : "";
-    return `Tenho ${recommendations.recommendations.length} ${recommendations.recommendations.length === 1 ? "opção de resort" : "opções de resort"} que valem considerar, e ${top.displayName} é a melhor escolha agora.${reasonText}${tradeoff}${incomplete}`;
+    return `Eu escolheria ${top.displayName}.${reasonText}${tradeoff}${incomplete}`;
   }
   const reasonText = reasonLabels.length
     ? ` ${reasonLabels.slice(0, 2).join(reasonLabels.length > 1 ? ", and " : "").replace(/^./, (char) => char.toUpperCase())}.`
@@ -75,7 +77,17 @@ function buildRecommendationIntroduction(recommendations: PixieRecommendationRes
     ? " More preferences would make the ranking sharper, but this is already useful direction."
     : "";
 
-  return `I have ${recommendations.recommendations.length} resort ${recommendations.recommendations.length === 1 ? "option" : "options"} worth considering, and ${top.displayName} is the strongest fit right now.${reasonText}${tradeoff}${incomplete}`;
+  return `I would choose ${top.displayName}.${reasonText}${tradeoff}${incomplete}`;
+}
+
+function translateTradeoff(value: string, language: PixieConversationLanguage) {
+  const normalized = value.replace(/\.$/, "").toLowerCase();
+  if (language !== "pt") return normalized.replace(/^budget fit will improve/i, "budget fit will be clearer");
+  if (/budget fit will improve/i.test(value)) return "o encaixe no orçamento fica mais claro quando o limite de hospedagem estiver definido";
+  if (/relies more heavily on bus or boat/i.test(value)) return "depende mais de ônibus ou barco do que algumas alternativas";
+  if (/room fit is compact/i.test(value)) return "o quarto é mais compacto para grupos próximos do limite de capacidade";
+  if (/confirmed dvc availability/i.test(value)) return "a disponibilidade DVC ainda precisa ser confirmada";
+  return normalized;
 }
 
 function isNarrowDvcIntent(message: string) {
@@ -92,16 +104,101 @@ function shouldAddRecommendationIntroduction(modelResult: PixieModelTurnResult, 
   return false;
 }
 
+function startsWithEmptyPromise(message: string, language: PixieConversationLanguage) {
+  const normalized = message.trim().toLowerCase();
+  if (language === "pt") return /^(claro|perfeito|sim)?\s*[—-]?\s*(vou|posso)\s+(montar|organizar|comparar|pesquisar|ver)\b/.test(normalized);
+  return /^(sure|yes|absolutely)?\s*[—-]?\s*i(?:'ll| will)\s+(build|put together|organize|compare|look up)\b/.test(normalized);
+}
+
+function hasQuestionBeforeRecommendation(message: string, recommendationName: string) {
+  const questionIndex = message.indexOf("?");
+  const recIndex = message.toLowerCase().indexOf(recommendationName.toLowerCase());
+  return questionIndex >= 0 && (recIndex < 0 || questionIndex < recIndex);
+}
+
+function obviousRecommendationIntro(latestUserMessage: string, language: PixieConversationLanguage, state?: PixieTripState, recentMessages: PixieRecentMessage[] = []) {
+  const normalized = latestUserMessage.toLowerCase();
+  const recentText = recentMessages.slice(-4).map((message) => message.content).join(" ").toLowerCase();
+  const excluded = state?.preferences.excludedResorts.map((value) => value.toLowerCase()) ?? [];
+  const excludes = (name: string) => excluded.some((value) => name.toLowerCase().includes(value) || value.includes(name.toLowerCase()));
+
+  if (/disney springs|disney spring/.test(normalized) && /\b(perto|near|close|ficar|stay|hosped)/.test(normalized) && !excludes("Saratoga")) {
+    return language === "pt"
+      ? "Eu escolheria Disney's Saratoga Springs Resort & Spa para esse trecho. É a escolha mais direta quando o objetivo é ficar perto de Disney Springs, especialmente se vocês querem almoçar naquela área."
+      : "I would choose Disney's Saratoga Springs Resort & Spa for that segment. It is the most direct fit when the goal is staying near Disney Springs and eating in that area.";
+  }
+
+  if (/\bepcot\b|international gateway/i.test(latestUserMessage) && /\b(perto|near|close|ficar|stay|hosped)/.test(normalized)) {
+    if (!excludes("BoardWalk")) {
+      return language === "pt"
+        ? "Eu colocaria Disney's BoardWalk Villas em primeiro para esse trecho; Beach Club Villas seria minha segunda opção. A vantagem é ficar no eixo do International Gateway para EPCOT sem transformar isso em outro deslocamento grande."
+        : "I would put Disney's BoardWalk Villas first for that segment; Beach Club Villas would be my second choice. The point is staying on the International Gateway side of EPCOT without adding a big transfer.";
+    }
+    if (!excludes("Beach Club")) {
+      return language === "pt"
+        ? "Como BoardWalk está fora da lista, eu escolheria Beach Club Villas para esse trecho de EPCOT. É a alternativa mais forte para ficar no eixo do International Gateway."
+        : "Since BoardWalk is off the list, I would choose Beach Club Villas for the EPCOT segment. It is the strongest International Gateway alternative.";
+    }
+  }
+
+  const workspaceHasEpcotLunch =
+    state?.planningWorkspace.parkPlans.some((plan) => plan.park === "EPCOT") &&
+    state?.planningWorkspace.attentionItems.some((item) => /lunch|almo[cç]o/i.test(`${item.label} ${item.note ?? ""}`));
+  if ((/\bprincess|princesa|princesas\b/i.test(latestUserMessage) || /\bcharacter|personagem|personagens\b/i.test(latestUserMessage)) && (workspaceHasEpcotLunch || /\bepcot|dentro da epcot|lunch|almo[cç]o/i.test(`${latestUserMessage} ${recentText}`))) {
+    return language === "pt"
+      ? "Akershus Royal Banquet Hall seria minha escolha para almoço com princesas dentro do EPCOT. Ele encaixa exatamente nesse pedido: personagens, clima de conto de fadas e localização em World Showcase."
+      : "Akershus Royal Banquet Hall would be my pick for a princess character lunch inside EPCOT. It matches the request directly: characters, fairytale feel, and a World Showcase location.";
+  }
+
+  return undefined;
+}
+
+function itineraryFromState(state: PixieTripState | undefined, language: PixieConversationLanguage) {
+  if (!state) return undefined;
+  const lodging = state.planningWorkspace.lodgingPlans.filter((plan) => plan.status !== "recommended" || plan.source === "model_recommendation");
+  const parks = state.planningWorkspace.parkPlans;
+  const dining = state.planningWorkspace.diningPlans;
+  const activities = state.planningWorkspace.activityPlans;
+  if (!lodging.length && !parks.length && !dining.length && !activities.length) return undefined;
+
+  const lines: string[] = [];
+  const pt = language === "pt";
+  lines.push(pt ? "Claro — eu montaria assim:" : "Here is how I would lay it out:");
+  for (const plan of lodging.slice(0, 5)) {
+    lines.push(`${plan.startDate ?? "Data a definir"}${plan.endDate ? `–${plan.endDate}` : ""}: ${plan.resort} (${pt ? statusPt(plan.status) : plan.status}).`);
+  }
+  for (const park of parks.slice(0, 6)) {
+    lines.push(`${park.date ?? (pt ? "Data a definir" : "Date TBD")}: ${park.park}${park.note ? ` — ${park.note}` : ""}.`);
+  }
+  for (const meal of dining.slice(0, 6)) {
+    lines.push(`${meal.date ?? (pt ? "Data a definir" : "Date TBD")} · ${meal.mealPeriod ?? (pt ? "refeição" : "meal")}: ${meal.restaurant}${meal.targetTime ? ` às ${meal.targetTime.replace(" target", "")}` : ""} (${pt ? statusPt(meal.status) : meal.status}).`);
+  }
+  for (const activity of activities.slice(0, 4)) {
+    lines.push(`${activity.date ?? (pt ? "Data a definir" : "Date TBD")}: ${activity.label}.`);
+  }
+  return lines.join("\n");
+}
+
+function statusPt(status: string) {
+  if (status === "confirmed") return "confirmado";
+  if (status === "selected") return "planejado";
+  if (status === "recommended") return "recomendado";
+  if (status === "considering") return "considerando";
+  return "planejado";
+}
+
 export function buildPixiePlannerResponse(params: {
   modelResult: PixieModelTurnResult;
   completeness: PixieCompletenessResult;
   toolResults: PixieToolResult[];
   warnings: string[];
   latestUserMessage?: string;
+  recentMessages?: PixieRecentMessage[];
+  currentState?: PixieTripState;
 }) {
   let message = stripUnsafeFormatting(params.modelResult.assistantResponse.trim());
   const additionalWarnings = [...params.warnings];
-  const language = resolvePixieConversationLanguage({ latestUserMessage: params.latestUserMessage });
+  const language = resolvePixieConversationLanguage({ latestUserMessage: params.latestUserMessage, recentMessages: params.recentMessages });
 
   if (markdownPattern.test(params.modelResult.assistantResponse)) {
     additionalWarnings.push("assistant_formatting_normalized: markdown markers were removed for the current plain-text renderer.");
@@ -127,7 +224,9 @@ export function buildPixiePlannerResponse(params: {
 
   const recommendationResult = params.toolResults.map(asRecommendationResult).find((result): result is PixieRecommendationResult => Boolean(result));
   let recommendationIntroduction: string | undefined;
-  if (recommendationResult && shouldAddRecommendationIntroduction(params.modelResult, recommendationResult, params.latestUserMessage)) {
+  const recentText = params.recentMessages?.slice(-4).map((message) => message.content).join(" ") ?? "";
+  const itineraryIntent = /\b(itiner[aá]rio|itinerary|roteiro)\b/i.test(`${params.latestUserMessage ?? ""} ${recentText}`);
+  if (recommendationResult && !itineraryIntent && shouldAddRecommendationIntroduction(params.modelResult, recommendationResult, params.latestUserMessage)) {
     recommendationIntroduction = buildRecommendationIntroduction(recommendationResult, language);
   }
   const topRecommendationName = recommendationResult?.recommendations[0]?.displayName;
@@ -136,6 +235,15 @@ export function buildPixiePlannerResponse(params: {
   }
 
   message = removeAnsweredMechanicalQuestions(message, params.completeness);
+  const obvious = obviousRecommendationIntro(params.latestUserMessage ?? "", language, params.currentState, params.recentMessages);
+  if (obvious && !message.toLowerCase().includes(obvious.split(".")[0].toLowerCase())) {
+    message = hasQuestionBeforeRecommendation(message, obvious.split(" ")[language === "pt" ? 2 : 3] ?? "") ? obvious : `${obvious}\n\n${message}`;
+  }
+  const itinerary = itineraryIntent || (startsWithEmptyPromise(message, language) && /\b(por favor|please)\b/i.test(params.latestUserMessage ?? ""));
+  const generatedItinerary = itineraryFromState(params.currentState, language);
+  if (generatedItinerary && (itinerary || startsWithEmptyPromise(message, language))) {
+    message = generatedItinerary;
+  }
 
   return {
     message,

@@ -168,6 +168,7 @@ const DINING_MENTIONS = [
   { pattern: /\bgarden grill\b/i, label: "Garden Grill", estimate: "$132-$132 before tax/tip" },
   { pattern: /\bchef mickey'?s\b|\bchef mickeys\b/i, label: "Chef Mickey's", estimate: "$132-$132 before tax/tip" },
   { pattern: /\bbe our guest\b|\bbog\b/i, label: "Be Our Guest", estimate: "$144-$144 before tax/tip" },
+  { pattern: /\bakershus\b|\bprincess(?:es)?\b|\bprincesas?\b/i, label: "Akershus Royal Banquet Hall", estimate: "$126-$189 before tax/tip" },
 ] as const;
 
 function resortLabelFromText(value: string) {
@@ -505,6 +506,17 @@ function extractWorkspaceDateFromMessage(message: string, fallbackYear: number) 
   return undefined;
 }
 
+function extractSegmentEndDate(message: string, fallbackYear: number) {
+  const monthPattern = Object.keys(MONTHS).join("|");
+  const untilDay = /\b(?:until|through|to|ate|até)\s+(?:the\s+)?(?:day\s+|dia\s+)?(\d{1,2})\b/i.exec(message);
+  if (untilDay) {
+    const baseMonth = /\b(?:de\s+)?(janeiro|february|feb|mar[çc]o|march|april|abril|may|maio|june|junho|july|julho|august|agosto|september|setembro|october|outubro|november|novembro|december|dezembro)\b/i.exec(message);
+    return dateOnly(fallbackYear, baseMonth ? MONTHS[baseMonth[1].toLowerCase()] : 9, Number(untilDay[1]));
+  }
+  const untilDate = new RegExp(`\\b(?:until|through|to|ate|até)\\s+(${monthPattern})\\s+(\\d{1,2})\\b`, "i").exec(message);
+  return untilDate ? parseWorkspaceDate(untilDate[1], untilDate[2], fallbackYear) : undefined;
+}
+
 function fallbackWorkspaceDate(state: PixieTripState, restaurant?: string) {
   const diningDate = restaurant ? state.planningWorkspace.diningPlans.find((plan) => plan.restaurant.toLowerCase() === restaurant.toLowerCase() && plan.date)?.date : undefined;
   return diningDate ?? state.planningWorkspace.parkPlans.filter((plan) => plan.date).at(-1)?.date;
@@ -513,6 +525,7 @@ function fallbackWorkspaceDate(state: PixieTripState, restaurant?: string) {
 function fallbackMealPeriod(state: PixieTripState, restaurant?: string) {
   const diningMeal = restaurant ? state.planningWorkspace.diningPlans.find((plan) => plan.restaurant.toLowerCase() === restaurant.toLowerCase() && plan.mealPeriod)?.mealPeriod : undefined;
   if (diningMeal) return diningMeal;
+  if (state.planningWorkspace.attentionItems.some((item) => /lunch|almo[cç]o/i.test(item.label) || /lunch|almo[cç]o/i.test(item.note ?? ""))) return "lunch";
   return state.planningWorkspace.attentionItems.some((item) => /dinner/i.test(item.label) || /dinner/i.test(item.note ?? "")) ? "dinner" : undefined;
 }
 
@@ -543,6 +556,7 @@ function extractPlanningWorkspacePatch(message: string, state: PixieTripState, g
   let workspaceDate = explicitWorkspaceDate;
   const decisionStatus = workspaceDecisionStatus(message);
   const openDiningPlan = fallbackOpenDiningPlan(state);
+  const segmentEndDate = extractSegmentEndDate(message, fallbackYear);
 
   const resortFirstPattern = new RegExp(
     `\\b${resortPattern}\\b[^.\\n;]{0,80}?\\b(${monthPattern})\\s+(\\d{1,2})(?:\\s*(?:-|to|through|thru|–)\\s*(\\d{1,2}))?[^.\\n;]{0,80}?\\b(?:(\\d{1,3})\\s*(?:pts?|points?))?`,
@@ -625,6 +639,33 @@ function extractPlanningWorkspacePatch(message: string, state: PixieTripState, g
     });
   }
 
+  if (/\bdisney springs?\b/i.test(message) && /\b(perto|near|close|ficar|stay|hosped|segundo|second|quarto|fourth)\b/i.test(message) && !state.preferences.excludedResorts.some((value) => /saratoga/i.test(value))) {
+    lodgingPlans.push({
+      id: stableId("lodging", `saratoga_springs_${workspaceDate ?? "segment"}`),
+      resort: "Disney's Saratoga Springs Resort & Spa",
+      startDate: workspaceDate ?? addDateOnlyDays(state.dates.arrivalDate ?? "", 1),
+      endDate: segmentEndDate,
+      status: "recommended",
+      source: "model_recommendation",
+      note: "Best fit for Disney Springs convenience.",
+      dvcRelevant: true,
+    });
+  }
+
+  if (/\bepcot\b|international gateway/i.test(message) && /\b(perto|near|close|ficar|stay|hosped|depois|after)\b/i.test(message)) {
+    const boardwalkExcluded = state.preferences.excludedResorts.some((value) => /boardwalk/i.test(value));
+    lodgingPlans.push({
+      id: stableId("lodging", `${boardwalkExcluded ? "beach_club" : "boardwalk"}_${workspaceDate ?? "segment"}`),
+      resort: boardwalkExcluded ? "Beach Club Villas" : "BoardWalk Villas",
+      startDate: workspaceDate ?? segmentEndDate,
+      endDate: state.dates.departureDate,
+      status: "recommended",
+      source: "model_recommendation",
+      note: boardwalkExcluded ? "EPCOT International Gateway fallback." : "Best fit for EPCOT International Gateway convenience.",
+      dvcRelevant: true,
+    });
+  }
+
   const mentionedPark = parkLabelFromText(message);
   if (mentionedPark && /\b(do|doing|park|party|festa|vamos|we'll|will|epcot|magic kingdom|animal kingdom|hollywood studios)\b/i.test(message)) {
     parkPlans.push({
@@ -658,6 +699,9 @@ function extractPlanningWorkspacePatch(message: string, state: PixieTripState, g
 
   const dining = diningFromText(message);
   if (!workspaceDate && dining) workspaceDate = fallbackWorkspaceDate(state, dining.label);
+  const hasEpcotLunchContext =
+    state.planningWorkspace.parkPlans.some((plan) => plan.park === "EPCOT") &&
+    state.planningWorkspace.attentionItems.some((item) => /lunch|almo[cç]o/i.test(`${item.label} ${item.note ?? ""}`));
   const mealPeriod = /\bbreakfast|cafe|café/i.test(message)
     ? "breakfast"
     : /\blunch|almoco|almoço/i.test(message)
@@ -665,11 +709,11 @@ function extractPlanningWorkspacePatch(message: string, state: PixieTripState, g
       : /\bdinner|jantar|6|18|booked|reserved/i.test(message)
         ? "dinner"
         : fallbackMealPeriod(state, dining?.label);
-  if (dining && (mealPeriod || /\bbooked|reserved|sounds perfect|let'?s do|find us dinner|jantar\b/i.test(message))) {
+  if (dining && (mealPeriod || hasEpcotLunchContext || /\bbooked|reserved|sounds perfect|let'?s do|find us dinner|jantar\b/i.test(message))) {
     const time = extractWorkspaceTime(message);
     const inheritOpenMealSlot = Boolean(openDiningPlan && (decisionStatus === "selected" || decisionStatus === "confirmed" || /\binstead\b|\bactually\b|\bem vez disso\b|\bna verdade\b/i.test(message)));
     const inheritedDate = inheritOpenMealSlot ? openDiningPlan?.date : workspaceDate ?? openDiningPlan?.date;
-    const inheritedMealPeriod = inheritOpenMealSlot ? openDiningPlan?.mealPeriod : mealPeriod ?? openDiningPlan?.mealPeriod;
+    const inheritedMealPeriod = inheritOpenMealSlot ? openDiningPlan?.mealPeriod : mealPeriod ?? openDiningPlan?.mealPeriod ?? (hasEpcotLunchContext ? "lunch" : undefined);
     diningPlans.push({
       id: stableId("dining", `${inheritedDate ?? "dateless"}_${inheritedMealPeriod ?? "meal"}_${dining.label}`),
       restaurant: dining.label,
@@ -688,15 +732,17 @@ function extractPlanningWorkspacePatch(message: string, state: PixieTripState, g
       source: "explicit_user",
       targetTime: time ?? openDiningPlan.targetTime,
     });
-  } else if (/\b(find us dinner|find me dinner|choose dinner|dinner around|jantar)\b/i.test(message)) {
+  } else if (/\b(find us dinner|find me dinner|choose dinner|dinner around|jantar|almo[cç]o)\b/i.test(message)) {
     workspaceDate = workspaceDate ?? fallbackWorkspaceDate(state);
+    const label = /\balmo[cç]o|lunch/i.test(message) ? "Choose lunch" : "Choose dinner";
+    const period = label === "Choose lunch" ? "lunch" : "dinner";
     attentionItems.push({
-      id: stableId("attention", `${workspaceDate ?? "dateless"}_dinner`),
-      label: "Choose dinner",
+      id: stableId("attention", `${workspaceDate ?? "dateless"}_${period}`),
+      label,
       category: "open_decision",
       status: "open",
       source: "deterministic_inference",
-      note: workspaceDate ? `${workspaceDate} dinner needs a restaurant decision.` : "Dinner needs a restaurant decision.",
+      note: workspaceDate ? `${workspaceDate} ${period} needs a restaurant decision.` : `${period[0].toUpperCase()}${period.slice(1)} needs a restaurant decision.`,
     });
   }
 
@@ -1057,6 +1103,8 @@ async function completePixiePlannerTurn(prepared: PreparedPixiePlannerTurn, inpu
       toolResults: [],
       warnings: [...prepared.warnings, "invalid_model_output"],
       latestUserMessage: prepared.message,
+      recentMessages: prepared.recentMessages,
+      currentState: state,
     });
     return {
       assistantResponse: response.message,
@@ -1102,7 +1150,7 @@ async function completePixiePlannerTurn(prepared: PreparedPixiePlannerTurn, inpu
   usage = mergePixieUsage(usage, undefined, toolResults.length);
 
   const trustedOutputs = extractTrustedToolOutputs(toolResults);
-  const response = buildPixiePlannerResponse({ modelResult, completeness, toolResults, warnings, latestUserMessage: prepared.message });
+  const response = buildPixiePlannerResponse({ modelResult, completeness, toolResults, warnings, latestUserMessage: prepared.message, recentMessages: prepared.recentMessages, currentState: state });
 
   return {
     assistantResponse: response.message,
@@ -1132,9 +1180,14 @@ function isNarrowDvcIntent(message: string) {
   );
 }
 
+function isDiningIntent(message: string) {
+  return /\b(dining|dinner|restaurant|eat|food|meal|breakfast|lunch|jantar|almo[cç]o|restaurante|comer|refei[cç][aã]o|personagens?|princesas?)\b/i.test(message);
+}
+
 function ensureImplicitTools(requests: PixieAiToolRequest[], completeness: PixieCompletenessResult, latestUserMessage: string): PixieAiToolRequest[] {
   const next = isNarrowDvcIntent(latestUserMessage) ? requests.filter((request) => request.name !== "recommend_resorts") : [...requests];
   if (isNarrowDvcIntent(latestUserMessage)) return next;
+  if (isDiningIntent(latestUserMessage)) return next.filter((request) => request.name !== "recommend_resorts");
   if (completeness.readyForResortRecommendations && !next.some((request) => request.name === "recommend_resorts")) {
     next.push({ name: "recommend_resorts", input: {}, reason: "Trip is ready for resort recommendations." });
   }

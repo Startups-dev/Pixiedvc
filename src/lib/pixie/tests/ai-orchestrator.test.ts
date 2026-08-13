@@ -418,6 +418,73 @@ describe("Pixie AI orchestrator", () => {
     expect(providerInput?.currentPlanSummary?.travelers).toEqual(expect.arrayContaining([expect.stringMatching(/2 adults/i), expect.stringMatching(/age 2/i)]));
   });
 
+  it("golden Portuguese decisiveness scenario names obvious concrete recommendations and completes itinerary", async () => {
+    let state = createEmptyPixieTripState("2026-08-13T12:00:00.000Z");
+    const responses: string[] = [];
+    const provider = {
+      async createPlannerTurn(input: PixiePlannerTurnInput) {
+        let assistantResponse = "Com esses detalhes, eu recomendaria seguir com a opção mais conveniente.";
+        if (/onde eu deveria ficar/i.test(input.latestUserMessage)) assistantResponse = "Eu escolheria Bay Lake Tower para a primeira noite.";
+        if (/segundo ao quarto|disney springs?/i.test(input.latestUserMessage)) assistantResponse = "Essa parte pede proximidade com Disney Springs.";
+        if (/perto do epcot/i.test(input.latestUserMessage)) assistantResponse = "Para EPCOT, a região do International Gateway faz mais sentido.";
+        if (/personagens|princesas/i.test(input.latestUserMessage)) assistantResponse = "Um almoço com personagens dentro do EPCOT faz sentido.";
+        if (/qual seria nosso itinerario/i.test(input.latestUserMessage)) assistantResponse = "Posso montar o roteiro.";
+        if (/por favor/i.test(input.latestUserMessage)) assistantResponse = "Claro — vou montar um roteiro simples.";
+        return {
+          result: {
+            assistantResponse,
+            tripPatch: {},
+            requestedTools: [],
+            planningIntent: "update_trip" as const,
+            conversationMode: "decision_support" as const,
+            activeDecisionKey: "resort_choice" as const,
+            confidence: 0.8,
+            warnings: [],
+          },
+          metadata: { provider: "fixture", model: "fixture-model", promptVersion: "fixture-prompt", sourceVersion: "fixture" },
+          usage: { provider: "fixture", model: "fixture-model", promptVersion: "fixture-prompt", inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        };
+      },
+    };
+    const history: Array<{ role: "user" | "assistant"; content: string }> = [];
+    const turn = async (message: string) => {
+      const recentMessages = [...history.slice(-8), { role: "user" as const, content: message }];
+      const result = await runPixiePlannerTurn({ state, message, recentMessages, provider, now: "2026-08-13T12:00:00.000Z" });
+      state = result.updatedState;
+      responses.push(result.assistantResponse);
+      history.push({ role: "user", content: message }, { role: "assistant", content: result.assistantResponse });
+      return result;
+    };
+
+    await turn("ola eu tenho uma viagem pro dia 1 de setembro e vamos participar de uma festa de halloween. onde eu deveria ficar");
+    await turn("vamos de 1 a 6 de setembro, eu, meu marido e nossa filha de 2 anos. conveniencia vale mais que preco.");
+    const bayLake = await turn("Bay Lake Tower parece perfeito. eu ficaria no bay lake somente no primeiro dia.");
+    expect(bayLake.updatedState.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([expect.objectContaining({ resort: "Bay Lake Tower", status: "selected" })]));
+
+    const saratoga = await turn("no segundo ao quarto dia eu gostaria de algo perto da disney springs e almocar num restaurante naquela area");
+    expect(saratoga.assistantResponse).toContain("Disney's Saratoga Springs Resort & Spa");
+    expect(saratoga.assistantResponse).not.toMatch(/voc[eê]s preferem/i);
+    expect(saratoga.updatedState.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([expect.objectContaining({ resort: "Disney's Saratoga Springs Resort & Spa", status: "recommended" })]));
+
+    const boardwalk = await turn("ate o dia 4, depois queremos ficar perto do epcot tambem com um almoco");
+    expect(boardwalk.assistantResponse).toMatch(/BoardWalk Villas|Beach Club Villas/);
+    expect(boardwalk.updatedState.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([expect.objectContaining({ resort: "BoardWalk Villas", status: "recommended" })]));
+
+    await turn("dentro da epcot");
+    await turn("um almoco com personagens seria legal");
+    const akershus = await turn("que tal princesas desde que temos uma tambem!");
+    expect(akershus.assistantResponse).toContain("Akershus Royal Banquet Hall");
+    expect(akershus.updatedState.planningWorkspace.diningPlans).toEqual(expect.arrayContaining([expect.objectContaining({ restaurant: "Akershus Royal Banquet Hall", status: "planned" })]));
+
+    await turn("perfeito qual seria o nosso itinerario entao");
+    const itinerary = await turn("por favor");
+    expect(itinerary.assistantResponse).toMatch(/Bay Lake Tower|Saratoga Springs|BoardWalk Villas|Akershus Royal Banquet Hall/);
+    expect(itinerary.assistantResponse).not.toMatch(/vou montar|vou organizar|I have 3 resort|strongest fit|room fit/i);
+    expect(responses.join("\n")).not.toMatch(/I have 3 resort|strongest fit|room fit|Budget fit will improve/);
+    expect(state.planningWorkspace.lodgingPlans.some((plan) => plan.status === "confirmed")).toBe(false);
+    expect(state.planningWorkspace.diningPlans.some((plan) => plan.status === "confirmed")).toBe(false);
+  });
+
   it("passes compact DVC rule context to the provider for narrow DVC turns", async () => {
     let providerInput: PixiePlannerTurnInput | undefined;
     await runPixiePlannerTurn({

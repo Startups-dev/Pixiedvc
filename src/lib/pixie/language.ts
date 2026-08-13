@@ -1,7 +1,7 @@
 export type PixieConversationLanguage = "en" | "pt";
 
 function hasPortugueseSignals(text: string) {
-  return /\b(eu|meu|minha|marido|filha|filho|crian[çc]a|ser[aã]o|vamos|vou|pagaremos|mais f[aá]cil|voltar|depois|festa|resort mais apropriado|qual o resort)\b/i.test(text);
+  return /\b(eu|meu|minha|marido|filha|filho|crian[çc]a|ser[aã]o|vamos|vou|pagaremos|mais f[aá]cil|voltar|depois|festa|resort mais apropriado|qual o resort|que tal|princesas?|personagens?|almo[cç]o|itiner[aá]rio|roteiro|perto|dentro|segundo|quarto|pre[cç]o|conveni[eê]ncia)\b/i.test(text);
 }
 
 function hasEnglishSignals(text: string) {

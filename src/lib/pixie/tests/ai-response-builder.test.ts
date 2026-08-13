@@ -146,10 +146,11 @@ describe("Pixie response builder", () => {
       warnings: [],
     });
 
-    expect(response.message).toContain("Tenho 1 opção de resort");
-    expect(response.message).toContain("é a melhor escolha agora");
+    expect(response.message).toContain("Eu escolheria Beach Club Villas");
+    expect(response.message).toContain("Mantém o parque prioritário conveniente");
     expect(response.message).not.toContain("I have 1 resort option");
     expect(response.message).not.toContain("strongest fit right now");
+    expect(response.message).not.toContain("Budget fit will improve");
   });
 
   it("does not prepend the resort intro to routine discovery turns just because implicit recommendations ran", () => {
