@@ -1,6 +1,8 @@
 import type { PixieToolResult } from "@/lib/pixie/ai/tool-contract";
 import type { PixieModelTurnResult } from "@/lib/pixie/ai/schemas";
 import type { PixieRecentMessage } from "@/lib/pixie/ai/schemas";
+import type { HannaKnowledgeContext } from "@/lib/pixie/knowledge";
+import type { LiveDisneyContext } from "@/lib/pixie/live";
 import { resolvePixieConversationLanguage, type PixieConversationLanguage } from "@/lib/pixie/language";
 import type { PixieRecommendationResult } from "@/lib/pixie/resorts/recommendation-service";
 import type { PixieTripState } from "@/lib/pixie/schema";
@@ -99,7 +101,8 @@ function isNarrowDvcIntent(message: string) {
 function shouldAddRecommendationIntroduction(modelResult: PixieModelTurnResult, recommendations?: PixieRecommendationResult, latestUserMessage = "") {
   if (!recommendations?.recommendations.length) return false;
   if (isNarrowDvcIntent(latestUserMessage)) return false;
-  if (/\b(dining|dinner|restaurant|steak|sushi|pasta|eat|food|meal|meals)\b/i.test(latestUserMessage)) return false;
+  if (/\b(dining|dinner|restaurant|steak|sushi|pasta|eat|food|meal|meals|jantar|almo[cç]o|restaurante|comer|refei[cç][aã]o|personagens?|princesas?)\b/i.test(latestUserMessage)) return false;
+  if (/^\s*(?:e\s+)?(?:no|na|em|dentro d[ao])\s+(?:epcot|magic kingdom|animal kingdom|hollywood studios)\??\s*$/i.test(latestUserMessage)) return false;
   if (modelResult.activeDecisionKey === "resort_choice") return true;
   return false;
 }
@@ -179,6 +182,21 @@ function itineraryFromState(state: PixieTripState | undefined, language: PixieCo
   return lines.join("\n");
 }
 
+function pricingFallback(latestUserMessage: string, language: PixieConversationLanguage, knowledgeContext?: HannaKnowledgeContext, liveContext?: LiveDisneyContext) {
+  if (!/\b(price|cost|how much|quanto|pre[cç]o|custa|gastar|valor)\b/i.test(latestUserMessage)) return undefined;
+  const candidate = knowledgeContext?.candidates.find((item) => item.entityType === "dining_location" && item.pricing?.planningEstimate);
+  if (!candidate?.pricing?.planningEstimate) return undefined;
+  const exactUnavailable = liveContext?.unavailable.some((item) => item.kind === "current_price" || item.kind === "current_menu") ?? false;
+  const exactAvailable = liveContext?.diningCurrent.some((item) => item.kind === "current_price") ?? false;
+  if (exactAvailable) return undefined;
+  const estimate = candidate.pricing.planningEstimate;
+  const range = `${estimate.currency ?? "USD"} ${estimate.adultLow}-${estimate.adultHigh} por adulto`;
+  if (language === "pt") {
+    return `${exactUnavailable ? "Eu não tenho preço exato ao vivo agora, mas " : ""}para planejamento, ${candidate.name} está na faixa de ${range}. Para 2 adultos e uma criança de 2 anos, use isso como estimativa antes de imposto e gorjeta; a criança conta para reserva, mas o custo dela depende da política atual do restaurante.`;
+  }
+  return `${exactUnavailable ? "I do not have an exact live price right now, but " : ""}for planning, ${candidate.name} is in the ${range} range. For 2 adults and a 2-year-old, treat that as a before-tax/tip estimate; the child counts for reservations, but meal pricing depends on the restaurant's current policy.`;
+}
+
 function statusPt(status: string) {
   if (status === "confirmed") return "confirmado";
   if (status === "selected") return "planejado";
@@ -195,6 +213,8 @@ export function buildPixiePlannerResponse(params: {
   latestUserMessage?: string;
   recentMessages?: PixieRecentMessage[];
   currentState?: PixieTripState;
+  knowledgeContext?: HannaKnowledgeContext;
+  liveContext?: LiveDisneyContext;
 }) {
   let message = stripUnsafeFormatting(params.modelResult.assistantResponse.trim());
   const additionalWarnings = [...params.warnings];
@@ -243,6 +263,10 @@ export function buildPixiePlannerResponse(params: {
   const generatedItinerary = itineraryFromState(params.currentState, language);
   if (generatedItinerary && (itinerary || startsWithEmptyPromise(message, language))) {
     message = generatedItinerary;
+  }
+  const priceFallback = pricingFallback(params.latestUserMessage ?? "", language, params.knowledgeContext, params.liveContext);
+  if (priceFallback && !/\$\d|USD\s+\d|US\$/i.test(message)) {
+    message = `${message}\n\n${priceFallback}`.trim();
   }
 
   return {

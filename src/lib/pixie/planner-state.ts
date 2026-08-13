@@ -251,7 +251,7 @@ function resolveWorkspaceAttention(state: PixieTripState): PixieTripState {
     ...state,
     planningWorkspace: {
       ...state.planningWorkspace,
-      attentionItems: Array.from(attentionById.values()).slice(-8),
+      attentionItems: Array.from(attentionById.values()).filter((item) => item.status !== "resolved").slice(-8),
     },
   };
 }

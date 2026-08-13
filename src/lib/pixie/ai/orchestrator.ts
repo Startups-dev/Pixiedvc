@@ -358,8 +358,8 @@ function extractLightweightDates(message: string): DateExtractionResult {
   const fallbackYear = dateMentions.years.length === 1 ? dateMentions.years[0] : undefined;
   const monthPattern = Object.keys(MONTHS).join("|");
   const arrivalPattern = new RegExp(`\\b(?:arriving|arrive|check(?:ing)?\\s*in)\\s+(?:on\\s+)?(${monthPattern})\\s+(\\d{1,2})(?:,\\s*(\\d{4}))?\\b`, "i");
+  const portugueseArrivalPattern = new RegExp(`\\b(?:cheg(?:o|amos|ar)|entrada|check-?in)\\s+(?:no\\s+)?(?:dia\\s+)?(\\d{1,2})\\s+de\\s+(${monthPattern})(?:\\s+de\\s+(\\d{4}))?\\b`, "i");
   const checkoutPattern = new RegExp(`\\b(?:check(?:ing)?\\s*out|checkout)\\s+(?:on\\s+)?(${monthPattern})\\s+(\\d{1,2})(?:,\\s*(\\d{4}))?\\b`, "i");
-  const portugueseArrivalPattern = new RegExp(`\\b(?:dia\\s+)?(\\d{1,2})\\s+de\\s+(${monthPattern})(?:\\s+de\\s+(\\d{4}))?\\b`, "i");
   const portugueseArrivalMatch = portugueseArrivalPattern.exec(message);
   const portugueseArrivalDate = portugueseArrivalMatch
     ? dateOnly(Number(portugueseArrivalMatch[3] ?? fallbackYear ?? new Date().getFullYear()), MONTHS[portugueseArrivalMatch[2].toLowerCase()], Number(portugueseArrivalMatch[1]))
@@ -506,6 +506,23 @@ function extractWorkspaceDateFromMessage(message: string, fallbackYear: number) 
   return undefined;
 }
 
+function extractWorkspaceDateRangeFromMessage(message: string, fallbackYear: number) {
+  const monthPattern = Object.keys(MONTHS).join("|");
+  const portuguese = new RegExp(`\\b(?:de\\s+|do\\s+dia\\s+|dia\\s+)?(\\d{1,2})\\s+(?:a|ao|até|ate)\\s+(?:o\\s+)?(?:dia\\s+)?(\\d{1,2})\\s+de\\s+(${monthPattern})\\b`, "i").exec(message);
+  if (portuguese) {
+    const startDate = parseWorkspaceDate(portuguese[3], portuguese[1], fallbackYear);
+    const endDate = parseWorkspaceDate(portuguese[3], portuguese[2], fallbackYear);
+    if (startDate && endDate && calculateDateOnlyNights(startDate, endDate)) return { startDate, endDate };
+  }
+  const english = new RegExp(`\\b(${monthPattern})\\s+(\\d{1,2})\\s+(?:to|through|thru|-)\\s+(?:(${monthPattern})\\s+)?(\\d{1,2})\\b`, "i").exec(message);
+  if (english) {
+    const startDate = parseWorkspaceDate(english[1], english[2], fallbackYear);
+    const endDate = parseWorkspaceDate(english[3] ?? english[1], english[4], fallbackYear);
+    if (startDate && endDate && calculateDateOnlyNights(startDate, endDate)) return { startDate, endDate };
+  }
+  return undefined;
+}
+
 function extractSegmentEndDate(message: string, fallbackYear: number) {
   const monthPattern = Object.keys(MONTHS).join("|");
   const untilDay = /\b(?:until|through|to|ate|até)\s+(?:the\s+)?(?:day\s+|dia\s+)?(\d{1,2})\b/i.exec(message);
@@ -524,6 +541,8 @@ function segmentBoundaryFromOrdinal(message: string, state: PixieTripState, ordi
 }
 
 function lodgingSegmentDatesFor(message: string, state: PixieTripState, fallbackYear: number, kind: "mk_first" | "disney_springs" | "epcot_final") {
+  const explicitRange = extractWorkspaceDateRangeFromMessage(message, fallbackYear);
+  if (explicitRange) return explicitRange;
   const explicitStart = extractWorkspaceDateFromMessage(message, fallbackYear);
   const explicitEnd = extractSegmentEndDate(message, fallbackYear);
   if (kind === "mk_first") {
@@ -560,6 +579,17 @@ function fallbackOpenDiningPlan(state: PixieTripState) {
     .at(-1);
 }
 
+function isExplicitOverallTripDateIntent(message: string) {
+  return /\b(trip|travel|traveling|travelling|vacation|arrival|arrive|arriving|check(?:ing)?\s*in|check(?:ing)?\s*out|checkout|cheg(?:o|amos|ar)|viagem|f[eé]rias|entrada|sa[ií]da)\b/i.test(message);
+}
+
+function expectedParkForDining(restaurant: string | undefined) {
+  if (!restaurant) return undefined;
+  if (/akershus|via napoli|biergarten|garden grill/i.test(restaurant)) return "EPCOT";
+  if (/chef mickey|be our guest|crystal palace/i.test(restaurant)) return "Magic Kingdom";
+  return undefined;
+}
+
 function extractRejectedResorts(message: string) {
   if (!/\b(no|not that|don't want|do not want|forget|take .* off|scratch that|n[aã]o quero|esquece|tira)\b/i.test(message)) return [];
   return normalizeStringArray(RESORT_MENTIONS.filter((resort) => resort.pattern.test(message)).map((resort) => resort.label));
@@ -582,6 +612,10 @@ function extractPlanningWorkspacePatch(message: string, state: PixieTripState, g
   const decisionStatus = workspaceDecisionStatus(message);
   const openDiningPlan = fallbackOpenDiningPlan(state);
   const segmentEndDate = extractSegmentEndDate(message, fallbackYear);
+  const acceptsOpenDiningPlan =
+    !diningFromText(message) &&
+    openDiningPlan &&
+    /\b(ok|okay|pode marcar|marcar|vamos nessa|vamos fazer|sounds good|that sounds good|let'?s do that)\b/i.test(message);
 
   const resortFirstPattern = new RegExp(
     `\\b${resortPattern}\\b[^.\\n;]{0,80}?\\b(${monthPattern})\\s+(\\d{1,2})(?:\\s*(?:-|to|through|thru|–)\\s*(\\d{1,2}))?[^.\\n;]{0,80}?\\b(?:(\\d{1,3})\\s*(?:pts?|points?))?`,
@@ -658,7 +692,9 @@ function extractPlanningWorkspacePatch(message: string, state: PixieTripState, g
   }
   if (mentionedResort && /\b(stay|staying|ficar|hospedar|resort|villa|tower|villas|considering|decided|booked|confirmed|let'?s do|sounds much better|parece perfeito|est[aá] perfeito|vamos nele)\b/i.test(message)) {
     const mkFirstOnly = mentionedResort === "Bay Lake Tower" && /\b(first|primeiro|somente no primeiro|only.*first)\b/i.test(message);
-    const segment = mkFirstOnly ? lodgingSegmentDatesFor(message, state, fallbackYear, "mk_first") : undefined;
+    const segment =
+      extractWorkspaceDateRangeFromMessage(message, fallbackYear) ??
+      (mkFirstOnly ? lodgingSegmentDatesFor(message, state, fallbackYear, "mk_first") : undefined);
     lodgingPlans.push({
       id: stableId("lodging", mentionedResort),
       resort: mentionedResort,
@@ -758,6 +794,31 @@ function extractPlanningWorkspacePatch(message: string, state: PixieTripState, g
       source: decisionStatus === "recommended" ? "model_recommendation" : "explicit_user",
       planningPriceEstimate: dining.estimate,
     });
+  } else if (acceptsOpenDiningPlan) {
+    const time = extractWorkspaceTime(message);
+    diningPlans.push({
+      ...openDiningPlan,
+      date: workspaceDate ?? openDiningPlan.date,
+      status: decisionStatus === "confirmed" ? "confirmed" : "selected",
+      source: "explicit_user",
+      targetTime: time ?? openDiningPlan.targetTime,
+    });
+  } else if (!dining && openDiningPlan && workspaceDate && /\b(dia|date|september|setembro|october|outubro|november|novembro|december|dezembro|january|janeiro|february|fevereiro|march|mar[çc]o|april|abril|may|maio|june|junho|july|julho|august|agosto)\b/i.test(message)) {
+    const inferredPark = expectedParkForDining(openDiningPlan.restaurant);
+    diningPlans.push({
+      ...openDiningPlan,
+      date: workspaceDate,
+      source: "explicit_user",
+    });
+    if (inferredPark) {
+      parkPlans.push({
+        id: stableId("park", `${workspaceDate}_${inferredPark}`),
+        park: inferredPark,
+        date: workspaceDate,
+        status: "planned",
+        source: "deterministic_inference",
+      });
+    }
   } else if (!dining && openDiningPlan && /\b(booked|reserved|confirmed|j[aá] reservei|est[aá] reservado|consegui reservar|reserva est[aá] confirmada)\b/i.test(message)) {
     const time = extractWorkspaceTime(message);
     diningPlans.push({
@@ -915,7 +976,7 @@ function extractLightweightTripPatch(message: string, state: PixieTripState, gen
   const planningWorkspace = extractPlanningWorkspacePatch(message, state, generatedAt);
 
   return {
-    ...(dateExtraction.dates ? { dates: dateExtraction.dates } : {}),
+    ...(dateExtraction.dates && (!state.dates.arrivalDate || !state.dates.departureDate || isExplicitOverallTripDateIntent(message)) ? { dates: dateExtraction.dates } : {}),
     ...(party ? { party } : {}),
     ...(Object.keys(preferences).length ? { preferences } : {}),
     ...(dvcContext ? { dvcContext } : {}),
@@ -1139,6 +1200,7 @@ async function completePixiePlannerTurn(prepared: PreparedPixiePlannerTurn, inpu
       latestUserMessage: prepared.message,
       recentMessages: prepared.recentMessages,
       currentState: state,
+      knowledgeContext: prepared.knowledgeContext,
     });
     return {
       assistantResponse: response.message,
@@ -1184,7 +1246,17 @@ async function completePixiePlannerTurn(prepared: PreparedPixiePlannerTurn, inpu
   usage = mergePixieUsage(usage, undefined, toolResults.length);
 
   const trustedOutputs = extractTrustedToolOutputs(toolResults);
-  const response = buildPixiePlannerResponse({ modelResult, completeness, toolResults, warnings, latestUserMessage: prepared.message, recentMessages: prepared.recentMessages, currentState: state });
+  const response = buildPixiePlannerResponse({
+    modelResult,
+    completeness,
+    toolResults,
+    warnings,
+    latestUserMessage: prepared.message,
+    recentMessages: prepared.recentMessages,
+    currentState: state,
+    knowledgeContext: prepared.knowledgeContext,
+    liveContext,
+  });
 
   return {
     assistantResponse: response.message,

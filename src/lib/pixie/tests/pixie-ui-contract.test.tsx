@@ -378,12 +378,11 @@ describe("Pixie UI contracts", () => {
     const state = createInitialPixieChatState();
     const patched = applyPixieTripPatch(state.tripState, {
       dates: { arrivalDate: "2026-09-01", departureDate: "2026-09-02" },
-      party: { adults: 2, children: 1 },
+      party: { adults: 2, children: 1, travellerOperations: [{ op: "addTraveller", traveller: { category: "child", age: 2 } }] },
       planningWorkspace: {
         lodgingPlans: [{ id: "lodging_bay_lake", resort: "Bay Lake Tower", checkIn: "2026-09-01", checkOut: "2026-09-02", status: "selected", source: "explicit_user", note: "Easy Magic Kingdom return." }],
         parkPlans: [{ id: "park_2026_09_03_epcot", park: "EPCOT", date: "2026-09-03", status: "planned", source: "explicit_user" }],
-        diningPlans: [{ id: "dining_2026_09_03_dinner_via_napoli", restaurant: "Via Napoli", date: "2026-09-03", mealPeriod: "dinner", targetTime: "18:00 target", status: "recommended", source: "model_recommendation", planningPriceEstimate: "$60-$112 before tax/tip" }],
-        attentionItems: [{ id: "choose_dinner", label: "Choose dinner", category: "open_decision", status: "open", source: "deterministic_inference" }],
+        diningPlans: [{ id: "dining_2026_09_04_lunch_akershus", restaurant: "Akershus Royal Banquet Hall", date: "2026-09-04", mealPeriod: "lunch", status: "selected", source: "explicit_user", planningPriceEstimate: "$126-$189 before tax/tip" }],
       },
     });
     expect(patched.ok).toBe(true);
@@ -396,9 +395,12 @@ describe("Pixie UI contracts", () => {
     expect(screen.getByText(/Deluxe Studio/i)).toBeInTheDocument();
     expect(screen.getAllByText(/1 night/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/points est/i)).toBeInTheDocument();
+    expect(screen.getByText(/3 totals · 2 adults · 1 child age 2/i)).toBeInTheDocument();
     expect(screen.getByText(/Dining plans/i)).toBeInTheDocument();
-    expect(screen.getByText(/Via Napoli/i)).toBeInTheDocument();
-    expect(screen.getByText(/recommended/i)).toBeInTheDocument();
+    expect(screen.getByText(/2026-09-04 · lunch · Akershus Royal Banquet Hall/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/selected/i).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(/\$126-\$189 before tax\/tip/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Choose lunch|Lunch needs a restaurant decision/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/^confirmed$/i)).not.toBeInTheDocument();
   });
 

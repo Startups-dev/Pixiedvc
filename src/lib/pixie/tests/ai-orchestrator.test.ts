@@ -498,7 +498,7 @@ describe("Pixie AI orchestrator", () => {
       expect(segment?.estimatedPoints).toBeGreaterThan(0);
       expect(segment?.estimatedRentalCostCents).toBeGreaterThan(0);
     }
-    expect(state.planningWorkspace.attentionItems).toEqual(expect.arrayContaining([expect.objectContaining({ label: "Choose lunch", status: "resolved" })]));
+    expect(state.planningWorkspace.attentionItems.some((item) => /lunch|almo/i.test(`${item.label} ${item.note ?? ""}`))).toBe(false);
     expect(state.planningWorkspace.lodgingPlans.some((plan) => plan.status === "confirmed")).toBe(false);
     expect(state.planningWorkspace.diningPlans.some((plan) => plan.status === "confirmed")).toBe(false);
     expect(itinerary.updatedState.planningWorkspace.diningPlans).toEqual(expect.arrayContaining([expect.objectContaining({ restaurant: "Akershus Royal Banquet Hall", status: "planned" })]));
@@ -507,6 +507,101 @@ describe("Pixie AI orchestrator", () => {
       expect.stringMatching(/Saratoga Springs.*2026-09-02 to 2026-09-04.*Deluxe Studio.*point/i),
       expect.stringMatching(/BoardWalk Villas.*2026-09-04 to 2026-09-06.*Deluxe Studio.*point/i),
     ]));
+  });
+
+  it("keeps scoped EPCOT dining dates from replacing overall trip dates in the Portuguese split-stay flow", async () => {
+    let state = createEmptyPixieTripState("2026-08-13T12:00:00.000Z");
+    const provider = {
+      async createPlannerTurn(input: PixiePlannerTurnInput) {
+        let assistantResponse = "Certo.";
+        if (/e no epcot/i.test(input.latestUserMessage)) assistantResponse = "Para o trecho do EPCOT, vamos manter BoardWalk Villas e pensar no almoço.";
+        if (/pre[cç]o|quanto|custa|gastar/i.test(input.latestUserMessage)) assistantResponse = "Não consigo confirmar o preço atual ao vivo agora.";
+        return {
+          result: {
+            assistantResponse,
+            tripPatch: {},
+            requestedTools: [],
+            planningIntent: "update_trip" as const,
+            conversationMode: "decision_support" as const,
+            activeDecisionKey: "resort_choice" as const,
+            confidence: 0.8,
+            warnings: [],
+          },
+          metadata: { provider: "fixture", model: "fixture-model", promptVersion: "fixture-prompt", sourceVersion: "fixture" },
+          usage: { provider: "fixture", model: "fixture-model", promptVersion: "fixture-prompt", inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        };
+      },
+    };
+    const history: Array<{ role: "user" | "assistant"; content: string }> = [];
+    const turn = async (message: string) => {
+      const result = await runPixiePlannerTurn({
+        state,
+        message,
+        recentMessages: [...history.slice(-8), { role: "user", content: message }],
+        provider,
+        liveDisneyService: createLiveDisneyService({ provider: createFakeLiveDisneyProvider() }),
+        now: "2026-08-13T12:00:00.000Z",
+      });
+      state = result.updatedState;
+      history.push({ role: "user", content: message }, { role: "assistant", content: result.assistantResponse });
+      return result;
+    };
+    const expectOverallTrip = () => {
+      expect(state.dates).toMatchObject({ arrivalDate: "2026-09-01", departureDate: "2026-09-06", numberOfNights: 5 });
+    };
+    const expectSegments = () => {
+      expect(state.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([
+        expect.objectContaining({ resort: "Bay Lake Tower", checkIn: "2026-09-01", checkOut: "2026-09-02" }),
+        expect.objectContaining({ resort: "Disney's Saratoga Springs Resort & Spa", checkIn: "2026-09-02", checkOut: "2026-09-04" }),
+        expect.objectContaining({ resort: "BoardWalk Villas", checkIn: "2026-09-04", checkOut: "2026-09-06" }),
+      ]));
+    };
+
+    await turn("Vamos para Walt Disney World de 1 a 6 de setembro de 2026, eu, meu marido e nossa filha de 2 anos.");
+    expectOverallTrip();
+    expect(state.party).toMatchObject({ adults: 2, children: 1, totalPartySize: 3 });
+
+    await turn("No dia 1 vamos à festa de Halloween no Magic Kingdom e queremos voltar do jeito mais fácil.");
+    expectOverallTrip();
+
+    await turn("Bay Lake Tower no primeiro dia, de 1 a 2 de setembro.");
+    await turn("Depois Saratoga Springs do dia 2 ao dia 4 perto da Disney Springs.");
+    await turn("Depois BoardWalk Villas do dia 4 ao dia 6 perto do EPCOT.");
+    expectOverallTrip();
+    expectSegments();
+
+    const epcot = await turn("e no EPCOT?");
+    expect(epcot.assistantResponse).not.toMatch(/^Eu escolheria Bay Lake Tower/i);
+    expectOverallTrip();
+    expectSegments();
+
+    await turn("um almoço com personagens seria legal");
+    const princess = await turn("que tal princesas");
+    expect(princess.updatedState.planningWorkspace.diningPlans).toEqual(expect.arrayContaining([
+      expect.objectContaining({ restaurant: "Akershus Royal Banquet Hall", mealPeriod: "lunch", status: "planned" }),
+    ]));
+
+    await turn("ok pode marcar");
+    expectOverallTrip();
+    let akershus = state.planningWorkspace.diningPlans.find((plan) => plan.restaurant === "Akershus Royal Banquet Hall");
+    expect(akershus).toMatchObject({ status: "selected", mealPeriod: "lunch" });
+    expect(akershus?.date).toBeUndefined();
+    expect(state.planningWorkspace.attentionItems.some((item) => /lunch|almo/i.test(`${item.label} ${item.note ?? ""}`))).toBe(false);
+
+    await turn("dia 4 de setembro");
+    expectOverallTrip();
+    akershus = state.planningWorkspace.diningPlans.find((plan) => plan.restaurant === "Akershus Royal Banquet Hall");
+    expect(akershus).toMatchObject({ date: "2026-09-04", mealPeriod: "lunch", status: "selected", planningPriceEstimate: "$126-$189 before tax/tip" });
+    expect(state.planningWorkspace.parkPlans).toEqual(expect.arrayContaining([expect.objectContaining({ park: "EPCOT", date: "2026-09-04" })]));
+    expect(state.planningWorkspace.attentionItems.some((item) => /lunch|almo/i.test(`${item.label} ${item.note ?? ""}`))).toBe(false);
+
+    const price = await turn("quanto custa Akershus?");
+    expect(price.assistantResponse).toMatch(/planejamento|estimativa|USD|\$126/i);
+    expect(price.assistantResponse).not.toMatch(/Bay Lake Tower.*escolheria/i);
+    expect(price.updatedState.party.totalPartySize).toBe(3);
+    expect(price.updatedState.party.travellers[0]?.age).toBe(2);
+    expectOverallTrip();
+    expectSegments();
   });
 
   it("passes compact DVC rule context to the provider for narrow DVC turns", async () => {
