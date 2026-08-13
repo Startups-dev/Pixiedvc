@@ -72,6 +72,36 @@ describe("Pixie resort recommendation service", () => {
     expect(["blt", "vgf", "pvb"]).toContain(result.recommendations[0].resortId);
   });
 
+  it("late Magic Kingdom party return convenience ranks Bay Lake Tower above Animal Kingdom Villas", () => {
+    const result = recommendPixieResorts(
+      trip({
+        dates: { arrivalDate: "2026-09-01", departureDate: "2026-09-06" },
+        party: { adults: 2, children: 1, travellers: [{ id: "daughter", category: "child", age: 2 }] },
+        preferences: {
+          parkPriorities: ["Magic Kingdom"],
+          resortPriorities: ["price sensitivity low", "dominant Magic Kingdom return convenience", "walking access after Magic Kingdom party"],
+          transportationPreferences: ["walk"],
+        },
+      }),
+    );
+
+    expect(result.recommendations[0].resortId).toBe("blt");
+    expect(result.recommendations[0].reasonCodes).toContain("dominant_mk_return_convenience");
+    expect(result.recommendations.map((recommendation) => recommendation.resortId)).not.toHaveProperty("0", "akv");
+  });
+
+  it("Animal Kingdom Villas can still rank strongly for Animal Kingdom and savanna priorities", () => {
+    const result = recommendPixieResorts(
+      trip({
+        dates: { arrivalDate: "2027-09-07", departureDate: "2027-09-12" },
+        party: { adults: 2, children: 1 },
+        preferences: { parkPriorities: ["Animal Kingdom"], preferredResorts: ["Animal Kingdom Villas"], resortPriorities: ["savanna", "animals"], vacationPace: "relaxed" },
+      }),
+    );
+
+    expect(result.recommendations[0].resortId).toBe("akv");
+  });
+
   it("relaxed trip with pool priority changes scoring", () => {
     const result = recommendPixieResorts(
       trip({

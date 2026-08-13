@@ -284,6 +284,26 @@ describe("Pixie UI contracts", () => {
     expect(screen.getAllByRole("button")).toHaveLength(4);
   });
 
+  it("shows Portuguese resort quick replies after a Portuguese resort conversation", () => {
+    const state = createInitialPixieChatState();
+    render(
+      <PixieQuickReplies
+        state={{
+          ...state,
+          recommendations: recommendationResult(),
+          recentMessages: [{ role: "user", content: "Qual o resort mais fácil para voltar depois da festa?" }],
+        }}
+        nextQuestionKey="ask_resort_choice"
+        disabled={false}
+        onSend={() => undefined}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /comparar os dois melhores/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /priorizar conveniência/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /compare top two/i })).not.toBeInTheDocument();
+  });
+
   it("shows dining-context quick replies instead of generic date collection after a restaurant conversation", () => {
     const state = createInitialPixieChatState();
     render(

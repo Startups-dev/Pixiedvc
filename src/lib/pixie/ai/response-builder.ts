@@ -1,5 +1,6 @@
 import type { PixieToolResult } from "@/lib/pixie/ai/tool-contract";
 import type { PixieModelTurnResult } from "@/lib/pixie/ai/schemas";
+import { resolvePixieConversationLanguage, type PixieConversationLanguage } from "@/lib/pixie/language";
 import type { PixieRecommendationResult } from "@/lib/pixie/resorts/recommendation-service";
 import type { PixieCompletenessResult } from "@/lib/pixie/types";
 
@@ -34,18 +35,36 @@ function asRecommendationResult(toolResult: PixieToolResult): PixieRecommendatio
   return Array.isArray(result.recommendations) ? result : undefined;
 }
 
-function buildRecommendationIntroduction(recommendations: PixieRecommendationResult) {
+function buildRecommendationIntroduction(recommendations: PixieRecommendationResult, language: PixieConversationLanguage) {
   const top = recommendations.recommendations[0];
   if (!top) return undefined;
 
-  const reasonLabels = [
-    top.reasonCodes.includes("near_priority_park") ? "it keeps your priority parks convenient" : undefined,
-    top.reasonCodes.includes("strong_pool_match") ? "the pool fit is strong for this trip" : undefined,
-    top.reasonCodes.includes("preferred_resort") ? "it matches a resort you already prefer" : undefined,
-    top.reasonCodes.includes("kitchen_match") ? "the room setup lines up with your kitchen preferences" : undefined,
-    top.reasonCodes.includes("lower_walking_burden") ? "it should be easier on walking than some alternatives" : undefined,
-    top.reasonCodes.includes("suitable_for_large_party") ? "it has verified room options for your party size" : undefined,
-  ].filter((reason): reason is string => Boolean(reason));
+  const reasonLabels =
+    language === "pt"
+      ? [
+          top.reasonCodes.includes("dominant_mk_return_convenience") ? "a volta depois do Magic Kingdom é a mais simples para esta noite" : undefined,
+          top.reasonCodes.includes("near_priority_park") ? "mantém o parque prioritário conveniente" : undefined,
+          top.reasonCodes.includes("strong_pool_match") ? "a piscina combina bem com esta viagem" : undefined,
+          top.reasonCodes.includes("preferred_resort") ? "combina com um resort que você já mencionou" : undefined,
+          top.reasonCodes.includes("kitchen_match") ? "a configuração do quarto combina com a preferência de cozinha" : undefined,
+          top.reasonCodes.includes("lower_walking_burden") ? "reduz o esforço de deslocamento em relação a outras opções" : undefined,
+          top.reasonCodes.includes("suitable_for_large_party") ? "tem capacidade verificada para o grupo" : undefined,
+        ].filter((reason): reason is string => Boolean(reason))
+      : [
+          top.reasonCodes.includes("dominant_mk_return_convenience") ? "it gives this trip the easiest Magic Kingdom return" : undefined,
+          top.reasonCodes.includes("near_priority_park") ? "it keeps your priority parks convenient" : undefined,
+          top.reasonCodes.includes("strong_pool_match") ? "the pool fit is strong for this trip" : undefined,
+          top.reasonCodes.includes("preferred_resort") ? "it matches a resort you already prefer" : undefined,
+          top.reasonCodes.includes("kitchen_match") ? "the room setup lines up with your kitchen preferences" : undefined,
+          top.reasonCodes.includes("lower_walking_burden") ? "it should be easier on walking than some alternatives" : undefined,
+          top.reasonCodes.includes("suitable_for_large_party") ? "it has verified room options for your party size" : undefined,
+        ].filter((reason): reason is string => Boolean(reason));
+  if (language === "pt") {
+    const reasonText = reasonLabels.length ? ` ${reasonLabels.slice(0, 2).join(reasonLabels.length > 1 ? " e " : "").replace(/^./, (char) => char.toUpperCase())}.` : " Ele combina com os detalhes da viagem que você compartilhou até agora.";
+    const tradeoff = top.tradeoffs[0] ? ` A principal troca é: ${top.tradeoffs[0].replace(/\.$/, "").toLowerCase()}.` : "";
+    const incomplete = top.dataQuality.includes("incomplete_preferences") || recommendations.warnings.length > 0 ? " Mais preferências deixariam o ranking mais preciso, mas já há direção suficiente." : "";
+    return `Tenho ${recommendations.recommendations.length} ${recommendations.recommendations.length === 1 ? "opção de resort" : "opções de resort"} que valem considerar, e ${top.displayName} é a melhor escolha agora.${reasonText}${tradeoff}${incomplete}`;
+  }
   const reasonText = reasonLabels.length
     ? ` ${reasonLabels.slice(0, 2).join(reasonLabels.length > 1 ? ", and " : "").replace(/^./, (char) => char.toUpperCase())}.`
     : " It matches the trip details you have shared so far.";
@@ -82,6 +101,7 @@ export function buildPixiePlannerResponse(params: {
 }) {
   let message = stripUnsafeFormatting(params.modelResult.assistantResponse.trim());
   const additionalWarnings = [...params.warnings];
+  const language = resolvePixieConversationLanguage({ latestUserMessage: params.latestUserMessage });
 
   if (markdownPattern.test(params.modelResult.assistantResponse)) {
     additionalWarnings.push("assistant_formatting_normalized: markdown markers were removed for the current plain-text renderer.");
@@ -108,7 +128,7 @@ export function buildPixiePlannerResponse(params: {
   const recommendationResult = params.toolResults.map(asRecommendationResult).find((result): result is PixieRecommendationResult => Boolean(result));
   let recommendationIntroduction: string | undefined;
   if (recommendationResult && shouldAddRecommendationIntroduction(params.modelResult, recommendationResult, params.latestUserMessage)) {
-    recommendationIntroduction = buildRecommendationIntroduction(recommendationResult);
+    recommendationIntroduction = buildRecommendationIntroduction(recommendationResult, language);
   }
   const topRecommendationName = recommendationResult?.recommendations[0]?.displayName;
   if (recommendationIntroduction && topRecommendationName && !message.includes(topRecommendationName)) {

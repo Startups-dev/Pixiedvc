@@ -200,6 +200,20 @@ describe("Pixie planner state", () => {
     expect(state.party.ageGroupSummary?.infant).toBe(0);
   });
 
+  it("preserves explicit zero children when adults are known", () => {
+    const state = normalizePixieTripState({
+      ...createEmptyPixieTripState(),
+      party: {
+        adults: 2,
+        children: 0,
+      },
+    });
+
+    expect(state.party.adultCount).toBe(2);
+    expect(state.party.childCount).toBe(0);
+    expect(state.party.totalPartySize).toBe(2);
+  });
+
   it("keeps known adult and child counts deterministic", () => {
     const state = normalizePixieTripState({
       ...createEmptyPixieTripState(),

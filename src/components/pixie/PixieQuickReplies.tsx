@@ -1,6 +1,7 @@
 "use client";
 
 import type { PixieChatState } from "@/lib/pixie/client/types";
+import { resolvePixieConversationLanguage } from "@/lib/pixie/language";
 import type { PixieQuestionKey } from "@/lib/pixie/types";
 
 const replies: Record<PixieQuestionKey, Array<{ label: string; message: string }>> = {
@@ -74,6 +75,12 @@ const resortDecisionReplies = [
   { label: "Compare point cost", message: "Compare the point-cost tradeoff if we have that context." },
 ];
 
+const portugueseResortChoiceReplies = [
+  { label: "Comparar os dois melhores", message: "Compare os dois melhores resorts para mim." },
+  { label: "Priorizar conveniência", message: "Priorize a recomendação pela conveniência." },
+  { label: "Comparar pontos", message: "Compare a diferença de pontos se tivermos esse contexto." },
+];
+
 function recentConversationText(state?: PixieChatState) {
   return [
     ...(state?.recentMessages ?? []).slice(-4).map((message) => message.content),
@@ -84,6 +91,10 @@ function recentConversationText(state?: PixieChatState) {
 }
 
 function contextualReplies(state?: PixieChatState, nextQuestionKey?: PixieQuestionKey) {
+  const language = resolvePixieConversationLanguage({
+    latestUserMessage: state?.messages.slice().reverse().find((message) => message.role === "user")?.content,
+    recentMessages: state?.recentMessages,
+  });
   const recentText = recentConversationText(state);
   const openDecisions = state?.tripState.planningWorkspace.activeDecisions.some((decision) => decision.status !== "resolved");
   const hasDvcRisk = Boolean(
@@ -97,8 +108,8 @@ function contextualReplies(state?: PixieChatState, nextQuestionKey?: PixieQuesti
   if (/\b(dining|restaurant|restaurants|dinner|lunch|breakfast|eat|food|meal|via napoli|garden grill|biergarten|chefs de france|rose and crown)\b/.test(recentText)) return diningReplies;
   const hasWorkingItinerary = Boolean(state?.tripState.planningWorkspace.workingItinerary.length);
   if (hasWorkingItinerary) return itineraryReplies;
-  if (state?.recommendations?.recommendations.length) return replies.ask_resort_choice;
-  if (/\b(compare|versus| vs | or |which resort|resort options?|tradeoff|tradeoffs)\b/.test(recentText)) return resortDecisionReplies;
+  if (state?.recommendations?.recommendations.length) return language === "pt" ? portugueseResortChoiceReplies : replies.ask_resort_choice;
+  if (/\b(compare|comparar|versus| vs | or |qual resort|which resort|resort options?|tradeoff|tradeoffs)\b/.test(recentText)) return language === "pt" ? portugueseResortChoiceReplies : resortDecisionReplies;
   if (nextQuestionKey === "ask_budget_context" && state?.tripState.budget.budgetType !== "unknown" && state?.tripState.budget.amountCents !== undefined) {
     return replies.ask_resort_choice;
   }

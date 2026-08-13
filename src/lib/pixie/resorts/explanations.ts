@@ -6,6 +6,7 @@ export const PIXIE_REASON_EXPLANATIONS: Record<PixieReasonCode, string> = {
   monorail_access: "Has monorail access for Magic Kingdom-area travel.",
   skyliner_access: "Has Skyliner access for EPCOT or Hollywood Studios-area travel.",
   boat_transportation: "Has boat transportation that matches the trip preferences.",
+  dominant_mk_return_convenience: "Prioritizes the easiest late-night Magic Kingdom return.",
   strong_pool_match: "Pool priority is supported by verified resort metadata.",
   kitchen_match: "Recommended room type includes the requested kitchen level.",
   lower_walking_burden: "Transportation and location reduce walking burden relative to other options.",

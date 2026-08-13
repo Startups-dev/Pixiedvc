@@ -123,6 +123,75 @@ describe("Pixie AI orchestrator", () => {
     expect(result.recommendations?.recommendations[0].score).toBeTypeOf("number");
   });
 
+  it("golden Portuguese Magic Kingdom party scenario keeps BLT first for easiest return", async () => {
+    const first = await runPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-13T12:00:00.000Z"),
+      message: "Eu vou para a Disney no dia 1 de setembro de 2026. Serão eu, meu marido e minha filha de 2 anos. Qual o resort mais apropriado?",
+      provider: successfulProvider(),
+      now: "2026-08-13T12:01:00.000Z",
+    });
+    const second = await runPixiePlannerTurn({
+      state: first.updatedState,
+      message: "Pagaremos mais. Vamos à festa de Halloween no Magic Kingdom no dia 1.",
+      provider: successfulProvider(),
+      now: "2026-08-13T12:02:00.000Z",
+    });
+    const final = await runPixiePlannerTurn({
+      state: second.updatedState,
+      message: "Qual o resort mais fácil para voltar depois da festa?",
+      provider: createFixturePixieProvider({
+        result: {
+          assistantResponse: "Para essa viagem, eu escolheria o Bay Lake Tower.",
+          tripPatch: {},
+          requestedTools: [{ name: "recommend_resorts", input: {} }],
+          planningIntent: "recommend_resorts",
+          conversationMode: "decision_support",
+          activeDecisionKey: "resort_choice",
+          confidence: 0.9,
+          warnings: [],
+        },
+      }),
+      now: "2026-08-13T12:03:00.000Z",
+    });
+
+    expect(final.updatedState.party.adultCount).toBe(2);
+    expect(final.updatedState.party.childCount).toBe(1);
+    expect(final.updatedState.party.travellers[0]?.ageGroup).toBe("preschooler");
+    expect(final.updatedState.preferences.parkPriorities).toContain("Magic Kingdom");
+    expect(final.updatedState.preferences.resortPriorities).toEqual(expect.arrayContaining(["dominant Magic Kingdom return convenience", "walking access after Magic Kingdom party"]));
+    expect(final.recommendations?.recommendations[0]).toMatchObject({ resortId: "blt" });
+    expect(final.recommendations?.recommendations[0].reasonCodes).toContain("dominant_mk_return_convenience");
+    expect(final.recommendations?.recommendations[0].resortId).not.toBe("akv");
+  });
+
+  it("latest Magic Kingdom return preference overrides stale Animal Kingdom preference", async () => {
+    const state = normalizePixieTripState({
+      ...createEmptyPixieTripState("2026-08-13T12:00:00.000Z"),
+      dates: { arrivalDate: "2026-09-01", departureDate: "2026-09-06" },
+      party: { adults: 2, children: 1, travellers: [{ id: "daughter", category: "child", age: 2 }] },
+      preferences: { preferredResorts: ["Animal Kingdom Villas"], resortPriorities: ["savanna", "dominant Magic Kingdom return convenience", "walking access after Magic Kingdom party"], parkPriorities: ["Magic Kingdom"] },
+    });
+    const result = await runPixiePlannerTurn({
+      state,
+      message: "Qual o resort mais fácil para voltar depois da festa?",
+      provider: createFixturePixieProvider({
+        result: {
+          assistantResponse: "Bay Lake Tower é a escolha prática aqui.",
+          tripPatch: {},
+          requestedTools: [{ name: "recommend_resorts", input: {} }],
+          planningIntent: "recommend_resorts",
+          conversationMode: "decision_support",
+          activeDecisionKey: "resort_choice",
+          confidence: 0.9,
+          warnings: [],
+        },
+      }),
+      now: "2026-08-13T12:03:00.000Z",
+    });
+
+    expect(result.recommendations?.recommendations[0].resortId).toBe("blt");
+  });
+
   it("does not call resort recommendations for a narrow DVC cancellation question", async () => {
     const state = normalizePixieTripState({
       ...createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
@@ -390,7 +459,7 @@ describe("Pixie AI orchestrator", () => {
     expect(result.updatedState.party.travellers[0]?.category).toBe("child");
   });
 
-  it("extracts a two-year-old without inventing unknown adults or total party size", async () => {
+  it("infers two adults for plural-family phrasing with our two-year-old", async () => {
     const result = await runPixiePlannerTurn({
       state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
       message: "We're at Magic Kingdom with our 2-year-old and she missed her nap.",
@@ -398,15 +467,96 @@ describe("Pixie AI orchestrator", () => {
       now: "2026-08-09T12:01:00.000Z",
     });
 
-    expect(result.updatedState.party.adults).toBeUndefined();
-    expect(result.updatedState.party.adultCount).toBeUndefined();
+    expect(result.updatedState.party.adults).toBe(2);
+    expect(result.updatedState.party.adultCount).toBe(2);
     expect(result.updatedState.party.children).toBe(1);
     expect(result.updatedState.party.childCount).toBe(1);
-    expect(result.updatedState.party.totalPartySize).toBeUndefined();
+    expect(result.updatedState.party.totalPartySize).toBe(3);
     expect(result.updatedState.party.travellers[0]).toMatchObject({ age: 2, category: "child", ageGroup: "preschooler" });
   });
 
-  it("streams partial two-year-old traveler state without legacy zero-adult totals", async () => {
+  it("infers two adults for we-are phrasing with our two year old", async () => {
+    const result = await runPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      message: "We are at Magic Kingdom with our 2 year old.",
+      provider: successfulProvider(),
+      now: "2026-08-09T12:01:00.000Z",
+    });
+
+    expect(result.updatedState.party.adultCount).toBe(2);
+    expect(result.updatedState.party.childCount).toBe(1);
+    expect(result.updatedState.party.totalPartySize).toBe(3);
+    expect(result.updatedState.party.travellers[0]?.ageGroup).toBe("preschooler");
+  });
+
+  it("infers one adult for singular phrasing with my two-year-old", async () => {
+    const result = await runPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      message: "I'm with my 2-year-old.",
+      provider: successfulProvider(),
+      now: "2026-08-09T12:01:00.000Z",
+    });
+
+    expect(result.updatedState.party.adultCount).toBe(1);
+    expect(result.updatedState.party.childCount).toBe(1);
+    expect(result.updatedState.party.totalPartySize).toBe(2);
+    expect(result.updatedState.party.travellers[0]?.ageGroup).toBe("preschooler");
+  });
+
+  it("infers one adult for I-am phrasing with my two-year-old", async () => {
+    const result = await runPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      message: "I am with my 2-year-old.",
+      provider: successfulProvider(),
+      now: "2026-08-09T12:01:00.000Z",
+    });
+
+    expect(result.updatedState.party.adultCount).toBe(1);
+    expect(result.updatedState.party.childCount).toBe(1);
+    expect(result.updatedState.party.totalPartySize).toBe(2);
+  });
+
+  it("leaves adults unknown for standalone possessive two-year-old phrasing", async () => {
+    const result = await runPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      message: "My 2-year-old missed her nap.",
+      provider: successfulProvider(),
+      now: "2026-08-09T12:01:00.000Z",
+    });
+
+    expect(result.updatedState.party.adultCount).toBeUndefined();
+    expect(result.updatedState.party.childCount).toBe(1);
+    expect(result.updatedState.party.totalPartySize).toBeUndefined();
+    expect(result.updatedState.party.travellers[0]?.ageGroup).toBe("preschooler");
+  });
+
+  it("leaves adults unknown for our two-year-old without a clear plural subject", async () => {
+    const result = await runPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      message: "Our 2-year-old missed her nap.",
+      provider: successfulProvider(),
+      now: "2026-08-09T12:01:00.000Z",
+    });
+
+    expect(result.updatedState.party.adultCount).toBeUndefined();
+    expect(result.updatedState.party.childCount).toBe(1);
+    expect(result.updatedState.party.totalPartySize).toBeUndefined();
+  });
+
+  it("lets explicit adult counts override plural-family inference", async () => {
+    const result = await runPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      message: "We're 3 adults with our 2-year-old.",
+      provider: successfulProvider(),
+      now: "2026-08-09T12:01:00.000Z",
+    });
+
+    expect(result.updatedState.party.adultCount).toBe(3);
+    expect(result.updatedState.party.childCount).toBe(1);
+    expect(result.updatedState.party.totalPartySize).toBe(4);
+  });
+
+  it("streams inferred plural-family two-year-old traveler state", async () => {
     const events = [];
     for await (const event of streamPixiePlannerTurn({
       state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
@@ -424,9 +574,9 @@ describe("Pixie AI orchestrator", () => {
     const patchEvent = events.find((event) => event.type === "trip_patch_applied");
     expect(patchEvent?.type).toBe("trip_patch_applied");
     if (patchEvent?.type === "trip_patch_applied") {
-      expect(patchEvent.updatedState.party.adultCount).toBeUndefined();
+      expect(patchEvent.updatedState.party.adultCount).toBe(2);
       expect(patchEvent.updatedState.party.childCount).toBe(1);
-      expect(patchEvent.updatedState.party.totalPartySize).toBeUndefined();
+      expect(patchEvent.updatedState.party.totalPartySize).toBe(3);
       expect(patchEvent.updatedState.party.travellers[0]?.ageGroup).toBe("preschooler");
       expect(patchEvent.updatedState.party.ageGroupSummary?.infant).toBe(0);
     }

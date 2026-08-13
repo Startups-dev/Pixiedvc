@@ -104,6 +104,7 @@ export type PixieReasonCode =
   | "monorail_access"
   | "skyliner_access"
   | "boat_transportation"
+  | "dominant_mk_return_convenience"
   | "strong_pool_match"
   | "kitchen_match"
   | "lower_walking_burden"

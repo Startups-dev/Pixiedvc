@@ -122,6 +122,36 @@ describe("Pixie response builder", () => {
     expect(response.message).not.toContain("92");
   });
 
+  it("uses Portuguese for deterministic resort recommendation introductions in Portuguese turns", () => {
+    const result = recommendationResult();
+    const response = buildPixiePlannerResponse({
+      modelResult: modelResult({
+        assistantResponse: "Eu escolheria esse resort para essa noite.",
+        requestedTools: [{ name: "recommend_resorts", input: {} }],
+        planningIntent: "recommend_resorts",
+        conversationMode: "recommendation",
+        activeDecisionKey: "resort_choice",
+      }),
+      completeness: result.recommendationReadiness,
+      toolResults: [
+        {
+          ok: true,
+          toolName: "recommend_resorts",
+          result,
+          durationMs: 1,
+          trusted: true,
+        } satisfies PixieToolResult,
+      ],
+      latestUserMessage: "Qual o resort mais fácil para voltar depois da festa?",
+      warnings: [],
+    });
+
+    expect(response.message).toContain("Tenho 1 opção de resort");
+    expect(response.message).toContain("é a melhor escolha agora");
+    expect(response.message).not.toContain("I have 1 resort option");
+    expect(response.message).not.toContain("strongest fit right now");
+  });
+
   it("does not prepend the resort intro to routine discovery turns just because implicit recommendations ran", () => {
     const result = recommendationResult();
     const response = buildPixiePlannerResponse({

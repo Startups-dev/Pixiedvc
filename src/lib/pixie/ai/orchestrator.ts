@@ -100,28 +100,41 @@ function turnId(now: string) {
 }
 
 const MONTHS: Record<string, number> = {
+  janeiro: 1,
   january: 1,
   jan: 1,
+  fevereiro: 2,
   february: 2,
   feb: 2,
+  marco: 3,
+  março: 3,
   march: 3,
   mar: 3,
+  abril: 4,
   april: 4,
   apr: 4,
+  maio: 5,
   may: 5,
+  junho: 6,
   june: 6,
   jun: 6,
+  julho: 7,
   july: 7,
   jul: 7,
+  agosto: 8,
   august: 8,
   aug: 8,
+  setembro: 9,
   september: 9,
   sept: 9,
   sep: 9,
+  outubro: 10,
   october: 10,
   oct: 10,
+  novembro: 11,
   november: 11,
   nov: 11,
+  dezembro: 12,
   december: 12,
   dec: 12,
 };
@@ -225,7 +238,12 @@ function extractLightweightDates(message: string): DateExtractionResult {
   const monthPattern = Object.keys(MONTHS).join("|");
   const arrivalPattern = new RegExp(`\\b(?:arriving|arrive|check(?:ing)?\\s*in)\\s+(?:on\\s+)?(${monthPattern})\\s+(\\d{1,2})(?:,\\s*(\\d{4}))?\\b`, "i");
   const checkoutPattern = new RegExp(`\\b(?:check(?:ing)?\\s*out|checkout)\\s+(?:on\\s+)?(${monthPattern})\\s+(\\d{1,2})(?:,\\s*(\\d{4}))?\\b`, "i");
-  const arrivalDate = extractExplicitDate(arrivalPattern, message, fallbackYear);
+  const portugueseArrivalPattern = new RegExp(`\\b(?:dia\\s+)?(\\d{1,2})\\s+de\\s+(${monthPattern})(?:\\s+de\\s+(\\d{4}))?\\b`, "i");
+  const portugueseArrivalMatch = portugueseArrivalPattern.exec(message);
+  const portugueseArrivalDate = portugueseArrivalMatch
+    ? dateOnly(Number(portugueseArrivalMatch[3] ?? fallbackYear ?? new Date().getFullYear()), MONTHS[portugueseArrivalMatch[2].toLowerCase()], Number(portugueseArrivalMatch[1]))
+    : undefined;
+  const arrivalDate = extractExplicitDate(arrivalPattern, message, fallbackYear) ?? portugueseArrivalDate;
   const departureDate = extractExplicitDate(checkoutPattern, message, fallbackYear);
   const dateNotes = dateMentions.mentions.length ? [`Availability or planning dates mentioned: ${dateMentions.mentions.join(", ")}.`] : [];
 
@@ -256,18 +274,26 @@ function extractPreferenceFacts(message: string) {
   const noteFacts: string[] = [];
   const normalized = message.toLowerCase();
 
+  if (/\bpagar(?:emos)?\s+mais\b|\bpagaremos mais\b|\bpre[cç]o n[aã]o importa\b|\bpodemos pagar mais\b/.test(normalized)) {
+    resortPriorities.push("price sensitivity low");
+  }
   if (/\bminimi[sz]e resort changes\b|\bfew(?:er)? resort changes\b|\bavoid (?:a )?(?:resort )?transfer\b|\bleast annoying (?:split stay|version)\b/.test(normalized)) {
     resortPriorities.push("minimize resort changes");
   }
   if (/\bsave points\b|\blower points\b|\bfew(?:er)? points\b|\bpoint saving\b/.test(normalized)) {
     resortPriorities.push("save points where reasonable");
   }
-  if (/\bnear magic kingdom\b|\bclose to magic kingdom\b|\bmagic kingdom.*first night\b|\bfirst night.*magic kingdom\b/.test(normalized)) {
+  if (/\bnear magic kingdom\b|\bclose to magic kingdom\b|\bmagic kingdom.*first night\b|\bfirst night.*magic kingdom\b|\bperto do magic kingdom\b|\bvoltar depois da festa\b|\bmais f[aá]cil para voltar\b/.test(normalized)) {
     resortPriorities.push("stay near Magic Kingdom");
     parkPriorities.push("Magic Kingdom");
   }
+  if (/\bvoltar depois da festa\b|\bmais f[aá]cil para voltar\b|\bvolta depois da festa\b/.test(normalized)) {
+    resortPriorities.push("dominant Magic Kingdom return convenience");
+    resortPriorities.push("walking access after Magic Kingdom party");
+    parkPriorities.push("Magic Kingdom");
+  }
   if (/\bmagic kingdom\b/.test(normalized)) parkPriorities.push("Magic Kingdom");
-  if (/\bhalloween party\b|\bmickey'?s not so scary halloween party\b/.test(normalized)) {
+  if (/\bhalloween party\b|\bfesta de halloween\b|\bmickey'?s not so scary halloween party\b/.test(normalized)) {
     parkPriorities.push("Magic Kingdom");
     noteFacts.push("Magic Kingdom Halloween party constraint mentioned.");
   }
@@ -432,7 +458,7 @@ function extractDvcContextPatch(message: string): NonNullable<PixieTripPatch["dv
 }
 
 function extractPartyPatch(message: string, state: PixieTripState): NonNullable<PixieTripPatch["party"]> | undefined {
-  const normalized = message.toLowerCase().replace(/\s+/g, " ");
+  const normalized = message.toLowerCase().replace(/[’]/g, "'").replace(/\s+/g, " ");
   const patch: NonNullable<PixieTripPatch["party"]> = {};
   const childOperations: NonNullable<NonNullable<PixieTripPatch["party"]>["travellerOperations"]> = [];
 
@@ -445,12 +471,19 @@ function extractPartyPatch(message: string, state: PixieTripState): NonNullable<
   const childOnlyMatch = /\b(\d{1,2})\s+(?:children|kids?|child)\b/.exec(normalized);
   if (childOnlyMatch && patch.children === undefined) patch.children = Number(childOnlyMatch[1]);
 
-  const wifePattern = /\b(?:me|myself|i)\b[\s\S]{0,24}\bmy wife\b|\bmy wife\b[\s\S]{0,24}\b(?:me|myself|i)\b/;
+  const wifePattern = /\b(?:me|myself|i)\b[\s\S]{0,24}\bmy wife\b|\bmy wife\b[\s\S]{0,24}\b(?:me|myself|i)\b|\b(?:eu)\b[\s\S]{0,32}\bmeu marido\b|\bmeu marido\b[\s\S]{0,32}\b(?:eu)\b/;
   if (wifePattern.test(normalized)) patch.adults = Math.max(patch.adults ?? 0, 2);
 
-  const ageMatch = /\b(?:my|our)\s+(\d{1,2})\s*[-\s]*(?:year|yr)[-\s]*old\b/.exec(normalized);
+  const ageMatch = /\b(?:my|our)\s+(\d{1,2})\s*[-\s]*(?:year|yr)[-\s]*old\b|\b(?:minha|meu|nossa|nosso)\s+(?:filha|filho|crian[çc]a)\s+de\s+(\d{1,2})\s+anos?\b/.exec(normalized);
   if (ageMatch) {
-    const age = Number(ageMatch[1]);
+    const age = Number(ageMatch[1] ?? ageMatch[2]);
+    const agePhrase = ageMatch[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const singularAdultWithChild = new RegExp(`\\b(?:i am|i'm|im)\\b[\\s\\S]{0,80}\\bwith\\s+${agePhrase}\\b`).test(normalized);
+    const pluralAdultsWithChild = new RegExp(`\\b(?:we are|we're|were)\\b[\\s\\S]{0,80}\\bwith\\s+${agePhrase}\\b`).test(normalized);
+    if (patch.adults === undefined) {
+      if (pluralAdultsWithChild) patch.adults = 2;
+      else if (singularAdultWithChild) patch.adults = 1;
+    }
     patch.children = Math.max(patch.children ?? 0, 1);
     if (!state.party.travellers.some((traveller) => traveller.age === age)) {
       childOperations.push({

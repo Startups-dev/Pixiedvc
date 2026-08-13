@@ -45,6 +45,11 @@ function priorityParks(state: PixieTripState) {
   return parks;
 }
 
+function hasDominantMagicKingdomReturnConstraint(state: PixieTripState) {
+  const values = [...state.preferences.resortPriorities, ...state.preferences.transportationPreferences, ...state.preferences.parkPriorities, state.preferences.generalNotes ?? ""].map((value) => value.toLowerCase());
+  return values.some((value) => /dominant magic kingdom return|walking access after magic kingdom|late.*magic kingdom|halloween party|voltar depois da festa|mais f[aá]cil para voltar/.test(value));
+}
+
 export function evaluateBudgetFit(state: PixieTripState, price: PixieGuestPriceEstimate | null): PixieBudgetFit {
   const budget = state.budget;
   if (budget.amountCents === undefined || budget.budgetType === "unknown") return "budget_context_missing";
@@ -98,7 +103,16 @@ export function scorePixieResort(params: {
   breakdown.push({ dimension: "parkProximity", points: parkPoints, maxPoints: PIXIE_SCORING_WEIGHTS.parkProximity, reasonCode: parkPoints === PIXIE_SCORING_WEIGHTS.parkProximity ? "near_priority_park" : undefined });
 
   let transportPoints = 6;
-  if (includesAny(state.preferences.transportationPreferences, ["monorail"]) && resort.transportationModes.includes("monorail")) {
+  const dominantMkReturn = hasDominantMagicKingdomReturnConstraint(state);
+  if (dominantMkReturn && resort.nearbyParks.includes("magic_kingdom") && resort.transportationModes.includes("walk")) {
+    transportPoints = PIXIE_SCORING_WEIGHTS.transportation + 8;
+    reasonCodes.add("dominant_mk_return_convenience");
+  } else if (dominantMkReturn && resort.nearbyParks.includes("magic_kingdom") && (resort.transportationModes.includes("monorail") || resort.transportationModes.includes("boat"))) {
+    transportPoints = PIXIE_SCORING_WEIGHTS.transportation + 2;
+    reasonCodes.add("dominant_mk_return_convenience");
+  } else if (dominantMkReturn) {
+    transportPoints = 0;
+  } else if (includesAny(state.preferences.transportationPreferences, ["monorail"]) && resort.transportationModes.includes("monorail")) {
     transportPoints = PIXIE_SCORING_WEIGHTS.transportation;
     reasonCodes.add("monorail_access");
   } else if (includesAny(state.preferences.transportationPreferences, ["skyliner"]) && resort.transportationModes.includes("skyliner")) {
@@ -119,8 +133,14 @@ export function scorePixieResort(params: {
   if (poolPoints === PIXIE_SCORING_WEIGHTS.pool) reasonCodes.add("strong_pool_match");
   breakdown.push({ dimension: "pool", points: poolPoints, maxPoints: PIXIE_SCORING_WEIGHTS.pool, reasonCode: poolPoints === PIXIE_SCORING_WEIGHTS.pool ? "strong_pool_match" : undefined });
 
-  const walkingSensitive = state.preferences.walkingSensitivity === "high" || Boolean(state.accessibility.mobilityConsiderations);
-  const walkingPoints = !walkingSensitive ? 4 : resort.transportationModes.includes("monorail") || resort.transportationModes.includes("skyliner") ? PIXIE_SCORING_WEIGHTS.walking : 3;
+  const walkingSensitive = dominantMkReturn || state.preferences.walkingSensitivity === "high" || Boolean(state.accessibility.mobilityConsiderations);
+  const walkingPoints = !walkingSensitive
+    ? 4
+    : dominantMkReturn && resort.nearbyParks.includes("magic_kingdom") && resort.transportationModes.includes("walk")
+      ? PIXIE_SCORING_WEIGHTS.walking + 8
+      : resort.transportationModes.includes("monorail") || resort.transportationModes.includes("skyliner")
+        ? PIXIE_SCORING_WEIGHTS.walking
+        : 3;
   if (walkingSensitive && walkingPoints === PIXIE_SCORING_WEIGHTS.walking) reasonCodes.add("lower_walking_burden");
   breakdown.push({ dimension: "walking", points: walkingPoints, maxPoints: PIXIE_SCORING_WEIGHTS.walking, reasonCode: walkingSensitive ? "lower_walking_burden" : undefined });
 
