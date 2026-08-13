@@ -284,6 +284,29 @@ describe("Pixie UI contracts", () => {
     expect(screen.getAllByRole("button")).toHaveLength(4);
   });
 
+  it("shows dining-context quick replies instead of generic date collection after a restaurant conversation", () => {
+    const state = createInitialPixieChatState();
+    render(
+      <PixieQuickReplies
+        state={{
+          ...state,
+          recentMessages: [
+            { role: "user", content: "We're staying at BoardWalk and going to EPCOT. Give me actual restaurants for dinner." },
+            { role: "assistant", content: "I would start with Via Napoli, Garden Grill, and Biergarten." },
+          ],
+        }}
+        nextQuestionKey="ask_dates"
+        disabled={false}
+        onSend={() => undefined}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /compare my top 3/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /keep it budget-friendly/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /best with our toddler/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /we know our dates/i })).not.toBeInTheDocument();
+  });
+
   it("shows DVC discussion quick replies instead of resort comparison chips when point risk is active", () => {
     const state = createInitialPixieChatState();
     const patched = applyPixieTripPatch(state.tripState, {

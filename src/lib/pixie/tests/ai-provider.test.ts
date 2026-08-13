@@ -7,6 +7,8 @@ import { createFixturePixieProvider } from "@/lib/pixie/ai/provider";
 import { PIXIE_AI_PROMPT_VERSION, pixieModelTurnResultSchema } from "@/lib/pixie/ai/schemas";
 import { getPixieAiConfig } from "@/lib/pixie/ai/safety";
 import { evaluatePixieCompleteness } from "@/lib/pixie/completeness";
+import { buildDvcContext } from "@/lib/pixie/dvc";
+import { createHannaKnowledgeService } from "@/lib/pixie/knowledge";
 import { createEmptyPixieTripState } from "@/lib/pixie/planner-state";
 
 describe("Pixie AI provider contract", () => {
@@ -157,6 +159,60 @@ describe("Pixie AI provider contract", () => {
     expect(schema?.properties).toHaveProperty("conversationMode");
     expect(schema?.properties).toHaveProperty("activeDecisionKey");
     expect(schema?.properties).toHaveProperty("delightMomentKey");
+  });
+
+  it("includes compact Hanna knowledge context in the provider input payload", async () => {
+    const fetchMock = mockOpenAiResponse(Response.json(validOpenAiPayload()));
+    const provider = createOpenAiPixieProvider(testEnv({
+      OPENAI_API_KEY: "sk-test-redacted",
+      PIXIE_MODEL: "gpt-5.6-sol",
+    }));
+    const input = plannerInput();
+    input.latestUserMessage = "We're staying at BoardWalk and going to EPCOT for dinner with a 2 year old.";
+    input.knowledgeContext = createHannaKnowledgeService().retrieve({
+      latestUserMessage: input.latestUserMessage,
+      currentState: input.currentState,
+    });
+
+    await provider.createPlannerTurn(input);
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as {
+      input?: Array<{ content?: string }>;
+    };
+    const userPayload = JSON.parse(String(requestBody.input?.[0]?.content)) as PixiePlannerTurnInput;
+
+    expect(userPayload.knowledgeContext?.source).toBe("hanna_v1_static");
+    expect(userPayload.knowledgeContext?.candidates).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "dining_via_napoli" })]),
+    );
+    expect(JSON.stringify(userPayload.knowledgeContext)).not.toMatch(/sourceUrl|aliases|provenance|score/);
+  });
+
+  it("includes bounded DVC rule context in the provider input payload", async () => {
+    const fetchMock = mockOpenAiResponse(Response.json(validOpenAiPayload()));
+    const provider = createOpenAiPixieProvider(testEnv({
+      OPENAI_API_KEY: "sk-test-redacted",
+      PIXIE_MODEL: "gpt-5.6-sol",
+    }));
+    const input = plannerInput();
+    input.latestUserMessage = "I own at BoardWalk. Can I book BoardWalk for December 15 2028?";
+    input.dvcContext = buildDvcContext({
+      latestUserMessage: input.latestUserMessage,
+      currentState: input.currentState,
+      now: "2026-08-13T12:00:00.000Z",
+    });
+
+    await provider.createPlannerTurn(input);
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as {
+      input?: Array<{ content?: string }>;
+    };
+    const userPayload = JSON.parse(String(requestBody.input?.[0]?.content)) as PixiePlannerTurnInput;
+
+    expect(userPayload.dvcContext?.source).toBe("pixie_dvc_rules_v1");
+    expect(userPayload.dvcContext?.results.length).toBeLessThanOrEqual(4);
+    expect(userPayload.dvcContext?.results[0]).toMatchObject({
+      reasonCodes: expect.arrayContaining(["BOOKING_WINDOW_NOT_OPEN"]),
+    });
+    expect(JSON.stringify(userPayload.dvcContext)).not.toMatch(/DVC_RULE_NOTES|homeWindow|nonHomeWindow/);
   });
 
   it("returns a typed configuration error when the API key is missing", async () => {

@@ -4,6 +4,8 @@ import type { PixieRecommendationResult } from "@/lib/pixie/resorts/recommendati
 import type { PixieReadyStayMatchResult } from "@/lib/pixie/ready-stays/types";
 import type { PixieTripPatch, PixieTripState } from "@/lib/pixie/schema";
 import type { PixieCompletenessResult, PixieQuestionKey } from "@/lib/pixie/types";
+import { createHannaKnowledgeService, type HannaKnowledgeContext } from "@/lib/pixie/knowledge";
+import { buildDvcContext, type DvcContext } from "@/lib/pixie/dvc";
 import type { PixieAiError } from "@/lib/pixie/ai/errors";
 import { PixieAiException, pixieAiError } from "@/lib/pixie/ai/errors";
 import type { PixieModelProvider, PixieModelProviderResult } from "@/lib/pixie/ai/provider";
@@ -88,6 +90,8 @@ type PreparedPixiePlannerTurn = {
   usage: PixieTurnUsage;
   provider: PixieModelProvider;
   providerTimeoutMs: number;
+  knowledgeContext: HannaKnowledgeContext;
+  dvcContext: DvcContext;
   extractedState?: PixieTripState;
 };
 
@@ -619,6 +623,17 @@ function preparePixiePlannerTurn(input: RunPixiePlannerTurnInput): PreparedPixie
   let usage = emptyPixieUsage("openai", config.model, PIXIE_AI_PROMPT_VERSION);
   const provider = input.provider ?? createOpenAiPixieProvider();
   const providerTimeoutMs = providerTimeoutForTurn(message.message, config.modelTimeoutMs);
+  const knowledgeContext = createHannaKnowledgeService().retrieve({
+    latestUserMessage: message.message,
+    currentState: state,
+    recentMessages: limitRecentMessages(requestParsed.data.recentMessages, config.maxRecentMessages),
+  });
+  const dvcContext = buildDvcContext({
+    latestUserMessage: message.message,
+    currentState: state,
+    recentMessages: limitRecentMessages(requestParsed.data.recentMessages, config.maxRecentMessages),
+    now: generatedAt,
+  });
 
   return {
     id,
@@ -632,6 +647,8 @@ function preparePixiePlannerTurn(input: RunPixiePlannerTurnInput): PreparedPixie
     usage,
     provider,
     providerTimeoutMs,
+    knowledgeContext,
+    dvcContext,
     extractedState,
   };
 }
@@ -649,6 +666,8 @@ async function completePixiePlannerTurn(prepared: PreparedPixiePlannerTurn, inpu
         completeness,
         availableTools: getPixieModelToolDefinitions(),
         destinationScope: "walt_disney_world",
+        knowledgeContext: prepared.knowledgeContext,
+        dvcContext: prepared.dvcContext,
         safeContext: input.context,
       },
       { model: prepared.config.model, maxOutputTokens: prepared.config.maxOutputTokens, timeoutMs: prepared.providerTimeoutMs },

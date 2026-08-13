@@ -145,4 +145,23 @@ describe("Pixie planner schemas", () => {
       }).success,
     ).toBe(false);
   });
+
+  it("accepts structured DVC contracts and point lots without requiring account access", () => {
+    const state = pixieTripStateSchema.parse({
+      ...createEmptyPixieTripState(),
+      dvcContext: {
+        contracts: [
+          { id: "bwv_direct", homeResort: "BoardWalk Villas", acquisitionType: "direct", useYearMonth: 9, points: 150 },
+          { id: "ssr_resale", homeResort: "Saratoga Springs", acquisitionType: "resale", points: 100 },
+        ],
+        pointLots: [
+          { id: "banked_bwv_2026", contractId: "bwv_direct", state: "banked", points: 40, expirationDate: "2027-08-31" },
+          { id: "transferred_2026", state: "transferred", points: 20 },
+        ],
+      },
+    });
+
+    expect(state.dvcContext.contracts).toHaveLength(2);
+    expect(state.dvcContext.pointLots[0]?.state).toBe("banked");
+  });
 });

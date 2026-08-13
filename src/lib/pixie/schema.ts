@@ -151,10 +151,36 @@ const pixiePointBucketSchema = z
   })
   .strict();
 
+const pixieDvcContractSchema = z
+  .object({
+    id: z.string().trim().regex(localIdPattern),
+    homeResort: optionalTrimmedString(),
+    acquisitionType: z.enum(["direct", "resale", "unknown"]).default("unknown"),
+    useYearMonth: z.number().int().min(1).max(12).optional(),
+    points: z.number().int().min(0).max(5000).optional(),
+    source: pixieFactSourceSchema.default("user_provided"),
+    notes: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
+  })
+  .strict();
+
+const pixieDvcPointLotSchema = z
+  .object({
+    id: z.string().trim().regex(localIdPattern),
+    contractId: z.string().trim().regex(localIdPattern).optional(),
+    state: z.enum(["current", "banked", "borrowed", "transferred", "holding", "unknown"]).default("unknown"),
+    points: z.number().int().min(0).max(5000),
+    useYearMonth: z.number().int().min(1).max(12).optional(),
+    expirationDate: pixieDateOnlySchema.optional(),
+    source: pixieFactSourceSchema.default("user_provided"),
+    notes: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
+  })
+  .strict();
+
 export const pixieDvcContextSchema = z
   .object({
     lodgingContext: z.enum(["dvc_points", "ready_stay", "other", "unknown"]).default("unknown"),
     homeResort: optionalTrimmedString(),
+    contracts: z.array(pixieDvcContractSchema).max(8).default([]),
     bookingWindowContext: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
     useYear: optionalTrimmedString(40),
     currentUseYearPoints: pixiePointBucketSchema.optional(),
@@ -162,6 +188,7 @@ export const pixieDvcContextSchema = z
     borrowedPoints: pixiePointBucketSchema.optional(),
     transferredPoints: pixiePointBucketSchema.optional(),
     nextUseYearPoints: pixiePointBucketSchema.optional(),
+    pointLots: z.array(pixieDvcPointLotSchema).max(PIXIE_LIMITS.maxArrayItems).default([]),
     borrowingContemplated: z.boolean().optional(),
     holdingExposure: z
       .object({

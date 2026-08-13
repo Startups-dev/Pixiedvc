@@ -381,6 +381,8 @@ export function createOpenAiPixieProvider(env: NodeJS.ProcessEnv = process.env):
                     completeness: input.completeness,
                     recentMessages: input.recentMessages,
                     destinationScope: input.destinationScope,
+                    knowledgeContext: input.knowledgeContext,
+                    dvcContext: input.dvcContext,
                     priorToolResults: input.priorToolResults ?? [],
                   }),
                 },

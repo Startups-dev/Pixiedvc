@@ -200,6 +200,8 @@ describe("Pixie planner state", () => {
         useYear: "September",
         currentUseYearPoints: { points: 9, source: "user_provided" },
         nextUseYearPoints: { points: 220, source: "user_provided" },
+        contracts: [{ id: "  bwv_direct  ", homeResort: " BoardWalk Villas ", acquisitionType: "direct", points: 150 }],
+        pointLots: [{ id: " banked_2026 ", state: "banked", points: 12, expirationDate: "2027-08-31", notes: "  Use before current points.  " }],
         borrowingContemplated: true,
         planningRisks: ["Unknown account-specific point allocation should not be invented."],
       },
@@ -236,6 +238,8 @@ describe("Pixie planner state", () => {
     expect(patched.state.dvcContext.useYear).toBe("September");
     expect(patched.state.dvcContext.currentUseYearPoints?.points).toBe(9);
     expect(patched.state.dvcContext.nextUseYearPoints?.points).toBe(220);
+    expect(patched.state.dvcContext.contracts[0]).toMatchObject({ id: "bwv_direct", homeResort: "BoardWalk Villas" });
+    expect(patched.state.dvcContext.pointLots[0]).toMatchObject({ id: "banked_2026", notes: "Use before current points." });
     expect(patched.state.dvcContext.borrowedPoints).toBeUndefined();
     expect(patched.state.planningWorkspace.workingItinerary).toHaveLength(2);
     expect(patched.state.planningWorkspace.workingItinerary[1]?.status).toBe("unresolved");

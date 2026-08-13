@@ -230,4 +230,26 @@ describe("Pixie response builder", () => {
     expect(response.message).not.toContain("When are you traveling?");
     expect(response.message).toContain("What accommodation budget should I use?");
   });
+
+  it("does not repeat known traveler-age questions after the child age is already in state", () => {
+    const state = normalizePixieTripState({
+      ...createEmptyPixieTripState("2026-07-15T12:00:00.000Z"),
+      party: {
+        adults: 2,
+        children: 1,
+        travellers: [{ id: "child_1", category: "child", age: 2 }],
+      },
+    });
+    const response = buildPixiePlannerResponse({
+      modelResult: modelResult({
+        assistantResponse: "Via Napoli is a strong fit with a 2-year-old. Who is traveling, and how old are the children?",
+        nextQuestionKey: "ask_budget_context",
+      }),
+      completeness: evaluatePixieCompleteness(state),
+      toolResults: [],
+      warnings: [],
+    });
+
+    expect(response.message).toBe("Via Napoli is a strong fit with a 2-year-old.");
+  });
 });

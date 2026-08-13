@@ -1,5 +1,7 @@
 import type { PixieCompletenessResult } from "@/lib/pixie/types";
 import type { PixieTripState } from "@/lib/pixie/schema";
+import type { HannaKnowledgeContext } from "@/lib/pixie/knowledge";
+import type { DvcContext } from "@/lib/pixie/dvc";
 import type {
   PixieModelTurnResult,
   PixieProviderUsage,
@@ -22,6 +24,8 @@ export type PixiePlannerTurnInput = {
   completeness: PixieCompletenessResult;
   availableTools: PixieModelToolDefinition[];
   destinationScope: "walt_disney_world";
+  knowledgeContext?: HannaKnowledgeContext;
+  dvcContext?: DvcContext;
   safeContext?: {
     requestId?: string;
     sessionId?: string;

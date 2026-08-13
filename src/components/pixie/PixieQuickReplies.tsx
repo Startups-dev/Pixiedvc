@@ -61,7 +61,30 @@ const itineraryReplies = [
   { label: "Compare party night", message: "Compare the party-night lodging options." },
 ];
 
+const diningReplies = [
+  { label: "Compare my top 3", message: "Compare the top three dining options for this part of the trip." },
+  { label: "Keep it budget-friendly", message: "Keep the dining choice budget-friendly." },
+  { label: "Best with our toddler", message: "Which dining option is best with our toddler?" },
+  { label: "What needs live checking?", message: "Explain what dining details still need a live check." },
+];
+
+const resortDecisionReplies = [
+  { label: "Show tradeoffs", message: "Show the tradeoffs between these resort options." },
+  { label: "Optimize convenience", message: "Optimize the recommendation for convenience." },
+  { label: "Compare point cost", message: "Compare the point-cost tradeoff if we have that context." },
+];
+
+function recentConversationText(state?: PixieChatState) {
+  return [
+    ...(state?.recentMessages ?? []).slice(-4).map((message) => message.content),
+    ...(state?.messages ?? []).slice(-4).map((message) => message.content),
+  ]
+    .join(" ")
+    .toLowerCase();
+}
+
 function contextualReplies(state?: PixieChatState, nextQuestionKey?: PixieQuestionKey) {
+  const recentText = recentConversationText(state);
   const openDecisions = state?.tripState.planningWorkspace.activeDecisions.some((decision) => decision.status !== "resolved");
   const hasDvcRisk = Boolean(
     state?.tripState.dvcContext.holdingExposure ||
@@ -71,9 +94,11 @@ function contextualReplies(state?: PixieChatState, nextQuestionKey?: PixieQuesti
       openDecisions,
   );
   if (hasDvcRisk) return dvcReplies;
+  if (/\b(dining|restaurant|restaurants|dinner|lunch|breakfast|eat|food|meal|via napoli|garden grill|biergarten|chefs de france|rose and crown)\b/.test(recentText)) return diningReplies;
   const hasWorkingItinerary = Boolean(state?.tripState.planningWorkspace.workingItinerary.length);
   if (hasWorkingItinerary) return itineraryReplies;
   if (state?.recommendations?.recommendations.length) return replies.ask_resort_choice;
+  if (/\b(compare|versus| vs | or |which resort|resort options?|tradeoff|tradeoffs)\b/.test(recentText)) return resortDecisionReplies;
   if (nextQuestionKey === "ask_budget_context" && state?.tripState.budget.budgetType !== "unknown" && state?.tripState.budget.amountCents !== undefined) {
     return replies.ask_resort_choice;
   }

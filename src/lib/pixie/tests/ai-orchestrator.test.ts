@@ -153,6 +153,53 @@ describe("Pixie AI orchestrator", () => {
     expect(result.assistantResponse).toMatch(/^You are right to check/);
   });
 
+  it("passes compact Hanna knowledge context to the provider after lightweight extraction", async () => {
+    let providerInput: PixiePlannerTurnInput | undefined;
+    await runPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-12T12:00:00.000Z"),
+      message:
+        "We're staying at BoardWalk and going to EPCOT. Give me 5 actual restaurants for dinner with our 2 year old.",
+      provider: successfulProvider((input) => {
+        providerInput = input;
+      }),
+      now: "2026-08-12T12:01:00.000Z",
+    });
+
+    expect(providerInput?.knowledgeContext?.domains).toEqual(expect.arrayContaining(["dining", "family"]));
+    expect(providerInput?.knowledgeContext?.resolvedEntities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "resort_boardwalk_villas" }),
+        expect.objectContaining({ id: "park_epcot" }),
+      ]),
+    );
+    expect(providerInput?.knowledgeContext?.candidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "dining_via_napoli" }),
+        expect.objectContaining({ id: "dining_garden_grill" }),
+      ]),
+    );
+    expect(providerInput?.knowledgeContext?.candidates.length).toBeLessThanOrEqual(8);
+  });
+
+  it("passes compact DVC rule context to the provider for narrow DVC turns", async () => {
+    let providerInput: PixiePlannerTurnInput | undefined;
+    await runPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-13T12:00:00.000Z"),
+      message: "I own at BoardWalk. Can I book BoardWalk for December 15 2028?",
+      provider: successfulProvider((input) => {
+        providerInput = input;
+      }),
+      now: "2026-08-13T12:01:00.000Z",
+    });
+
+    expect(providerInput?.dvcContext?.source).toBe("pixie_dvc_rules_v1");
+    expect(providerInput?.dvcContext?.results.length).toBeLessThanOrEqual(4);
+    expect(providerInput?.dvcContext?.results[0]).toMatchObject({
+      reasonCodes: expect.arrayContaining(["HOME_RESORT", "BOOKING_WINDOW_NOT_OPEN"]),
+    });
+    expect(providerInput?.dvcContext?.results[0]?.factsUsed).toEqual(expect.arrayContaining([expect.objectContaining({ label: "homeOpenDate" })]));
+  });
+
   it("provider failure emits a typed stream failure instead of a completed fallback turn", async () => {
     const state = createEmptyPixieTripState("2026-07-11T12:00:00.000Z");
     const events = [];

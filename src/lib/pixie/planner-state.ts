@@ -76,7 +76,16 @@ function normalizeOptionalText(value: string | undefined) {
   return value?.trim().replace(/\s+/g, " ") || undefined;
 }
 
-function mergeByKey<T>(current: T[], incoming: T[] | undefined, keyFor: (item: T) => string, maxItems = PIXIE_LIMITS.maxArrayItems) {
+function normalizeById<T extends { id: string }>(values: T[] | undefined, normalizeItem: (item: T) => T, maxItems: number = PIXIE_LIMITS.maxArrayItems) {
+  const byId = new Map<string, T>();
+  for (const item of values ?? []) {
+    const normalized = normalizeItem({ ...item, id: item.id.trim() });
+    byId.set(normalized.id, normalized);
+  }
+  return Array.from(byId.values()).slice(-maxItems);
+}
+
+function mergeByKey<T>(current: T[], incoming: T[] | undefined, keyFor: (item: T) => string, maxItems: number = PIXIE_LIMITS.maxArrayItems) {
   const byKey = new Map<string, T>();
   for (const item of current) byKey.set(keyFor(item), item);
   for (const item of incoming ?? []) {
@@ -194,8 +203,18 @@ export function normalizePixieTripState(
     dvcContext: {
       ...parsed.dvcContext,
       homeResort: normalizeOptionalText(parsed.dvcContext.homeResort),
+      contracts: normalizeById(parsed.dvcContext.contracts, (contract) => ({
+        ...contract,
+        homeResort: normalizeOptionalText(contract.homeResort),
+        notes: contract.notes?.trim() || undefined,
+      })),
       bookingWindowContext: parsed.dvcContext.bookingWindowContext?.trim() || undefined,
       useYear: normalizeOptionalText(parsed.dvcContext.useYear),
+      pointLots: normalizeById(parsed.dvcContext.pointLots, (lot) => ({
+        ...lot,
+        contractId: normalizeOptionalText(lot.contractId),
+        notes: lot.notes?.trim() || undefined,
+      })),
       existingReservationSegments: normalizeStringArray(parsed.dvcContext.existingReservationSegments, PIXIE_LIMITS.maxArrayItems),
       proposedReservationChanges: normalizeStringArray(parsed.dvcContext.proposedReservationChanges, PIXIE_LIMITS.maxArrayItems),
       planningRisks: normalizeStringArray(parsed.dvcContext.planningRisks, PIXIE_LIMITS.maxArrayItems),
