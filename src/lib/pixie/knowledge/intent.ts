@@ -34,7 +34,7 @@ export function detectHannaKnowledgeIntent(message: string): HannaKnowledgeInten
   if (includesAny(normalized, ["rain", "raining", "storm", "storming", "hot", "heat", "cool down", "cool off", "air conditioned", "air-conditioned"])) addDomain(domains, "weather");
   if (includesAny(normalized, ["take a break", "rest area", "nap", "tired", "exhausted", "missed her nap", "missed his nap", "cool down", "cool off"])) addDomain(domains, "rest");
   if (includesAny(normalized, ["first thing", "morning", "only have", "three hours", "90 minutes", "before dinner", "pacing", "fix the afternoon"])) addDomain(domains, "pacing");
-  if (includesAny(normalized, ["neat", "overlooked", "hidden", "worth noticing", "nearby things"])) addDomain(domains, "discovery");
+  if (includesAny(normalized, ["surprise me", "surprise", "havent thought of", "probably havent thought of", "neat", "overlooked", "hidden", "worth noticing", "nearby things"])) addDomain(domains, "discovery");
   if (domains.has("park") && domains.has("resort")) addDomain(domains, "geography");
   const comparisonMode = includesAny(normalized, [" versus ", " vs ", "compare", "which two", "would you keep", "worth"]);
 

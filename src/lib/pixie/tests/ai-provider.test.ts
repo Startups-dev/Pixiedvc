@@ -215,6 +215,34 @@ describe("Pixie AI provider contract", () => {
     expect(JSON.stringify(userPayload.dvcContext)).not.toMatch(/DVC_RULE_NOTES|homeWindow|nonHomeWindow/);
   });
 
+  it("passes DVC needs-review provenance through to discourage overconfident policy wording", async () => {
+    const fetchMock = mockOpenAiResponse(Response.json(validOpenAiPayload()));
+    const provider = createOpenAiPixieProvider(testEnv({
+      OPENAI_API_KEY: "sk-test-redacted",
+      PIXIE_MODEL: "gpt-5.6-sol",
+    }));
+    const input = plannerInput();
+    input.latestUserMessage = "If I cancel today for September 1 2026, will my points go into Holding?";
+    input.dvcContext = buildDvcContext({
+      latestUserMessage: input.latestUserMessage,
+      currentState: input.currentState,
+      now: "2026-08-13T12:00:00.000Z",
+    });
+
+    await provider.createPlannerTurn(input);
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as {
+      input?: Array<{ content?: string }>;
+    };
+    const userPayload = JSON.parse(String(requestBody.input?.[0]?.content)) as PixiePlannerTurnInput;
+    const cancellation = userPayload.dvcContext?.results.find((result) => result.id === "dvc_cancellation");
+
+    expect(cancellation).toMatchObject({
+      reasonCodes: expect.arrayContaining(["HOLDING_RISK"]),
+      verificationRequired: true,
+      provenance: expect.objectContaining({ status: "needs_review", freshness: "needs_review" }),
+    });
+  });
+
   it("returns a typed configuration error when the API key is missing", async () => {
     const provider = createOpenAiPixieProvider(testEnv({ PIXIE_MODEL: "gpt-5.6-sol" }));
     await expect(provider.createPlannerTurn(plannerInput())).rejects.toMatchObject({ code: "configuration_error" });

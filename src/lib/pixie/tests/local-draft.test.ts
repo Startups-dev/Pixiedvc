@@ -48,6 +48,49 @@ describe("Pixie local draft versioning", () => {
     expect(result.reason).toBe("migrated");
   });
 
+  it("hydrates an older valid state without newer DVC fields", () => {
+    const state = createEmptyPixieTripState("2026-07-10T12:00:00.000Z");
+    const { contracts: _contracts, pointLots: _pointLots, ...olderDvcContext } = state.dvcContext;
+    const result = migratePixieDraft({
+      draftVersion: PIXIE_LOCAL_DRAFT_VERSION,
+      savedAt: "2026-07-10T13:00:00.000Z",
+      state: {
+        ...state,
+        dvcContext: olderDvcContext,
+      },
+      recentMessages: [],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.state.dvcContext.contracts).toEqual([]);
+    expect(result.state.dvcContext.pointLots).toEqual([]);
+  });
+
+  it("salvages valid fields from schema-evolved partial stored state", () => {
+    const state = createEmptyPixieTripState("2026-07-10T12:00:00.000Z");
+    const result = migratePixieDraft({
+      draftVersion: PIXIE_LOCAL_DRAFT_VERSION,
+      savedAt: "2026-07-10T13:00:00.000Z",
+      state: {
+        ...state,
+        futureTopLevel: "ignored",
+        dates: { arrivalDate: "2027-04-01", departureDate: "2027-04-05", futureDateField: "ignored" },
+        party: { travellers: [{ id: "traveller_child", category: "child", age: 2, futureTravellerField: "ignored" }] },
+        dvcContext: { homeResort: "BoardWalk Villas", futureDvcField: "ignored" },
+      },
+      recentMessages: [],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.recovered).toBe(true);
+    expect(result.reason).toBe("migrated");
+    expect(result.state.dates.numberOfNights).toBe(4);
+    expect(result.state.party.childCount).toBe(1);
+    expect(result.state.party.adultCount).toBeUndefined();
+    expect(result.state.party.totalPartySize).toBeUndefined();
+    expect(result.state.dvcContext.homeResort).toBe("BoardWalk Villas");
+  });
+
   it("resets to a fresh valid state", () => {
     const state = resetPixieDraft();
 

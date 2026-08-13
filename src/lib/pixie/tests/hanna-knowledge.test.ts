@@ -480,6 +480,22 @@ describe("Hanna Disney knowledge V1", () => {
     expect(context.planningSignals).toEqual(expect.arrayContaining([expect.objectContaining({ id: "signal_world_showcase_discovery" })]));
   });
 
+  it("prioritizes Disney-specific discovery context for surprise requests", () => {
+    const context = service.retrieve({
+      latestUserMessage: "We're at Magic Kingdom with our 2-year-old. Surprise me with one thing you think we'd love that I probably haven't thought of.",
+      currentState: createEmptyPixieTripState("2026-08-12T12:00:00.000Z"),
+      maxCandidates: 5,
+      maxSignals: 3,
+    });
+
+    expect(context.domains).toEqual(expect.arrayContaining(["discovery", "park", "family"]));
+    expect(context.candidates.length + context.planningSignals.length).toBeGreaterThan(0);
+    expect(
+      context.candidates.some((candidate) => ["attraction", "entertainment", "support"].includes(candidate.entityType)) ||
+        context.planningSignals.some((signal) => signal.contexts.includes("magic_kingdom") || signal.contexts.includes("toddler")),
+    ).toBe(true);
+  });
+
   it("Case M keeps broad attraction retrieval within hard bounds", () => {
     const context = service.retrieve({
       latestUserMessage: "Give me attraction ideas across Disney World.",

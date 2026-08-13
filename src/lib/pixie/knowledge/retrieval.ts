@@ -146,7 +146,7 @@ function analyzeConstraints(message: string): QueryConstraints {
     restPreferred: includesAny(normalized, ["take a break", "rest area", "nap", "tired", "exhausted", "missed her nap", "missed his nap", "cool down", "cool off"]),
     rainContext: includesAny(normalized, ["rain", "raining", "storm", "storming"]),
     heatContext: includesAny(normalized, ["hot", "heat", "cool down", "cool off"]),
-    discoveryContext: includesAny(normalized, ["neat", "overlooked", "hidden", "worth noticing"]),
+    discoveryContext: includesAny(normalized, ["surprise me", "surprise", "havent thought of", "probably havent thought of", "neat", "overlooked", "hidden", "worth noticing"]),
     priorityRequest: includesAny(normalized, ["first thing", "prioritize", "best five", "best 5", "only have", "three hours", "3 hours", "90 minutes", "what should we do"]),
     skipRequest: includesAny(normalized, ["skip", "avoid", "not worth"]),
     requestedServiceTypes,

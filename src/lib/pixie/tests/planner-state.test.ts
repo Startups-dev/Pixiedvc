@@ -158,6 +158,39 @@ describe("Pixie planner state", () => {
     expect(deriveAgeGroup(4, "child")).toBe("preschooler");
   });
 
+  it("preserves partial traveler knowledge without inventing unknown adults or totals", () => {
+    const state = normalizePixieTripState({
+      ...createEmptyPixieTripState(),
+      party: {
+        travellers: [{ id: "traveller_two_year_old", category: "child", age: 2 }],
+      },
+    });
+
+    expect(state.party.adults).toBeUndefined();
+    expect(state.party.adultCount).toBeUndefined();
+    expect(state.party.children).toBe(1);
+    expect(state.party.childCount).toBe(1);
+    expect(state.party.totalPartySize).toBeUndefined();
+    expect(state.party.travellers[0]?.ageGroup).toBe("preschooler");
+    expect(state.party.ageGroupSummary?.preschooler).toBe(1);
+    expect(state.party.ageGroupSummary?.infant).toBe(0);
+  });
+
+  it("keeps known adult and child counts deterministic", () => {
+    const state = normalizePixieTripState({
+      ...createEmptyPixieTripState(),
+      party: {
+        adults: 2,
+        travellers: [{ id: "traveller_two_year_old", category: "child", age: 2 }],
+      },
+    });
+
+    expect(state.party.adultCount).toBe(2);
+    expect(state.party.childCount).toBe(1);
+    expect(state.party.totalPartySize).toBe(3);
+    expect(state.party.ageGroupSummary?.preschooler).toBe(1);
+  });
+
   it("preserves unrelated state, recomputes derived fields, and protects schema version", () => {
     const base = createEmptyPixieTripState("2026-07-10T12:00:00.000Z");
     const patched = applyPixieTripPatch(

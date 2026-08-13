@@ -48,7 +48,7 @@ export function normalizeStringArray(values: string[] | undefined, maxItems: num
 
 export function deriveAgeGroup(age?: number, category?: PixieTraveller["category"]): PixieAgeGroup {
   if (typeof age === "number") {
-    if (age <= 2) return "infant";
+    if (age < 2) return "infant";
     if (age <= 5) return "preschooler";
     if (age <= 12) return "child";
     if (age <= 17) return "teen";
@@ -149,10 +149,13 @@ export function normalizePixieTripState(
   const travellers = parsed.party.travellers.map(normalizeTraveller);
   const travellerAdults = travellers.filter((traveller) => traveller.ageGroup === "adult").length;
   const travellerChildren = travellers.filter((traveller) => traveller.ageGroup !== "adult" && traveller.ageGroup !== "unknown").length;
-  const adultCount = Math.max(parsed.party.adults ?? 0, travellerAdults);
-  const childCount = Math.max(parsed.party.children ?? 0, travellerChildren);
-  const totalPartySize = adultCount + childCount;
-  if (totalPartySize > PIXIE_LIMITS.maxPartySize) {
+  const adultCount =
+    parsed.party.adults !== undefined ? Math.max(parsed.party.adults, travellerAdults) : travellerAdults > 0 ? travellerAdults : undefined;
+  const childCount =
+    parsed.party.children !== undefined ? Math.max(parsed.party.children, travellerChildren) : travellerChildren > 0 ? travellerChildren : undefined;
+  const totalPartySize =
+    adultCount !== undefined ? adultCount + (childCount ?? 0) : parsed.party.totalPartySize !== undefined ? parsed.party.totalPartySize : undefined;
+  if ((totalPartySize ?? 0) > PIXIE_LIMITS.maxPartySize) {
     throw new Error(`Party size cannot exceed ${PIXIE_LIMITS.maxPartySize}.`);
   }
 
@@ -172,8 +175,8 @@ export function normalizePixieTripState(
     },
     party: {
       ...parsed.party,
-      adults: adultCount || parsed.party.adults,
-      children: childCount || parsed.party.children,
+      adults: adultCount,
+      children: childCount,
       travellers,
       totalPartySize,
       adultCount,

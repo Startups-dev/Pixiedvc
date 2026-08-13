@@ -93,6 +93,33 @@ describe("Pixie browser draft storage", () => {
     expect(restored?.recentMessages).toEqual([{ role: "user", content: "We are two adults." }]);
   });
 
+  it("restores schema-evolved local drafts by salvaging valid state fields", () => {
+    const state = createEmptyPixieTripState("2026-07-12T12:00:00.000Z");
+    window.localStorage.setItem(
+      PIXIE_LOCAL_DRAFT_STORAGE_KEY,
+      JSON.stringify({
+        draftVersion: 1,
+        savedAt: "2026-07-12T12:00:00.000Z",
+        state: {
+          ...state,
+          futureTopLevel: "ignored",
+          party: { travellers: [{ id: "traveller_preschooler", category: "child", age: 2, futureField: "ignored" }] },
+          preferences: { parkPriorities: ["Magic Kingdom"], futurePreference: "ignored" },
+        },
+        recentMessages: [{ role: "user", content: "We're at Magic Kingdom with our 2-year-old." }],
+      }),
+    );
+
+    const restored = readPixieDraftFromBrowser();
+
+    expect(restored?.recovered).toBe(true);
+    expect(restored?.notice).toMatch(/updated your local draft format/i);
+    expect(restored?.state.party.childCount).toBe(1);
+    expect(restored?.state.party.adultCount).toBeUndefined();
+    expect(restored?.state.preferences.parkPriorities).toEqual(["Magic Kingdom"]);
+    expect(window.localStorage.getItem(PIXIE_LOCAL_DRAFT_STORAGE_KEY)).not.toBeNull();
+  });
+
   it("reset clears only the Pixie draft", () => {
     window.localStorage.setItem(PIXIE_LOCAL_DRAFT_STORAGE_KEY, "draft");
     window.localStorage.setItem("pixiedvc:affiliate", "keep");

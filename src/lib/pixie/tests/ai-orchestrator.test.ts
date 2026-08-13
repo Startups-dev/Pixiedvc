@@ -253,7 +253,7 @@ describe("Pixie AI orchestrator", () => {
       );
       expect(patchEvent.updatedState.preferences.generalNotes).toContain("Point values mentioned");
       expect(patchEvent.updatedState.preferences.generalNotes).toContain("Waitlist alternatives mentioned");
-      expect(patchEvent.updatedState.party.totalPartySize).toBe(0);
+      expect(patchEvent.updatedState.party.totalPartySize).toBeUndefined();
       expect(patchEvent.updatedState.budget.budgetType).toBe("unknown");
     }
   });
@@ -398,7 +398,7 @@ describe("Pixie AI orchestrator", () => {
       now: "2026-08-09T12:01:00.000Z",
     });
 
-    expect(result.updatedState.party.totalPartySize).toBe(0);
+    expect(result.updatedState.party.totalPartySize).toBeUndefined();
     expect(result.updatedState.party.travellers).toHaveLength(0);
   });
 

@@ -1,7 +1,22 @@
 import { PIXIE_LIMITS, PIXIE_LOCAL_DRAFT_STORAGE_KEY, PIXIE_LOCAL_DRAFT_VERSION } from "@/lib/pixie/constants";
 import { pixieRecentMessageSchema } from "@/lib/pixie/ai/schemas";
 import { createEmptyPixieTripState, normalizePixieTripState } from "@/lib/pixie/planner-state";
-import { pixieTripStateSchema, type PixieTripState } from "@/lib/pixie/schema";
+import {
+  pixieAccessibilitySchema,
+  pixieBudgetSchema,
+  pixieDatesSchema,
+  pixieDvcContextSchema,
+  pixieGeneratedSchema,
+  pixieMetadataSchema,
+  pixiePartySchema,
+  pixiePlanningStageSchema,
+  pixiePlanningWorkspaceSchema,
+  pixiePreferencesSchema,
+  pixieSelectedOptionsSchema,
+  pixieTravellerSchema,
+  pixieTripStateSchema,
+  type PixieTripState,
+} from "@/lib/pixie/schema";
 import type { PixieDraftParseResult } from "@/lib/pixie/types";
 import { z } from "zod";
 
@@ -49,6 +64,60 @@ function stripLegacyRecentMessageMetadata(value: unknown) {
   };
 }
 
+function recoverObjectSection<T>(
+  schema: { strip: () => { safeParse: (value: unknown) => { success: true; data: T } | { success: false } } },
+  value: unknown,
+) {
+  if (!value || typeof value !== "object") return undefined;
+  const parsed = schema.strip().safeParse(value);
+  return parsed.success ? parsed.data : undefined;
+}
+
+function recoverPartySection(value: unknown) {
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as Record<string, unknown>;
+  const travellers = Array.isArray(record.travellers)
+    ? record.travellers
+        .map((traveller) => pixieTravellerSchema.strip().safeParse(traveller))
+        .filter((result): result is Extract<typeof result, { success: true }> => result.success)
+        .map((result) => result.data)
+    : undefined;
+  return recoverObjectSection(pixiePartySchema, {
+    ...record,
+    ...(travellers ? { travellers } : {}),
+  });
+}
+
+function recoverTripState(value: unknown): PixieTripState | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as Record<string, unknown>;
+  if (record.destination !== undefined && record.destination !== "walt_disney_world") return undefined;
+  const base = createEmptyPixieTripState();
+  const planningStage = pixiePlanningStageSchema.safeParse(record.planningStage);
+  const recovered = {
+    ...base,
+    destination: record.destination === "walt_disney_world" ? "walt_disney_world" : base.destination,
+    planningStage: planningStage.success ? planningStage.data : base.planningStage,
+    tripName: typeof record.tripName === "string" ? record.tripName : base.tripName,
+    dates: recoverObjectSection(pixieDatesSchema, record.dates) ?? base.dates,
+    party: recoverPartySection(record.party) ?? base.party,
+    budget: recoverObjectSection(pixieBudgetSchema, record.budget) ?? base.budget,
+    preferences: recoverObjectSection(pixiePreferencesSchema, record.preferences) ?? base.preferences,
+    accessibility: recoverObjectSection(pixieAccessibilitySchema, record.accessibility) ?? base.accessibility,
+    dvcContext: recoverObjectSection(pixieDvcContextSchema, record.dvcContext) ?? base.dvcContext,
+    planningWorkspace: recoverObjectSection(pixiePlanningWorkspaceSchema, record.planningWorkspace) ?? base.planningWorkspace,
+    generated: recoverObjectSection(pixieGeneratedSchema, record.generated) ?? base.generated,
+    selectedOptions: recoverObjectSection(pixieSelectedOptionsSchema, record.selectedOptions) ?? base.selectedOptions,
+    metadata: recoverObjectSection(pixieMetadataSchema, record.metadata) ?? base.metadata,
+  };
+
+  try {
+    return normalizePixieTripState(recovered, { preserveUpdatedAt: true });
+  } catch {
+    return undefined;
+  }
+}
+
 export function serializePixieDraft(
   state: PixieTripState,
   options: { recentMessages?: PixieLocalDraftEnvelope["recentMessages"]; now?: string } = {},
@@ -86,21 +155,39 @@ export function migratePixieDraft(value: unknown): PixieDraftParseResult {
         reason: parsed.success ? "none" : "migrated",
       };
     }
+    const recoveredState = recoverTripState(record.state);
+    if (recoveredState) {
+      return {
+        ok: true,
+        state: recoveredState,
+        recovered: true,
+        reason: "migrated",
+      };
+    }
     const issues = parsed.success ? ["Draft payload is invalid."] : parsed.error.issues.map((issue) => issue.message);
     return freshResult("invalid_state", issues);
   }
 
   if (record.draftVersion === undefined && record.state && typeof record.state === "object") {
     const parsedState = pixieTripStateSchema.safeParse(record.state);
-    if (!parsedState.success) {
-      return freshResult("invalid_state", parsedState.error.issues.map((issue) => issue.message));
+    if (parsedState.success) {
+      return {
+        ok: true,
+        state: normalizePixieTripState(parsedState.data),
+        recovered: true,
+        reason: "migrated",
+      };
     }
-    return {
-      ok: true,
-      state: normalizePixieTripState(parsedState.data),
-      recovered: true,
-      reason: "migrated",
-    };
+    const recoveredState = recoverTripState(record.state);
+    if (recoveredState) {
+      return {
+        ok: true,
+        state: recoveredState,
+        recovered: true,
+        reason: "migrated",
+      };
+    }
+    return freshResult("invalid_state", parsedState.error.issues.map((issue) => issue.message));
   }
 
   return freshResult("unsupported_draft_version", [`Unsupported Pixie draft version: ${String(record.draftVersion)}`]);
