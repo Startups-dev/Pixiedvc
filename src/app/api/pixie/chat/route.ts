@@ -84,7 +84,7 @@ function sanitizeStreamEvent(event: PixiePlannerStreamEvent): PixiePlannerStream
 
 function safeErrorMessage(error: PixieAiError) {
   if (error.code === "invalid_model_output" && /planning turn within the current model capacity/i.test(error.message)) {
-    return "Hara could not finish this planning turn in one pass. Please send the availability details in two smaller parts, and Hara can continue from there.";
+    return "Hara could not complete that planning turn safely. Your trip draft is still safe.";
   }
 
   switch (error.code) {

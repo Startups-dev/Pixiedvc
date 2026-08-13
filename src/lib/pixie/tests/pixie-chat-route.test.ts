@@ -135,7 +135,7 @@ describe("POST /api/pixie/chat", () => {
     expect(text).not.toContain('"turn_completed"');
   });
 
-  it("does not show the generic safely message for provider capacity failures", async () => {
+  it("does not ask guests to split normal planning turns for provider capacity failures", async () => {
     streamMock.mockImplementation(() =>
       events([
         { type: "turn_started", turnId: "pixie_turn_capacity" },
@@ -163,8 +163,9 @@ describe("POST /api/pixie/chat", () => {
     const text = await response.text();
     expect(text).toContain('"turn_failed"');
     expect(text).toContain('"invalid_model_output"');
-    expect(text).toContain("Hara could not finish this planning turn in one pass.");
-    expect(text).not.toContain("Hara could not complete that turn safely.");
+    expect(text).toContain("Hara could not complete that planning turn safely.");
+    expect(text).not.toContain("one pass");
+    expect(text).not.toContain("smaller parts");
   });
 
   it("accepts the first-turn recent messages produced by the Hara client", async () => {

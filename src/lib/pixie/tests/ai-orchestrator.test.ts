@@ -604,6 +604,69 @@ describe("Pixie AI orchestrator", () => {
     expectSegments();
   });
 
+  it("handles a mixed Portuguese multi-constraint split-stay turn in one pass even when provider capacity fails", async () => {
+    let providerInput: PixiePlannerTurnInput | undefined;
+    const state = normalizePixieTripState({
+      ...createEmptyPixieTripState("2026-08-13T12:00:00.000Z"),
+      party: {
+        adults: 2,
+        children: 1,
+        travellers: [{ id: "daughter", category: "child", age: 2 }],
+      },
+    });
+    const provider = {
+      async createPlannerTurn(input: PixiePlannerTurnInput) {
+        providerInput = input;
+        throw new PixieAiException(
+          "invalid_model_output",
+          "Hara could not finish this planning turn within the current model capacity. Please send the availability details in two smaller parts, and Hara can continue from there.",
+        );
+      },
+    };
+
+    const result = await runPixiePlannerTurn({
+      state,
+      message:
+        "chegarei em Orlando noon no dia 1 de setembro. quero ficar perto do magic kingdom por apenas uma noite. depois quero passar duas noites perto da disney springs and mais duas perto de epcot. qual a opcao mais barata nesses dois casos?",
+      recentMessages: [
+        { role: "user", content: "Somos 2 adultos com nossa filha de 2 anos." },
+        { role: "assistant", content: "Perfeito, vou considerar 2 adultos e uma criança de 2 anos." },
+      ],
+      provider,
+      now: "2026-08-13T12:00:00.000Z",
+    });
+
+    expect(result.assistantResponse).not.toMatch(/could not finish|one pass|smaller parts|availability details/i);
+    expect(result.assistantResponse).toContain("Bay Lake Tower");
+    expect(result.assistantResponse).toContain("Disney's Saratoga Springs Resort & Spa");
+    expect(result.assistantResponse).toContain("BoardWalk Villas");
+    expect(result.assistantResponse).toMatch(/mais barato|estimativa/i);
+    expect(result.assistantResponse).toMatch(/não é disponibilidade|não disponibilidade|não .*reserva/i);
+    expect(result.assistantResponse).not.toMatch(/\bI would|Please send|current model capacity|booking confirmed\b/i);
+
+    expect(result.updatedState.dates).toMatchObject({ arrivalDate: "2026-09-01", departureDate: "2026-09-06", numberOfNights: 5 });
+    expect(result.updatedState.party).toMatchObject({ adults: 2, children: 1, totalPartySize: 3 });
+    expect(result.updatedState.party.travellers[0]).toMatchObject({ age: 2, ageGroup: "preschooler" });
+    expect(result.updatedState.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([
+      expect.objectContaining({ resort: "Bay Lake Tower", checkIn: "2026-09-01", checkOut: "2026-09-02", status: "recommended" }),
+      expect.objectContaining({ resort: "Disney's Saratoga Springs Resort & Spa", checkIn: "2026-09-02", checkOut: "2026-09-04", status: "recommended" }),
+      expect.objectContaining({ resort: "BoardWalk Villas", checkIn: "2026-09-04", checkOut: "2026-09-06", status: "recommended" }),
+    ]));
+    expect(result.updatedState.planningWorkspace.lodgingPlans.some((plan) => plan.status === "confirmed")).toBe(false);
+    for (const resort of ["Bay Lake Tower", "Disney's Saratoga Springs Resort & Spa", "BoardWalk Villas"]) {
+      const segment = result.updatedState.planningWorkspace.lodgingPlans.find((plan) => plan.resort === resort);
+      expect(segment).toMatchObject({ roomType: "Deluxe Studio", pointsEstimateStatus: "estimate", rentalEstimateStatus: "estimate" });
+      expect(segment?.estimatedPoints).toBeGreaterThan(0);
+      expect(segment?.estimatedRentalCostCents).toBeGreaterThan(0);
+    }
+    expect(providerInput?.currentPlanSummary?.tripDates).toBe("2026-09-01 to 2026-09-06");
+    expect(providerInput?.currentPlanSummary?.lodging).toEqual(expect.arrayContaining([
+      expect.stringMatching(/Bay Lake Tower.*2026-09-01 to 2026-09-02.*Deluxe Studio.*point/i),
+      expect.stringMatching(/Saratoga Springs.*2026-09-02 to 2026-09-04.*Deluxe Studio.*point/i),
+      expect.stringMatching(/BoardWalk Villas.*2026-09-04 to 2026-09-06.*Deluxe Studio.*point/i),
+    ]));
+  });
+
   it("passes compact DVC rule context to the provider for narrow DVC turns", async () => {
     let providerInput: PixiePlannerTurnInput | undefined;
     await runPixiePlannerTurn({

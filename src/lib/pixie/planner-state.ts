@@ -99,10 +99,24 @@ function enrichLodgingPlan<T extends {
   const numberOfNights = calculateDateOnlyNights(checkIn, checkOut);
   const resolved = resolvePixieResortId(plan.resort);
   const room = resolved.ok ? selectSmallestEligibleRoomType(resolved.resort, state.party) : null;
-  const points = resolved.ok && room && checkIn && checkOut ? estimateDvcPoints({ resortId: resolved.resort.id, roomTypeId: room.id, arrivalDate: checkIn, departureDate: checkOut }) : null;
-  const price = points?.supported
-    ? estimateGuestAccommodationPrice({ pricingContext: "custom_request_estimate", resortId: points.resortId, points: points.totalPoints, arrivalDate: checkIn })
-    : null;
+  let points: ReturnType<typeof estimateDvcPoints> | null = null;
+  let price: ReturnType<typeof estimateGuestAccommodationPrice> | null = null;
+  let pointsAttempted = false;
+  let priceAttempted = false;
+  try {
+    pointsAttempted = Boolean(resolved.ok && room && checkIn && checkOut);
+    points = resolved.ok && room && checkIn && checkOut ? estimateDvcPoints({ resortId: resolved.resort.id, roomTypeId: room.id, arrivalDate: checkIn, departureDate: checkOut }) : null;
+  } catch {
+    points = null;
+  }
+  try {
+    priceAttempted = Boolean(points?.supported);
+    price = points?.supported
+      ? estimateGuestAccommodationPrice({ pricingContext: "custom_request_estimate", resortId: points.resortId, points: points.totalPoints, arrivalDate: checkIn })
+      : null;
+  } catch {
+    price = null;
+  }
 
   return {
     ...plan,
@@ -113,9 +127,9 @@ function enrichLodgingPlan<T extends {
     roomType: normalizeOptionalText(plan.roomType) ?? room?.displayName,
     numberOfNights: plan.numberOfNights ?? numberOfNights,
     estimatedPoints: plan.estimatedPoints ?? (points?.supported ? points.totalPoints : undefined),
-    pointsEstimateStatus: plan.pointsEstimateStatus ?? (points ? (points.supported ? "estimate" : "unsupported") : "not_requested"),
+    pointsEstimateStatus: plan.pointsEstimateStatus ?? (points ? (points.supported ? "estimate" : "unsupported") : pointsAttempted ? "unsupported" : "not_requested"),
     estimatedRentalCostCents: plan.estimatedRentalCostCents ?? (price?.supported ? price.estimatedTotalCents : undefined),
-    rentalEstimateStatus: plan.rentalEstimateStatus ?? (price ? (price.supported ? "estimate" : "unsupported") : "not_requested"),
+    rentalEstimateStatus: plan.rentalEstimateStatus ?? (price ? (price.supported ? "estimate" : "unsupported") : priceAttempted ? "unsupported" : "not_requested"),
     estimateNotes: normalizeOptionalText(plan.estimateNotes) ?? (points?.supported ? "Planning estimate only; not availability or a booking." : undefined),
   };
 }

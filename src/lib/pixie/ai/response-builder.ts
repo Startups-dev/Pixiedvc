@@ -10,6 +10,7 @@ import type { PixieCompletenessResult } from "@/lib/pixie/types";
 
 const unsafeAvailabilityPattern = /\b(confirmed available|guaranteed available|locked|reserved|booked)\b/i;
 const markdownPattern = /(\*\*|__|^#{1,6}\s+|^\s*[-*]\s+)/m;
+const onePassCapacityPattern = /\b(?:could not finish this planning turn|current model capacity|send .* smaller parts|availability details in two smaller parts)\b/i;
 
 function stripUnsafeFormatting(message: string) {
   return message
@@ -205,6 +206,62 @@ function statusPt(status: string) {
   return "planejado";
 }
 
+function formatUsdCents(value?: number) {
+  if (value === undefined) return undefined;
+  return `US$ ${Math.round(value / 100).toLocaleString("en-US")}`;
+}
+
+function splitStayRecoveryResponse(state: PixieTripState | undefined, language: PixieConversationLanguage) {
+  if (!state) return undefined;
+  const lodging = state.planningWorkspace.lodgingPlans
+    .filter((plan) => /Bay Lake Tower|Saratoga Springs|BoardWalk Villas|Beach Club Villas/i.test(plan.resort) && plan.checkIn && plan.checkOut)
+    .sort((a, b) => String(a.checkIn ?? a.startDate).localeCompare(String(b.checkIn ?? b.startDate)));
+  if (lodging.length < 3) return undefined;
+
+  const pt = language === "pt";
+  const lines = lodging.slice(0, 3).map((plan) => {
+    const dates = `${plan.checkIn ?? plan.startDate}–${plan.checkOut ?? plan.endDate}`;
+    const estimate = [
+      plan.numberOfNights ? `${plan.numberOfNights} ${pt ? (plan.numberOfNights === 1 ? "noite" : "noites") : plan.numberOfNights === 1 ? "night" : "nights"}` : undefined,
+      plan.roomType,
+      plan.estimatedPoints ? `${plan.estimatedPoints} ${pt ? "pontos estimados" : "points estimate"}` : undefined,
+      formatUsdCents(plan.estimatedRentalCostCents) ? `${pt ? "est." : "est."} ${formatUsdCents(plan.estimatedRentalCostCents)}` : undefined,
+    ].filter(Boolean).join(" · ");
+    return `${plan.resort} — ${dates}${estimate ? ` · ${estimate}` : ""}.`;
+  });
+
+  const disneySprings = lodging.find((plan) => /Saratoga Springs/i.test(plan.resort));
+  const epcot = lodging.find((plan) => /BoardWalk Villas|Beach Club Villas/i.test(plan.resort));
+  const comparison =
+    disneySprings?.estimatedRentalCostCents !== undefined && epcot?.estimatedRentalCostCents !== undefined
+      ? disneySprings.estimatedRentalCostCents <= epcot.estimatedRentalCostCents
+        ? pt
+          ? `Entre os trechos de Disney Springs e EPCOT, ${disneySprings.resort} fica mais barato pela estimativa atual de planejamento.`
+          : `Between the Disney Springs and EPCOT segments, ${disneySprings.resort} is cheaper on the current planning estimate.`
+        : pt
+          ? `Entre os trechos de Disney Springs e EPCOT, ${epcot.resort} fica mais barato pela estimativa atual de planejamento.`
+          : `Between the Disney Springs and EPCOT segments, ${epcot.resort} is cheaper on the current planning estimate.`
+      : pt
+        ? "Onde a tabela de pontos ou preço não cobre o trecho, eu trataria o custo como pendente em vez de inventar um valor."
+        : "Where the points or price table does not cover the segment, I would leave the cost pending instead of inventing a number.";
+
+  if (pt) {
+    return [
+      "Eu resolveria em uma só passada assim:",
+      ...lines,
+      comparison,
+      "Esses valores são estimativas de planejamento, não disponibilidade ao vivo nem reserva confirmada.",
+    ].join("\n");
+  }
+
+  return [
+    "I would handle it in one pass like this:",
+    ...lines,
+    comparison,
+    "These are planning estimates, not live availability or a confirmed booking.",
+  ].join("\n");
+}
+
 export function buildPixiePlannerResponse(params: {
   modelResult: PixieModelTurnResult;
   completeness: PixieCompletenessResult;
@@ -227,6 +284,14 @@ export function buildPixiePlannerResponse(params: {
   if (unsafeAvailabilityPattern.test(message)) {
     message = message.replace(unsafeAvailabilityPattern, "available to review");
     additionalWarnings.push("unsafe_model_claim: availability language was softened because Ready Stays require recheck before booking.");
+  }
+
+  if (onePassCapacityPattern.test(message)) {
+    const recovery = splitStayRecoveryResponse(params.currentState, language);
+    if (recovery) {
+      message = recovery;
+      additionalWarnings.push("one_pass_capacity_recovered: deterministic split-stay state was used for the response.");
+    }
   }
 
   if (isNarrowDvcIntent(params.latestUserMessage ?? "") && /^I have \d+ resort options? worth considering\b/i.test(message)) {

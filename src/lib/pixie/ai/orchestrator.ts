@@ -352,6 +352,17 @@ function extractExplicitDate(pattern: RegExp, message: string, fallbackYear?: nu
   return parseMonthDay(match, 1, 2, 3, fallbackYear);
 }
 
+function extractFlexiblePortugueseArrivalDate(message: string, fallbackYear?: number) {
+  const monthPattern = Object.keys(MONTHS).join("|");
+  const pattern = new RegExp(`\\bcheg\\w*\\b[^.\\n;]{0,100}?\\b(?:no\\s+)?(?:dia\\s+)?(\\d{1,2})\\s+de\\s+(${monthPattern})(?:\\s+de\\s+(\\d{4}))?\\b`, "i");
+  const match = pattern.exec(message);
+  if (!match) return undefined;
+  const month = MONTHS[match[2].toLowerCase()];
+  const day = Number(match[1]);
+  const year = Number(match[3] ?? fallbackYear ?? new Date().getFullYear());
+  return month && day && year ? dateOnly(year, month, day) : undefined;
+}
+
 function extractLightweightDates(message: string): DateExtractionResult {
   const explicitRange = firstDateRange(message);
   const dateMentions = extractDateMentions(message);
@@ -364,7 +375,7 @@ function extractLightweightDates(message: string): DateExtractionResult {
   const portugueseArrivalDate = portugueseArrivalMatch
     ? dateOnly(Number(portugueseArrivalMatch[3] ?? fallbackYear ?? new Date().getFullYear()), MONTHS[portugueseArrivalMatch[2].toLowerCase()], Number(portugueseArrivalMatch[1]))
     : undefined;
-  const arrivalDate = extractExplicitDate(arrivalPattern, message, fallbackYear) ?? portugueseArrivalDate;
+  const arrivalDate = extractExplicitDate(arrivalPattern, message, fallbackYear) ?? portugueseArrivalDate ?? extractFlexiblePortugueseArrivalDate(message, fallbackYear);
   const departureDate = extractExplicitDate(checkoutPattern, message, fallbackYear);
   const dateNotes = dateMentions.mentions.length ? [`Availability or planning dates mentioned: ${dateMentions.mentions.join(", ")}.`] : [];
 
@@ -561,6 +572,78 @@ function lodgingSegmentDatesFor(message: string, state: PixieTripState, fallback
   };
 }
 
+function hasOneNightMagicKingdomIntent(message: string) {
+  return (
+    /\bmagic kingdom\b/i.test(message) &&
+    (/\b(?:apenas\s+|somente\s+)?(?:uma|1|one)\s+noite\b/i.test(message) || /\b(?:one|1)\s+night\b/i.test(message))
+  );
+}
+
+function hasTwoNightDisneySpringsIntent(message: string) {
+  return (
+    /\bdisney springs?\b/i.test(message) &&
+    (/\b(?:duas|2|two)\s+noites?\b[^.\n;]{0,120}\bdisney springs?\b/i.test(message) ||
+      /\bdisney springs?\b[^.\n;]{0,120}\b(?:duas|2|two)\s+noites?\b/i.test(message))
+  );
+}
+
+function hasTwoNightEpcotIntent(message: string) {
+  return (
+    /\bepcot\b/i.test(message) &&
+    (/\b(?:mais\s+)?(?:duas|2|two)\s+noites?\b[^.\n;]{0,120}\bepcot\b/i.test(message) ||
+      /\bepcot\b[^.\n;]{0,120}\b(?:duas|2|two)\s+noites?\b/i.test(message) ||
+      /\bmais\s+(?:duas|2|two)\b[^.\n;]{0,80}\bepcot\b/i.test(message))
+  );
+}
+
+function extractSequentialSplitStayPlan(message: string, state: PixieTripState, fallbackYear: number) {
+  if (!hasOneNightMagicKingdomIntent(message) || !hasTwoNightDisneySpringsIntent(message) || !hasTwoNightEpcotIntent(message)) return undefined;
+  const arrivalDate = state.dates.arrivalDate ?? extractFlexiblePortugueseArrivalDate(message, fallbackYear) ?? extractLightweightDates(message).dates?.arrivalDate;
+  if (!arrivalDate) return undefined;
+
+  const mkEnd = addDateOnlyDays(arrivalDate, 1);
+  const springsEnd = mkEnd ? addDateOnlyDays(mkEnd, 2) : undefined;
+  const epcotEnd = springsEnd ? addDateOnlyDays(springsEnd, 2) : undefined;
+  if (!mkEnd || !springsEnd || !epcotEnd) return undefined;
+
+  const boardwalkExcluded = state.preferences.excludedResorts.some((value) => /boardwalk/i.test(value));
+  return {
+    dates: { arrivalDate, departureDate: epcotEnd },
+    lodgingPlans: [
+      {
+        id: stableId("lodging", `bay_lake_tower_${arrivalDate}`),
+        resort: "Bay Lake Tower",
+        startDate: arrivalDate,
+        endDate: mkEnd,
+        status: "recommended" as const,
+        source: "model_recommendation" as const,
+        note: "Best fit for Magic Kingdom area convenience.",
+        dvcRelevant: true,
+      },
+      {
+        id: stableId("lodging", `saratoga_springs_${mkEnd}`),
+        resort: "Disney's Saratoga Springs Resort & Spa",
+        startDate: mkEnd,
+        endDate: springsEnd,
+        status: "recommended" as const,
+        source: "model_recommendation" as const,
+        note: "Best fit for Disney Springs convenience.",
+        dvcRelevant: true,
+      },
+      {
+        id: stableId("lodging", `${boardwalkExcluded ? "beach_club" : "boardwalk"}_${springsEnd}`),
+        resort: boardwalkExcluded ? "Beach Club Villas" : "BoardWalk Villas",
+        startDate: springsEnd,
+        endDate: epcotEnd,
+        status: "recommended" as const,
+        source: "model_recommendation" as const,
+        note: boardwalkExcluded ? "EPCOT International Gateway fallback." : "Best fit for EPCOT International Gateway convenience.",
+        dvcRelevant: true,
+      },
+    ],
+  };
+}
+
 function fallbackWorkspaceDate(state: PixieTripState, restaurant?: string) {
   const diningDate = restaurant ? state.planningWorkspace.diningPlans.find((plan) => plan.restaurant.toLowerCase() === restaurant.toLowerCase() && plan.date)?.date : undefined;
   return diningDate ?? state.planningWorkspace.parkPlans.filter((plan) => plan.date).at(-1)?.date;
@@ -580,7 +663,7 @@ function fallbackOpenDiningPlan(state: PixieTripState) {
 }
 
 function isExplicitOverallTripDateIntent(message: string) {
-  return /\b(trip|travel|traveling|travelling|vacation|arrival|arrive|arriving|check(?:ing)?\s*in|check(?:ing)?\s*out|checkout|cheg(?:o|amos|ar)|viagem|f[eé]rias|entrada|sa[ií]da)\b/i.test(message);
+  return /\b(trip|travel|traveling|travelling|vacation|arrival|arrive|arriving|check(?:ing)?\s*in|check(?:ing)?\s*out|checkout|cheg\w*|viagem|f[eé]rias|entrada|sa[ií]da)\b/i.test(message);
 }
 
 function expectedParkForDining(restaurant: string | undefined) {
@@ -612,6 +695,8 @@ function extractPlanningWorkspacePatch(message: string, state: PixieTripState, g
   const decisionStatus = workspaceDecisionStatus(message);
   const openDiningPlan = fallbackOpenDiningPlan(state);
   const segmentEndDate = extractSegmentEndDate(message, fallbackYear);
+  const sequentialSplitStay = extractSequentialSplitStayPlan(message, state, fallbackYear);
+  if (sequentialSplitStay) lodgingPlans.push(...sequentialSplitStay.lodgingPlans);
   const acceptsOpenDiningPlan =
     !diningFromText(message) &&
     openDiningPlan &&
@@ -707,7 +792,7 @@ function extractPlanningWorkspacePatch(message: string, state: PixieTripState, g
     });
   }
 
-  if (/\bdisney springs?\b/i.test(message) && /\b(perto|near|close|ficar|stay|hosped|segundo|second|quarto|fourth)\b/i.test(message) && !state.preferences.excludedResorts.some((value) => /saratoga/i.test(value))) {
+  if (!sequentialSplitStay && /\bdisney springs?\b/i.test(message) && /\b(perto|near|close|ficar|stay|hosped|segundo|second|quarto|fourth)\b/i.test(message) && !state.preferences.excludedResorts.some((value) => /saratoga/i.test(value))) {
     const segment = lodgingSegmentDatesFor(message, state, fallbackYear, "disney_springs");
     lodgingPlans.push({
       id: stableId("lodging", `saratoga_springs_${segment.startDate ?? workspaceDate ?? "segment"}`),
@@ -721,7 +806,7 @@ function extractPlanningWorkspacePatch(message: string, state: PixieTripState, g
     });
   }
 
-  if (/\bepcot\b|international gateway/i.test(message) && /\b(perto|near|close|ficar|stay|hosped|depois|after)\b/i.test(message)) {
+  if (!sequentialSplitStay && /\bepcot\b|international gateway/i.test(message) && /\b(perto|near|close|ficar|stay|hosped|depois|after)\b/i.test(message)) {
     const boardwalkExcluded = state.preferences.excludedResorts.some((value) => /boardwalk/i.test(value));
     const segment = lodgingSegmentDatesFor(message, state, fallbackYear, "epcot_final");
     lodgingPlans.push({
@@ -960,6 +1045,7 @@ function extractPartyPatch(message: string, state: PixieTripState): NonNullable<
 
 function extractLightweightTripPatch(message: string, state: PixieTripState, generatedAt: string): PixieTripPatch {
   const dateExtraction = extractLightweightDates(message);
+  const splitStay = extractSequentialSplitStayPlan(message, state, yearForPlanningWorkspace(state, generatedAt));
   const facts = extractPreferenceFacts(message);
   const party = extractPartyPatch(message, state);
   const preferences: NonNullable<PixieTripPatch["preferences"]> = {};
@@ -976,7 +1062,11 @@ function extractLightweightTripPatch(message: string, state: PixieTripState, gen
   const planningWorkspace = extractPlanningWorkspacePatch(message, state, generatedAt);
 
   return {
-    ...(dateExtraction.dates && (!state.dates.arrivalDate || !state.dates.departureDate || isExplicitOverallTripDateIntent(message)) ? { dates: dateExtraction.dates } : {}),
+    ...(splitStay
+      ? { dates: splitStay.dates }
+      : dateExtraction.dates && (!state.dates.arrivalDate || !state.dates.departureDate || isExplicitOverallTripDateIntent(message))
+        ? { dates: dateExtraction.dates }
+        : {}),
     ...(party ? { party } : {}),
     ...(Object.keys(preferences).length ? { preferences } : {}),
     ...(dvcContext ? { dvcContext } : {}),
@@ -1186,6 +1276,34 @@ async function completePixiePlannerTurn(prepared: PreparedPixiePlannerTurn, inpu
     );
   } catch (error) {
     const pixieError = pixieErrorFromProviderFailure(error);
+    if (pixieError.code === "invalid_model_output" && /current model capacity/i.test(pixieError.message)) {
+      const response = buildPixiePlannerResponse({
+        modelResult: safeFallbackModelResult(pixieError.message, completeness.suggestedNextQuestionKey),
+        completeness,
+        toolResults: [],
+        warnings: [...prepared.warnings, "provider_capacity_recovered"],
+        latestUserMessage: prepared.message,
+        recentMessages: prepared.recentMessages,
+        currentState: state,
+        knowledgeContext: prepared.knowledgeContext,
+        liveContext,
+      });
+      if (/could not finish this planning turn|smaller parts|current model capacity/i.test(response.message)) {
+        throw Object.assign(new Error(pixieError.message), { pixieError });
+      }
+      return {
+        assistantResponse: response.message,
+        updatedState: state,
+        completeness,
+        planningStage: completeness.planningStage,
+        toolResults: [],
+        nextQuestionKey: response.nextQuestionKey,
+        warnings: response.warnings,
+        usage,
+        turnId: prepared.id,
+        generatedAt: prepared.generatedAt,
+      };
+    }
     throw Object.assign(new Error(pixieError.message), { pixieError });
   }
 
