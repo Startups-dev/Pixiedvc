@@ -9,7 +9,7 @@ import { getPixieAiConfig } from "@/lib/pixie/ai/safety";
 import { evaluatePixieCompleteness } from "@/lib/pixie/completeness";
 import { buildDvcContext } from "@/lib/pixie/dvc";
 import { createHannaKnowledgeService } from "@/lib/pixie/knowledge";
-import { createEmptyPixieTripState } from "@/lib/pixie/planner-state";
+import { createEmptyPixieTripState, normalizePixieTripState } from "@/lib/pixie/planner-state";
 
 describe("Pixie AI provider contract", () => {
   afterEach(() => {
@@ -215,7 +215,7 @@ describe("Pixie AI provider contract", () => {
     expect(JSON.stringify(userPayload.dvcContext)).not.toMatch(/DVC_RULE_NOTES|homeWindow|nonHomeWindow/);
   });
 
-  it("passes DVC needs-review provenance through to discourage overconfident policy wording", async () => {
+  it("passes verified cancellation timing before account-specific allocation uncertainty", async () => {
     const fetchMock = mockOpenAiResponse(Response.json(validOpenAiPayload()));
     const provider = createOpenAiPixieProvider(testEnv({
       OPENAI_API_KEY: "sk-test-redacted",
@@ -238,7 +238,40 @@ describe("Pixie AI provider contract", () => {
 
     expect(cancellation).toMatchObject({
       reasonCodes: expect.arrayContaining(["HOLDING_RISK"]),
+      knownConsequences: expect.arrayContaining([expect.stringMatching(/returned points generally go into Holding/i)]),
+      uncertainConsequences: expect.arrayContaining([expect.stringMatching(/actual point allocation is known/i)]),
+      accountGaps: expect.arrayContaining([expect.stringMatching(/allocation/i)]),
       verificationRequired: true,
+      provenance: expect.objectContaining({ status: "verified", freshness: "stable" }),
+    });
+  });
+
+  it("passes DVC needs-review provenance through for rules that still need qualification", async () => {
+    const fetchMock = mockOpenAiResponse(Response.json(validOpenAiPayload()));
+    const provider = createOpenAiPixieProvider(testEnv({
+      OPENAI_API_KEY: "sk-test-redacted",
+      PIXIE_MODEL: "gpt-5.6-sol",
+    }));
+    const input = plannerInput();
+    input.latestUserMessage = "Can my resale Saratoga points book Riviera for March 1 2027?";
+    input.currentState = normalizePixieTripState({
+      ...input.currentState,
+      dvcContext: { contracts: [{ id: "ssr_resale", homeResort: "Saratoga Springs", acquisitionType: "resale" }] },
+    });
+    input.dvcContext = buildDvcContext({
+      latestUserMessage: input.latestUserMessage,
+      currentState: input.currentState,
+      now: "2026-08-13T12:00:00.000Z",
+    });
+
+    await provider.createPlannerTurn(input);
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as {
+      input?: Array<{ content?: string }>;
+    };
+    const userPayload = JSON.parse(String(requestBody.input?.[0]?.content)) as PixiePlannerTurnInput;
+
+    expect(userPayload.dvcContext?.results[0]).toMatchObject({
+      reasonCodes: expect.arrayContaining(["RESALE_RESTRICTION", "RESTRICTED_RESORT"]),
       provenance: expect.objectContaining({ status: "needs_review", freshness: "needs_review" }),
     });
   });

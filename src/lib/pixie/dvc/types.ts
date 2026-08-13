@@ -53,6 +53,8 @@ export type DvcRuleResult = {
   factsUsed: DvcFact[];
   missingFacts: string[];
   consequences: string[];
+  knownConsequences?: string[];
+  uncertainConsequences?: string[];
   verificationRequired: boolean;
   liveGaps: string[];
   accountGaps: string[];

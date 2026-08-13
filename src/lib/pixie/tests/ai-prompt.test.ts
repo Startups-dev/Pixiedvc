@@ -20,8 +20,10 @@ describe("Pixie concierge prompt", () => {
     expect(prompt).toContain("change only what is relevant");
     expect(prompt).toContain("DVC rule context");
     expect(prompt).toContain("DVC confidence");
+    expect(prompt).toContain("knownConsequences");
+    expect(prompt).toContain("lead with knownConsequences from verified/stable DVC results");
+    expect(prompt).toContain("modeled cancellation/Holding timing");
     expect(prompt).toContain("provenance.status needs_review");
-    expect(prompt).toContain("Verified stable 11-month and 7-month booking-window results may be stated confidently");
     expect(prompt).toContain("Trusted Hanna knowledge");
     expect(prompt).toContain("knowledgeContext");
     expect(prompt).toContain("Live gaps and knowledge gaps must not make you refuse the rest of a mixed question");

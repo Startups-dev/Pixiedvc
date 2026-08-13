@@ -390,6 +390,48 @@ describe("Pixie AI orchestrator", () => {
     expect(result.updatedState.party.travellers[0]?.category).toBe("child");
   });
 
+  it("extracts a two-year-old without inventing unknown adults or total party size", async () => {
+    const result = await runPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      message: "We're at Magic Kingdom with our 2-year-old and she missed her nap.",
+      provider: successfulProvider(),
+      now: "2026-08-09T12:01:00.000Z",
+    });
+
+    expect(result.updatedState.party.adults).toBeUndefined();
+    expect(result.updatedState.party.adultCount).toBeUndefined();
+    expect(result.updatedState.party.children).toBe(1);
+    expect(result.updatedState.party.childCount).toBe(1);
+    expect(result.updatedState.party.totalPartySize).toBeUndefined();
+    expect(result.updatedState.party.travellers[0]).toMatchObject({ age: 2, category: "child", ageGroup: "preschooler" });
+  });
+
+  it("streams partial two-year-old traveler state without legacy zero-adult totals", async () => {
+    const events = [];
+    for await (const event of streamPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),
+      message: "We're at Magic Kingdom with our 2-year-old and she missed her nap.",
+      provider: {
+        async createPlannerTurn() {
+          throw new PixieAiException("provider_timeout", "OpenAI provider request timed out.");
+        },
+      },
+      now: "2026-08-09T12:01:00.000Z",
+    })) {
+      events.push(event);
+    }
+
+    const patchEvent = events.find((event) => event.type === "trip_patch_applied");
+    expect(patchEvent?.type).toBe("trip_patch_applied");
+    if (patchEvent?.type === "trip_patch_applied") {
+      expect(patchEvent.updatedState.party.adultCount).toBeUndefined();
+      expect(patchEvent.updatedState.party.childCount).toBe(1);
+      expect(patchEvent.updatedState.party.totalPartySize).toBeUndefined();
+      expect(patchEvent.updatedState.party.travellers[0]?.ageGroup).toBe("preschooler");
+      expect(patchEvent.updatedState.party.ageGroupSummary?.infant).toBe(0);
+    }
+  });
+
   it("does not guess ambiguous traveler wording", async () => {
     const result = await runPixiePlannerTurn({
       state: createEmptyPixieTripState("2026-08-09T12:00:00.000Z"),

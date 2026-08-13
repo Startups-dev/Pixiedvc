@@ -176,6 +176,30 @@ describe("Pixie planner state", () => {
     expect(state.party.ageGroupSummary?.infant).toBe(0);
   });
 
+  it("normalizes legacy zero-adult child-only state back to partial traveler knowledge", () => {
+    const state = normalizePixieTripState({
+      ...createEmptyPixieTripState(),
+      party: {
+        adults: 0,
+        children: 1,
+        totalPartySize: 1,
+        adultCount: 0,
+        childCount: 1,
+        ageGroupSummary: { infant: 1, preschooler: 0, child: 0, teen: 0, adult: 0, unknown: 0 },
+        travellers: [{ id: "traveller_two_year_old", category: "child", age: 2, ageGroup: "infant" }],
+      },
+    });
+
+    expect(state.party.adults).toBeUndefined();
+    expect(state.party.adultCount).toBeUndefined();
+    expect(state.party.children).toBe(1);
+    expect(state.party.childCount).toBe(1);
+    expect(state.party.totalPartySize).toBeUndefined();
+    expect(state.party.travellers[0]?.ageGroup).toBe("preschooler");
+    expect(state.party.ageGroupSummary?.preschooler).toBe(1);
+    expect(state.party.ageGroupSummary?.infant).toBe(0);
+  });
+
   it("keeps known adult and child counts deterministic", () => {
     const state = normalizePixieTripState({
       ...createEmptyPixieTripState(),

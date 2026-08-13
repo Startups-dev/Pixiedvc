@@ -175,7 +175,9 @@ describe("Pixie DVC rules foundation", () => {
     });
 
     expect(context.results[0]).toMatchObject({ reasonCodes: expect.arrayContaining(["HOLDING_RISK"]) });
-    expect(context.results[0]?.consequences.join(" ")).toMatch(/does not mean the points are simply lost/i);
+    expect(context.results[0]?.provenance).toMatchObject({ status: "verified", freshness: "stable" });
+    expect(context.results[0]?.knownConsequences?.[0]).toMatch(/returned points generally go into Holding/i);
+    expect(context.results[0]?.uncertainConsequences?.join(" ")).toMatch(/exact downstream use restrictions/i);
   });
 
   it("Case N marks cancellation allocation as account-specific when unknown", () => {
@@ -187,6 +189,8 @@ describe("Pixie DVC rules foundation", () => {
 
     expect(context.accountGaps.join(" ")).toMatch(/allocation/i);
     expect(context.results[0]?.reasonCodes).toEqual(expect.arrayContaining(["CANCELLATION_ALLOCATION_UNKNOWN"]));
+    expect(context.results[0]?.uncertainConsequences?.join(" ")).toMatch(/actual point allocation is known/i);
+    expect(JSON.stringify(context.results[0])).not.toMatch(/current points used|banked points used|borrowed points used/i);
   });
 
   it("Case O compares modification risk without guaranteeing protection", () => {

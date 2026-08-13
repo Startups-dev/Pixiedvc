@@ -91,6 +91,34 @@ describe("Pixie local draft versioning", () => {
     expect(result.state.dvcContext.homeResort).toBe("BoardWalk Villas");
   });
 
+  it("migrates legacy zero-adult two-year-old drafts without preserving invented totals", () => {
+    const state = createEmptyPixieTripState("2026-07-10T12:00:00.000Z");
+    const result = migratePixieDraft({
+      draftVersion: PIXIE_LOCAL_DRAFT_VERSION,
+      savedAt: "2026-07-10T13:00:00.000Z",
+      state: {
+        ...state,
+        party: {
+          adults: 0,
+          children: 1,
+          totalPartySize: 1,
+          adultCount: 0,
+          childCount: 1,
+          ageGroupSummary: { infant: 1, preschooler: 0, child: 0, teen: 0, adult: 0, unknown: 0 },
+          travellers: [{ id: "traveller_child", category: "child", age: 2, ageGroup: "infant" }],
+        },
+      },
+      recentMessages: [],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.state.party.adultCount).toBeUndefined();
+    expect(result.state.party.totalPartySize).toBeUndefined();
+    expect(result.state.party.childCount).toBe(1);
+    expect(result.state.party.travellers[0]?.ageGroup).toBe("preschooler");
+    expect(result.state.party.ageGroupSummary?.infant).toBe(0);
+  });
+
   it("resets to a fresh valid state", () => {
     const state = resetPixieDraft();
 

@@ -448,8 +448,8 @@ function extractPartyPatch(message: string, state: PixieTripState): NonNullable<
   const wifePattern = /\b(?:me|myself|i)\b[\s\S]{0,24}\bmy wife\b|\bmy wife\b[\s\S]{0,24}\b(?:me|myself|i)\b/;
   if (wifePattern.test(normalized)) patch.adults = Math.max(patch.adults ?? 0, 2);
 
-  const ageMatch = /\bmy\s+(\d{1,2})\s*(?:year|yr)[-\s]*old\b/.exec(normalized);
-  if (ageMatch && patch.adults !== undefined) {
+  const ageMatch = /\b(?:my|our)\s+(\d{1,2})\s*[-\s]*(?:year|yr)[-\s]*old\b/.exec(normalized);
+  if (ageMatch) {
     const age = Number(ageMatch[1]);
     patch.children = Math.max(patch.children ?? 0, 1);
     if (!state.party.travellers.some((traveller) => traveller.age === age)) {

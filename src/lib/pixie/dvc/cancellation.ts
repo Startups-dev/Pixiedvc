@@ -1,5 +1,5 @@
 import { compareDateOnly } from "@/lib/pixie/dvc/booking-windows";
-import { dvcNeedsReviewRule } from "@/lib/pixie/dvc/rules";
+import { dvcNeedsReviewRule, dvcStableRule } from "@/lib/pixie/dvc/rules";
 import type { DvcCancellationInput, DvcRuleResult } from "@/lib/pixie/dvc/types";
 
 function daysBetween(start: string, end: string) {
@@ -14,6 +14,8 @@ export function evaluateDvcCancellation(input: DvcCancellationInput): DvcRuleRes
   const missingFacts: string[] = [];
   const reasonCodes: DvcRuleResult["reasonCodes"] = [];
   const consequences: string[] = [];
+  const knownConsequences: string[] = [];
+  const uncertainConsequences: string[] = [];
   const accountGaps: string[] = [];
 
   if (input.checkInDate) factsUsed.push({ label: "checkInDate", value: input.checkInDate, source: "USER_FACT" });
@@ -25,16 +27,19 @@ export function evaluateDvcCancellation(input: DvcCancellationInput): DvcRuleRes
 
   if (holdingRisk) {
     reasonCodes.push("HOLDING_RISK");
-    consequences.push("The first consequence to check is Holding exposure. Holding does not mean the points are simply lost, but it can make them harder to reuse and more time-sensitive.");
+    knownConsequences.push("At this cancellation timing, returned points generally go into Holding rather than behaving like ordinary reusable points.");
+    uncertainConsequences.push("Holding does not mean the points are simply lost, but exact downstream use restrictions and expiration impact should be verified against the current policy and the point lots involved.");
   } else if (input.checkInDate && compareDateOnly(input.cancellationDate, input.checkInDate) <= 0) {
-    consequences.push("This appears to be outside the modeled Holding-risk timing, but the actual point outcome still depends on what points were used.");
+    knownConsequences.push("This appears to be outside the modeled Holding-risk timing.");
+    uncertainConsequences.push("The actual point outcome still depends on what points were used.");
   }
 
   if (input.allocationKnown === false || !input.pointLots?.length) {
     reasonCodes.push("CANCELLATION_ALLOCATION_UNKNOWN");
     accountGaps.push("Exact reservation point allocation is account-specific and not known.");
-    consequences.push("Do not cancel until the reservation's actual point allocation is known, especially if banked, borrowed, transferred, or expiring points may be involved.");
+    uncertainConsequences.push("Do not cancel until the reservation's actual point allocation is known, especially if banked, borrowed, transferred, or expiring points may be involved.");
   }
+  consequences.push(...knownConsequences, ...uncertainConsequences);
 
   return {
     id: "dvc_cancellation",
@@ -44,10 +49,12 @@ export function evaluateDvcCancellation(input: DvcCancellationInput): DvcRuleRes
     factsUsed,
     missingFacts,
     consequences,
+    knownConsequences,
+    uncertainConsequences,
     verificationRequired: true,
     liveGaps: [],
     accountGaps,
-    provenance: dvcNeedsReviewRule,
+    provenance: dvcStableRule,
   };
 }
 

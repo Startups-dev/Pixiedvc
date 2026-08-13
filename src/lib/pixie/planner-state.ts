@@ -149,12 +149,27 @@ export function normalizePixieTripState(
   const travellers = parsed.party.travellers.map(normalizeTraveller);
   const travellerAdults = travellers.filter((traveller) => traveller.ageGroup === "adult").length;
   const travellerChildren = travellers.filter((traveller) => traveller.ageGroup !== "adult" && traveller.ageGroup !== "unknown").length;
+  const legacyUnknownAdultZero =
+    parsed.party.adults === 0 &&
+    travellerAdults === 0 &&
+    travellerChildren > 0 &&
+    (parsed.party.totalPartySize === undefined || parsed.party.totalPartySize === travellerChildren);
   const adultCount =
-    parsed.party.adults !== undefined ? Math.max(parsed.party.adults, travellerAdults) : travellerAdults > 0 ? travellerAdults : undefined;
+    parsed.party.adults !== undefined && !legacyUnknownAdultZero
+      ? Math.max(parsed.party.adults, travellerAdults)
+      : travellerAdults > 0
+        ? travellerAdults
+        : undefined;
   const childCount =
     parsed.party.children !== undefined ? Math.max(parsed.party.children, travellerChildren) : travellerChildren > 0 ? travellerChildren : undefined;
   const totalPartySize =
-    adultCount !== undefined ? adultCount + (childCount ?? 0) : parsed.party.totalPartySize !== undefined ? parsed.party.totalPartySize : undefined;
+    adultCount !== undefined
+      ? adultCount + (childCount ?? 0)
+      : legacyUnknownAdultZero
+        ? undefined
+        : parsed.party.totalPartySize !== undefined
+          ? parsed.party.totalPartySize
+          : undefined;
   if ((totalPartySize ?? 0) > PIXIE_LIMITS.maxPartySize) {
     throw new Error(`Party size cannot exceed ${PIXIE_LIMITS.maxPartySize}.`);
   }
