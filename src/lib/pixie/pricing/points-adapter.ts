@@ -1,17 +1,26 @@
 import { quoteStay, Resorts as CalculatorResorts } from "pixiedvc-calculator";
 
-import { calculateDateOnlyNights } from "@/lib/pixie/planner-state";
 import { getPixieResortById } from "@/lib/pixie/resorts/identifiers";
 import { getCalculatorRoomCodeForRoomType, normalizeRoomTypeIdentifier } from "@/lib/pixie/resorts/room-types";
 import type { PixieResortId } from "@/lib/pixie/resorts/types";
 import type { PixieDvcPointsEstimate } from "@/lib/pixie/pricing/types";
 
 export const PIXIE_SUPPORTED_CALCULATOR_YEARS = [2025, 2026, 2027] as const;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function parseDateOnly(value: string) {
   const [year, month, day] = value.split("-").map(Number);
   const date = Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1);
   return new Date(date).toISOString().slice(0, 10) === value ? new Date(date) : null;
+}
+
+function calculateDateOnlyNights(arrivalDate?: string, departureDate?: string) {
+  if (!arrivalDate || !departureDate) return undefined;
+  const start = parseDateOnly(arrivalDate);
+  const end = parseDateOnly(departureDate);
+  if (!start || !end) return undefined;
+  const nights = Math.round((end.getTime() - start.getTime()) / MS_PER_DAY);
+  return nights > 0 ? nights : undefined;
 }
 
 function getStayYears(arrivalDate: string, nights: number) {

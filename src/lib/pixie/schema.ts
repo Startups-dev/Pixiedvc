@@ -253,9 +253,9 @@ export const pixieActivePlanningDecisionSchema = z
 
 export const pixieWorkspaceDecisionStatusSchema = z.enum(["confirmed", "selected", "planned", "considering", "recommended", "needs_decision", "unknown"]);
 
-const pixieWorkspaceSourceSchema = z.enum(["explicit_user", "model_recommendation", "deterministic_inference", "live_source", "existing_state"]);
+export const pixieWorkspaceSourceSchema = z.enum(["explicit_user", "model_recommendation", "deterministic_inference", "live_source", "existing_state"]);
 
-const pixieWorkspaceTextStatusSchema = pixieWorkspaceDecisionStatusSchema.default("unknown");
+export const pixieWorkspaceTextStatusSchema = pixieWorkspaceDecisionStatusSchema.default("unknown");
 
 export const pixieWorkspaceLodgingPlanSchema = z
   .object({

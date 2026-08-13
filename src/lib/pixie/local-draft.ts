@@ -9,8 +9,16 @@ import {
   pixieGeneratedSchema,
   pixieMetadataSchema,
   pixiePartySchema,
-  pixiePlanningStageSchema,
   pixiePlanningWorkspaceSchema,
+  pixieWorkspaceActivityPlanSchema,
+  pixieWorkspaceAttentionItemSchema,
+  pixieWorkspaceDiningPlanSchema,
+  pixieWorkspaceLodgingPlanSchema,
+  pixieWorkspaceParkPlanSchema,
+  pixieWorkingItineraryNightSchema,
+  pixieAvailabilityObservationSchema,
+  pixieActivePlanningDecisionSchema,
+  pixiePlanningStageSchema,
   pixiePreferencesSchema,
   pixieSelectedOptionsSchema,
   pixieTravellerSchema,
@@ -34,6 +42,7 @@ const pixieLocalDraftEnvelopeSchema = z
   .strict();
 
 export type PixieLocalDraftEnvelope = z.infer<typeof pixieLocalDraftEnvelopeSchema>;
+const LODGING_ESTIMATE_STATUSES = new Set(["estimate", "unsupported", "not_requested"]);
 
 function byteLength(value: string) {
   return new TextEncoder().encode(value).length;
@@ -88,6 +97,76 @@ function recoverPartySection(value: unknown) {
   });
 }
 
+function safeWorkspaceItems<T>(
+  values: unknown,
+  schema: { strip: () => { safeParse: (value: unknown) => { success: true; data: T } | { success: false } } },
+  maxItems: number = PIXIE_LIMITS.maxArrayItems,
+) {
+  if (!Array.isArray(values)) return [];
+  return values
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const parsed = schema.strip().safeParse(item);
+      return parsed.success ? parsed.data : null;
+    })
+    .filter((item): item is T => Boolean(item))
+    .slice(0, maxItems);
+}
+
+function recoverLodgingPlans(values: unknown) {
+  if (!Array.isArray(values)) return [];
+  return values
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const record = item as Record<string, unknown>;
+      const pointsEstimateStatus = typeof record.pointsEstimateStatus === "string" && LODGING_ESTIMATE_STATUSES.has(record.pointsEstimateStatus)
+        ? record.pointsEstimateStatus
+        : undefined;
+      const rentalEstimateStatus = typeof record.rentalEstimateStatus === "string" && LODGING_ESTIMATE_STATUSES.has(record.rentalEstimateStatus)
+        ? record.rentalEstimateStatus
+        : undefined;
+      const sanitized = {
+        ...record,
+        checkIn: typeof record.checkIn === "string" ? record.checkIn : record.startDate,
+        checkOut: typeof record.checkOut === "string" ? record.checkOut : record.endDate,
+        startDate: typeof record.startDate === "string" ? record.startDate : record.checkIn,
+        endDate: typeof record.endDate === "string" ? record.endDate : record.checkOut,
+        roomType: typeof record.roomType === "string" ? record.roomType : undefined,
+        numberOfNights: Number.isInteger(record.numberOfNights) ? record.numberOfNights : undefined,
+        estimatedPoints: Number.isInteger(record.estimatedPoints) ? record.estimatedPoints : undefined,
+        pointsEstimateStatus,
+        estimatedRentalCostCents: Number.isInteger(record.estimatedRentalCostCents) ? record.estimatedRentalCostCents : undefined,
+        rentalEstimateStatus,
+        estimateNotes: typeof record.estimateNotes === "string" ? record.estimateNotes : undefined,
+      };
+      const parsed = pixieWorkspaceLodgingPlanSchema.strip().safeParse(sanitized);
+      return parsed.success ? parsed.data : null;
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+    .slice(0, 8);
+}
+
+function recoverPlanningWorkspaceSection(value: unknown) {
+  if (!value || typeof value !== "object") return undefined;
+  const parsed = recoverObjectSection(pixiePlanningWorkspaceSchema, value);
+  if (parsed) return parsed;
+
+  const record = value as Record<string, unknown>;
+  const recovered = {
+    workingItinerary: safeWorkspaceItems(record.workingItinerary, pixieWorkingItineraryNightSchema, PIXIE_LIMITS.maxTripDurationNights),
+    availabilityObservations: safeWorkspaceItems(record.availabilityObservations, pixieAvailabilityObservationSchema),
+    activeDecisions: safeWorkspaceItems(record.activeDecisions, pixieActivePlanningDecisionSchema),
+    lodgingPlans: recoverLodgingPlans(record.lodgingPlans),
+    parkPlans: safeWorkspaceItems(record.parkPlans, pixieWorkspaceParkPlanSchema, PIXIE_LIMITS.maxTripDurationNights + 4),
+    diningPlans: safeWorkspaceItems(record.diningPlans, pixieWorkspaceDiningPlanSchema, 16),
+    activityPlans: safeWorkspaceItems(record.activityPlans, pixieWorkspaceActivityPlanSchema, 16),
+    attentionItems: safeWorkspaceItems(record.attentionItems, pixieWorkspaceAttentionItemSchema, 8),
+  };
+
+  const recoveredParsed = pixiePlanningWorkspaceSchema.safeParse(recovered);
+  return recoveredParsed.success ? recoveredParsed.data : undefined;
+}
+
 function recoverTripState(value: unknown): PixieTripState | undefined {
   if (!value || typeof value !== "object") return undefined;
   const record = value as Record<string, unknown>;
@@ -105,7 +184,7 @@ function recoverTripState(value: unknown): PixieTripState | undefined {
     preferences: recoverObjectSection(pixiePreferencesSchema, record.preferences) ?? base.preferences,
     accessibility: recoverObjectSection(pixieAccessibilitySchema, record.accessibility) ?? base.accessibility,
     dvcContext: recoverObjectSection(pixieDvcContextSchema, record.dvcContext) ?? base.dvcContext,
-    planningWorkspace: recoverObjectSection(pixiePlanningWorkspaceSchema, record.planningWorkspace) ?? base.planningWorkspace,
+    planningWorkspace: recoverPlanningWorkspaceSection(record.planningWorkspace) ?? base.planningWorkspace,
     generated: recoverObjectSection(pixieGeneratedSchema, record.generated) ?? base.generated,
     selectedOptions: recoverObjectSection(pixieSelectedOptionsSchema, record.selectedOptions) ?? base.selectedOptions,
     metadata: recoverObjectSection(pixieMetadataSchema, record.metadata) ?? base.metadata,
@@ -148,12 +227,24 @@ export function migratePixieDraft(value: unknown): PixieDraftParseResult {
       ? parsed
       : pixieLocalDraftEnvelopeSchema.safeParse(stripLegacyRecentMessageMetadata(record));
     if (recoveredParsed.success) {
-      return {
-        ok: true,
-        state: normalizePixieTripState(recoveredParsed.data.state, { preserveUpdatedAt: true }),
-        recovered: !parsed.success,
-        reason: parsed.success ? "none" : "migrated",
-      };
+      try {
+        return {
+          ok: true,
+          state: normalizePixieTripState(recoveredParsed.data.state, { preserveUpdatedAt: true }),
+          recovered: !parsed.success,
+          reason: parsed.success ? "none" : "migrated",
+        };
+      } catch {
+        const recoveredState = recoverTripState(record.state);
+        if (recoveredState) {
+          return {
+            ok: true,
+            state: recoveredState,
+            recovered: true,
+            reason: "migrated",
+          };
+        }
+      }
     }
     const recoveredState = recoverTripState(record.state);
     if (recoveredState) {

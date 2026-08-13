@@ -120,6 +120,42 @@ describe("Pixie browser draft storage", () => {
     expect(window.localStorage.getItem(PIXIE_LOCAL_DRAFT_STORAGE_KEY)).not.toBeNull();
   });
 
+  it("hydrates legacy workspace drafts without throwing or clearing valid trip data", () => {
+    const state = createEmptyPixieTripState("2026-08-13T12:00:00.000Z");
+    window.localStorage.setItem(
+      PIXIE_LOCAL_DRAFT_STORAGE_KEY,
+      JSON.stringify({
+        draftVersion: 1,
+        savedAt: "2026-08-13T12:00:00.000Z",
+        state: {
+          ...state,
+          dates: { arrivalDate: "2026-09-01", departureDate: "2026-09-06" },
+          party: { adults: 2, children: 1 },
+          planningWorkspace: {
+            lodgingPlans: [
+              { id: "lodging_blt", resort: "Bay Lake Tower", startDate: "2026-09-01", endDate: "2026-09-02", status: "selected", source: "explicit_user" },
+              { id: "bad lodging id", resort: "", startDate: "not-a-date", status: "recommended", source: "model_recommendation" },
+            ],
+            diningPlans: [{ id: "dining_akershus", restaurant: "Akershus Royal Banquet Hall", mealPeriod: "lunch", status: "planned", source: "model_recommendation" }],
+          },
+        },
+        recentMessages: [{ role: "user", content: "Vamos ficar perto do Magic Kingdom." }],
+      }),
+    );
+
+    expect(() => readPixieDraftFromBrowser()).not.toThrow();
+    const restored = readPixieDraftFromBrowser();
+    expect(restored?.recovered).toBe(true);
+    expect(restored?.state.dates.arrivalDate).toBe("2026-09-01");
+    expect(restored?.state.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([
+      expect.objectContaining({ resort: "Bay Lake Tower", checkIn: "2026-09-01", checkOut: "2026-09-02" }),
+    ]));
+    expect(restored?.state.planningWorkspace.diningPlans).toEqual(expect.arrayContaining([
+      expect.objectContaining({ restaurant: "Akershus Royal Banquet Hall" }),
+    ]));
+    expect(window.localStorage.getItem(PIXIE_LOCAL_DRAFT_STORAGE_KEY)).not.toBeNull();
+  });
+
   it("reset clears only the Pixie draft", () => {
     window.localStorage.setItem(PIXIE_LOCAL_DRAFT_STORAGE_KEY, "draft");
     window.localStorage.setItem("pixiedvc:affiliate", "keep");

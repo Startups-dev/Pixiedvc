@@ -154,6 +154,116 @@ describe("Pixie local draft versioning", () => {
     expect(result.state.dvcContext.homeResort).toBe("BoardWalk Villas");
   });
 
+  it("hydrates Prompt-10-era workspace drafts without segment estimate fields", () => {
+    const state = createEmptyPixieTripState("2026-08-13T12:00:00.000Z");
+    const result = migratePixieDraft({
+      draftVersion: PIXIE_LOCAL_DRAFT_VERSION,
+      savedAt: "2026-08-13T13:00:00.000Z",
+      state: {
+        ...state,
+        dates: { arrivalDate: "2026-09-01", departureDate: "2026-09-06" },
+        party: { adults: 2, children: 1 },
+        planningWorkspace: {
+          lodgingPlans: [{ id: "lodging_bay_lake", resort: "Bay Lake Tower", status: "recommended", source: "model_recommendation" }],
+          diningPlans: [{ id: "dining_epcot_lunch", restaurant: "Akershus Royal Banquet Hall", mealPeriod: "lunch", status: "planned", source: "model_recommendation" }],
+          attentionItems: [{ id: "choose_lunch", label: "Choose lunch", category: "open_decision", status: "open", source: "deterministic_inference" }],
+        },
+      },
+      recentMessages: [],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.state.planningWorkspace.lodgingPlans[0]).toMatchObject({
+      resort: "Bay Lake Tower",
+      status: "recommended",
+      pointsEstimateStatus: "not_requested",
+      rentalEstimateStatus: "not_requested",
+    });
+    expect(result.state.planningWorkspace.diningPlans[0]).toMatchObject({ restaurant: "Akershus Royal Banquet Hall", mealPeriod: "lunch" });
+  });
+
+  it("migrates old lodging startDate/endDate shapes into check-in/check-out segments", () => {
+    const state = createEmptyPixieTripState("2026-08-13T12:00:00.000Z");
+    const result = migratePixieDraft({
+      draftVersion: PIXIE_LOCAL_DRAFT_VERSION,
+      savedAt: "2026-08-13T13:00:00.000Z",
+      state: {
+        ...state,
+        dates: { arrivalDate: "2026-09-01", departureDate: "2026-09-06" },
+        party: { adults: 2, children: 1 },
+        planningWorkspace: {
+          lodgingPlans: [{ id: "lodging_saratoga", resort: "Disney's Saratoga Springs Resort & Spa", startDate: "2026-09-02", endDate: "2026-09-04", status: "recommended", source: "model_recommendation" }],
+        },
+      },
+      recentMessages: [],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.state.planningWorkspace.lodgingPlans[0]).toMatchObject({
+      checkIn: "2026-09-02",
+      checkOut: "2026-09-04",
+      numberOfNights: 2,
+      roomType: "Deluxe Studio",
+      pointsEstimateStatus: "estimate",
+      rentalEstimateStatus: "estimate",
+    });
+  });
+
+  it("keeps mixed old and new workspace fields while ignoring unknown extras", () => {
+    const state = createEmptyPixieTripState("2026-08-13T12:00:00.000Z");
+    const result = migratePixieDraft({
+      draftVersion: PIXIE_LOCAL_DRAFT_VERSION,
+      savedAt: "2026-08-13T13:00:00.000Z",
+      state: {
+        ...state,
+        dates: { arrivalDate: "2026-09-01", departureDate: "2026-09-06" },
+        party: { adults: 2, children: 1 },
+        planningWorkspace: {
+          lodgingPlans: [
+            { id: "lodging_blt", resort: "Bay Lake Tower", startDate: "2026-09-01", endDate: "2026-09-02", status: "selected", source: "explicit_user", legacyNote: "ignore" },
+            { id: "lodging_boardwalk", resort: "BoardWalk Villas", checkIn: "2026-09-04", checkOut: "2026-09-06", status: "selected", source: "explicit_user", estimatedPoints: 42, futureEstimate: "ignore" },
+          ],
+          diningPlans: [{ id: "dining_akershus", restaurant: "Akershus Royal Banquet Hall", mealPeriod: "lunch", status: "planned", source: "model_recommendation", legacyDining: true }],
+        },
+      },
+      recentMessages: [],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.state.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([
+      expect.objectContaining({ resort: "Bay Lake Tower", checkIn: "2026-09-01", checkOut: "2026-09-02" }),
+      expect.objectContaining({ resort: "BoardWalk Villas", checkIn: "2026-09-04", checkOut: "2026-09-06", estimatedPoints: 42 }),
+    ]));
+    expect(result.state.planningWorkspace.diningPlans).toEqual(expect.arrayContaining([expect.objectContaining({ restaurant: "Akershus Royal Banquet Hall" })]));
+  });
+
+  it("salvages valid workspace entries when one optional lodging entry is malformed", () => {
+    const state = createEmptyPixieTripState("2026-08-13T12:00:00.000Z");
+    const result = migratePixieDraft({
+      draftVersion: PIXIE_LOCAL_DRAFT_VERSION,
+      savedAt: "2026-08-13T13:00:00.000Z",
+      state: {
+        ...state,
+        dates: { arrivalDate: "2026-09-01", departureDate: "2026-09-06" },
+        party: { adults: 2, children: 1 },
+        planningWorkspace: {
+          lodgingPlans: [
+            { id: "lodging_valid", resort: "BoardWalk Villas", startDate: "2026-09-04", endDate: "2026-09-06", status: "selected", source: "explicit_user" },
+            { id: "bad lodging id", resort: "", startDate: "not-a-date", status: "selected", source: "explicit_user" },
+          ],
+          diningPlans: [{ id: "dining_valid", restaurant: "Akershus Royal Banquet Hall", mealPeriod: "lunch", status: "planned", source: "model_recommendation" }],
+        },
+      },
+      recentMessages: [],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.recovered).toBe(true);
+    expect(result.state.planningWorkspace.lodgingPlans).toHaveLength(1);
+    expect(result.state.planningWorkspace.lodgingPlans[0]?.resort).toBe("BoardWalk Villas");
+    expect(result.state.planningWorkspace.diningPlans).toHaveLength(1);
+  });
+
   it("migrates legacy zero-adult two-year-old drafts without preserving invented totals", () => {
     const state = createEmptyPixieTripState("2026-07-10T12:00:00.000Z");
     const result = migratePixieDraft({
