@@ -335,6 +335,51 @@ describe("Pixie planner state", () => {
     expect(second.state.planningWorkspace.workingItinerary[0]?.roomType).toBe("Studio");
   });
 
+  it("merges V2 workspace plans by stable ids and prevents duplicate active dining conflicts", () => {
+    const first = applyPixieTripPatch(createEmptyPixieTripState(), {
+      planningWorkspace: {
+        lodgingPlans: [{ id: "lodging_bay_lake", resort: "Bay Lake Tower", status: "recommended", source: "model_recommendation" }],
+        diningPlans: [{ id: "dining_2026_09_03_dinner_via_napoli", restaurant: "Via Napoli", date: "2026-09-03", mealPeriod: "dinner", status: "selected", source: "explicit_user" }],
+      },
+    });
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+
+    const second = applyPixieTripPatch(first.state, {
+      planningWorkspace: {
+        lodgingPlans: [{ id: "lodging_bay_lake", resort: "Bay Lake Tower", status: "selected", source: "explicit_user" }],
+        diningPlans: [{ id: "dining_2026_09_03_dinner_biergarten", restaurant: "Biergarten", date: "2026-09-03", mealPeriod: "dinner", status: "selected", source: "explicit_user" }],
+      },
+    });
+
+    expect(second.ok).toBe(true);
+    if (!second.ok) return;
+    expect(second.state.planningWorkspace.lodgingPlans).toHaveLength(1);
+    expect(second.state.planningWorkspace.lodgingPlans[0]).toMatchObject({ resort: "Bay Lake Tower", status: "selected" });
+    expect(second.state.planningWorkspace.diningPlans).toHaveLength(1);
+    expect(second.state.planningWorkspace.diningPlans[0]).toMatchObject({ restaurant: "Biergarten", status: "selected" });
+  });
+
+  it("does not overwrite confirmed workspace facts with weak recommendations", () => {
+    const first = applyPixieTripPatch(createEmptyPixieTripState(), {
+      planningWorkspace: {
+        lodgingPlans: [{ id: "lodging_boardwalk", resort: "BoardWalk Villas", status: "confirmed", source: "explicit_user" }],
+      },
+    });
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+
+    const second = applyPixieTripPatch(first.state, {
+      planningWorkspace: {
+        lodgingPlans: [{ id: "lodging_boardwalk", resort: "BoardWalk Villas", status: "recommended", source: "model_recommendation" }],
+      },
+    });
+
+    expect(second.ok).toBe(true);
+    if (!second.ok) return;
+    expect(second.state.planningWorkspace.lodgingPlans[0]?.status).toBe("confirmed");
+  });
+
   it("normalizes budget currency only when an amount is supplied", () => {
     const noAmount = normalizePixieTripState(createEmptyPixieTripState());
     const withAmount = normalizePixieTripState({

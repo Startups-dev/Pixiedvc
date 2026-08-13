@@ -251,11 +251,83 @@ export const pixieActivePlanningDecisionSchema = z
   })
   .strict();
 
+export const pixieWorkspaceDecisionStatusSchema = z.enum(["confirmed", "selected", "planned", "considering", "recommended", "needs_decision", "unknown"]);
+
+const pixieWorkspaceSourceSchema = z.enum(["explicit_user", "model_recommendation", "deterministic_inference", "live_source", "existing_state"]);
+
+const pixieWorkspaceTextStatusSchema = pixieWorkspaceDecisionStatusSchema.default("unknown");
+
+export const pixieWorkspaceLodgingPlanSchema = z
+  .object({
+    id: z.string().trim().regex(localIdPattern),
+    resort: z.string().trim().min(1).max(PIXIE_LIMITS.maxShortTextLength),
+    startDate: pixieDateOnlySchema.optional(),
+    endDate: pixieDateOnlySchema.optional(),
+    status: pixieWorkspaceTextStatusSchema,
+    source: pixieWorkspaceSourceSchema.default("deterministic_inference"),
+    note: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
+    dvcRelevant: z.boolean().optional(),
+  })
+  .strict();
+
+export const pixieWorkspaceParkPlanSchema = z
+  .object({
+    id: z.string().trim().regex(localIdPattern),
+    park: z.string().trim().min(1).max(PIXIE_LIMITS.maxShortTextLength),
+    date: pixieDateOnlySchema.optional(),
+    status: pixieWorkspaceTextStatusSchema,
+    source: pixieWorkspaceSourceSchema.default("deterministic_inference"),
+    note: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
+  })
+  .strict();
+
+export const pixieWorkspaceDiningPlanSchema = z
+  .object({
+    id: z.string().trim().regex(localIdPattern),
+    restaurant: z.string().trim().min(1).max(PIXIE_LIMITS.maxShortTextLength),
+    date: pixieDateOnlySchema.optional(),
+    mealPeriod: z.enum(["breakfast", "brunch", "lunch", "dinner", "snack"]).optional(),
+    targetTime: optionalTrimmedString(20),
+    status: pixieWorkspaceTextStatusSchema,
+    source: pixieWorkspaceSourceSchema.default("deterministic_inference"),
+    planningPriceEstimate: optionalTrimmedString(120),
+    availabilityState: optionalTrimmedString(80),
+    note: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
+  })
+  .strict();
+
+export const pixieWorkspaceActivityPlanSchema = z
+  .object({
+    id: z.string().trim().regex(localIdPattern),
+    label: z.string().trim().min(1).max(PIXIE_LIMITS.maxShortTextLength),
+    date: pixieDateOnlySchema.optional(),
+    status: pixieWorkspaceTextStatusSchema,
+    source: pixieWorkspaceSourceSchema.default("deterministic_inference"),
+    note: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
+  })
+  .strict();
+
+export const pixieWorkspaceAttentionItemSchema = z
+  .object({
+    id: z.string().trim().regex(localIdPattern),
+    label: z.string().trim().min(1).max(PIXIE_LIMITS.maxShortTextLength),
+    category: z.enum(["open_decision", "dvc", "live_info", "logistics"]).default("open_decision"),
+    status: z.enum(["open", "resolved"]).default("open"),
+    source: pixieWorkspaceSourceSchema.default("deterministic_inference"),
+    note: optionalTrimmedString(PIXIE_LIMITS.maxNoteLength),
+  })
+  .strict();
+
 export const pixiePlanningWorkspaceSchema = z
   .object({
     workingItinerary: z.array(pixieWorkingItineraryNightSchema).max(PIXIE_LIMITS.maxTripDurationNights).default([]),
     availabilityObservations: z.array(pixieAvailabilityObservationSchema).max(PIXIE_LIMITS.maxArrayItems).default([]),
     activeDecisions: z.array(pixieActivePlanningDecisionSchema).max(PIXIE_LIMITS.maxArrayItems).default([]),
+    lodgingPlans: z.array(pixieWorkspaceLodgingPlanSchema).max(8).default([]),
+    parkPlans: z.array(pixieWorkspaceParkPlanSchema).max(PIXIE_LIMITS.maxTripDurationNights + 4).default([]),
+    diningPlans: z.array(pixieWorkspaceDiningPlanSchema).max(16).default([]),
+    activityPlans: z.array(pixieWorkspaceActivityPlanSchema).max(16).default([]),
+    attentionItems: z.array(pixieWorkspaceAttentionItemSchema).max(8).default([]),
   })
   .strict();
 

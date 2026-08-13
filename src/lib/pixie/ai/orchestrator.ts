@@ -6,9 +6,10 @@ import type { PixieTripPatch, PixieTripState } from "@/lib/pixie/schema";
 import type { PixieCompletenessResult, PixieQuestionKey } from "@/lib/pixie/types";
 import { createHannaKnowledgeService, type HannaKnowledgeContext } from "@/lib/pixie/knowledge";
 import { buildDvcContext, type DvcContext } from "@/lib/pixie/dvc";
+import { createLiveDisneyService, type LiveDisneyContext, type LiveDisneyService } from "@/lib/pixie/live";
 import type { PixieAiError } from "@/lib/pixie/ai/errors";
 import { PixieAiException, pixieAiError } from "@/lib/pixie/ai/errors";
-import type { PixieModelProvider, PixieModelProviderResult } from "@/lib/pixie/ai/provider";
+import type { PixieCurrentPlanSummary, PixieModelProvider, PixieModelProviderResult } from "@/lib/pixie/ai/provider";
 import { createOpenAiPixieProvider } from "@/lib/pixie/ai/openai-provider";
 import { buildPixiePlannerResponse } from "@/lib/pixie/ai/response-builder";
 import {
@@ -69,6 +70,7 @@ type RunPixiePlannerTurnInput = {
   message: string;
   recentMessages?: PixieRecentMessage[];
   provider?: PixieModelProvider;
+  liveDisneyService?: LiveDisneyService;
   context?: {
     requestId?: string;
     sessionId?: string;
@@ -92,6 +94,8 @@ type PreparedPixiePlannerTurn = {
   providerTimeoutMs: number;
   knowledgeContext: HannaKnowledgeContext;
   dvcContext: DvcContext;
+  liveContext?: LiveDisneyContext;
+  currentPlanSummary: PixieCurrentPlanSummary;
   extractedState?: PixieTripState;
 };
 
@@ -140,6 +144,7 @@ const MONTHS: Record<string, number> = {
 };
 
 const RESORT_MENTIONS = [
+  { pattern: /\banimal kingdom villas\b|\bakv\b/i, label: "Animal Kingdom Villas" },
   { pattern: /\b(?:bay lake(?: tower)?|blt)\b/i, label: "Bay Lake Tower" },
   { pattern: /\bpolynesian\b/i, label: "Polynesian Villas" },
   { pattern: /\bcopper creek\b/i, label: "Copper Creek Villas" },
@@ -150,8 +155,98 @@ const RESORT_MENTIONS = [
   { pattern: /\bsaratoga(?: springs)?\b/i, label: "Saratoga Springs" },
 ] as const;
 
+const PARK_MENTIONS = [
+  { pattern: /\bmagic kingdom\b|\bmk\b/i, label: "Magic Kingdom" },
+  { pattern: /\bepcot\b/i, label: "EPCOT" },
+  { pattern: /\bhollywood studios\b|\bdhs\b/i, label: "Hollywood Studios" },
+  { pattern: /\banimal kingdom\b|\bdak\b/i, label: "Animal Kingdom" },
+] as const;
+
+const DINING_MENTIONS = [
+  { pattern: /\bvia napoli\b/i, label: "Via Napoli", estimate: "$60-$112 before tax/tip" },
+  { pattern: /\bbiergarten\b/i, label: "Biergarten", estimate: "$98-$98 before tax/tip" },
+  { pattern: /\bgarden grill\b/i, label: "Garden Grill", estimate: "$132-$132 before tax/tip" },
+  { pattern: /\bchef mickey'?s\b|\bchef mickeys\b/i, label: "Chef Mickey's", estimate: "$132-$132 before tax/tip" },
+  { pattern: /\bbe our guest\b|\bbog\b/i, label: "Be Our Guest", estimate: "$144-$144 before tax/tip" },
+] as const;
+
 function resortLabelFromText(value: string) {
   return RESORT_MENTIONS.find((resort) => resort.pattern.test(value))?.label;
+}
+
+function parkLabelFromText(value: string) {
+  return PARK_MENTIONS.find((park) => park.pattern.test(value))?.label;
+}
+
+function diningFromText(value: string) {
+  return DINING_MENTIONS.find((dining) => dining.pattern.test(value));
+}
+
+function activeWorkspaceStatus(status: string) {
+  return status === "confirmed" || status === "selected" || status === "planned" || status === "considering" || status === "recommended";
+}
+
+function compactList(values: Array<string | undefined>, maxItems: number) {
+  return normalizeStringArray(values.filter((value): value is string => Boolean(value?.trim())), maxItems);
+}
+
+function buildCurrentPlanSummary(state: PixieTripState): PixieCurrentPlanSummary {
+  const travelers = compactList([
+    state.party.adults !== undefined ? `${state.party.adults} adult${state.party.adults === 1 ? "" : "s"}` : undefined,
+    ...(state.party.travellers.filter((traveller) => traveller.ageGroup !== "adult").map((traveller) => {
+      const age = traveller.age !== undefined ? ` age ${traveller.age}` : "";
+      return `${traveller.displayName ?? traveller.label ?? traveller.ageGroup ?? "child"}${age}`;
+    })),
+  ], 8);
+  const tripDates = state.dates.arrivalDate || state.dates.departureDate ? `${state.dates.arrivalDate ?? "unknown arrival"} to ${state.dates.departureDate ?? "unknown departure"}` : undefined;
+  const lodging = state.planningWorkspace.lodgingPlans
+    .filter((plan) => activeWorkspaceStatus(plan.status))
+    .slice(-6)
+    .map((plan) => `${plan.resort} - ${plan.status}${plan.startDate || plan.endDate ? ` (${plan.startDate ?? "?"} to ${plan.endDate ?? "?"})` : ""}${plan.note ? `: ${plan.note}` : ""}`);
+  const parks = state.planningWorkspace.parkPlans
+    .filter((plan) => activeWorkspaceStatus(plan.status))
+    .slice(-10)
+    .map((plan) => `${plan.date ?? "date unknown"} - ${plan.park} - ${plan.status}${plan.note ? `: ${plan.note}` : ""}`);
+  const dining = state.planningWorkspace.diningPlans
+    .filter((plan) => activeWorkspaceStatus(plan.status))
+    .slice(-10)
+    .map((plan) => `${plan.date ?? "date unknown"} - ${plan.mealPeriod ?? "meal"} - ${plan.restaurant} - ${plan.status}${plan.targetTime ? ` at ${plan.targetTime}` : ""}${plan.planningPriceEstimate ? ` (${plan.planningPriceEstimate})` : ""}`);
+  const activities = state.planningWorkspace.activityPlans
+    .filter((plan) => activeWorkspaceStatus(plan.status))
+    .slice(-8)
+    .map((plan) => `${plan.date ?? "date unknown"} - ${plan.label} - ${plan.status}${plan.note ? `: ${plan.note}` : ""}`);
+  const importantPreferences = compactList([
+    ...state.preferences.resortPriorities,
+    ...state.preferences.parkPriorities.map((value) => `park: ${value}`),
+    ...state.preferences.transportationPreferences.map((value) => `transportation: ${value}`),
+    ...state.preferences.diningPreferences.map((value) => `dining: ${value}`),
+    state.budget.budgetType !== "unknown" ? `budget: ${state.budget.budgetType}` : undefined,
+  ], 16);
+  const dvcFacts = compactList([
+    state.dvcContext.homeResort ? `Home Resort: ${state.dvcContext.homeResort}` : undefined,
+    state.dvcContext.useYear ? `Use Year: ${state.dvcContext.useYear}` : undefined,
+    state.dvcContext.holdingExposure?.isExposed ? `Holding exposure: ${state.dvcContext.holdingExposure.notes ?? "raised"}` : undefined,
+    ...state.dvcContext.planningRisks,
+    ...state.dvcContext.unresolvedDecisions,
+  ], 8);
+  const openDecisions = compactList([
+    ...state.planningWorkspace.activeDecisions.filter((decision) => decision.status !== "resolved").map((decision) => decision.label),
+    ...state.planningWorkspace.attentionItems.filter((item) => item.status !== "resolved" && item.category === "open_decision").map((item) => `${item.label}${item.note ? `: ${item.note}` : ""}`),
+  ], 8);
+  const attention = compactList(state.planningWorkspace.attentionItems.filter((item) => item.status !== "resolved" && item.category !== "open_decision").map((item) => `${item.label}${item.note ? `: ${item.note}` : ""}`), 8);
+  return {
+    travelers,
+    tripDates,
+    lodging,
+    parks,
+    dining,
+    activities,
+    importantPreferences,
+    dvcFacts,
+    openDecisions,
+    rejectedOptions: compactList(state.preferences.excludedResorts.map((value) => `resort: ${value}`), 8),
+    attention,
+  };
 }
 
 const COMPLEX_PLANNING_TIMEOUT_MS = 45_000;
@@ -174,6 +269,31 @@ function yearForPlanningWorkspace(state: PixieTripState, generatedAt: string) {
 
 function firstDateRange(message: string) {
   const monthPattern = Object.keys(MONTHS).join("|");
+  const compactPortuguesePattern = new RegExp(
+    `\\b(?:de\\s+)?(\\d{1,2})\\s+(?:a|até|ate)\\s+(\\d{1,2})\\s+de\\s+(${monthPattern})(?:\\s+de\\s+(\\d{4}))?\\b`,
+    "i",
+  );
+  const compactPortugueseMatch = compactPortuguesePattern.exec(message);
+  if (compactPortugueseMatch) {
+    const year = Number(compactPortugueseMatch[4] ?? new Date().getFullYear());
+    const month = MONTHS[compactPortugueseMatch[3].toLowerCase()];
+    const arrivalDate = dateOnly(year, month, Number(compactPortugueseMatch[1]));
+    const departureDate = dateOnly(year, month, Number(compactPortugueseMatch[2]));
+    if (arrivalDate && departureDate && calculateDateOnlyNights(arrivalDate, departureDate)) return { arrivalDate, departureDate };
+  }
+
+  const portuguesePattern = new RegExp(
+    `\\b(?:de\\s+)?(\\d{1,2})\\s+de\\s+(${monthPattern})\\s+(?:a|até|ate)\\s+(\\d{1,2})\\s+de\\s+(${monthPattern})(?:\\s+de\\s+(\\d{4}))?\\b`,
+    "i",
+  );
+  const portugueseMatch = portuguesePattern.exec(message);
+  if (portugueseMatch) {
+    const year = Number(portugueseMatch[5] ?? new Date().getFullYear());
+    const arrivalDate = dateOnly(year, MONTHS[portugueseMatch[2].toLowerCase()], Number(portugueseMatch[1]));
+    const departureDate = dateOnly(year, MONTHS[portugueseMatch[4].toLowerCase()], Number(portugueseMatch[3]));
+    if (arrivalDate && departureDate && calculateDateOnlyNights(arrivalDate, departureDate)) return { arrivalDate, departureDate };
+  }
+
   const pattern = new RegExp(
     `\\b(${monthPattern})\\s+(\\d{1,2})(?:,\\s*(\\d{4}))?\\s+(?:to|through|thru|-)\\s+(?:(${monthPattern})\\s+)?(\\d{1,2})(?:,\\s*(\\d{4}))?\\b`,
     "i",
@@ -183,7 +303,7 @@ function firstDateRange(message: string) {
 
   const arrivalMonth = MONTHS[match[1].toLowerCase()];
   const departureMonth = match[4] ? MONTHS[match[4].toLowerCase()] : arrivalMonth;
-  const year = Number(match[6] ?? match[3]);
+  const year = Number(match[6] ?? match[3] ?? new Date().getFullYear());
   const arrivalDay = Number(match[2]);
   const departureDay = Number(match[5]);
   if (!arrivalMonth || !departureMonth || !year) return undefined;
@@ -274,7 +394,7 @@ function extractPreferenceFacts(message: string) {
   const noteFacts: string[] = [];
   const normalized = message.toLowerCase();
 
-  if (/\bpagar(?:emos)?\s+mais\b|\bpagaremos mais\b|\bpre[cç]o n[aã]o importa\b|\bpodemos pagar mais\b/.test(normalized)) {
+  if (/\bpay more\b|\bwilling to pay more\b|\bprice does(?:n't| not) matter\b|\bpagar(?:emos)?\s+mais\b|\bpagaremos mais\b|\bpre[cç]o n[aã]o importa\b|\bpodemos pagar mais\b/.test(normalized)) {
     resortPriorities.push("price sensitivity low");
   }
   if (/\bminimi[sz]e resort changes\b|\bfew(?:er)? resort changes\b|\bavoid (?:a )?(?:resort )?transfer\b|\bleast annoying (?:split stay|version)\b/.test(normalized)) {
@@ -351,12 +471,78 @@ function availabilityStatusFromText(text: string) {
   return undefined;
 }
 
+function workspaceDecisionStatus(text: string): "confirmed" | "selected" | "planned" | "considering" | "recommended" {
+  const normalized = text.toLowerCase();
+  if (/\b(booked|reserved|confirmed|i booked|we booked|reservation confirmed|already have|j[aá] reservei|est[aá] reservado|consegui reservar|reserva est[aá] confirmada)\b/.test(normalized)) return "confirmed";
+  if (/\b(let'?s do|sounds perfect|i like that|go with|bay lake it is|decided on|vamos ficar|vamos fazer|vamos nessa|gostei dessa|vamos de|vamos nele|parece perfeito|est[aá] perfeito|sounds much better)\b/.test(normalized)) return "selected";
+  if (/\b(considering|thinking about|could stay|talvez|considerando)\b/.test(normalized)) return "considering";
+  if (/\b(recommend|i'd choose|i would choose|hara recommends)\b/.test(normalized)) return "recommended";
+  return "planned";
+}
+
+function stableId(prefix: string, value: string) {
+  return `${prefix}_${value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 48) || "item"}`;
+}
+
+function extractWorkspaceTime(message: string) {
+  const normalized = message.toLowerCase();
+  const clock = /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|h)?\b/.exec(normalized);
+  if (!clock) return undefined;
+  let hour = Number(clock[1]);
+  const minute = Number(clock[2] ?? 0);
+  const suffix = clock[3];
+  if (suffix === "pm" && hour < 12) hour += 12;
+  if (!suffix && hour > 0 && hour <= 7) hour += 12;
+  return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+}
+
+function extractWorkspaceDateFromMessage(message: string, fallbackYear: number) {
+  const monthPattern = Object.keys(MONTHS).join("|");
+  const english = new RegExp(`\\b(${monthPattern})\\s+(\\d{1,2})\\b`, "i").exec(message);
+  if (english) return parseWorkspaceDate(english[1], english[2], fallbackYear);
+  const portuguese = new RegExp(`\\b(\\d{1,2})\\s+de\\s+(${monthPattern})\\b`, "i").exec(message);
+  if (portuguese) return parseWorkspaceDate(portuguese[2], portuguese[1], fallbackYear);
+  return undefined;
+}
+
+function fallbackWorkspaceDate(state: PixieTripState, restaurant?: string) {
+  const diningDate = restaurant ? state.planningWorkspace.diningPlans.find((plan) => plan.restaurant.toLowerCase() === restaurant.toLowerCase() && plan.date)?.date : undefined;
+  return diningDate ?? state.planningWorkspace.parkPlans.filter((plan) => plan.date).at(-1)?.date;
+}
+
+function fallbackMealPeriod(state: PixieTripState, restaurant?: string) {
+  const diningMeal = restaurant ? state.planningWorkspace.diningPlans.find((plan) => plan.restaurant.toLowerCase() === restaurant.toLowerCase() && plan.mealPeriod)?.mealPeriod : undefined;
+  if (diningMeal) return diningMeal;
+  return state.planningWorkspace.attentionItems.some((item) => /dinner/i.test(item.label) || /dinner/i.test(item.note ?? "")) ? "dinner" : undefined;
+}
+
+function fallbackOpenDiningPlan(state: PixieTripState) {
+  return state.planningWorkspace.diningPlans
+    .filter((plan) => plan.status === "recommended" || plan.status === "selected" || plan.status === "planned")
+    .at(-1);
+}
+
+function extractRejectedResorts(message: string) {
+  if (!/\b(no|not that|don't want|do not want|forget|take .* off|scratch that|n[aã]o quero|esquece|tira)\b/i.test(message)) return [];
+  return normalizeStringArray(RESORT_MENTIONS.filter((resort) => resort.pattern.test(message)).map((resort) => resort.label));
+}
+
 function extractPlanningWorkspacePatch(message: string, state: PixieTripState, generatedAt: string): NonNullable<PixieTripPatch["planningWorkspace"]> | undefined {
   const fallbackYear = yearForPlanningWorkspace(state, generatedAt);
   const monthPattern = Object.keys(MONTHS).join("|");
   const resortPattern = "(bay lake tower|bay lake|blt|polynesian|copper creek|boulder ridge|grand floridian|boardwalk|riviera|saratoga(?: springs)?)";
   const workingItinerary: NonNullable<NonNullable<PixieTripPatch["planningWorkspace"]>["workingItinerary"]> = [];
   const availabilityObservations: NonNullable<NonNullable<PixieTripPatch["planningWorkspace"]>["availabilityObservations"]> = [];
+  const lodgingPlans: NonNullable<NonNullable<PixieTripPatch["planningWorkspace"]>["lodgingPlans"]> = [];
+  const parkPlans: NonNullable<NonNullable<PixieTripPatch["planningWorkspace"]>["parkPlans"]> = [];
+  const diningPlans: NonNullable<NonNullable<PixieTripPatch["planningWorkspace"]>["diningPlans"]> = [];
+  const activityPlans: NonNullable<NonNullable<PixieTripPatch["planningWorkspace"]>["activityPlans"]> = [];
+  const attentionItems: NonNullable<NonNullable<PixieTripPatch["planningWorkspace"]>["attentionItems"]> = [];
+  const normalized = message.toLowerCase();
+  const explicitWorkspaceDate = extractWorkspaceDateFromMessage(message, fallbackYear);
+  let workspaceDate = explicitWorkspaceDate;
+  const decisionStatus = workspaceDecisionStatus(message);
+  const openDiningPlan = fallbackOpenDiningPlan(state);
 
   const resortFirstPattern = new RegExp(
     `\\b${resortPattern}\\b[^.\\n;]{0,80}?\\b(${monthPattern})\\s+(\\d{1,2})(?:\\s*(?:-|to|through|thru|–)\\s*(\\d{1,2}))?[^.\\n;]{0,80}?\\b(?:(\\d{1,3})\\s*(?:pts?|points?))?`,
@@ -425,11 +611,116 @@ function extractPlanningWorkspacePatch(message: string, state: PixieTripState, g
     });
   }
 
-  if (!workingItinerary.length && !availabilityObservations.length && !activeDecisions.length) return undefined;
+  const mentionedResort = resortLabelFromText(message);
+  if (mentionedResort && /\b(stay|staying|ficar|hospedar|resort|villa|tower|villas|considering|decided|booked|confirmed|let'?s do|sounds much better|parece perfeito|est[aá] perfeito|vamos nele)\b/i.test(message)) {
+    lodgingPlans.push({
+      id: stableId("lodging", mentionedResort),
+      resort: mentionedResort,
+      startDate: state.dates.arrivalDate,
+      endDate: state.dates.departureDate,
+      status: decisionStatus,
+      source: decisionStatus === "recommended" ? "model_recommendation" : "explicit_user",
+      note: /magic kingdom|festa|party/i.test(message) && /bay lake|blt/i.test(message) ? "Easy Magic Kingdom return." : undefined,
+      dvcRelevant: /dvc|points|villa|villas|bay lake|boardwalk|animal kingdom villas/i.test(message),
+    });
+  }
+
+  const mentionedPark = parkLabelFromText(message);
+  if (mentionedPark && /\b(do|doing|park|party|festa|vamos|we'll|will|epcot|magic kingdom|animal kingdom|hollywood studios)\b/i.test(message)) {
+    parkPlans.push({
+      id: stableId("park", `${workspaceDate ?? "dateless"}_${mentionedPark}`),
+      park: mentionedPark,
+      date: workspaceDate,
+      status: /\bprobably|maybe|talvez\b/i.test(message) ? "considering" : decisionStatus === "confirmed" ? "confirmed" : "planned",
+      source: "explicit_user",
+      note: /halloween|festa/i.test(message) ? "Halloween party context." : undefined,
+    });
+  }
+
+  if ((/\bhalloween party\b|\bfesta de halloween\b|\bparty\b|\bfesta\b/i.test(message) && /magic kingdom/i.test(message)) || /\bvoltar depois da festa\b|\bsair tarde da festa\b/i.test(normalized)) {
+    activityPlans.push({
+      id: stableId("activity", `${workspaceDate ?? "dateless"}_magic_kingdom_halloween_party`),
+      label: "Magic Kingdom Halloween party",
+      date: workspaceDate,
+      status: decisionStatus === "confirmed" ? "confirmed" : "planned",
+      source: "explicit_user",
+      note: "Late return logistics matter.",
+    });
+    attentionItems.push({
+      id: "logistics_magic_kingdom_late_return",
+      label: "Late Magic Kingdom return",
+      category: "logistics",
+      status: "open",
+      source: "deterministic_inference",
+      note: "Walking-distance lodging is valuable after the party.",
+    });
+  }
+
+  const dining = diningFromText(message);
+  if (!workspaceDate && dining) workspaceDate = fallbackWorkspaceDate(state, dining.label);
+  const mealPeriod = /\bbreakfast|cafe|café/i.test(message)
+    ? "breakfast"
+    : /\blunch|almoco|almoço/i.test(message)
+      ? "lunch"
+      : /\bdinner|jantar|6|18|booked|reserved/i.test(message)
+        ? "dinner"
+        : fallbackMealPeriod(state, dining?.label);
+  if (dining && (mealPeriod || /\bbooked|reserved|sounds perfect|let'?s do|find us dinner|jantar\b/i.test(message))) {
+    const time = extractWorkspaceTime(message);
+    const inheritOpenMealSlot = Boolean(openDiningPlan && (decisionStatus === "selected" || decisionStatus === "confirmed" || /\binstead\b|\bactually\b|\bem vez disso\b|\bna verdade\b/i.test(message)));
+    const inheritedDate = inheritOpenMealSlot ? openDiningPlan?.date : workspaceDate ?? openDiningPlan?.date;
+    const inheritedMealPeriod = inheritOpenMealSlot ? openDiningPlan?.mealPeriod : mealPeriod ?? openDiningPlan?.mealPeriod;
+    diningPlans.push({
+      id: stableId("dining", `${inheritedDate ?? "dateless"}_${inheritedMealPeriod ?? "meal"}_${dining.label}`),
+      restaurant: dining.label,
+      date: inheritedDate,
+      mealPeriod: inheritedMealPeriod,
+      targetTime: time ?? (/\baround|por volta/i.test(message) || mealPeriod === "dinner" ? "18:00 target" : undefined),
+      status: decisionStatus,
+      source: decisionStatus === "recommended" ? "model_recommendation" : "explicit_user",
+      planningPriceEstimate: dining.estimate,
+    });
+  } else if (!dining && openDiningPlan && /\b(booked|reserved|confirmed|j[aá] reservei|est[aá] reservado|consegui reservar|reserva est[aá] confirmada)\b/i.test(message)) {
+    const time = extractWorkspaceTime(message);
+    diningPlans.push({
+      ...openDiningPlan,
+      status: "confirmed",
+      source: "explicit_user",
+      targetTime: time ?? openDiningPlan.targetTime,
+    });
+  } else if (/\b(find us dinner|find me dinner|choose dinner|dinner around|jantar)\b/i.test(message)) {
+    workspaceDate = workspaceDate ?? fallbackWorkspaceDate(state);
+    attentionItems.push({
+      id: stableId("attention", `${workspaceDate ?? "dateless"}_dinner`),
+      label: "Choose dinner",
+      category: "open_decision",
+      status: "open",
+      source: "deterministic_inference",
+      note: workspaceDate ? `${workspaceDate} dinner needs a restaurant decision.` : "Dinner needs a restaurant decision.",
+    });
+  }
+
+  if (/\bpark hours|closes|close|fecha|horario\b/i.test(message) && mentionedPark) {
+    attentionItems.push({
+      id: stableId("live", `${workspaceDate ?? "dateless"}_${mentionedPark}_hours`),
+      label: `${mentionedPark} current hours`,
+      category: "live_info",
+      status: "open",
+      source: "deterministic_inference",
+      note: "Current operating hours are date-specific.",
+    });
+  }
+
+  if (!workingItinerary.length && !availabilityObservations.length && !activeDecisions.length && !lodgingPlans.length && !parkPlans.length && !diningPlans.length && !activityPlans.length && !attentionItems.length) return undefined;
   return {
     ...(workingItinerary.length ? { workingItinerary } : {}),
     ...(availabilityObservations.length ? { availabilityObservations } : {}),
     ...(activeDecisions.length ? { activeDecisions } : {}),
+    ...(lodgingPlans.length ? { lodgingPlans } : {}),
+    ...(parkPlans.length ? { parkPlans } : {}),
+    ...(diningPlans.length ? { diningPlans } : {}),
+    ...(activityPlans.length ? { activityPlans } : {}),
+    ...(attentionItems.length ? { attentionItems } : {}),
   };
 }
 
@@ -461,11 +752,13 @@ function extractPartyPatch(message: string, state: PixieTripState): NonNullable<
   const normalized = message.toLowerCase().replace(/[’]/g, "'").replace(/\s+/g, " ");
   const patch: NonNullable<PixieTripPatch["party"]> = {};
   const childOperations: NonNullable<NonNullable<PixieTripPatch["party"]>["travellerOperations"]> = [];
+  const numberWords: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, um: 1, uma: 1, dois: 2, duas: 2, tres: 3, três: 3 };
+  const numberValue = (value: string | undefined) => (value ? Number(value) || numberWords[value] : undefined);
 
-  const adultChildMatch = /\b(\d{1,2})\s+adults?\b(?:.*?\b(\d{1,2})\s+(?:children|kids?|child)\b)?/.exec(normalized);
+  const adultChildMatch = /\b(\d{1,2}|one|two|three|four|five|six|um|uma|dois|duas|tres|três)\s+adults?\b(?:.*?\b(\d{1,2}|one|two|three|four|five|six)\s+(?:children|kids?|child)\b)?/.exec(normalized);
   if (adultChildMatch) {
-    patch.adults = Number(adultChildMatch[1]);
-    if (adultChildMatch[2]) patch.children = Number(adultChildMatch[2]);
+    patch.adults = numberValue(adultChildMatch[1]);
+    if (adultChildMatch[2]) patch.children = numberValue(adultChildMatch[2]);
   }
 
   const childOnlyMatch = /\b(\d{1,2})\s+(?:children|kids?|child)\b/.exec(normalized);
@@ -474,12 +767,34 @@ function extractPartyPatch(message: string, state: PixieTripState): NonNullable<
   const wifePattern = /\b(?:me|myself|i)\b[\s\S]{0,24}\bmy wife\b|\bmy wife\b[\s\S]{0,24}\b(?:me|myself|i)\b|\b(?:eu)\b[\s\S]{0,32}\bmeu marido\b|\bmeu marido\b[\s\S]{0,32}\b(?:eu)\b/;
   if (wifePattern.test(normalized)) patch.adults = Math.max(patch.adults ?? 0, 2);
 
+  const correctionMatch = /\b(?:actually|no,?|na verdade)\s+([a-z][a-z0-9_-]{1,40})\s+(?:is|tem)\s+(\d{1,2})(?:\s+now| anos?)?\b/.exec(normalized);
+  if (correctionMatch) {
+    const name = correctionMatch[1];
+    const age = Number(correctionMatch[2]);
+    const target = state.party.travellers.find((traveller) => traveller.displayName?.toLowerCase() === name || traveller.label?.toLowerCase().includes(name)) ?? state.party.travellers.find((traveller) => traveller.ageGroup !== "adult");
+    if (target) {
+      childOperations.push({ op: "updateTraveller", id: target.id, changes: { age, label: target.label ?? `${age} year old` } });
+      patch.children = Math.max(patch.children ?? state.party.children ?? 0, 1);
+    }
+  }
+  const pronounCorrectionMatch = /\b(?:she|he|ela|ele)(?:'s| is| tem)?\s+(?:actually|na verdade)?\s*(\d{1,2})(?:\s+now| anos?)?\b/.exec(normalized);
+  if (pronounCorrectionMatch) {
+    const age = Number(pronounCorrectionMatch[1]);
+    const target = state.party.travellers.find((traveller) => traveller.ageGroup !== "adult");
+    if (target) {
+      childOperations.push({ op: "updateTraveller", id: target.id, changes: { age, label: target.label ?? `${age} year old` } });
+      patch.children = Math.max(patch.children ?? state.party.children ?? 0, 1);
+    }
+  }
+
   const ageMatch = /\b(?:my|our)\s+(\d{1,2})\s*[-\s]*(?:year|yr)[-\s]*old\b|\b(?:minha|meu|nossa|nosso)\s+(?:filha|filho|crian[çc]a)\s+de\s+(\d{1,2})\s+anos?\b/.exec(normalized);
   if (ageMatch) {
     const age = Number(ageMatch[1] ?? ageMatch[2]);
     const agePhrase = ageMatch[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const singularAdultWithChild = new RegExp(`\\b(?:i am|i'm|im)\\b[\\s\\S]{0,80}\\bwith\\s+${agePhrase}\\b`).test(normalized);
-    const pluralAdultsWithChild = new RegExp(`\\b(?:we are|we're|were)\\b[\\s\\S]{0,80}\\bwith\\s+${agePhrase}\\b`).test(normalized);
+    const pluralAdultsWithChild =
+      new RegExp(`\\b(?:we are|we're|were)\\b[\\s\\S]{0,80}\\bwith\\s+${agePhrase}\\b`).test(normalized) ||
+      /\b(vamos|nossa|nosso)\b/.test(normalized);
     if (patch.adults === undefined) {
       if (pluralAdultsWithChild) patch.adults = 2;
       else if (singularAdultWithChild) patch.adults = 1;
@@ -507,10 +822,12 @@ function extractLightweightTripPatch(message: string, state: PixieTripState, gen
   const facts = extractPreferenceFacts(message);
   const party = extractPartyPatch(message, state);
   const preferences: NonNullable<PixieTripPatch["preferences"]> = {};
+  const rejectedResorts = extractRejectedResorts(message);
 
   if (facts.preferredResorts.length) preferences.preferredResorts = normalizeStringArray([...state.preferences.preferredResorts, ...facts.preferredResorts]);
   if (facts.resortPriorities.length) preferences.resortPriorities = normalizeStringArray([...state.preferences.resortPriorities, ...facts.resortPriorities]);
   if (facts.parkPriorities.length) preferences.parkPriorities = normalizeStringArray([...state.preferences.parkPriorities, ...facts.parkPriorities]);
+  if (rejectedResorts.length) preferences.excludedResorts = normalizeStringArray([...state.preferences.excludedResorts, ...rejectedResorts]);
   const notes = [...dateExtraction.dateNotes, facts.generalNotes].filter(Boolean);
   if (notes.length) preferences.generalNotes = [state.preferences.generalNotes, ...notes].filter(Boolean).join(" ").slice(0, 1000);
   if (/\bsplit stay\b/i.test(message)) preferences.splitStayOpenness = true;
@@ -526,8 +843,16 @@ function extractLightweightTripPatch(message: string, state: PixieTripState, gen
   };
 }
 
-function shouldClearExistingDatesForExtraction(message: string) {
+function shouldClearExistingDatesForExtraction(message: string, state: PixieTripState) {
   const dateExtraction = extractLightweightDates(message);
+  const normalized = message.toLowerCase();
+  if (state.dates.arrivalDate && state.dates.departureDate) {
+    return (
+      dateExtraction.hasDateInformation &&
+      dateExtraction.hasPartialTripDates &&
+      (/\bchecking?\s*out\b|\bcheckout\b|\barriving\b|\barrive\b|\bhas\b[^.]{0,60}\b(?:points?|waitlists?|available)\b/.test(normalized) || extractDateMentions(message).mentions.length >= 3)
+    );
+  }
   return dateExtraction.hasDateInformation && dateExtraction.hasPartialTripDates;
 }
 
@@ -638,7 +963,7 @@ function preparePixiePlannerTurn(input: RunPixiePlannerTurnInput): PreparedPixie
   const injection = detectPromptInjectionAttempt(message.message);
   if (injection) warnings.push(injection.message);
 
-  const clearExistingDates = shouldClearExistingDatesForExtraction(message.message);
+  const clearExistingDates = shouldClearExistingDatesForExtraction(message.message, state);
   const extractionBaseState = clearExistingDates ? normalizePixieTripState({ ...state, dates: {} }, { now: generatedAt }) : state;
   const extractionPatch = extractLightweightTripPatch(message.message, extractionBaseState, generatedAt);
   let extractedState: PixieTripState | undefined;
@@ -667,6 +992,7 @@ function preparePixiePlannerTurn(input: RunPixiePlannerTurnInput): PreparedPixie
     recentMessages: limitRecentMessages(requestParsed.data.recentMessages, config.maxRecentMessages),
     now: generatedAt,
   });
+  const currentPlanSummary = buildCurrentPlanSummary(state);
 
   return {
     id,
@@ -682,6 +1008,7 @@ function preparePixiePlannerTurn(input: RunPixiePlannerTurnInput): PreparedPixie
     providerTimeoutMs,
     knowledgeContext,
     dvcContext,
+    currentPlanSummary,
     extractedState,
   };
 }
@@ -689,11 +1016,21 @@ function preparePixiePlannerTurn(input: RunPixiePlannerTurnInput): PreparedPixie
 async function completePixiePlannerTurn(prepared: PreparedPixiePlannerTurn, input: RunPixiePlannerTurnInput): Promise<PixiePlannerTurnResult> {
   let { state, completeness, usage } = prepared;
   let providerResult: PixieModelProviderResult;
+  const liveContext =
+    prepared.liveContext ??
+    (await (input.liveDisneyService ?? createLiveDisneyService()).retrieve({
+      latestUserMessage: prepared.message,
+      currentState: state,
+      recentMessages: prepared.recentMessages,
+      knowledgeContext: prepared.knowledgeContext,
+      now: prepared.generatedAt,
+    }));
 
   try {
     providerResult = await prepared.provider.createPlannerTurn(
       {
         currentState: state,
+        currentPlanSummary: prepared.currentPlanSummary,
         latestUserMessage: prepared.message,
         recentMessages: prepared.recentMessages,
         completeness,
@@ -701,6 +1038,7 @@ async function completePixiePlannerTurn(prepared: PreparedPixiePlannerTurn, inpu
         destinationScope: "walt_disney_world",
         knowledgeContext: prepared.knowledgeContext,
         dvcContext: prepared.dvcContext,
+        liveContext,
         safeContext: input.context,
       },
       { model: prepared.config.model, maxOutputTokens: prepared.config.maxOutputTokens, timeoutMs: prepared.providerTimeoutMs },

@@ -373,4 +373,45 @@ describe("Pixie UI contracts", () => {
     expect(screen.getByText(/traveler-reported availability/i)).toBeInTheDocument();
     expect(screen.queryByText(/Beach Club Villas/i)).not.toBeInTheDocument();
   });
+
+  it("renders V2 workspace sections without treating selected plans as confirmed", () => {
+    const state = createInitialPixieChatState();
+    const patched = applyPixieTripPatch(state.tripState, {
+      planningWorkspace: {
+        lodgingPlans: [{ id: "lodging_bay_lake", resort: "Bay Lake Tower", status: "selected", source: "explicit_user", note: "Easy Magic Kingdom return." }],
+        parkPlans: [{ id: "park_2026_09_03_epcot", park: "EPCOT", date: "2026-09-03", status: "planned", source: "explicit_user" }],
+        diningPlans: [{ id: "dining_2026_09_03_dinner_via_napoli", restaurant: "Via Napoli", date: "2026-09-03", mealPeriod: "dinner", targetTime: "18:00 target", status: "recommended", source: "model_recommendation", planningPriceEstimate: "$60-$112 before tax/tip" }],
+        attentionItems: [{ id: "choose_dinner", label: "Choose dinner", category: "open_decision", status: "open", source: "deterministic_inference" }],
+      },
+    });
+    expect(patched.ok).toBe(true);
+    if (!patched.ok) return;
+
+    render(<PixiePlanPanel state={{ ...state, tripState: patched.state, recommendations: recommendationResult() }} onSavePromptShown={() => undefined} />);
+
+    expect(screen.getByText(/lodging/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bay Lake Tower/i)).toBeInTheDocument();
+    expect(screen.getByText(/Dining plans/i)).toBeInTheDocument();
+    expect(screen.getByText(/Via Napoli/i)).toBeInTheDocument();
+    expect(screen.getByText(/recommended/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^confirmed$/i)).not.toBeInTheDocument();
+  });
+
+  it("renders Portuguese workspace labels for Portuguese trip context", () => {
+    const state = createInitialPixieChatState();
+    const patched = applyPixieTripPatch(state.tripState, {
+      preferences: { generalNotes: "Vamos ficar perto do Magic Kingdom com nossa filha." },
+      planningWorkspace: {
+        lodgingPlans: [{ id: "lodging_bay_lake", resort: "Bay Lake Tower", status: "selected", source: "explicit_user" }],
+      },
+    });
+    expect(patched.ok).toBe(true);
+    if (!patched.ok) return;
+
+    render(<PixiePlanPanel state={{ ...state, tripState: patched.state }} onSavePromptShown={() => undefined} />);
+
+    expect(screen.getByText(/Plano da viagem/i)).toBeInTheDocument();
+    expect(screen.getByText(/Hospedagem/i)).toBeInTheDocument();
+    expect(screen.getByText(/planejado/i)).toBeInTheDocument();
+  });
 });

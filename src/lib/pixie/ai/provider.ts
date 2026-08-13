@@ -2,6 +2,7 @@ import type { PixieCompletenessResult } from "@/lib/pixie/types";
 import type { PixieTripState } from "@/lib/pixie/schema";
 import type { HannaKnowledgeContext } from "@/lib/pixie/knowledge";
 import type { DvcContext } from "@/lib/pixie/dvc";
+import type { LiveDisneyContext } from "@/lib/pixie/live";
 import type {
   PixieModelTurnResult,
   PixieProviderUsage,
@@ -17,8 +18,23 @@ export type PixieModelToolDefinition = {
   inputSchemaDescription: string;
 };
 
+export type PixieCurrentPlanSummary = {
+  travelers: string[];
+  tripDates?: string;
+  lodging: string[];
+  parks: string[];
+  dining: string[];
+  activities: string[];
+  importantPreferences: string[];
+  dvcFacts: string[];
+  openDecisions: string[];
+  rejectedOptions: string[];
+  attention: string[];
+};
+
 export type PixiePlannerTurnInput = {
   currentState: PixieTripState;
+  currentPlanSummary?: PixieCurrentPlanSummary;
   latestUserMessage: string;
   recentMessages: PixieRecentMessage[];
   completeness: PixieCompletenessResult;
@@ -26,6 +42,7 @@ export type PixiePlannerTurnInput = {
   destinationScope: "walt_disney_world";
   knowledgeContext?: HannaKnowledgeContext;
   dvcContext?: DvcContext;
+  liveContext?: LiveDisneyContext;
   safeContext?: {
     requestId?: string;
     sessionId?: string;

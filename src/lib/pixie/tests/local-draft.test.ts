@@ -23,6 +23,26 @@ describe("Pixie local draft versioning", () => {
     expect(result.state.destination).toBe("walt_disney_world");
   });
 
+  it("preserves V2 planning workspace sections through draft persistence", () => {
+    const state = createEmptyPixieTripState("2026-07-10T12:00:00.000Z");
+    state.planningWorkspace = {
+      ...state.planningWorkspace,
+      lodgingPlans: [{ id: "lodging_bay_lake", resort: "Bay Lake Tower", status: "selected", source: "explicit_user" }],
+      parkPlans: [{ id: "park_2026_09_03_epcot", park: "EPCOT", date: "2026-09-03", status: "planned", source: "explicit_user" }],
+      diningPlans: [{ id: "dining_2026_09_03_dinner_via_napoli", restaurant: "Via Napoli", date: "2026-09-03", mealPeriod: "dinner", targetTime: "18:10", status: "confirmed", source: "explicit_user" }],
+      activityPlans: [],
+      attentionItems: [{ id: "live_epcot_hours", label: "EPCOT current hours", category: "live_info", status: "open", source: "deterministic_inference" }],
+    };
+
+    const result = deserializePixieDraft(serializePixieDraft(state));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.planningWorkspace.lodgingPlans[0]?.status).toBe("selected");
+    expect(result.state.planningWorkspace.diningPlans[0]).toMatchObject({ restaurant: "Via Napoli", status: "confirmed" });
+    expect(result.state.planningWorkspace.attentionItems[0]?.category).toBe("live_info");
+  });
+
   it("rejects corrupt JSON and oversized drafts safely", () => {
     const corrupt = deserializePixieDraft("{not json");
     expect(corrupt.ok).toBe(false);

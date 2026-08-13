@@ -9,6 +9,7 @@ import { getPixieAiConfig } from "@/lib/pixie/ai/safety";
 import { evaluatePixieCompleteness } from "@/lib/pixie/completeness";
 import { buildDvcContext } from "@/lib/pixie/dvc";
 import { createHannaKnowledgeService } from "@/lib/pixie/knowledge";
+import type { LiveDisneyContext } from "@/lib/pixie/live";
 import { createEmptyPixieTripState, normalizePixieTripState } from "@/lib/pixie/planner-state";
 
 describe("Pixie AI provider contract", () => {
@@ -213,6 +214,56 @@ describe("Pixie AI provider contract", () => {
       reasonCodes: expect.arrayContaining(["BOOKING_WINDOW_NOT_OPEN"]),
     });
     expect(JSON.stringify(userPayload.dvcContext)).not.toMatch(/DVC_RULE_NOTES|homeWindow|nonHomeWindow/);
+  });
+
+  it("includes compact live Disney context in the provider input payload", async () => {
+    const fetchMock = mockOpenAiResponse(Response.json(validOpenAiPayload()));
+    const provider = createOpenAiPixieProvider(testEnv({
+      OPENAI_API_KEY: "sk-test-redacted",
+      PIXIE_MODEL: "gpt-5.6-sol",
+    }));
+    const input = plannerInput();
+    input.latestUserMessage = "What time does Magic Kingdom close September 2?";
+    input.liveContext = {
+      source: "live_disney_v1",
+      retrievedAt: "2026-08-13T14:00:00.000Z",
+      timeZone: "America/New_York",
+      intents: [{ kind: "park_hours", entity: { id: "park_magic_kingdom", name: "Magic Kingdom", entityType: "park" }, date: "2026-09-02", timeContext: "date_specific", phrase: input.latestUserMessage }],
+      parkHours: [
+        {
+          kind: "park_hours",
+          park: { id: "park_magic_kingdom", name: "Magic Kingdom", entityType: "park" },
+          date: "2026-09-02",
+          openTime: "09:00",
+          closeTime: "22:00",
+          timeZone: "America/New_York",
+          status: "supported_live_result",
+          provenance: {
+            sourceType: "fake",
+            sourceName: "Fake Live Disney Provider",
+            retrievedAt: "2026-08-13T14:00:00.000Z",
+            effectiveDate: "2026-09-02",
+            status: "supported_live_result",
+            confidence: "high",
+          },
+        },
+      ],
+      entertainment: [],
+      attractionStatus: [],
+      diningCurrent: [],
+      unavailable: [],
+      errors: [],
+    } satisfies LiveDisneyContext;
+
+    await provider.createPlannerTurn(input);
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as {
+      input?: Array<{ content?: string }>;
+    };
+    const userPayload = JSON.parse(String(requestBody.input?.[0]?.content)) as PixiePlannerTurnInput;
+
+    expect(userPayload.liveContext?.source).toBe("live_disney_v1");
+    expect(userPayload.liveContext?.parkHours[0]).toMatchObject({ park: { id: "park_magic_kingdom" }, closeTime: "22:00" });
+    expect(JSON.stringify(userPayload.liveContext)).not.toMatch(/openingTime|closingTime|schedule/);
   });
 
   it("passes verified cancellation timing before account-specific allocation uncertainty", async () => {

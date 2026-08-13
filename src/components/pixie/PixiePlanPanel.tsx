@@ -12,7 +12,12 @@ export default function PixiePlanPanel({ state, onSavePromptShown }: { state: Pi
   const hasActiveWorkspace =
     state.tripState.planningWorkspace.workingItinerary.length > 0 ||
     state.tripState.planningWorkspace.activeDecisions.some((decision) => decision.status !== "resolved") ||
-    state.tripState.planningWorkspace.availabilityObservations.length > 0;
+    state.tripState.planningWorkspace.availabilityObservations.length > 0 ||
+    state.tripState.planningWorkspace.lodgingPlans.length > 0 ||
+    state.tripState.planningWorkspace.parkPlans.length > 0 ||
+    state.tripState.planningWorkspace.diningPlans.length > 0 ||
+    state.tripState.planningWorkspace.activityPlans.length > 0 ||
+    state.tripState.planningWorkspace.attentionItems.some((item) => item.status !== "resolved");
 
   return (
     <div className="space-y-4">

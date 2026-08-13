@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { PixieAiException } from "@/lib/pixie/ai/errors";
 import { createFixturePixieProvider, type PixieModelOptions, type PixiePlannerTurnInput } from "@/lib/pixie/ai/provider";
 import { runPixiePlannerTurn, streamPixiePlannerTurn } from "@/lib/pixie/ai/orchestrator";
+import { createFakeLiveDisneyProvider, createLiveDisneyService } from "@/lib/pixie/live";
 import { createEmptyPixieTripState, normalizePixieTripState } from "@/lib/pixie/planner-state";
 
 describe("Pixie AI orchestrator", () => {
@@ -248,6 +249,173 @@ describe("Pixie AI orchestrator", () => {
       ]),
     );
     expect(providerInput?.knowledgeContext?.candidates.length).toBeLessThanOrEqual(8);
+  });
+
+  it("retrieves live park hours before provider invocation when the turn asks for current hours", async () => {
+    const liveProvider = createFakeLiveDisneyProvider();
+    liveProvider.setParkHours("park_magic_kingdom", "2026-09-02", { openTime: "09:00", closeTime: "22:00" });
+    let providerInput: PixiePlannerTurnInput | undefined;
+
+    await runPixiePlannerTurn({
+      state: createEmptyPixieTripState("2026-08-13T14:00:00.000Z"),
+      message: "What time does Magic Kingdom close September 2?",
+      provider: successfulProvider((input) => {
+        providerInput = input;
+      }),
+      liveDisneyService: createLiveDisneyService({ provider: liveProvider }),
+      now: "2026-08-13T14:00:00.000Z",
+    });
+
+    expect(providerInput?.liveContext?.parkHours[0]).toMatchObject({
+      park: { id: "park_magic_kingdom" },
+      date: "2026-09-02",
+      closeTime: "22:00",
+    });
+  });
+
+  it("golden workspace scenario promotes decisions without false confirmations or duplicate dining", async () => {
+    let state = createEmptyPixieTripState("2026-08-13T12:00:00.000Z");
+    const provider = successfulProvider();
+    const turn = async (message: string) => {
+      const result = await runPixiePlannerTurn({ state, message, provider, now: "2026-08-13T12:00:00.000Z" });
+      state = result.updatedState;
+      return result;
+    };
+
+    await turn("We're going August 29 to September 5 with our 2-year-old.");
+    expect(state.party.adults).toBe(2);
+    expect(state.party.children).toBe(1);
+    expect(state.party.travellers[0]?.age).toBe(2);
+    expect(state.dates.arrivalDate).toBe("2026-08-29");
+    expect(state.dates.departureDate).toBe("2026-09-05");
+    expect(state.planningWorkspace.lodgingPlans).toHaveLength(0);
+
+    await turn("We're considering Animal Kingdom Villas but we'll be at the Magic Kingdom Halloween party and want the easiest trip back.");
+    expect(state.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([expect.objectContaining({ resort: "Animal Kingdom Villas", status: "considering" })]));
+    expect(state.planningWorkspace.activityPlans).toEqual(expect.arrayContaining([expect.objectContaining({ label: "Magic Kingdom Halloween party" })]));
+    expect(state.planningWorkspace.lodgingPlans.some((plan) => plan.status === "confirmed")).toBe(false);
+
+    await turn("Bay Lake sounds much better. Let's do that.");
+    expect(state.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([expect.objectContaining({ resort: "Bay Lake Tower", status: "selected" })]));
+    expect(state.planningWorkspace.lodgingPlans.find((plan) => plan.resort === "Bay Lake Tower")?.status).not.toBe("confirmed");
+
+    await turn("We'll do EPCOT September 3. Find us dinner around 6.");
+    expect(state.planningWorkspace.parkPlans).toEqual(expect.arrayContaining([expect.objectContaining({ park: "EPCOT", date: "2026-09-03", status: "planned" })]));
+    expect(state.planningWorkspace.attentionItems).toEqual(expect.arrayContaining([expect.objectContaining({ label: "Choose dinner" })]));
+
+    await turn("Via Napoli sounds perfect.");
+    expect(state.planningWorkspace.diningPlans).toEqual(expect.arrayContaining([expect.objectContaining({ restaurant: "Via Napoli", status: "selected" })]));
+
+    await turn("I booked Via Napoli for 6:10.");
+    expect(state.planningWorkspace.diningPlans).toHaveLength(1);
+    expect(state.planningWorkspace.diningPlans[0]).toMatchObject({ restaurant: "Via Napoli", status: "confirmed", targetTime: "18:10" });
+
+    await turn("Actually Helena is 3 now.");
+    expect(state.party.travellers).toHaveLength(1);
+    expect(state.party.travellers[0]?.age).toBe(3);
+    expect(state.planningWorkspace.diningPlans[0]?.status).toBe("confirmed");
+  });
+
+  it("Portuguese golden workspace scenario selects BLT without confirmation", async () => {
+    let state = createEmptyPixieTripState("2026-08-13T12:00:00.000Z");
+    const provider = successfulProvider();
+    const turn = async (message: string) => {
+      const result = await runPixiePlannerTurn({ state, message, provider, now: "2026-08-13T12:00:00.000Z" });
+      state = result.updatedState;
+    };
+
+    await turn("Vamos ficar de 29 de agosto a 5 de setembro com nossa filha de 2 anos.");
+    expect(state.party.adults).toBe(2);
+    expect(state.party.children).toBe(1);
+    expect(state.dates.arrivalDate).toBe("2026-08-29");
+
+    await turn("Quero ficar perto do Magic Kingdom porque vamos sair tarde da festa.");
+    expect(state.preferences.resortPriorities).toEqual(expect.arrayContaining(["stay near Magic Kingdom"]));
+    expect(state.planningWorkspace.attentionItems).toEqual(expect.arrayContaining([expect.objectContaining({ category: "logistics" })]));
+
+    await turn("Bay Lake Tower parece perfeito. Vamos ficar lá.");
+    expect(state.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([expect.objectContaining({ resort: "Bay Lake Tower", status: "selected" })]));
+    expect(state.planningWorkspace.lodgingPlans.find((plan) => plan.resort === "Bay Lake Tower")?.status).not.toBe("confirmed");
+    expect(state.planningWorkspace.lodgingPlans.some((plan) => plan.resort === "Animal Kingdom Villas")).toBe(false);
+  });
+
+  it("keeps current trip memory consistent across a long multi-turn conversation", async () => {
+    let state = createEmptyPixieTripState("2026-08-13T12:00:00.000Z");
+    let providerInput: PixiePlannerTurnInput | undefined;
+    const provider = successfulProvider((input) => {
+      providerInput = input;
+    });
+    const turn = async (message: string) => {
+      const result = await runPixiePlannerTurn({ state, message, provider, now: "2026-08-13T12:00:00.000Z" });
+      state = result.updatedState;
+      return result;
+    };
+
+    await turn("We're going September 1 to 6, two adults and our 2-year-old.");
+    await turn("We'll pay more for convenience.");
+    await turn("We're doing the Magic Kingdom Halloween party September 1.");
+    await turn("Where should we stay?");
+    await turn("Bay Lake sounds perfect. Let's do that.");
+    await turn("We're doing EPCOT September 3.");
+    await turn("Give me dinner choices.");
+    await turn("No Polynesian.");
+    await turn("Via Napoli sounds good.");
+    await turn("Actually let's do Biergarten instead.");
+    await turn("Booked Biergarten at 6:15.");
+    await turn("What should we do at Magic Kingdom with our daughter?");
+    await turn("She's actually 3 now.");
+    await turn("What restaurant did we book?");
+    await turn("We changed EPCOT to September 4.");
+    await turn("What needs fixing?");
+    await turn("I own at BoardWalk.");
+    await turn("What's my Use Year?");
+    await turn("We still need to pick one character breakfast.");
+    await turn("Remind me what we already chose.");
+
+    expect(state.party.adults).toBe(2);
+    expect(state.party.children).toBe(1);
+    expect(state.party.travellers[0]?.age).toBe(3);
+    expect(state.dates.arrivalDate).toBe("2026-09-01");
+    expect(state.dates.departureDate).toBe("2026-09-06");
+    expect(state.preferences.resortPriorities).toEqual(expect.arrayContaining(["price sensitivity low"]));
+    expect(state.preferences.excludedResorts).toContain("Polynesian Villas");
+    expect(state.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([expect.objectContaining({ resort: "Bay Lake Tower", status: "selected" })]));
+    expect(state.planningWorkspace.parkPlans).toEqual(expect.arrayContaining([expect.objectContaining({ park: "EPCOT", date: "2026-09-04", status: "planned" })]));
+    expect(state.planningWorkspace.parkPlans.some((plan) => plan.park === "EPCOT" && plan.date === "2026-09-03")).toBe(false);
+    expect(state.planningWorkspace.diningPlans).toHaveLength(1);
+    expect(state.planningWorkspace.diningPlans[0]).toMatchObject({ restaurant: "Biergarten", date: "2026-09-03", status: "confirmed", targetTime: "18:15" });
+    expect(state.planningWorkspace.attentionItems).toEqual(expect.arrayContaining([expect.objectContaining({ label: "Biergarten date conflict" })]));
+    expect(providerInput?.currentPlanSummary?.travelers).toEqual(expect.arrayContaining([expect.stringMatching(/2 adults/i), expect.stringMatching(/age 3/i)]));
+    expect(providerInput?.currentPlanSummary?.lodging).toEqual(expect.arrayContaining([expect.stringMatching(/Bay Lake Tower - selected/i)]));
+    expect(providerInput?.currentPlanSummary?.dining).toEqual(expect.arrayContaining([expect.stringMatching(/Biergarten - confirmed at 18:15/i)]));
+    expect(providerInput?.currentPlanSummary?.rejectedOptions).toContain("resort: Polynesian Villas");
+    expect(JSON.stringify(providerInput?.currentPlanSummary).length).toBeLessThan(3500);
+    expect(providerInput?.recentMessages.length ?? 0).toBeLessThanOrEqual(8);
+  });
+
+  it("keeps Portuguese current-trip memory available after unrelated turns", async () => {
+    let state = createEmptyPixieTripState("2026-08-13T12:00:00.000Z");
+    let providerInput: PixiePlannerTurnInput | undefined;
+    const provider = successfulProvider((input) => {
+      providerInput = input;
+    });
+    const turn = async (message: string) => {
+      const result = await runPixiePlannerTurn({ state, message, provider, now: "2026-08-13T12:00:00.000Z" });
+      state = result.updatedState;
+    };
+
+    await turn("Vamos de 1 a 6 de setembro, eu, meu marido e nossa filha de 2 anos.");
+    await turn("Vamos pagar mais pela conveniência.");
+    await turn("Vamos à festa do Magic Kingdom dia 1.");
+    await turn("Qual hotel você escolheria?");
+    await turn("Bay Lake está perfeito. Vamos nele.");
+    await turn("Quais atrações são boas para ela?");
+    await turn("E onde podemos descansar?");
+    await turn("Qual hotel nós escolhemos mesmo?");
+
+    expect(state.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([expect.objectContaining({ resort: "Bay Lake Tower", status: "selected" })]));
+    expect(providerInput?.currentPlanSummary?.lodging).toEqual(expect.arrayContaining([expect.stringMatching(/Bay Lake Tower - selected/i)]));
+    expect(providerInput?.currentPlanSummary?.travelers).toEqual(expect.arrayContaining([expect.stringMatching(/2 adults/i), expect.stringMatching(/age 2/i)]));
   });
 
   it("passes compact DVC rule context to the provider for narrow DVC turns", async () => {

@@ -64,6 +64,36 @@ export type HannaTransportationMode = "walk" | "boat" | "monorail" | "skyliner" 
 export type HannaDiningServiceType = "table_service" | "quick_service" | "lounge" | "snack" | "snack_specialty" | "character_dining" | "buffet_family_style" | "signature";
 export type HannaDiningCostTier = "value" | "moderate" | "expensive" | "premium";
 export type HannaMealPeriod = "breakfast" | "brunch" | "lunch" | "dinner" | "snack";
+export type HannaDiningPricingType = "quick_service" | "a_la_carte" | "prix_fixe" | "buffet" | "family_style" | "character_dining" | "snack" | "mixed";
+export type HannaDiningPricingConfidence = "high" | "medium" | "low";
+
+export type HannaDiningPricing = {
+  pricingType: HannaDiningPricingType;
+  priceTier: HannaDiningCostTier;
+  planningEstimate?: {
+    adultLow: number;
+    adultHigh: number;
+    childLow?: number;
+    childHigh?: number;
+    currency: "USD";
+    basis: "adult_entree" | "adult_meal" | "fixed_meal" | "quick_service_meal" | "snack";
+  };
+  fixedPrice?: {
+    adult: number;
+    child?: number;
+    childAgeMin?: number;
+    childAgeMax?: number;
+    mealPeriod?: HannaMealPeriod;
+    currency: "USD";
+    effectiveDate?: string;
+  };
+  includesTax: false;
+  includesGratuity: false;
+  lastReviewedAt: string;
+  confidence: HannaDiningPricingConfidence;
+  provenance: HannaKnowledgeProvenance;
+  notes?: string[];
+};
 export type HannaHeightRequirement =
   | { kind: "none" }
   | { kind: "minimum"; inches: number; provenance: HannaKnowledgeProvenance }
@@ -77,6 +107,7 @@ export type HannaDiningLocation = HannaBaseRecord & {
   mealPeriods: HannaMealPeriod[];
   costTier?: HannaDiningCostTier;
   costTierProvenance?: HannaKnowledgeProvenance;
+  pricing?: HannaDiningPricing;
   characterDining?: "yes" | "no" | "refreshable_unknown";
   toddlerFit: "strong" | "good" | "mixed" | "weak";
   reservationPlanning: "usually_recommended" | "helpful" | "usually_not_needed";
@@ -191,6 +222,7 @@ export type HannaKnowledgeCandidate = {
   mealPeriods?: HannaMealPeriod[];
   costTier?: HannaDiningCostTier;
   costFreshness?: HannaKnowledgeFreshnessClass;
+  pricing?: HannaDiningPricing;
   toddlerFit?: HannaDiningLocation["toddlerFit"];
   reservationPlanning?: HannaDiningLocation["reservationPlanning"];
   attractionType?: HannaAttraction["attractionType"];

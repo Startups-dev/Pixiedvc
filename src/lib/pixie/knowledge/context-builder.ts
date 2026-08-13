@@ -1,5 +1,16 @@
 import type { HannaKnowledgeCandidate, HannaKnowledgeContext, HannaPlanningSignal } from "@/lib/pixie/knowledge/types";
 
+function compactPricing(candidate: HannaKnowledgeCandidate) {
+  if (!candidate.pricing) return undefined;
+  const { provenance: _provenance, notes, ...pricing } = candidate.pricing;
+  return {
+    ...pricing,
+    priceStatus: candidate.pricing.provenance.status,
+    freshness: candidate.pricing.provenance.freshnessClass,
+    notes: notes?.slice(0, 2),
+  };
+}
+
 export function buildHannaKnowledgeContext(input: {
   domains: HannaKnowledgeContext["domains"];
   resolvedEntities: HannaKnowledgeContext["resolvedEntities"];
@@ -27,6 +38,7 @@ export function buildHannaKnowledgeContext(input: {
       mealPeriods: candidate.mealPeriods,
       costTier: candidate.costTier,
       costFreshness: candidate.costFreshness,
+      pricing: compactPricing(candidate),
       toddlerFit: candidate.toddlerFit,
       reservationPlanning: candidate.reservationPlanning,
       attractionType: candidate.attractionType,

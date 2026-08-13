@@ -26,6 +26,8 @@ describe("Pixie concierge prompt", () => {
     expect(prompt).toContain("provenance.status needs_review");
     expect(prompt).toContain("Trusted Hanna knowledge");
     expect(prompt).toContain("knowledgeContext");
+    expect(prompt).toContain("liveContext");
+    expect(prompt).toContain("supported_live_result");
     expect(prompt).toContain("Live gaps and knowledge gaps must not make you refuse the rest of a mixed question");
     expect(prompt).toContain("when trusted dining candidates exist in knowledgeContext, use their names");
     expect(prompt).toContain("Discovery guidance");

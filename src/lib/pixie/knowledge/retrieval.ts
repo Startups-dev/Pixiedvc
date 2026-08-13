@@ -2,6 +2,7 @@ import { buildHannaKnowledgeContext } from "@/lib/pixie/knowledge/context-builde
 import { resolveHannaEntities } from "@/lib/pixie/knowledge/entity-resolver";
 import { detectHannaKnowledgeIntent } from "@/lib/pixie/knowledge/intent";
 import { createStaticHannaKnowledgeRepository } from "@/lib/pixie/knowledge/repository";
+import { pricingForCandidate } from "@/lib/pixie/dining";
 import type {
   HannaAttraction,
   HannaDiningCostTier,
@@ -441,6 +442,7 @@ function retrieveDiningCandidates(params: {
         toddlerContext: params.toddlerContext,
         constraints: params.constraints,
       });
+      const pricing = pricingForCandidate(dining);
       return {
         id: dining.id,
         name: dining.name,
@@ -451,6 +453,7 @@ function retrieveDiningCandidates(params: {
         mealPeriods: dining.mealPeriods,
         costTier: dining.costTier,
         costFreshness: dining.costTierProvenance?.freshnessClass,
+        pricing,
         toddlerFit: dining.toddlerFit,
         reservationPlanning: dining.reservationPlanning,
         geographicRelationship: relationship,

@@ -95,6 +95,114 @@ function mergeByKey<T>(current: T[], incoming: T[] | undefined, keyFor: (item: T
   return Array.from(byKey.values()).slice(-maxItems);
 }
 
+function statusRank(status: string | undefined) {
+  if (status === "confirmed") return 6;
+  if (status === "selected") return 5;
+  if (status === "planned") return 4;
+  if (status === "considering") return 3;
+  if (status === "recommended") return 2;
+  if (status === "needs_decision") return 1;
+  return 0;
+}
+
+function mergeWorkspacePlans<T extends { id: string; status?: string; source?: string }>(current: T[], incoming: T[] | undefined, maxItems: number) {
+  const byId = new Map(current.map((item) => [item.id, item]));
+  for (const item of incoming ?? []) {
+    const existing = byId.get(item.id);
+    if (existing?.status === "confirmed" && item.status !== "confirmed" && item.source !== "explicit_user") continue;
+    byId.set(item.id, { ...existing, ...item });
+  }
+  return Array.from(byId.values()).slice(-maxItems);
+}
+
+function mergeParkPlans<T extends { id: string; park: string; status?: string; source?: string }>(current: T[], incoming: T[] | undefined, maxItems: number) {
+  let candidates = [...current];
+  for (const item of incoming ?? []) {
+    if (item.source === "explicit_user" && (item.status === "selected" || item.status === "planned" || item.status === "confirmed")) {
+      candidates = candidates.filter((plan) => plan.park.toLowerCase() !== item.park.toLowerCase() || plan.status === "confirmed" || plan.id === item.id);
+    }
+  }
+  return mergeWorkspacePlans(candidates, incoming, maxItems);
+}
+
+function diningConflictKey(plan: { date?: string; mealPeriod?: string }) {
+  return `${plan.date ?? "dateless"}|${plan.mealPeriod ?? "meal"}`;
+}
+
+function resolveDiningConflicts<T extends { id: string; status?: string; date?: string; mealPeriod?: string }>(plans: T[]) {
+  const activeByMeal = new Map<string, T>();
+  for (const plan of plans) {
+    if (!(plan.status === "confirmed" || plan.status === "selected" || plan.status === "planned")) continue;
+    const key = diningConflictKey(plan);
+    const existing = activeByMeal.get(key);
+    if (!existing || statusRank(plan.status) >= statusRank(existing.status)) activeByMeal.set(key, plan);
+  }
+  const activeIds = new Set(Array.from(activeByMeal.values()).map((plan) => plan.id));
+  return plans.filter((plan) => activeIds.has(plan.id) || !(plan.status === "confirmed" || plan.status === "selected" || plan.status === "planned"));
+}
+
+function isDateWithinTrip(date: string, arrivalDate?: string, departureDate?: string) {
+  if (!arrivalDate || !departureDate) return true;
+  return date >= arrivalDate && date < departureDate;
+}
+
+function expectedDiningPark(restaurant: string) {
+  if (/via napoli|biergarten|garden grill/i.test(restaurant)) return "EPCOT";
+  if (/chef mickey/i.test(restaurant)) return "Magic Kingdom";
+  if (/be our guest/i.test(restaurant)) return "Magic Kingdom";
+  return undefined;
+}
+
+function resolveWorkspaceAttention(state: PixieTripState): PixieTripState {
+  const selectedDining = state.planningWorkspace.diningPlans.filter((plan) => plan.status === "selected" || plan.status === "confirmed");
+  const attentionById = new Map(state.planningWorkspace.attentionItems.map((item) => [item.id, item]));
+
+  for (const item of attentionById.values()) {
+    if (item.category !== "open_decision" || !/dinner|jantar/i.test(`${item.label} ${item.note ?? ""}`)) continue;
+    const decisionDate = /\b\d{4}-\d{2}-\d{2}\b/.exec(`${item.label} ${item.note ?? ""}`)?.[0];
+    if (selectedDining.some((plan) => plan.mealPeriod === "dinner" && (!decisionDate || plan.date === decisionDate))) {
+      attentionById.set(item.id, { ...item, status: "resolved" });
+    }
+  }
+
+  for (const plan of state.planningWorkspace.diningPlans) {
+    if (plan.status !== "confirmed" || !plan.date || isDateWithinTrip(plan.date, state.dates.arrivalDate, state.dates.departureDate)) continue;
+    attentionById.set(`conflict_${plan.id}`.slice(0, 80), {
+      id: `conflict_${plan.id}`.slice(0, 80),
+      label: `${plan.restaurant} date conflict`,
+      category: "open_decision",
+      status: "open",
+      source: "deterministic_inference",
+      note: `${plan.date} is outside the current trip dates.`,
+    });
+  }
+
+  for (const plan of state.planningWorkspace.diningPlans) {
+    if (plan.status !== "confirmed" || !plan.date) continue;
+    const expectedPark = expectedDiningPark(plan.restaurant);
+    if (!expectedPark) continue;
+    const matchingParkDay = state.planningWorkspace.parkPlans.some((parkPlan) => parkPlan.park === expectedPark && parkPlan.date === plan.date && parkPlan.status !== "recommended");
+    const otherParkDay = state.planningWorkspace.parkPlans.find((parkPlan) => parkPlan.park === expectedPark && parkPlan.date && parkPlan.date !== plan.date && parkPlan.status !== "recommended");
+    if (matchingParkDay || !otherParkDay) continue;
+    attentionById.set(`conflict_${plan.id}`.slice(0, 80), {
+      id: `conflict_${plan.id}`.slice(0, 80),
+      label: `${plan.restaurant} date conflict`,
+      category: "open_decision",
+      status: "open",
+      source: "deterministic_inference",
+      note: `${plan.restaurant} is confirmed for ${plan.date}, but ${expectedPark} is now planned for ${otherParkDay.date}.`,
+    });
+  }
+
+  return {
+    ...state,
+    planningWorkspace: {
+      ...state.planningWorkspace,
+      attentionItems: Array.from(attentionById.values()).slice(-8),
+    },
+  };
+}
+
 function derivePlanningStageFromState(state: PixieTripState): PixiePlanningStage {
   const datesComplete = Boolean(state.dates.arrivalDate && state.dates.departureDate && state.dates.numberOfNights);
   const hasUsableDates = datesComplete || Boolean(state.dates.flexibleDates && (state.dates.dateNotes || state.dates.arrivalDate));
@@ -268,6 +376,34 @@ export function normalizePixieTripState(
         potentialBenefit: decision.potentialBenefit?.trim() || undefined,
         risk: decision.risk?.trim() || undefined,
       })),
+      lodgingPlans: normalizeById(parsed.planningWorkspace.lodgingPlans, (plan) => ({
+        ...plan,
+        resort: normalizeOptionalText(plan.resort) ?? plan.resort,
+        note: plan.note?.trim() || undefined,
+      }), 8),
+      parkPlans: normalizeById(parsed.planningWorkspace.parkPlans, (plan) => ({
+        ...plan,
+        park: normalizeOptionalText(plan.park) ?? plan.park,
+        note: plan.note?.trim() || undefined,
+      }), PIXIE_LIMITS.maxTripDurationNights + 4),
+      diningPlans: resolveDiningConflicts(normalizeById(parsed.planningWorkspace.diningPlans, (plan) => ({
+        ...plan,
+        restaurant: normalizeOptionalText(plan.restaurant) ?? plan.restaurant,
+        targetTime: normalizeOptionalText(plan.targetTime),
+        planningPriceEstimate: normalizeOptionalText(plan.planningPriceEstimate),
+        availabilityState: normalizeOptionalText(plan.availabilityState),
+        note: plan.note?.trim() || undefined,
+      }), 16)),
+      activityPlans: normalizeById(parsed.planningWorkspace.activityPlans, (plan) => ({
+        ...plan,
+        label: normalizeOptionalText(plan.label) ?? plan.label,
+        note: plan.note?.trim() || undefined,
+      }), 16),
+      attentionItems: normalizeById(parsed.planningWorkspace.attentionItems, (item) => ({
+        ...item,
+        label: normalizeOptionalText(item.label) ?? item.label,
+        note: item.note?.trim() || undefined,
+      }), 8),
     },
     metadata: {
       ...parsed.metadata,
@@ -370,6 +506,11 @@ export function applyPixieTripPatch(
         (observation) => `${observation.date}|${observation.resort.toLowerCase()}|${observation.roomType?.toLowerCase() ?? ""}|${observation.source}`,
       ),
       activeDecisions: mergeByKey(next.planningWorkspace.activeDecisions, safePatch.planningWorkspace.activeDecisions, (decision) => decision.id),
+      lodgingPlans: mergeWorkspacePlans(next.planningWorkspace.lodgingPlans, safePatch.planningWorkspace.lodgingPlans, 8),
+      parkPlans: mergeParkPlans(next.planningWorkspace.parkPlans, safePatch.planningWorkspace.parkPlans, PIXIE_LIMITS.maxTripDurationNights + 4),
+      diningPlans: resolveDiningConflicts(mergeWorkspacePlans(next.planningWorkspace.diningPlans, safePatch.planningWorkspace.diningPlans, 16)),
+      activityPlans: mergeWorkspacePlans(next.planningWorkspace.activityPlans, safePatch.planningWorkspace.activityPlans, 16),
+      attentionItems: mergeWorkspacePlans(next.planningWorkspace.attentionItems, safePatch.planningWorkspace.attentionItems, 8),
     };
   }
   if (safePatch.selectedOptions) next.selectedOptions = { ...next.selectedOptions, ...safePatch.selectedOptions };
@@ -407,7 +548,7 @@ export function applyPixieTripPatch(
   }
 
   try {
-    return { ok: true, state: normalizePixieTripState(next, { now: options.now }) };
+    return { ok: true, state: resolveWorkspaceAttention(normalizePixieTripState(next, { now: options.now })) };
   } catch (error) {
     return {
       ok: false,
