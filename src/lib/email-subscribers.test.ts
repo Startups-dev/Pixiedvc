@@ -32,7 +32,6 @@ type SubscriberRow = {
 type OwnerRow = {
   id: string;
   user_id: string | null;
-  email: string | null;
   verification: string | null;
   founding_owner_bonus_cents_per_point: number | null;
   founding_owner_bonus_started_at: string | null;
@@ -49,9 +48,9 @@ type ProfileRow = {
 const subscriberState = vi.hoisted(() => ({
   subscribersByEmail: new Map<string, SubscriberRow>(),
   ownersByIdOrUserId: new Map<string, OwnerRow>(),
-  ownersByEmail: new Map<string, OwnerRow>(),
   profilesByEmail: new Map<string, ProfileRow>(),
   events: [] as Array<{ subscriber_id: string; event_type: string; metadata: Record<string, unknown> }>,
+  ownerSelects: [] as string[],
   idCounter: 1,
   getSupabaseAdminClient: vi.fn(),
 }));
@@ -159,33 +158,52 @@ function makeAdminClient() {
 
       if (table === 'owners') {
         return {
-          select: () => ({
-            or: (_expression: string) => ({
-              maybeSingle: async () => {
-                const expression = _expression;
-                const values = expression
-                  .split(',')
-                  .map((part) => part.split('.eq.')[1])
-                  .filter(Boolean);
+          select: (columns: string) => {
+            subscriberState.ownerSelects.push(columns);
+            if (columns.includes('email')) {
+              return {
+                or: () => ({
+                  maybeSingle: async () => ({
+                    data: null,
+                    error: { message: 'column owners.email does not exist' },
+                  }),
+                }),
+                eq: () => ({
+                  maybeSingle: async () => ({
+                    data: null,
+                    error: { message: 'column owners.email does not exist' },
+                  }),
+                }),
+              };
+            }
+            return {
+              or: (_expression: string) => ({
+                maybeSingle: async () => {
+                  const expression = _expression;
+                  const values = expression
+                    .split(',')
+                    .map((part) => part.split('.eq.')[1])
+                    .filter(Boolean);
 
-                const owner =
-                  values
-                    .map((value) => subscriberState.ownersByIdOrUserId.get(String(value)))
-                    .find(Boolean) ?? null;
+                  const owner =
+                    values
+                      .map((value) => subscriberState.ownersByIdOrUserId.get(String(value)))
+                      .find(Boolean) ?? null;
 
-                return {
-                  data: owner,
-                  error: null,
-                };
-              },
-            }),
-            eq: (_column: string, value: string) => ({
-              maybeSingle: async () => ({
-                data: subscriberState.ownersByEmail.get(value) ?? null,
-                error: null,
+                  return {
+                    data: owner,
+                    error: null,
+                  };
+                },
               }),
-            }),
-          }),
+              eq: (_column: string, value: string) => ({
+                maybeSingle: async () => ({
+                  data: subscriberState.ownersByIdOrUserId.get(value) ?? null,
+                  error: null,
+                }),
+              }),
+            };
+          },
         };
       }
 
@@ -241,9 +259,9 @@ describe('email subscriber helpers', () => {
   beforeEach(() => {
     subscriberState.subscribersByEmail.clear();
     subscriberState.ownersByIdOrUserId.clear();
-    subscriberState.ownersByEmail.clear();
     subscriberState.profilesByEmail.clear();
     subscriberState.events.length = 0;
+    subscriberState.ownerSelects.length = 0;
     subscriberState.idCounter = 1;
     subscriberState.getSupabaseAdminClient.mockClear();
     subscriberState.getSupabaseAdminClient.mockImplementation(() => makeAdminClient());
@@ -286,7 +304,6 @@ describe('email subscriber helpers', () => {
     subscriberState.ownersByIdOrUserId.set('user-1', {
       id: 'owner-1',
       user_id: 'user-1',
-      email: null,
       verification: 'verified',
       founding_owner_bonus_cents_per_point: 200,
       founding_owner_bonus_started_at: '2026-01-01T00:00:00.000Z',
@@ -302,6 +319,7 @@ describe('email subscriber helpers', () => {
 
     expect(row.is_founding_owner).toBe(true);
     expect(row.tags).toEqual(['newsletter_subscriber', 'founding_owner', 'owner_lead', 'verified_owner']);
+    expect(subscriberState.ownerSelects.some((columns) => columns.includes('email'))).toBe(false);
   });
 
   it('updates an existing subscriber when the email is later identified as a founding owner', async () => {
@@ -333,10 +351,13 @@ describe('email subscriber helpers', () => {
       unsubscribe_token_created_at: '2026-01-01T00:00:00.000Z',
       unsubscribe_token_rotated_at: '2026-01-01T00:00:00.000Z',
     });
-    subscriberState.ownersByEmail.set('founder@example.com', {
-      id: 'owner-legacy',
-      user_id: null,
+    subscriberState.profilesByEmail.set('founder@example.com', {
+      id: 'user-legacy',
       email: 'founder@example.com',
+    });
+    subscriberState.ownersByIdOrUserId.set('user-legacy', {
+      id: 'owner-legacy',
+      user_id: 'user-legacy',
       verification: 'verified',
       founding_owner_bonus_cents_per_point: 200,
       founding_owner_bonus_started_at: '2026-01-01T00:00:00.000Z',
@@ -434,10 +455,13 @@ describe('email subscriber helpers', () => {
       unsubscribe_token_created_at: '2026-01-01T00:00:00.000Z',
       unsubscribe_token_rotated_at: '2026-01-01T00:00:00.000Z',
     });
-    subscriberState.ownersByEmail.set('founder@example.com', {
-      id: 'owner-legacy',
-      user_id: null,
+    subscriberState.profilesByEmail.set('founder@example.com', {
+      id: 'user-legacy',
       email: 'founder@example.com',
+    });
+    subscriberState.ownersByIdOrUserId.set('user-legacy', {
+      id: 'owner-legacy',
+      user_id: 'user-legacy',
       verification: 'verified',
       founding_owner_bonus_cents_per_point: 200,
       founding_owner_bonus_started_at: '2026-01-01T00:00:00.000Z',

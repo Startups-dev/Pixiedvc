@@ -84,7 +84,6 @@ type UpdatePreferencesByTokenParams = {
 type OwnerLookupRow = {
   id: string;
   user_id: string | null;
-  email: string | null;
   verification: string | null;
   founding_owner_bonus_cents_per_point?: number | null;
   founding_owner_bonus_started_at?: string | null;
@@ -276,25 +275,9 @@ async function getOwnerByUserId(client: AdminClient, userId: string) {
   const { data, error } = await client
     .from('owners')
     .select(
-      'id, user_id, email, verification, founding_owner_bonus_cents_per_point, founding_owner_bonus_started_at, founding_owner_bonus_expires_at, founding_owner_granted_at, founding_owner_promotion_id',
+      'id, user_id, verification, founding_owner_bonus_cents_per_point, founding_owner_bonus_started_at, founding_owner_bonus_expires_at, founding_owner_granted_at, founding_owner_promotion_id',
     )
     .or(`id.eq.${userId},user_id.eq.${userId}`)
-    .maybeSingle<OwnerLookupRow>();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data;
-}
-
-async function getOwnerByLegacyEmail(client: AdminClient, email: string) {
-  const { data, error } = await client
-    .from('owners')
-    .select(
-      'id, user_id, email, verification, founding_owner_bonus_cents_per_point, founding_owner_bonus_started_at, founding_owner_bonus_expires_at, founding_owner_granted_at, founding_owner_promotion_id',
-    )
-    .eq('email', email)
     .maybeSingle<OwnerLookupRow>();
 
   if (error) {
@@ -333,10 +316,6 @@ async function resolveOwnerSubscriberTraits(client: AdminClient, params: {
     if (profile?.id) {
       owner = await getOwnerByUserId(client, profile.id);
     }
-  }
-
-  if (!owner) {
-    owner = await getOwnerByLegacyEmail(client, normalizedEmail);
   }
 
   const isFoundingOwner = hasFoundingOwnerGrant(owner);
