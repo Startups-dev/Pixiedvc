@@ -3,16 +3,24 @@ import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { isValidDvcAccommodationIdentity } from "../../../../../packages/pixiedvc-calculator/src/engine/accommodations";
+import type { RoomCode, ViewCode } from "../../../../../packages/pixiedvc-calculator/src/engine/types";
 
 type OwnerReservationPayload = {
   resort_id?: string;
   check_in?: string;
   check_out?: string;
   room_type?: string;
+  calculator_room_code?: string | null;
+  calculator_view_code?: string | null;
   points?: number;
   confirmation_number?: string | null;
   confirmation_uploaded?: boolean;
 };
+
+function normalizeCode(value: unknown) {
+  return typeof value === "string" ? value.trim().toUpperCase() : "";
+}
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -54,6 +62,8 @@ export async function POST(request: NextRequest) {
   const payload = (await request.json()) as OwnerReservationPayload;
   const resortId = typeof payload.resort_id === "string" ? payload.resort_id.trim() : "";
   const roomType = typeof payload.room_type === "string" ? payload.room_type.trim() : "";
+  const calculatorRoomCode = normalizeCode(payload.calculator_room_code);
+  const calculatorViewCode = normalizeCode(payload.calculator_view_code);
   const points = Number(payload.points);
   const checkIn = typeof payload.check_in === "string" ? payload.check_in.trim() : "";
   const checkOut = typeof payload.check_out === "string" ? payload.check_out.trim() : "";
@@ -98,6 +108,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Resort code missing." }, { status: 400 });
   }
 
+  if ((calculatorRoomCode && !calculatorViewCode) || (!calculatorRoomCode && calculatorViewCode)) {
+    return NextResponse.json({ error: "invalid_accommodation" }, { status: 400 });
+  }
+
+  if (
+    calculatorRoomCode &&
+    calculatorViewCode &&
+    !isValidDvcAccommodationIdentity({
+      resortCode,
+      roomCode: calculatorRoomCode as RoomCode,
+      viewCode: calculatorViewCode as ViewCode,
+    })
+  ) {
+    return NextResponse.json({ error: "invalid_accommodation" }, { status: 400 });
+  }
+
   const status = confirmationUploaded && confirmationNumber ? "booked" : "draft";
 
   const client = getSupabaseAdminClient() ?? supabase;
@@ -109,6 +135,8 @@ export async function POST(request: NextRequest) {
       resort_id: resort.id,
       resort_code: resortCode,
       room_type: roomType,
+      calculator_room_code: calculatorRoomCode || null,
+      calculator_view_code: calculatorViewCode || null,
       check_in: checkIn,
       check_out: checkOut,
       points_required: Math.round(points),

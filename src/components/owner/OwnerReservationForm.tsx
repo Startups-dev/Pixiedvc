@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { resortsData } from "../../../packages/pixiedvc-calculator/src/data/resorts";
+import {
+  dvcAccommodationIdentityKey,
+  getDvcAccommodationOptions,
+} from "../../../packages/pixiedvc-calculator/src/engine/accommodations";
 import {
   FEE_PER_POINT,
   getMaxOwnerPayout,
@@ -20,29 +23,6 @@ type ResortOption = {
 type OwnerReservationFormProps = {
   resorts: ResortOption[];
 };
-
-const ROOM_TYPE_LABELS: Record<string, string> = {
-  STUDIO: "Studio",
-  RESORTSTUDIO: "Resort Studio",
-  TOWERSTUDIO: "Tower Studio",
-  DUOSTUDIO: "Duo Studio",
-  DELUXESTUDIO: "Deluxe Studio",
-  GARDENDUOSTUDIO: "Garden Duo Studio",
-  GARDENDELUXESTUDIO: "Garden Deluxe Studio",
-  INNROOM: "Inn Room",
-  ONEBR: "1 Bedroom",
-  TWOBR: "2 Bedroom",
-  GRANDVILLA: "Grand Villa",
-  TWOBRBUNGALOW: "2 Bedroom Bungalow",
-  PENTHOUSE: "Penthouse",
-  TREEHOUSE: "Treehouse Villa",
-  COTTAGE: "Cottage",
-  CABIN: "Cabin",
-};
-
-function formatRoomType(code: string) {
-  return ROOM_TYPE_LABELS[code] ?? code;
-}
 
 function formatDollars(value: number) {
   return `$${value.toFixed(2)}`;
@@ -83,7 +63,7 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
   const [resortId, setResortId] = useState("");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
-  const [roomType, setRoomType] = useState("");
+  const [accommodationKey, setAccommodationKey] = useState("");
   const [points, setPoints] = useState("");
   const [calculatedPoints, setCalculatedPoints] = useState<number | null>(null);
   const [pointsQuoteLoading, setPointsQuoteLoading] = useState(false);
@@ -104,16 +84,16 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
     () => sortedResorts.find((resort) => resort.id === resortId) ?? null,
     [sortedResorts, resortId],
   );
-  const roomTypeOptions = useMemo(() => {
+  const accommodationOptions = useMemo(() => {
     const calculatorCode = selectedResort?.calculator_code?.toUpperCase() ?? null;
     if (!calculatorCode) return [];
-    const resortMeta = resortsData.find((resort) => resort.code === calculatorCode);
-    if (!resortMeta) return [];
-    return resortMeta.roomTypes.map((code) => ({
-      code,
-      label: formatRoomType(code),
-    }));
+    return getDvcAccommodationOptions(calculatorCode);
   }, [selectedResort]);
+  const selectedAccommodation = useMemo(
+    () =>
+      accommodationOptions.find((option) => dvcAccommodationIdentityKey(option) === accommodationKey) ?? null,
+    [accommodationOptions, accommodationKey],
+  );
 
   const pricing = useMemo(() => {
     if (!checkIn) return null;
@@ -147,7 +127,7 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
   }, [points, pointsManuallyEdited]);
 
   useEffect(() => {
-    if (!resortId || !roomType || !checkIn || !checkOut) {
+    if (!selectedResort?.calculator_code || !selectedAccommodation || !checkIn || !checkOut) {
       setPointsQuoteLoading(false);
       setPointsQuoteError(null);
       setCalculatedPoints(null);
@@ -165,8 +145,9 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            resort_id: resortId,
-            room_type: roomType,
+            resort_code: selectedAccommodation.resortCode,
+            room_code: selectedAccommodation.roomCode,
+            view_code: selectedAccommodation.viewCode,
             check_in: checkIn,
             check_out: checkOut,
           }),
@@ -191,7 +172,7 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
         }
       } catch (err) {
         if (cancelled) return;
-        const message = err instanceof Error ? err.message : "Unable to calculate points.";
+        const message = err instanceof Error ? err.message : "Unable to calculate points for this accommodation.";
         setCalculatedPoints(null);
         setPointsQuoteError(message);
       } finally {
@@ -206,7 +187,7 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
     return () => {
       cancelled = true;
     };
-  }, [resortId, roomType, checkIn, checkOut]);
+  }, [resortId, selectedResort?.calculator_code, selectedAccommodation, checkIn, checkOut]);
 
   useEffect(() => {
     if (!pointsManuallyEdited && points.trim() === "" && calculatedPoints !== null) {
@@ -216,21 +197,23 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
 
   useEffect(() => {
     setOwnerPayoutPerPoint("");
-  }, [resortId, roomType, checkIn, checkOut]);
+  }, [resortId, accommodationKey, checkIn, checkOut]);
 
   useEffect(() => {
-    if (!roomTypeOptions.length) {
-      if (roomType) {
-        setRoomType("");
+    if (!accommodationOptions.length) {
+      if (accommodationKey) {
+        setAccommodationKey("");
       }
       return;
     }
 
-    const currentStillValid = roomTypeOptions.some((option) => option.label === roomType);
+    const currentStillValid = accommodationOptions.some(
+      (option) => dvcAccommodationIdentityKey(option) === accommodationKey,
+    );
     if (!currentStillValid) {
-      setRoomType(roomTypeOptions[0]?.label ?? "");
+      setAccommodationKey("");
     }
-  }, [roomTypeOptions, roomType]);
+  }, [accommodationOptions, accommodationKey]);
 
   async function uploadReservationProof(rentalId: string) {
     if (!reservationProofFile) {
@@ -309,6 +292,11 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
       return;
     }
 
+    if (!selectedAccommodation) {
+      setError("Select the exact accommodation for this reservation.");
+      return;
+    }
+
     setSubmitting(true);
     let createdRentalId: string | null = null;
 
@@ -320,7 +308,9 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
           resort_id: resortId || null,
           check_in: checkIn || null,
           check_out: checkOut || null,
-          room_type: roomType || null,
+          room_type: selectedAccommodation.displayLabel || null,
+          calculator_room_code: selectedAccommodation.roomCode,
+          calculator_view_code: selectedAccommodation.viewCode,
           points: points ? Number(points) : null,
           confirmation_number: confirmationNumber || null,
           confirmation_uploaded: hasConfirmationNumber,
@@ -398,7 +388,7 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
             value={resortId}
             onChange={(event) => {
               setResortId(event.target.value);
-              setRoomType("");
+              setAccommodationKey("");
             }}
             required
           >
@@ -413,20 +403,23 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
         </label>
 
         <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-          Room type
+          Accommodation
           <select
             className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
-            value={roomType}
-            onChange={(event) => setRoomType(event.target.value)}
+            value={accommodationKey}
+            onChange={(event) => setAccommodationKey(event.target.value)}
             required
-            disabled={!roomTypeOptions.length}
+            disabled={!accommodationOptions.length}
           >
-            <option value="">{selectedResort ? "Select room type" : "Choose a resort first"}</option>
-            {roomTypeOptions.map((option) => (
-              <option key={option.code} value={option.label}>
-                {option.label}
-              </option>
-            ))}
+            <option value="">{selectedResort ? "Select accommodation" : "Choose a resort first"}</option>
+            {accommodationOptions.map((option) => {
+              const key = dvcAccommodationIdentityKey(option);
+              return (
+                <option key={key} value={key}>
+                  {option.displayLabel}
+                </option>
+              );
+            })}
           </select>
         </label>
       </div>

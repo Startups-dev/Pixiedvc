@@ -161,7 +161,7 @@ export function recommendPixieResorts(tripState: unknown, options: { now?: strin
         })
       : null;
     const price =
-      points?.supported === true
+      points?.supported === true && points.kind === "exact"
         ? estimateGuestAccommodationPrice({
             pricingContext: "custom_request_estimate",
             resortId: resort.id,

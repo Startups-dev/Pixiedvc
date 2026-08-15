@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { POST } from "./route";
 
+const readyStaysInsertMock = vi.fn();
+
 let supabaseMock: {
   auth: { getUser: ReturnType<typeof vi.fn> };
   from: ReturnType<typeof vi.fn>;
@@ -28,6 +30,16 @@ vi.mock("@/lib/ready-stays/pricing", () => ({
 
 describe("POST /api/owner/ready-stays", () => {
   beforeEach(() => {
+    readyStaysInsertMock.mockReset();
+    readyStaysInsertMock.mockReturnValue({
+      select: vi.fn(() => ({
+        single: vi.fn().mockResolvedValue({
+          data: { id: "ready-1", status: "draft", verification_status: "proof_uploaded" },
+          error: null,
+        }),
+      })),
+    });
+
     const rentalsMaybeSingle = vi.fn().mockResolvedValue({
       data: {
         id: "rental-1",
@@ -38,6 +50,8 @@ describe("POST /api/owner/ready-stays", () => {
         check_out: "2026-07-14",
         points_required: 80,
         room_type: "Studio",
+        calculator_room_code: null,
+        calculator_view_code: null,
         match_id: null,
       },
       error: null,
@@ -91,14 +105,7 @@ describe("POST /api/owner/ready-stays", () => {
         }
         if (table === "ready_stays") {
           return {
-            insert: vi.fn(() => ({
-              select: vi.fn(() => ({
-                single: vi.fn().mockResolvedValue({
-                  data: { id: "ready-1", status: "draft", verification_status: "proof_uploaded" },
-                  error: null,
-                }),
-              })),
-            })),
+            insert: readyStaysInsertMock,
             update: vi.fn(() => ({
               eq: vi.fn(() => ({
                 eq: vi.fn().mockResolvedValue({ error: null }),
@@ -148,6 +155,8 @@ describe("POST /api/owner/ready-stays", () => {
             check_out: "2026-07-14",
             points_required: 80,
             room_type: "Studio",
+            calculator_room_code: null,
+            calculator_view_code: null,
             match_id: null,
           },
           error: null,
@@ -175,14 +184,7 @@ describe("POST /api/owner/ready-stays", () => {
       }
       if (table === "ready_stays") {
         return {
-          insert: vi.fn(() => ({
-            select: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: { id: "ready-1", status: "draft", verification_status: "proof_uploaded" },
-                error: null,
-              }),
-            })),
-          })),
+          insert: readyStaysInsertMock,
           update: vi.fn(() => ({
             eq: vi.fn(() => ({
               eq: vi.fn().mockResolvedValue({ error: null }),
@@ -207,5 +209,167 @@ describe("POST /api/owner/ready-stays", () => {
 
     expect(response.status).toBe(400);
     expect(body).toEqual({ error: "Upload reservation proof before listing this Ready Stay." });
+  });
+
+  test("copies exact calculator accommodation identity from rental to Ready Stay", async () => {
+    const rentalsMaybeSingle = vi.fn().mockResolvedValue({
+      data: {
+        id: "rental-1",
+        owner_user_id: "owner-1",
+        resort_id: "resort-1",
+        resort_code: "BLT",
+        check_in: "2026-09-01",
+        check_out: "2026-09-03",
+        points_required: 32,
+        room_type: "Deluxe Studio - Lake View",
+        calculator_room_code: "STUDIO",
+        calculator_view_code: "L",
+        match_id: null,
+      },
+      error: null,
+    });
+    const rentalsEq = vi.fn(() => ({ maybeSingle: rentalsMaybeSingle }));
+    const rentalsSelect = vi.fn(() => ({ eq: rentalsEq }));
+
+    supabaseMock.from = vi.fn((table: string) => {
+      if (table === "rentals") {
+        return { select: rentalsSelect };
+      }
+      if (table === "rental_milestones") {
+        const milestonesEq = vi.fn().mockResolvedValue({
+          data: [{ code: "disney_confirmation_uploaded", status: "completed" }],
+          error: null,
+        });
+        return { select: vi.fn(() => ({ eq: milestonesEq })) };
+      }
+      if (table === "rental_documents") {
+        const proofMaybeSingle = vi.fn().mockResolvedValue({
+          data: {
+            id: "doc-1",
+            storage_path: "owners/owner-1/rental-docs/rental-1/disney_confirmation_email/doc-1.png",
+            meta: { original_name: "proof.png" },
+          },
+          error: null,
+        });
+        const proofLimit = vi.fn(() => ({ maybeSingle: proofMaybeSingle }));
+        const proofOrder = vi.fn(() => ({ limit: proofLimit }));
+        const proofTypeEq = vi.fn(() => ({ order: proofOrder }));
+        const proofRentalEq = vi.fn(() => ({ eq: proofTypeEq }));
+        return { select: vi.fn(() => ({ eq: proofRentalEq })) };
+      }
+      if (table === "resorts") {
+        const resortsMaybeSingle = vi.fn().mockResolvedValue({
+          data: { name: "Bay Lake Tower", slug: "bay-lake-tower", calculator_code: "BLT" },
+          error: null,
+        });
+        return { select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: resortsMaybeSingle })) })) };
+      }
+      if (table === "ready_stays") {
+        return {
+          insert: readyStaysInsertMock,
+          update: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              eq: vi.fn().mockResolvedValue({ error: null }),
+            })),
+          })),
+        };
+      }
+      return { select: vi.fn() };
+    });
+
+    const request = new Request("http://localhost/api/owner/ready-stays", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rental_id: "rental-1",
+        owner_price_per_point_cents: 2100,
+      }),
+    });
+
+    const response = await POST(request as Request);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ ok: true, id: "ready-1" });
+    expect(readyStaysInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        points: 32,
+        room_type: "Deluxe Studio - Lake View",
+        calculator_room_code: "STUDIO",
+        calculator_view_code: "L",
+      }),
+    );
+  });
+
+  test("does not assign calculator identity to legacy rentals during publishing", async () => {
+    const request = new Request("http://localhost/api/owner/ready-stays", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rental_id: "rental-1",
+        owner_price_per_point_cents: 2100,
+      }),
+    });
+
+    const response = await POST(request as Request);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ ok: true, id: "ready-1" });
+    expect(readyStaysInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        calculator_room_code: null,
+        calculator_view_code: null,
+      }),
+    );
+  });
+
+  test("rejects malformed calculator identity when publishing a structured rental", async () => {
+    const rentalsMaybeSingle = vi.fn().mockResolvedValue({
+      data: {
+        id: "rental-1",
+        owner_user_id: "owner-1",
+        resort_id: "resort-1",
+        resort_code: "BLT",
+        check_in: "2026-09-01",
+        check_out: "2026-09-03",
+        points_required: 32,
+        room_type: "Deluxe Studio - Lake View",
+        calculator_room_code: "STUDIO",
+        calculator_view_code: null,
+        match_id: null,
+      },
+      error: null,
+    });
+
+    supabaseMock.from = vi.fn((table: string) => {
+      if (table === "rentals") {
+        return { select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: rentalsMaybeSingle })) })) };
+      }
+      if (table === "resorts") {
+        const resortsMaybeSingle = vi.fn().mockResolvedValue({
+          data: { name: "Bay Lake Tower", slug: "bay-lake-tower", calculator_code: "BLT" },
+          error: null,
+        });
+        return { select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: resortsMaybeSingle })) })) };
+      }
+      return { select: vi.fn() };
+    });
+
+    const request = new Request("http://localhost/api/owner/ready-stays", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rental_id: "rental-1",
+        owner_price_per_point_cents: 2100,
+      }),
+    });
+
+    const response = await POST(request as Request);
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body).toEqual({ error: "invalid_accommodation" });
+    expect(readyStaysInsertMock).not.toHaveBeenCalled();
   });
 });

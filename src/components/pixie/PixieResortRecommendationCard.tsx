@@ -21,6 +21,12 @@ export default function PixieResortRecommendationCard({
     : null;
   const label = index === 0 ? "Strongest match" : index === 1 ? "Great alternative" : "Worth considering";
   const fitLabel = recommendation.score >= 75 ? "Strong fit" : recommendation.score >= 55 ? "Good fit" : "Possible fit";
+  const pointsLabel =
+    recommendation.estimatedPoints?.supported && recommendation.estimatedPoints.kind === "exact"
+      ? `${recommendation.estimatedPoints.totalPoints} points`
+      : recommendation.estimatedPoints?.supported && recommendation.estimatedPoints.kind === "range"
+        ? `${recommendation.estimatedPoints.minPoints}-${recommendation.estimatedPoints.maxPoints} points`
+        : "Unavailable";
 
   return (
     <article className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
@@ -42,7 +48,7 @@ export default function PixieResortRecommendationCard({
           <div className="rounded-lg bg-white p-2">
             <span className="block text-slate-400">Points</span>
             <span className="font-semibold text-slate-700">
-              {recommendation.estimatedPoints?.supported ? `${recommendation.estimatedPoints.totalPoints} points` : "Unavailable"}
+              {pointsLabel}
             </span>
           </div>
           <div className="rounded-lg bg-white p-2">

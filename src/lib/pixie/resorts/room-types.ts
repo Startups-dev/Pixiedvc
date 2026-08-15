@@ -98,6 +98,23 @@ export function getCalculatorRoomCodeForRoomType(resort: PixieResortCatalogItem,
   return resort.roomTypes.find((room) => room.id === roomTypeId)?.calculatorRoomCode ?? null;
 }
 
+export function getCalculatorRoomCodesForRoomFamily(resort: PixieResortCatalogItem, roomTypeId: PixieRoomTypeId) {
+  if (roomTypeId !== "studio") {
+    return resort.roomTypes
+      .filter((room) => room.id === roomTypeId)
+      .map((room) => room.calculatorRoomCode);
+  }
+
+  return resort.roomTypes
+    .filter(
+      (room) =>
+        room.calculatorSupported &&
+        room.bedroomCount === 0 &&
+        room.kitchenLevel === "kitchenette",
+    )
+    .map((room) => room.calculatorRoomCode);
+}
+
 export function getRoomTypesForResort(resort: PixieResortCatalogItem | null | undefined) {
   return resort?.roomTypes.filter((room) => room.calculatorSupported) ?? [];
 }

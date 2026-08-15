@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { isValidDvcAccommodationIdentity } from "../../../packages/pixiedvc-calculator/src/engine/accommodations";
+import type { RoomCode, ViewCode } from "../../../packages/pixiedvc-calculator/src/engine/types";
 import { getActiveFoundingOwnerBonusCents } from "@/lib/founding-owner-bonus";
 import { resolveCalculatorCode } from "@/lib/resort-calculator";
 import { computeOwnerPayout } from "@/lib/pricing";
@@ -29,6 +31,8 @@ const RENTAL_PAYLOAD_KEYS = new Set([
   "guest_user_id",
   "resort_code",
   "room_type",
+  "calculator_room_code",
+  "calculator_view_code",
   "check_in",
   "check_out",
   "points_required",
@@ -59,6 +63,10 @@ function pickAllowedColumns<T extends Record<string, unknown>>(payload: T) {
     }
   }
   return { filtered, removed };
+}
+
+function normalizeAccommodationCode(value: unknown) {
+  return typeof value === "string" ? value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "") : "";
 }
 
 export async function ensureRentalForMatch(params: {
@@ -114,12 +122,37 @@ export async function ensureRentalForMatch(params: {
     });
   }
 
-  const resortMeta = booking.primary_resort ?? null;
+  const resortMeta = Array.isArray(booking.primary_resort)
+    ? (booking.primary_resort[0] ?? null)
+    : (booking.primary_resort ?? null);
   const resortCode =
     resolveCalculatorCode({
       slug: resortMeta?.slug ?? null,
       calculator_code: resortMeta?.calculator_code ?? null,
     }) ?? resortMeta?.slug ?? "TBD";
+  const bookingRoomCode = normalizeAccommodationCode(booking.primary_room);
+  const bookingViewCode = normalizeAccommodationCode(booking.primary_view);
+  let exactAccommodationIdentity: { roomCode: RoomCode; viewCode: ViewCode } | null = null;
+
+  if (bookingRoomCode && bookingViewCode) {
+    if (
+      !isValidDvcAccommodationIdentity({
+        resortCode,
+        roomCode: bookingRoomCode as RoomCode,
+        viewCode: bookingViewCode as ViewCode,
+      })
+    ) {
+      throw new Error("invalid_accommodation_identity");
+    }
+    exactAccommodationIdentity = {
+      roomCode: bookingRoomCode as RoomCode,
+      viewCode: bookingViewCode as ViewCode,
+    };
+  }
+
+  if (!bookingRoomCode && bookingViewCode) {
+    throw new Error("invalid_accommodation_identity");
+  }
 
   let guestTotalCents =
     typeof booking.guest_total_cents === "number" ? booking.guest_total_cents : null;
@@ -135,6 +168,8 @@ export async function ensureRentalForMatch(params: {
     resort_code: resortCode,
     room_type: booking.primary_room ?? null,
     room_view: booking.primary_view ?? null,
+    calculator_room_code: exactAccommodationIdentity?.roomCode ?? null,
+    calculator_view_code: exactAccommodationIdentity?.viewCode ?? null,
     check_in: booking.check_in ?? null,
     check_out: booking.check_out ?? null,
     nights: booking.nights ?? null,
@@ -431,6 +466,8 @@ export async function ensureRentalForMatch(params: {
     guest_user_id: booking.renter_id ?? null,
     resort_code: resortCode,
     room_type: booking.primary_room ?? null,
+    calculator_room_code: exactAccommodationIdentity?.roomCode ?? null,
+    calculator_view_code: exactAccommodationIdentity?.viewCode ?? null,
     check_in: booking.check_in ?? null,
     check_out: booking.check_out ?? null,
     points_required: booking.total_points ?? null,

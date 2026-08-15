@@ -1,12 +1,41 @@
-import { quoteStay, Resorts as CalculatorResorts } from "pixiedvc-calculator";
-import type { RoomCode, ViewCode } from "pixiedvc-calculator";
+import {
+  getDvcAccommodationOption,
+  getDvcAccommodationOptions,
+} from "../../../packages/pixiedvc-calculator/src/engine/accommodations";
+import { quoteStay } from "../../../packages/pixiedvc-calculator/src/engine/calc";
+import type {
+  DvcAccommodationOption,
+} from "../../../packages/pixiedvc-calculator/src/engine/accommodations";
+import type {
+  RoomCode,
+  ViewCode,
+} from "../../../packages/pixiedvc-calculator/src/engine/types";
 
 export type StayCalculatorInput = {
-  resortCalculatorCode: string | null;
-  roomType: string;
+  resortCalculatorCode?: string | null;
+  resortCode?: string | null;
+  roomType?: string | null;
+  roomCode?: RoomCode | string | null;
+  viewCode?: ViewCode | string | null;
   checkIn: string;
   checkOut: string;
 };
+
+export type StayCalculatorErrorCode =
+  | "unsupported_resort"
+  | "invalid_accommodation"
+  | "ambiguous_accommodation"
+  | "invalid_dates";
+
+export class StayCalculatorError extends Error {
+  readonly code: StayCalculatorErrorCode;
+
+  constructor(code: StayCalculatorErrorCode, message: string) {
+    super(message);
+    this.name = "StayCalculatorError";
+    this.code = code;
+  }
+}
 
 export type NightPointsRow = {
   night: string;
@@ -33,7 +62,7 @@ function getNightDates(checkIn: string, checkOut: string) {
   const end = parseYmdToUtcDate(checkOut);
 
   if (Number.isNaN(start.getTime())) {
-    throw new Error("Invalid check-in date.");
+    throw new StayCalculatorError("invalid_dates", "Invalid check-in date.");
   }
 
   if (Number.isNaN(end.getTime()) || end <= start) {
@@ -51,6 +80,10 @@ function getNightDates(checkIn: string, checkOut: string) {
 }
 
 function normalizeRoomType(value: string) {
+  return value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function normalizeViewCode(value: string) {
   return value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
@@ -86,56 +119,122 @@ function getRoomCandidates(roomType: string): RoomCode[] {
   return [direct];
 }
 
-function resolveRoomAndView(resortCalculatorCode: string, roomType: string) {
-  const resort = CalculatorResorts.find(
-    (item) => item.code.toUpperCase() === resortCalculatorCode.toUpperCase(),
-  );
+function getResortOptions(resortCalculatorCode: string) {
+  const options = getDvcAccommodationOptions(resortCalculatorCode);
+  if (options.length === 0) {
+    throw new StayCalculatorError("unsupported_resort", "Points charts missing for selected resort.");
+  }
+  return options;
+}
 
-  if (!resort) {
-    throw new Error("Points charts missing for selected resort.");
+function resolveExactAccommodation(
+  resortCalculatorCode: string,
+  roomCode: string,
+  viewCode: string,
+): DvcAccommodationOption {
+  getResortOptions(resortCalculatorCode);
+
+  const option = getDvcAccommodationOption({
+    resortCode: resortCalculatorCode,
+    roomCode: normalizeRoomType(roomCode) as RoomCode,
+    viewCode: normalizeViewCode(viewCode) as ViewCode,
+  });
+
+  if (!option) {
+    throw new StayCalculatorError(
+      "invalid_accommodation",
+      "Room category is not valid for selected resort.",
+    );
   }
 
-  const candidates = getRoomCandidates(roomType);
-  const room = candidates.find((candidate) => resort.roomTypes.includes(candidate));
+  return option;
+}
 
-  if (!room) {
-    throw new Error("Points charts missing for selected room type.");
+function resolveLegacyAccommodation(resortCalculatorCode: string, roomType: string): DvcAccommodationOption {
+  const options = getResortOptions(resortCalculatorCode);
+  const candidates = new Set(getRoomCandidates(roomType));
+  const matches = options.filter((option) => candidates.has(option.roomCode));
+
+  if (matches.length === 0) {
+    throw new StayCalculatorError(
+      "invalid_accommodation",
+      "Points charts missing for selected room type.",
+    );
   }
 
-  const firstView = (resort.viewsByRoom[room]?.[0] ?? "S") as ViewCode;
-  return { room, view: firstView };
+  if (matches.length > 1) {
+    throw new StayCalculatorError(
+      "ambiguous_accommodation",
+      "Room category is required for this resort and room type.",
+    );
+  }
+
+  return matches[0]!;
+}
+
+function resolveAccommodation(input: {
+  resortCalculatorCode: string;
+  roomType: string;
+  roomCode: string;
+  viewCode: string;
+}) {
+  if (input.roomCode || input.viewCode) {
+    if (!input.roomCode || !input.viewCode) {
+      throw new StayCalculatorError(
+        "invalid_accommodation",
+        "Room code and view code are required for an exact points quote.",
+      );
+    }
+    return resolveExactAccommodation(input.resortCalculatorCode, input.roomCode, input.viewCode);
+  }
+
+  if (!input.roomType) {
+    throw new StayCalculatorError(
+      "invalid_accommodation",
+      "Room category is required for points quote.",
+    );
+  }
+
+  return resolveLegacyAccommodation(input.resortCalculatorCode, input.roomType);
 }
 
 export function calculateStayPoints(input: StayCalculatorInput): StayCalculatorResult {
-  const resortCalculatorCode = input.resortCalculatorCode?.trim() ?? "";
+  const resortCalculatorCode = (input.resortCalculatorCode ?? input.resortCode)?.trim() ?? "";
   const roomType = input.roomType?.trim() ?? "";
+  const roomCode = input.roomCode?.trim() ?? "";
+  const viewCode = input.viewCode?.trim() ?? "";
   const checkIn = input.checkIn?.trim() ?? "";
   const checkOut = input.checkOut?.trim() ?? "";
 
   if (!resortCalculatorCode) {
-    throw new Error("Resort is required for points quote.");
-  }
-  if (!roomType) {
-    throw new Error("Room type is required for points quote.");
+    throw new StayCalculatorError("unsupported_resort", "Resort is required for points quote.");
   }
   if (!checkIn) {
-    throw new Error("Check-in is required for points quote.");
+    throw new StayCalculatorError("invalid_dates", "Check-in is required for points quote.");
   }
 
   const nights = getNightDates(checkIn, checkOut);
-  const { room, view } = resolveRoomAndView(resortCalculatorCode, roomType);
+  const accommodation = resolveAccommodation({
+    resortCalculatorCode,
+    roomType,
+    roomCode,
+    viewCode,
+  });
 
   let quote;
   try {
     quote = quoteStay({
-      resortCode: resortCalculatorCode,
-      room,
-      view,
+      resortCode: accommodation.resortCode,
+      room: accommodation.roomCode,
+      view: accommodation.viewCode,
       checkIn,
       nights: nights.length,
     });
   } catch {
-    throw new Error("Points charts missing for selected stay details.");
+    throw new StayCalculatorError(
+      "invalid_accommodation",
+      "Points charts missing for selected stay details.",
+    );
   }
 
   return {

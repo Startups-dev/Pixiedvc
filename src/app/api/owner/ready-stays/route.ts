@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { computeCapsForStay, FEE_PER_POINT_CENTS } from "@/lib/ready-stays/pricingEngine";
+import { isValidDvcAccommodationIdentity } from "../../../../../packages/pixiedvc-calculator/src/engine/accommodations";
+import type { RoomCode, ViewCode } from "../../../../../packages/pixiedvc-calculator/src/engine/types";
 
 const GLOBAL_MIN_OWNER_CENTS = 1400;
 
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
 
   const { data: rental } = await supabase
     .from("rentals")
-    .select("id, owner_user_id, resort_id, resort_code, check_in, check_out, points_required, room_type, match_id")
+    .select("id, owner_user_id, resort_id, resort_code, check_in, check_out, points_required, room_type, calculator_room_code, calculator_view_code, match_id")
     .eq("id", rentalId)
     .maybeSingle();
 
@@ -56,6 +58,28 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
   if (resortError) {
     return NextResponse.json({ error: "Unable to load resort metadata." }, { status: 500 });
+  }
+
+  const calculatorRoomCode =
+    typeof rental.calculator_room_code === "string" ? rental.calculator_room_code.trim().toUpperCase() : "";
+  const calculatorViewCode =
+    typeof rental.calculator_view_code === "string" ? rental.calculator_view_code.trim().toUpperCase() : "";
+
+  if ((calculatorRoomCode && !calculatorViewCode) || (!calculatorRoomCode && calculatorViewCode)) {
+    return NextResponse.json({ error: "invalid_accommodation" }, { status: 400 });
+  }
+
+  const resortCode = resort?.calculator_code ?? rental.resort_code ?? resort?.slug ?? "";
+  if (
+    calculatorRoomCode &&
+    calculatorViewCode &&
+    !isValidDvcAccommodationIdentity({
+      resortCode,
+      roomCode: calculatorRoomCode as RoomCode,
+      viewCode: calculatorViewCode as ViewCode,
+    })
+  ) {
+    return NextResponse.json({ error: "invalid_accommodation" }, { status: 400 });
   }
 
   const { data: milestones } = await supabase
@@ -129,6 +153,8 @@ export async function POST(request: NextRequest) {
       check_out: rental.check_out,
       points: rental.points_required,
       room_type: rental.room_type,
+      calculator_room_code: calculatorRoomCode || null,
+      calculator_view_code: calculatorViewCode || null,
       season_type: caps.strictestSeasonType,
       owner_price_per_point_cents: ownerPrice,
       guest_price_per_point_cents: guestPrice,

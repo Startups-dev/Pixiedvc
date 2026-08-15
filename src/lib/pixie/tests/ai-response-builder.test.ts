@@ -153,6 +153,28 @@ describe("Pixie response builder", () => {
     expect(response.message).not.toContain("Budget fit will improve");
   });
 
+  it("does not force a concrete resort for genuinely ambiguous Magic Kingdom area requests", () => {
+    const state = normalizePixieTripState({
+      ...createEmptyPixieTripState("2026-08-13T12:00:00.000Z"),
+      dates: { arrivalDate: "2026-09-01", departureDate: "2026-09-06" },
+    });
+    const response = buildPixiePlannerResponse({
+      modelResult: modelResult({
+        assistantResponse: "Você quer ficar a uma caminhada do Magic Kingdom ou apenas na região dele?",
+        nextQuestionKey: "ask_party",
+        planningIntent: "clarify_information",
+      }),
+      completeness: evaluatePixieCompleteness(state),
+      toolResults: [],
+      warnings: [],
+      latestUserMessage: "quero ficar perto do magic kingdom",
+      currentState: state,
+    });
+
+    expect(response.message).toContain("Você quer ficar");
+    expect(response.message).not.toContain("Bay Lake Tower");
+  });
+
   it("does not prepend the resort intro to routine discovery turns just because implicit recommendations ran", () => {
     const result = recommendationResult();
     const response = buildPixiePlannerResponse({

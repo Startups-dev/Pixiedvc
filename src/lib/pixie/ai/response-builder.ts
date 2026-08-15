@@ -125,6 +125,13 @@ function obviousRecommendationIntro(latestUserMessage: string, language: PixieCo
   const recentText = recentMessages.slice(-4).map((message) => message.content).join(" ").toLowerCase();
   const excluded = state?.preferences.excludedResorts.map((value) => value.toLowerCase()) ?? [];
   const excludes = (name: string) => excluded.some((value) => name.toLowerCase().includes(value) || value.includes(name.toLowerCase()));
+  const bayLakeSegment = state?.planningWorkspace.lodgingPlans.find((plan) => /Bay Lake Tower/i.test(plan.resort) && plan.checkIn && plan.checkOut);
+
+  if (bayLakeSegment && /\bmagic kingdom\b/i.test(latestUserMessage)) {
+    return language === "pt"
+      ? `Eu escolheria Bay Lake Tower para o trecho do Magic Kingdom. Para ${bayLakeSegment.checkIn}–${bayLakeSegment.checkOut}, ele é o encaixe mais direto porque permite voltar a pé para o resort.`
+      : `I would choose Bay Lake Tower for the Magic Kingdom segment. For ${bayLakeSegment.checkIn}–${bayLakeSegment.checkOut}, it is the most direct fit because you can walk back to the resort.`;
+  }
 
   if (/disney springs|disney spring/.test(normalized) && /\b(perto|near|close|ficar|stay|hosped)/.test(normalized) && !excludes("Saratoga")) {
     return language === "pt"
@@ -221,10 +228,16 @@ function splitStayRecoveryResponse(state: PixieTripState | undefined, language: 
   const pt = language === "pt";
   const lines = lodging.slice(0, 3).map((plan) => {
     const dates = `${plan.checkIn ?? plan.startDate}–${plan.checkOut ?? plan.endDate}`;
+    const pointEstimate =
+      plan.estimatedPoints !== undefined
+        ? `${plan.estimatedPoints} ${pt ? "pontos estimados" : "points estimate"}`
+        : plan.estimatedPointsLow !== undefined && plan.estimatedPointsHigh !== undefined
+          ? `${plan.estimatedPointsLow}–${plan.estimatedPointsHigh} ${pt ? "pontos estimados" : "points estimate"}`
+          : undefined;
     const estimate = [
       plan.numberOfNights ? `${plan.numberOfNights} ${pt ? (plan.numberOfNights === 1 ? "noite" : "noites") : plan.numberOfNights === 1 ? "night" : "nights"}` : undefined,
       plan.roomType,
-      plan.estimatedPoints ? `${plan.estimatedPoints} ${pt ? "pontos estimados" : "points estimate"}` : undefined,
+      pointEstimate,
       formatUsdCents(plan.estimatedRentalCostCents) ? `${pt ? "est." : "est."} ${formatUsdCents(plan.estimatedRentalCostCents)}` : undefined,
     ].filter(Boolean).join(" · ");
     return `${plan.resort} — ${dates}${estimate ? ` · ${estimate}` : ""}.`;
@@ -244,22 +257,52 @@ function splitStayRecoveryResponse(state: PixieTripState | undefined, language: 
       : pt
         ? "Onde a tabela de pontos ou preço não cobre o trecho, eu trataria o custo como pendente em vez de inventar um valor."
         : "Where the points or price table does not cover the segment, I would leave the cost pending instead of inventing a number.";
+  const missingParty = state.party.totalPartySize === undefined;
+  const partyQuestion = missingParty
+    ? pt
+      ? "Para calcular a estimativa correta de quarto, pontos e aluguel para as três estadias, só preciso saber quantas pessoas viajarão e as idades das crianças."
+      : "To calculate the right room, points, and rental estimate for all three stays, I only need the party size and any children’s ages."
+    : undefined;
 
   if (pt) {
     return [
       "Eu resolveria em uma só passada assim:",
       ...lines,
       comparison,
+      partyQuestion,
       "Esses valores são estimativas de planejamento, não disponibilidade ao vivo nem reserva confirmada.",
-    ].join("\n");
+    ].filter(Boolean).join("\n");
   }
 
   return [
     "I would handle it in one pass like this:",
     ...lines,
     comparison,
+    partyQuestion,
     "These are planning estimates, not live availability or a confirmed booking.",
-  ].join("\n");
+  ].filter(Boolean).join("\n");
+}
+
+function hasCompoundSplitStayIntent(latestUserMessage: string) {
+  return /\bmagic kingdom\b/i.test(latestUserMessage) && /\bdisney springs?\b/i.test(latestUserMessage) && /\bepcot\b/i.test(latestUserMessage);
+}
+
+function compoundSplitStayResponse(state: PixieTripState | undefined, language: PixieConversationLanguage, latestUserMessage: string, baseMessage: string) {
+  if (!state || !hasCompoundSplitStayIntent(latestUserMessage)) return undefined;
+  const lodging = state.planningWorkspace.lodgingPlans
+    .filter((plan) => /Bay Lake Tower|Saratoga Springs|BoardWalk Villas|Beach Club Villas/i.test(plan.resort) && plan.checkIn && plan.checkOut)
+    .sort((a, b) => String(a.checkIn ?? a.startDate).localeCompare(String(b.checkIn ?? b.startDate)));
+  const hasAllSegments =
+    lodging.some((plan) => /Bay Lake Tower/i.test(plan.resort)) &&
+    lodging.some((plan) => /Saratoga Springs/i.test(plan.resort)) &&
+    lodging.some((plan) => /BoardWalk Villas|Beach Club Villas/i.test(plan.resort));
+  if (!hasAllSegments) return undefined;
+
+  const missingFromMessage = lodging.some((plan) => !baseMessage.toLowerCase().includes(plan.resort.toLowerCase()));
+  const questionBeforeAllSegments = baseMessage.includes("?") && missingFromMessage;
+  if (!missingFromMessage && !questionBeforeAllSegments) return undefined;
+
+  return splitStayRecoveryResponse(state, language);
 }
 
 export function buildPixiePlannerResponse(params: {
@@ -320,8 +363,13 @@ export function buildPixiePlannerResponse(params: {
   }
 
   message = removeAnsweredMechanicalQuestions(message, params.completeness);
+  const compoundSplitStay = compoundSplitStayResponse(params.currentState, language, params.latestUserMessage ?? "", message);
+  if (compoundSplitStay) {
+    message = compoundSplitStay;
+    additionalWarnings.push("compound_objectives_completed: all structured lodging objectives were surfaced before clarification.");
+  }
   const obvious = obviousRecommendationIntro(params.latestUserMessage ?? "", language, params.currentState, params.recentMessages);
-  if (obvious && !message.toLowerCase().includes(obvious.split(".")[0].toLowerCase())) {
+  if (!compoundSplitStay && obvious && !message.toLowerCase().includes(obvious.split(".")[0].toLowerCase())) {
     message = hasQuestionBeforeRecommendation(message, obvious.split(" ")[language === "pt" ? 2 : 3] ?? "") ? obvious : `${obvious}\n\n${message}`;
   }
   const itinerary = itineraryIntent || (startsWithEmptyPromise(message, language) && /\b(por favor|please)\b/i.test(params.latestUserMessage ?? ""));

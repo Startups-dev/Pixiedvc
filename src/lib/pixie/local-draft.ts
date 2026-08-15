@@ -134,6 +134,8 @@ function recoverLodgingPlans(values: unknown) {
         roomType: typeof record.roomType === "string" ? record.roomType : undefined,
         numberOfNights: Number.isInteger(record.numberOfNights) ? record.numberOfNights : undefined,
         estimatedPoints: Number.isInteger(record.estimatedPoints) ? record.estimatedPoints : undefined,
+        estimatedPointsLow: Number.isInteger(record.estimatedPointsLow) ? record.estimatedPointsLow : undefined,
+        estimatedPointsHigh: Number.isInteger(record.estimatedPointsHigh) ? record.estimatedPointsHigh : undefined,
         pointsEstimateStatus,
         estimatedRentalCostCents: Number.isInteger(record.estimatedRentalCostCents) ? record.estimatedRentalCostCents : undefined,
         rentalEstimateStatus,

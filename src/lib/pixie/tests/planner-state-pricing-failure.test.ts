@@ -36,9 +36,11 @@ describe("Pixie planner lodging estimate failure handling", () => {
       checkOut: "2026-09-02",
       roomType: "Deluxe Studio",
       pointsEstimateStatus: "estimate",
-      rentalEstimateStatus: "unsupported",
+      rentalEstimateStatus: "not_requested",
     });
-    expect(state.planningWorkspace.lodgingPlans[0]?.estimatedPoints).toBeGreaterThan(0);
+    expect(state.planningWorkspace.lodgingPlans[0]?.estimatedPoints).toBeUndefined();
+    expect(state.planningWorkspace.lodgingPlans[0]?.estimatedPointsLow).toBeGreaterThan(0);
+    expect(state.planningWorkspace.lodgingPlans[0]?.estimatedPointsHigh).toBeGreaterThanOrEqual(state.planningWorkspace.lodgingPlans[0]?.estimatedPointsLow ?? 0);
     expect(state.planningWorkspace.lodgingPlans[0]?.estimatedRentalCostCents).toBeUndefined();
   });
 });

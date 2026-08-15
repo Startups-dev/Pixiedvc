@@ -493,10 +493,12 @@ describe("Pixie AI orchestrator", () => {
     expect(state.dates.departureDate).toBe("2026-09-06");
     for (const resort of ["Bay Lake Tower", "Disney's Saratoga Springs Resort & Spa", "BoardWalk Villas"]) {
       const segment = state.planningWorkspace.lodgingPlans.find((plan) => plan.resort === resort);
-      expect(segment).toMatchObject({ roomType: "Deluxe Studio", pointsEstimateStatus: "estimate", rentalEstimateStatus: "estimate" });
+      expect(segment).toMatchObject({ roomType: "Deluxe Studio", pointsEstimateStatus: "estimate", rentalEstimateStatus: "not_requested" });
       expect(segment?.numberOfNights).toBeGreaterThan(0);
-      expect(segment?.estimatedPoints).toBeGreaterThan(0);
-      expect(segment?.estimatedRentalCostCents).toBeGreaterThan(0);
+      expect(segment?.estimatedPoints).toBeUndefined();
+      expect(segment?.estimatedPointsLow).toBeGreaterThan(0);
+      expect(segment?.estimatedPointsHigh).toBeGreaterThanOrEqual(segment?.estimatedPointsLow ?? 0);
+      expect(segment?.estimatedRentalCostCents).toBeUndefined();
     }
     expect(state.planningWorkspace.attentionItems.some((item) => /lunch|almo/i.test(`${item.label} ${item.note ?? ""}`))).toBe(false);
     expect(state.planningWorkspace.lodgingPlans.some((plan) => plan.status === "confirmed")).toBe(false);
@@ -655,15 +657,92 @@ describe("Pixie AI orchestrator", () => {
     expect(result.updatedState.planningWorkspace.lodgingPlans.some((plan) => plan.status === "confirmed")).toBe(false);
     for (const resort of ["Bay Lake Tower", "Disney's Saratoga Springs Resort & Spa", "BoardWalk Villas"]) {
       const segment = result.updatedState.planningWorkspace.lodgingPlans.find((plan) => plan.resort === resort);
-      expect(segment).toMatchObject({ roomType: "Deluxe Studio", pointsEstimateStatus: "estimate", rentalEstimateStatus: "estimate" });
-      expect(segment?.estimatedPoints).toBeGreaterThan(0);
-      expect(segment?.estimatedRentalCostCents).toBeGreaterThan(0);
+      expect(segment).toMatchObject({ roomType: "Deluxe Studio", pointsEstimateStatus: "estimate", rentalEstimateStatus: "not_requested" });
+      expect(segment?.estimatedPoints).toBeUndefined();
+      expect(segment?.estimatedPointsLow).toBeGreaterThan(0);
+      expect(segment?.estimatedPointsHigh).toBeGreaterThanOrEqual(segment?.estimatedPointsLow ?? 0);
+      expect(segment?.estimatedRentalCostCents).toBeUndefined();
     }
     expect(providerInput?.currentPlanSummary?.tripDates).toBe("2026-09-01 to 2026-09-06");
     expect(providerInput?.currentPlanSummary?.lodging).toEqual(expect.arrayContaining([
       expect.stringMatching(/Bay Lake Tower.*2026-09-01 to 2026-09-02.*Deluxe Studio.*point/i),
       expect.stringMatching(/Saratoga Springs.*2026-09-02 to 2026-09-04.*Deluxe Studio.*point/i),
       expect.stringMatching(/BoardWalk Villas.*2026-09-04 to 2026-09-06.*Deluxe Studio.*point/i),
+    ]));
+  });
+
+  it("does not collapse a fresh compound split-stay turn into only the Disney Springs objective", async () => {
+    let state = createEmptyPixieTripState("2026-08-13T12:00:00.000Z");
+    const provider = createFixturePixieProvider({
+      result: {
+        assistantResponse:
+          "Eu escolheria Disney's Saratoga Springs Resort & Spa para o trecho de Disney Springs. Para comparar direito, preciso saber quantas pessoas viajam.",
+        tripPatch: {},
+        requestedTools: [],
+        planningIntent: "recommend_resorts",
+        conversationMode: "decision_support",
+        activeDecisionKey: "resort_choice",
+        nextQuestionKey: "ask_party",
+        confidence: 0.72,
+        warnings: [],
+      },
+    });
+
+    const first = await runPixiePlannerTurn({
+      state,
+      message:
+        "chegarei em orlando noon no dia 1 de setembro. quero ficar perto do magic kingdom por apenas uma noite. depois quero passar duas noites perto da disney springs and mais duas perto de epcot. qual a opcao mais barata nesses dois casos?",
+      provider,
+      now: "2026-08-13T12:00:00.000Z",
+    });
+    state = first.updatedState;
+
+    expect(first.assistantResponse).toContain("Bay Lake Tower");
+    expect(first.assistantResponse).toContain("Disney's Saratoga Springs Resort & Spa");
+    expect(first.assistantResponse).toContain("BoardWalk Villas");
+    expect(first.assistantResponse).toMatch(/quantas pessoas|idades/i);
+    expect(first.assistantResponse.indexOf("Bay Lake Tower")).toBeLessThan(first.assistantResponse.search(/quantas pessoas|idades/i));
+    expect(first.assistantResponse).not.toMatch(/could not finish|one pass|smaller parts|availability details/i);
+    expect(first.assistantResponse).not.toMatch(/\bI would|Please send|current model capacity\b/i);
+    expect(first.updatedState.dates).toMatchObject({ arrivalDate: "2026-09-01", departureDate: "2026-09-06", numberOfNights: 5 });
+    expect(first.updatedState.party.totalPartySize).toBeUndefined();
+    expect(first.updatedState.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([
+      expect.objectContaining({ resort: "Bay Lake Tower", checkIn: "2026-09-01", checkOut: "2026-09-02", status: "recommended" }),
+      expect.objectContaining({ resort: "Disney's Saratoga Springs Resort & Spa", checkIn: "2026-09-02", checkOut: "2026-09-04", status: "recommended" }),
+      expect.objectContaining({ resort: "BoardWalk Villas", checkIn: "2026-09-04", checkOut: "2026-09-06", status: "recommended" }),
+    ]));
+    expect(first.updatedState.planningWorkspace.lodgingPlans.some((plan) => plan.status === "confirmed")).toBe(false);
+
+    const followUp = await runPixiePlannerTurn({
+      state,
+      message: "e quando estiver na magic kingdom",
+      recentMessages: [
+        { role: "user", content: "chegarei em orlando noon no dia 1 de setembro. quero ficar perto do magic kingdom por apenas uma noite. depois quero passar duas noites perto da disney springs and mais duas perto de epcot. qual a opcao mais barata nesses dois casos?" },
+        { role: "assistant", content: first.assistantResponse },
+      ],
+      provider: createFixturePixieProvider({
+        result: {
+          assistantResponse:
+            "Você quer ficar a uma caminhada do Magic Kingdom ou apenas na região dele?",
+          tripPatch: {},
+          requestedTools: [],
+          planningIntent: "clarify_information",
+          conversationMode: "decision_support",
+          activeDecisionKey: "resort_choice",
+          nextQuestionKey: "ask_resort_choice",
+          confidence: 0.55,
+          warnings: [],
+        },
+      }),
+      now: "2026-08-13T12:01:00.000Z",
+    });
+
+    expect(followUp.assistantResponse).toMatch(/^Eu escolheria Bay Lake Tower/i);
+    expect(followUp.assistantResponse).not.toMatch(/caminhada.*ou apenas|walking distance or merely|Saratoga|BoardWalk/i);
+    expect(followUp.updatedState.planningWorkspace.lodgingPlans).toEqual(expect.arrayContaining([
+      expect.objectContaining({ resort: "Bay Lake Tower", checkIn: "2026-09-01", checkOut: "2026-09-02" }),
+      expect.objectContaining({ resort: "Disney's Saratoga Springs Resort & Spa", checkIn: "2026-09-02", checkOut: "2026-09-04" }),
+      expect.objectContaining({ resort: "BoardWalk Villas", checkIn: "2026-09-04", checkOut: "2026-09-06" }),
     ]));
   });
 

@@ -2,11 +2,18 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { attachBookingAttribution } from "@/lib/booking-attribution";
+import { resolveCalculatorCode } from "@/lib/resort-calculator";
+import {
+  getDvcAccommodationOptions,
+  isValidDvcAccommodationIdentity,
+} from "../../../../../packages/pixiedvc-calculator/src/engine/accommodations";
+import type { RoomCode, ViewCode } from "../../../../../packages/pixiedvc-calculator/src/engine/types";
 
 type TripPayload = {
   resortId?: string;
   resortName?: string;
   villaType?: string;
+  viewType?: string;
   building_preference?: "none" | "jambo" | "kidani";
   checkIn?: string;
   checkOut?: string;
@@ -114,6 +121,57 @@ function isMissingBuildingPreferenceColumn(error: unknown) {
   return combined.includes("building_preference") && combined.includes("booking_requests");
 }
 
+function normalizeAccommodationCode(value: string | null) {
+  return value ? value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "") : "";
+}
+
+function resolveBookingAccommodationIdentity(params: {
+  resortCode: string | null;
+  roomInput: string | null;
+  viewInput: string | null;
+}) {
+  const resortCode = params.resortCode?.trim().toUpperCase() ?? "";
+  const roomCode = normalizeAccommodationCode(params.roomInput);
+  const viewCode = normalizeAccommodationCode(params.viewInput);
+
+  if (!resortCode || !roomCode) {
+    return { primaryRoom: params.roomInput, primaryView: params.viewInput };
+  }
+
+  const resortOptions = getDvcAccommodationOptions(resortCode);
+  const knownRoomCodes = new Set(resortOptions.map((option) => option.roomCode));
+  const knownViewCodes = new Set(resortOptions.map((option) => option.viewCode));
+
+  if (viewCode) {
+    if (
+      isValidDvcAccommodationIdentity({
+        resortCode,
+        roomCode: roomCode as RoomCode,
+        viewCode: viewCode as ViewCode,
+      })
+    ) {
+      return { primaryRoom: roomCode, primaryView: viewCode };
+    }
+    if (knownRoomCodes.has(roomCode as RoomCode) || knownViewCodes.has(viewCode as ViewCode)) {
+      return { error: "invalid_accommodation" as const };
+    }
+    return { primaryRoom: params.roomInput, primaryView: params.viewInput };
+  }
+
+  const matchingRoomOptions = resortOptions.filter((option) => option.roomCode === roomCode);
+
+  if (matchingRoomOptions.length === 1) {
+    const [option] = matchingRoomOptions;
+    return { primaryRoom: option.roomCode, primaryView: option.viewCode };
+  }
+
+  if (matchingRoomOptions.length > 1) {
+    return { error: "ambiguous_accommodation" as const };
+  }
+
+  return { primaryRoom: params.roomInput, primaryView: null };
+}
+
 export async function POST(request: Request) {
   try {
     const payload = (await request.json()) as BookingPayload;
@@ -149,31 +207,52 @@ export async function POST(request: Request) {
     let resortId: string | null = null;
 
     let resolvedResortSlug: string | null = null;
+    let resolvedCalculatorCode: string | null = null;
 
     if (resortIdRaw) {
       if (isUuid(resortIdRaw)) {
         resortId = resortIdRaw;
         const { data: resort } = await supabase
           .from("resorts")
-          .select("slug")
+          .select("slug, calculator_code")
           .eq("id", resortIdRaw)
           .maybeSingle();
         resolvedResortSlug = resort?.slug ?? null;
+        resolvedCalculatorCode =
+          resolveCalculatorCode({
+            slug: resort?.slug ?? null,
+            calculator_code: resort?.calculator_code ?? null,
+          }) ?? null;
       } else {
         const { data: resort } = await supabase
           .from("resorts")
-          .select("id, slug")
+          .select("id, slug, calculator_code")
           .or(`calculator_code.eq.${resortIdRaw},slug.eq.${resortIdRaw}`)
           .maybeSingle();
         resortId = resort?.id ?? null;
         resolvedResortSlug = resort?.slug ?? null;
+        resolvedCalculatorCode =
+          resolveCalculatorCode({
+            slug: resort?.slug ?? resortIdRaw,
+            calculator_code: resort?.calculator_code ?? resortIdRaw,
+          }) ?? resortIdRaw.toUpperCase();
       }
     }
 
     const checkIn = toDateString(trip.checkIn);
     const checkOut = toDateString(trip.checkOut);
     const nights = calculateNights(checkIn, checkOut);
-    const primaryRoom = asString(trip.villaType) || null;
+    const requestedPrimaryRoom = asString(trip.villaType) || null;
+    const requestedPrimaryView = asString(trip.viewType) || null;
+    const resolvedAccommodation = resolveBookingAccommodationIdentity({
+      resortCode: resolvedCalculatorCode,
+      roomInput: requestedPrimaryRoom,
+      viewInput: requestedPrimaryView,
+    });
+    const primaryRoom =
+      "primaryRoom" in resolvedAccommodation ? resolvedAccommodation.primaryRoom : requestedPrimaryRoom;
+    const primaryView =
+      "primaryView" in resolvedAccommodation ? resolvedAccommodation.primaryView : requestedPrimaryView;
     const isAnimalKingdomVillas =
       resolvedResortSlug === "animal-kingdom-villas" ||
       resortIdRaw.toLowerCase() === "animal-kingdom-villas" ||
@@ -225,6 +304,12 @@ export async function POST(request: Request) {
     if (!checkOut) fieldErrors["trip.checkOut"] = "Enter a valid check-out date.";
     if (!nights) fieldErrors["trip.checkOut"] = "Check-out must be after check-in.";
     if (!primaryRoom) fieldErrors["trip.villaType"] = "Select a villa type.";
+    if ("error" in resolvedAccommodation) {
+      fieldErrors["trip.viewType"] =
+        resolvedAccommodation.error === "ambiguous_accommodation"
+          ? "Select a room category."
+          : "Select a valid room category.";
+    }
     if (!totalPoints || totalPoints <= 0) fieldErrors["trip.points"] = "Points are required.";
     if (!asString(guest.leadFirstName)) fieldErrors["guest.leadFirstName"] = "First name is required.";
     if (!asString(guest.leadLastName)) fieldErrors["guest.leadLastName"] = "Last name is required.";
@@ -268,6 +353,7 @@ export async function POST(request: Request) {
       check_out: checkOut,
       total_points: totalPoints,
       primary_room: primaryRoom,
+      primary_view: primaryView,
       building_preference: persistedBuildingPreference,
     };
     const signatureComplete =
@@ -293,6 +379,7 @@ export async function POST(request: Request) {
         query = query.eq("primary_resort_id", resortId);
         query = query.eq("total_points", totalPoints);
         query = query.eq("primary_room", primaryRoom);
+        query = primaryView ? query.eq("primary_view", primaryView) : query.is("primary_view", null);
         if (includeBuildingPreference) {
           query = query.eq("building_preference", persistedBuildingPreference);
         }
@@ -334,7 +421,7 @@ export async function POST(request: Request) {
       nights,
       primary_resort_id: resortId,
       primary_room: primaryRoom,
-      primary_view: null,
+      primary_view: primaryView,
       requires_accessibility: Boolean(trip.accessibility),
       secondary_resort_id: asString(trip.secondaryResortId) || null,
       secondary_room: null,
@@ -404,6 +491,9 @@ export async function POST(request: Request) {
         retryQuery = retryQuery.eq("primary_resort_id", resortId);
         retryQuery = retryQuery.eq("total_points", totalPoints);
         retryQuery = retryQuery.eq("primary_room", primaryRoom);
+        retryQuery = primaryView
+          ? retryQuery.eq("primary_view", primaryView)
+          : retryQuery.is("primary_view", null);
         if (supportsBuildingPreference) {
           retryQuery = retryQuery.eq("building_preference", persistedBuildingPreference);
         }

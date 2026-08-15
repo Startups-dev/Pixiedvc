@@ -41,7 +41,7 @@ export default async function ReadyStayBookPage({
   const { data: stay } = await adminClient
     .from("ready_stays")
     .select(
-      "id, status, owner_id, rental_id, resort_id, check_in, check_out, points, room_type, guest_price_per_point_cents, is_test_listing, is_visible_publicly, test_guest_total_cents, locked_until, lock_session_id, booking_request_id, slug, title, image_url, expires_at, verification_status",
+      "id, status, owner_id, rental_id, resort_id, check_in, check_out, points, room_type, calculator_room_code, calculator_view_code, guest_price_per_point_cents, is_test_listing, is_visible_publicly, test_guest_total_cents, locked_until, lock_session_id, booking_request_id, slug, title, image_url, expires_at, verification_status",
     )
     .eq("id", params.id)
     .in("status", ["active", "test"])
@@ -182,6 +182,8 @@ export default async function ReadyStayBookPage({
     .maybeSingle();
 
   const guestTotalCents = getReadyStayGuestTotalCents(stay);
+  const primaryRoom = stay.calculator_room_code ?? stay.room_type;
+  const primaryView = stay.calculator_view_code ?? null;
 
   const { data: existingBookingRequest } = await adminClient
     .from("booking_requests")
@@ -199,7 +201,8 @@ export default async function ReadyStayBookPage({
       check_in: stay.check_in,
       check_out: stay.check_out,
       total_points: stay.points,
-      primary_room: stay.room_type,
+      primary_room: primaryRoom,
+      primary_view: primaryView,
       guest_total_cents: guestTotalCents,
       guest_rate_per_point_cents: stay.guest_price_per_point_cents,
       lead_guest_name: profile?.full_name ?? null,
@@ -216,7 +219,7 @@ export default async function ReadyStayBookPage({
     bookingError = bookingInsert.error;
 
     if (bookingInsert.error?.code === "23505") {
-      const { data: existingActiveBooking } = await adminClient
+      let existingActiveBookingQuery = adminClient
         .from("booking_requests")
         .select("id")
         .eq("renter_id", user.id)
@@ -224,9 +227,13 @@ export default async function ReadyStayBookPage({
         .eq("check_in", stay.check_in)
         .eq("check_out", stay.check_out)
         .eq("total_points", stay.points)
-        .eq("primary_room", stay.room_type)
+        .eq("primary_room", primaryRoom)
         .in("status", ["draft", "submitted", "pending_match", "pending_owner"])
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: false });
+      existingActiveBookingQuery = primaryView
+        ? existingActiveBookingQuery.eq("primary_view", primaryView)
+        : existingActiveBookingQuery.is("primary_view", null);
+      const { data: existingActiveBooking } = await existingActiveBookingQuery
         .maybeSingle();
 
       if (existingActiveBooking?.id) {

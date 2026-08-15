@@ -3,6 +3,7 @@ export * from "./engine/types";
 export * from "./engine/rates";
 export * from "./engine/charts";
 export * from "./engine/calc";
+export * from "./engine/accommodations";
 export { resortsData } from "./data/resorts";
 export { getResortYearChart } from "./data/chartRegistry";
 

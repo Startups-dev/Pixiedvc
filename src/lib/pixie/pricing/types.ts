@@ -1,4 +1,5 @@
 import type { PixieResortId, PixieRoomTypeId } from "@/lib/pixie/resorts/types";
+import type { DvcAccommodationIdentity } from "../../../../packages/pixiedvc-calculator/src/engine/accommodations";
 
 export type PixieCalculatorStatus = "estimated" | "unsupported" | "not_requested";
 export type PixiePricingStatus = "estimated" | "unsupported" | "not_requested";
@@ -7,6 +8,7 @@ export type PixiePricingContext = "custom_request_estimate" | "ready_stay_listin
 export type PixieDvcPointsEstimate =
   | {
       supported: true;
+      kind: "exact";
       totalPoints: number;
       nightlyPoints: Array<{ night: string; points: number }>;
       calculatorYears: number[];
@@ -14,17 +16,68 @@ export type PixieDvcPointsEstimate =
       resortCalculatorCode: string;
       roomTypeId: PixieRoomTypeId;
       calculatorRoomCode: string;
+      calculatorViewCode: string;
+      accommodation: DvcAccommodationIdentity;
+      displayLabel: string;
+      estimateStatus: "exact";
+      options?: undefined;
+      minPoints?: undefined;
+      maxPoints?: undefined;
+      totalPointsRange?: undefined;
+      optionCount: 1;
+      priceablePointTotal: number;
+      priceablePointTotalKind: "exact";
+      warnings: string[];
+    }
+  | {
+      supported: true;
+      kind: "range";
+      totalPoints?: undefined;
+      totalPointsRange: { min: number; max: number };
+      minPoints: number;
+      maxPoints: number;
+      nightlyPoints: [];
+      calculatorYears: number[];
+      resortId: PixieResortId;
+      resortCalculatorCode: string;
+      roomTypeId: PixieRoomTypeId;
+      calculatorRoomCode?: undefined;
+      calculatorViewCode?: undefined;
+      accommodation?: undefined;
+      displayLabel?: undefined;
+      estimateStatus: "range";
+      options: Array<{
+        accommodation: DvcAccommodationIdentity;
+        totalPoints: number;
+        nightlyPoints: Array<{ night: string; points: number }>;
+        displayLabel: string;
+      }>;
+      optionCount: number;
+      priceablePointTotal?: undefined;
+      priceablePointTotalKind: "range";
       warnings: string[];
     }
   | {
       supported: false;
+      kind: "unavailable";
       totalPoints?: undefined;
+      totalPointsRange?: undefined;
+      minPoints?: undefined;
+      maxPoints?: undefined;
       nightlyPoints: [];
       calculatorYears: number[];
       resortId?: PixieResortId;
       resortCalculatorCode?: string;
       roomTypeId?: PixieRoomTypeId;
       calculatorRoomCode?: string;
+      calculatorViewCode?: string;
+      accommodation?: undefined;
+      displayLabel?: undefined;
+      estimateStatus: "unavailable";
+      options?: undefined;
+      optionCount?: undefined;
+      priceablePointTotal?: undefined;
+      priceablePointTotalKind?: undefined;
       warnings: string[];
       errorReason:
         | "invalid_dates"

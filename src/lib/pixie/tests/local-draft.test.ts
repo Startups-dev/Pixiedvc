@@ -205,8 +205,10 @@ describe("Pixie local draft versioning", () => {
       numberOfNights: 2,
       roomType: "Deluxe Studio",
       pointsEstimateStatus: "estimate",
-      rentalEstimateStatus: "estimate",
+      rentalEstimateStatus: "not_requested",
     });
+    expect(result.state.planningWorkspace.lodgingPlans[0]?.estimatedPointsLow).toBeGreaterThan(0);
+    expect(result.state.planningWorkspace.lodgingPlans[0]?.estimatedPointsHigh).toBeGreaterThanOrEqual(result.state.planningWorkspace.lodgingPlans[0]?.estimatedPointsLow ?? 0);
   });
 
   it("keeps mixed old and new workspace fields while ignoring unknown extras", () => {

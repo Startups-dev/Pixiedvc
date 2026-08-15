@@ -203,7 +203,15 @@ function buildCurrentPlanSummary(state: PixieTripState): PixieCurrentPlanSummary
   const lodging = state.planningWorkspace.lodgingPlans
     .filter((plan) => activeWorkspaceStatus(plan.status))
     .slice(-6)
-    .map((plan) => `${plan.resort} - ${plan.status}${plan.checkIn || plan.checkOut || plan.startDate || plan.endDate ? ` (${plan.checkIn ?? plan.startDate ?? "?"} to ${plan.checkOut ?? plan.endDate ?? "?"})` : ""}${plan.roomType ? ` - ${plan.roomType}` : ""}${plan.numberOfNights ? ` - ${plan.numberOfNights} night${plan.numberOfNights === 1 ? "" : "s"}` : ""}${plan.estimatedPoints ? ` - ${plan.estimatedPoints} points estimate` : ""}${plan.estimatedRentalCostCents ? ` - estimated $${Math.round(plan.estimatedRentalCostCents / 100).toLocaleString("en-US")}` : ""}${plan.note ? `: ${plan.note}` : ""}`);
+    .map((plan) => {
+      const points =
+        plan.estimatedPoints !== undefined
+          ? `${plan.estimatedPoints} points estimate`
+          : plan.estimatedPointsLow !== undefined && plan.estimatedPointsHigh !== undefined
+            ? `${plan.estimatedPointsLow}-${plan.estimatedPointsHigh} points planning range`
+            : undefined;
+      return `${plan.resort} - ${plan.status}${plan.checkIn || plan.checkOut || plan.startDate || plan.endDate ? ` (${plan.checkIn ?? plan.startDate ?? "?"} to ${plan.checkOut ?? plan.endDate ?? "?"})` : ""}${plan.roomType ? ` - ${plan.roomType}` : ""}${plan.numberOfNights ? ` - ${plan.numberOfNights} night${plan.numberOfNights === 1 ? "" : "s"}` : ""}${points ? ` - ${points}` : ""}${plan.estimatedRentalCostCents ? ` - estimated $${Math.round(plan.estimatedRentalCostCents / 100).toLocaleString("en-US")}` : ""}${plan.note ? `: ${plan.note}` : ""}`;
+    });
   const parks = state.planningWorkspace.parkPlans
     .filter((plan) => activeWorkspaceStatus(plan.status))
     .slice(-10)

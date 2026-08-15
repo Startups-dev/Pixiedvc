@@ -272,6 +272,8 @@ export const pixieWorkspaceLodgingPlanSchema = z
     roomType: optionalTrimmedString(80),
     numberOfNights: z.number().int().min(1).max(PIXIE_LIMITS.maxTripDurationNights).optional(),
     estimatedPoints: z.number().int().min(0).max(5000).optional(),
+    estimatedPointsLow: z.number().int().min(0).max(5000).optional(),
+    estimatedPointsHigh: z.number().int().min(0).max(5000).optional(),
     pointsEstimateStatus: z.enum(["estimate", "unsupported", "not_requested"]).optional(),
     estimatedRentalCostCents: z.number().int().min(0).optional(),
     rentalEstimateStatus: z.enum(["estimate", "unsupported", "not_requested"]).optional(),

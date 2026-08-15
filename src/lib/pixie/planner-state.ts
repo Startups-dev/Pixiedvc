@@ -89,6 +89,8 @@ function enrichLodgingPlan<T extends {
   roomType?: string;
   numberOfNights?: number;
   estimatedPoints?: number;
+  estimatedPointsLow?: number;
+  estimatedPointsHigh?: number;
   pointsEstimateStatus?: "estimate" | "unsupported" | "not_requested";
   estimatedRentalCostCents?: number;
   rentalEstimateStatus?: "estimate" | "unsupported" | "not_requested";
@@ -110,8 +112,8 @@ function enrichLodgingPlan<T extends {
     points = null;
   }
   try {
-    priceAttempted = Boolean(points?.supported);
-    price = points?.supported
+    priceAttempted = Boolean(points?.supported && points.kind === "exact");
+    price = points?.supported && points.kind === "exact"
       ? estimateGuestAccommodationPrice({ pricingContext: "custom_request_estimate", resortId: points.resortId, points: points.totalPoints, arrivalDate: checkIn })
       : null;
   } catch {
@@ -126,11 +128,13 @@ function enrichLodgingPlan<T extends {
     checkOut,
     roomType: normalizeOptionalText(plan.roomType) ?? room?.displayName,
     numberOfNights: plan.numberOfNights ?? numberOfNights,
-    estimatedPoints: plan.estimatedPoints ?? (points?.supported ? points.totalPoints : undefined),
+    estimatedPoints: plan.estimatedPoints ?? (points?.supported && points.kind === "exact" ? points.totalPoints : undefined),
+    estimatedPointsLow: plan.estimatedPointsLow ?? (points?.supported && points.kind === "range" ? points.minPoints : undefined),
+    estimatedPointsHigh: plan.estimatedPointsHigh ?? (points?.supported && points.kind === "range" ? points.maxPoints : undefined),
     pointsEstimateStatus: plan.pointsEstimateStatus ?? (points ? (points.supported ? "estimate" : "unsupported") : pointsAttempted ? "unsupported" : "not_requested"),
     estimatedRentalCostCents: plan.estimatedRentalCostCents ?? (price?.supported ? price.estimatedTotalCents : undefined),
     rentalEstimateStatus: plan.rentalEstimateStatus ?? (price ? (price.supported ? "estimate" : "unsupported") : priceAttempted ? "unsupported" : "not_requested"),
-    estimateNotes: normalizeOptionalText(plan.estimateNotes) ?? (points?.supported ? "Planning estimate only; not availability or a booking." : undefined),
+    estimateNotes: normalizeOptionalText(plan.estimateNotes) ?? (points?.supported ? points.kind === "range" ? "Planning range only; exact points depend on room category." : "Planning estimate only; not availability or a booking." : undefined),
   };
 }
 

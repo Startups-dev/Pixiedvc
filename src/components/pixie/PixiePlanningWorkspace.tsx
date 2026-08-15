@@ -68,11 +68,12 @@ export default function PixiePlanningWorkspace({ state }: { state: PixieTripStat
                 </div>
                 {plan.checkIn || plan.checkOut || plan.startDate || plan.endDate ? <p className="mt-1 text-xs text-slate-500">{[plan.checkIn ?? plan.startDate, plan.checkOut ?? plan.endDate].filter(Boolean).join(pt ? " a " : " to ")}</p> : null}
                 {plan.roomType ? <p className="mt-1 text-xs leading-5 text-slate-500">{plan.roomType}</p> : null}
-                {plan.numberOfNights || plan.estimatedPoints || plan.estimatedRentalCostCents ? (
+                {plan.numberOfNights || plan.estimatedPoints || plan.estimatedPointsLow || plan.estimatedRentalCostCents ? (
                   <p className="mt-1 text-xs leading-5 text-slate-500">
                     {[
                       plan.numberOfNights ? `${plan.numberOfNights} ${pt ? (plan.numberOfNights === 1 ? "noite" : "noites") : plan.numberOfNights === 1 ? "night" : "nights"}` : undefined,
                       plan.estimatedPoints ? `${plan.estimatedPoints} ${pt ? "pontos estimados" : "points est."}` : undefined,
+                      !plan.estimatedPoints && plan.estimatedPointsLow !== undefined && plan.estimatedPointsHigh !== undefined ? `${plan.estimatedPointsLow}-${plan.estimatedPointsHigh} ${pt ? "pontos estimados" : "points est."}` : undefined,
                       formatUsd(plan.estimatedRentalCostCents) ? `${pt ? "Est." : "Est."} ${formatUsd(plan.estimatedRentalCostCents)}` : undefined,
                     ].filter(Boolean).join(" · ")}
                   </p>
