@@ -81,5 +81,36 @@ export async function acceptOwnerAgreement(
     return { error: "Unable to accept the agreement right now. Please try again." };
   }
 
+  const onboardingCompletedAt = new Date().toISOString();
+  const { error: profileError } = await client
+    .from("profiles")
+    .upsert(
+      {
+        id: user.id,
+        email: user.email ?? null,
+        role: "owner",
+        onboarding_completed: true,
+        onboarding_completed_at: onboardingCompletedAt,
+        updated_at: onboardingCompletedAt,
+      },
+      { onConflict: "id" },
+    );
+
+  if (profileError) {
+    return { error: "Unable to finish owner onboarding right now. Please try again." };
+  }
+
+  try {
+    await supabase.auth.updateUser({
+      data: {
+        ...(user.user_metadata ?? {}),
+        onboarding_completed: true,
+        role: "owner",
+      },
+    });
+  } catch {
+    // The profile row is the durable route-guard source of truth.
+  }
+
   redirect("/owner");
 }

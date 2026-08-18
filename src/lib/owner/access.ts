@@ -56,12 +56,10 @@ function isOnboardingComplete(profile: { onboarding_completed?: boolean | null; 
 async function resolveOwnerRecord({
   db,
   userId,
-  userEmail,
   createIfMissing,
 }: {
   db: OwnerDbClient;
   userId: string;
-  userEmail: string | null | undefined;
   createIfMissing: boolean;
 }) {
   const { data: ownerByUserId, error: byUserError } = await db
@@ -85,31 +83,6 @@ async function resolveOwnerRecord({
       throw byIdError;
     }
     owner = byIdOwner;
-  }
-
-  if (!owner && userEmail) {
-    const { data: byEmailOwner, error: byEmailError } = await db
-      .from("owners")
-      .select("id, user_id, agreement_accepted_at, agreement_version, metadata")
-      .eq("email", userEmail)
-      .order("submitted_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (byEmailError) {
-      throw byEmailError;
-    }
-    owner = byEmailOwner;
-    if (owner && !owner.user_id) {
-      const { error: linkByEmailError } = await db
-        .from("owners")
-        .update({ user_id: userId })
-        .eq("id", owner.id)
-        .is("user_id", null);
-      if (linkByEmailError) {
-        throw linkByEmailError;
-      }
-      owner.user_id = userId;
-    }
   }
 
   if (!owner && createIfMissing) {
@@ -211,7 +184,6 @@ export async function getOwnerAccessState({
   const owner = await resolveOwnerRecord({
     db,
     userId: user.id,
-    userEmail: user.email,
     createIfMissing: createMissingOwner,
   });
   const agreementAcceptedAt = resolveAgreementAcceptedAt(owner);

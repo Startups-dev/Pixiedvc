@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
-async function resolveOwner(userId: string, userEmail: string | null | undefined, db: any) {
+async function resolveOwner(userId: string, db: any) {
   let { data: owner, error: byUserError } = await db
     .from("owners")
     .select("id, user_id, agreement_accepted_at, agreement_version, metadata")
@@ -25,33 +25,6 @@ async function resolveOwner(userId: string, userEmail: string | null | undefined
       throw byIdError;
     }
     owner = byIdOwner;
-  }
-
-  if (!owner) {
-    if (userEmail) {
-      const { data: byEmailOwner, error: byEmailError } = await db
-        .from("owners")
-        .select("id, user_id, agreement_accepted_at, agreement_version, metadata")
-        .eq("email", userEmail)
-        .order("submitted_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (byEmailError) {
-        throw byEmailError;
-      }
-      owner = byEmailOwner;
-      if (owner && !owner.user_id) {
-        const { error: linkByEmailError } = await db
-          .from("owners")
-          .update({ user_id: userId })
-          .eq("id", owner.id)
-          .is("user_id", null);
-        if (linkByEmailError) {
-          throw linkByEmailError;
-        }
-        owner.user_id = userId;
-      }
-    }
   }
 
   if (!owner) {
@@ -106,7 +79,7 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    let owner = await resolveOwner(user.id, user.email, db);
+    let owner = await resolveOwner(user.id, db);
     if (!owner) {
       return NextResponse.json({ ok: false, error: "Owner record not found" }, { status: 404 });
     }

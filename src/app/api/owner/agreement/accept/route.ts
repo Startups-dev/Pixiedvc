@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
-async function resolveOwner(userId: string, userEmail: string | null | undefined, db: any) {
+async function resolveOwner(userId: string, db: any) {
   let { data: owner, error: byUserError } = await db
     .from("owners")
     .select("id, user_id, metadata")
@@ -25,33 +25,6 @@ async function resolveOwner(userId: string, userEmail: string | null | undefined
       throw byIdError;
     }
     owner = byIdOwner;
-  }
-
-  if (!owner) {
-    if (userEmail) {
-      const { data: byEmailOwner, error: byEmailError } = await db
-        .from("owners")
-        .select("id, user_id, metadata")
-        .eq("email", userEmail)
-        .order("submitted_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (byEmailError) {
-        throw byEmailError;
-      }
-      owner = byEmailOwner;
-      if (owner && !owner.user_id) {
-        const { error: linkByEmailError } = await db
-          .from("owners")
-          .update({ user_id: userId })
-          .eq("id", owner.id)
-          .is("user_id", null);
-        if (linkByEmailError) {
-          throw linkByEmailError;
-        }
-        owner.user_id = userId;
-      }
-    }
   }
 
   if (!owner) {
@@ -112,7 +85,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Please enter your full legal name." }, { status: 400 });
     }
 
-    const owner = await resolveOwner(user.id, user.email, db);
+    const owner = await resolveOwner(user.id, db);
     if (!owner) {
       return NextResponse.json({ ok: false, error: "Owner record not found" }, { status: 404 });
     }
@@ -160,6 +133,37 @@ export async function POST(request: Request) {
       if (metadataError) {
         return NextResponse.json({ ok: false, error: metadataError.message }, { status: 500 });
       }
+    }
+
+    const onboardingCompletedAt = new Date().toISOString();
+    const { error: profileError } = await db
+      .from("profiles")
+      .upsert(
+        {
+          id: user.id,
+          email: user.email ?? null,
+          role: "owner",
+          onboarding_completed: true,
+          onboarding_completed_at: onboardingCompletedAt,
+          updated_at: onboardingCompletedAt,
+        },
+        { onConflict: "id" },
+      );
+
+    if (profileError) {
+      return NextResponse.json({ ok: false, error: profileError.message }, { status: 500 });
+    }
+
+    try {
+      await supabase.auth.updateUser({
+        data: {
+          ...(user.user_metadata ?? {}),
+          onboarding_completed: true,
+          role: "owner",
+        },
+      });
+    } catch {
+      // The profile row is the durable route-guard source of truth.
     }
 
     return NextResponse.json({ ok: true });

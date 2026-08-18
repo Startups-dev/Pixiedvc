@@ -94,6 +94,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: ownerError.message }, { status: 400 });
   }
 
+  const onboardingCompletedAt = new Date().toISOString();
+  const { error: profileError } = await admin
+    .from("profiles")
+    .upsert(
+      {
+        id: user.id,
+        email: user.email ?? null,
+        role: "owner",
+        onboarding_completed: true,
+        onboarding_completed_at: onboardingCompletedAt,
+        updated_at: onboardingCompletedAt,
+      },
+      { onConflict: "id" },
+    );
+
+  if (profileError) {
+    return NextResponse.json({ error: profileError.message }, { status: 400 });
+  }
+
+  try {
+    await supabase.auth.updateUser({
+      data: {
+        ...(user.user_metadata ?? {}),
+        onboarding_completed: true,
+        role: "owner",
+      },
+    });
+  } catch {
+    // The profile row is the durable route-guard source of truth.
+  }
+
   if (newsletterOptIn && user.email) {
     try {
       await syncOwnerNewsletterSubscriber({

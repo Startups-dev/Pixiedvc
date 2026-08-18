@@ -6,6 +6,8 @@ const state = vi.hoisted(() => ({
 
 let ownerRecord: { id: string; metadata?: Record<string, unknown> | null } | null;
 let upsertPayload: Record<string, unknown> | null;
+let profileUpsertPayload: Record<string, unknown> | null;
+let authUpdatePayload: Record<string, unknown> | null;
 
 const createSupabaseServerClient = vi.fn();
 const getSupabaseAdminClient = vi.fn();
@@ -36,6 +38,15 @@ function makeAdminClient() {
         };
       }
 
+      if (table === 'profiles') {
+        return {
+          upsert: async (payload: Record<string, unknown>) => {
+            profileUpsertPayload = payload;
+            return { error: null };
+          },
+        };
+      }
+
       throw new Error(`Unexpected table: ${table}`);
     },
   };
@@ -59,11 +70,17 @@ describe('POST /api/owner/onboarding', () => {
   beforeEach(() => {
     ownerRecord = null;
     upsertPayload = null;
+    profileUpsertPayload = null;
+    authUpdatePayload = null;
     state.syncOwnerNewsletterSubscriber.mockReset();
     createSupabaseServerClient.mockReturnValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({
-          data: { user: { id: 'owner-1', email: 'owner@example.com' } },
+          data: { user: { id: 'owner-1', email: 'owner@example.com', user_metadata: {} } },
+        }),
+        updateUser: vi.fn().mockImplementation(async (payload) => {
+          authUpdatePayload = payload;
+          return { data: { user: null }, error: null };
         }),
       },
     });
@@ -97,6 +114,19 @@ describe('POST /api/owner/onboarding', () => {
         userId: 'owner-1',
       }),
     );
+    expect(profileUpsertPayload).toMatchObject({
+      id: 'owner-1',
+      email: 'owner@example.com',
+      role: 'owner',
+      onboarding_completed: true,
+    });
+    expect(profileUpsertPayload?.onboarding_completed_at).toEqual(expect.any(String));
+    expect(authUpdatePayload).toEqual({
+      data: {
+        onboarding_completed: true,
+        role: 'owner',
+      },
+    });
   });
 
   test('unchecked opt-in stores false and does not sync subscriber', async () => {
