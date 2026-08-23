@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { isOwnerLifecycleActive } from "@/lib/owner/lifecycle";
 import { computeCapsForStay, FEE_PER_POINT_CENTS } from "@/lib/ready-stays/pricingEngine";
 import { isValidDvcAccommodationIdentity } from "../../../../../packages/pixiedvc-calculator/src/engine/accommodations";
 import type { RoomCode, ViewCode } from "../../../../../packages/pixiedvc-calculator/src/engine/types";
@@ -20,6 +21,20 @@ export async function POST(request: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { data: ownerRecord, error: ownerRecordError } = await supabase
+    .from("owners")
+    .select("id, lifecycle_status")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (ownerRecordError) {
+    return NextResponse.json({ error: "Unable to verify owner account status." }, { status: 500 });
+  }
+
+  if (!isOwnerLifecycleActive(ownerRecord)) {
+    return NextResponse.json({ error: "Owner account is not active for new Ready Stay listings." }, { status: 403 });
   }
 
   const payload = await request.json();

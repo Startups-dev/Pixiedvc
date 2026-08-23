@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { isOwnerLifecycleActive, ownerLifecycleInactiveMessage } from "@/lib/owner/lifecycle";
 
 export async function POST(
   _request: Request,
@@ -31,7 +32,7 @@ export async function POST(
 
   const { data: owner, error: ownerError } = await adminClient
     .from("owners")
-    .select("id, user_id")
+    .select("id, user_id, lifecycle_status")
     .or(`id.eq.${user.id},user_id.eq.${user.id}`)
     .maybeSingle();
 
@@ -41,6 +42,10 @@ export async function POST(
 
   if (!owner) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  if (!isOwnerLifecycleActive(owner)) {
+    return NextResponse.json({ error: ownerLifecycleInactiveMessage("standard-rate fallback matching") }, { status: 403 });
   }
 
   const { data: membership, error: membershipError } = await adminClient

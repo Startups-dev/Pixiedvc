@@ -8,6 +8,7 @@ import {
   POINT_STATUS_NOTIFICATION_TYPES,
   type PointStatusAction,
 } from "@/lib/owner/point-status";
+import { isOwnerLifecycleActive, ownerLifecycleInactiveMessage } from "@/lib/owner/lifecycle";
 
 const bodySchema = z.object({
   action: z.enum(["mark_banked", "mark_expired", "still_available", "remind_later"]),
@@ -54,12 +55,16 @@ export async function POST(
 
   const { data: owner } = await client
     .from("owners")
-    .select("id, user_id")
+    .select("id, user_id, lifecycle_status")
     .or(`user_id.eq.${user.id},id.eq.${user.id}`)
     .maybeSingle();
 
   if (!owner) {
     return jsonError("Not found", 404);
+  }
+
+  if (!isOwnerLifecycleActive(owner) && parsed.data.action === "still_available") {
+    return jsonError(ownerLifecycleInactiveMessage("available point confirmation"), 403);
   }
 
   const { data: membership } = await client

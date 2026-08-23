@@ -26,7 +26,7 @@ export async function getPublicReadyStaysForPixie(options: {
     const { data, error } = await supabase
       .from("ready_stays")
       .select(
-        "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, sleeps, status, is_test_listing, is_visible_publicly, test_guest_total_cents, slug, title, image_url, href, expires_at, locked_until, verification_status, updated_at, resorts(name, slug, calculator_code)",
+        "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, sleeps, status, is_test_listing, is_visible_publicly, test_guest_total_cents, slug, title, image_url, href, expires_at, locked_until, verification_status, updated_at, owner:profiles!ready_stays_owner_id_fkey(owners!owners_user_id_fkey(lifecycle_status)), resorts(name, slug, calculator_code)",
       )
       .in("status", ["active", "test"])
       .gte("check_out", today)

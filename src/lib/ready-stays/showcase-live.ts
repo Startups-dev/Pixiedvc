@@ -34,6 +34,9 @@ type ReadyStayShowcaseRow = {
   verification_status: string | null;
   is_test_listing?: boolean | null;
   test_guest_total_cents?: number | null;
+  owner?: {
+    owners?: Array<{ lifecycle_status?: string | null }> | { lifecycle_status?: string | null } | null;
+  } | null;
   resorts:
     | {
         name?: string | null;
@@ -175,8 +178,8 @@ async function fetchPublicShowcaseRows(placementColumn?: "placement_home" | "pla
   const supabase = await createSupabaseServerClient();
 
   const selectClause = resortSlug
-    ? "id, slug, title, short_description, created_at, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, expires_at, locked_until, verification_status, is_test_listing, test_guest_total_cents, resorts!inner(name, slug)"
-    : "id, slug, title, short_description, created_at, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, expires_at, locked_until, verification_status, is_test_listing, test_guest_total_cents, resorts(name, slug)";
+    ? "id, slug, title, short_description, created_at, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, expires_at, locked_until, verification_status, is_test_listing, test_guest_total_cents, owner:profiles!ready_stays_owner_id_fkey(owners!owners_user_id_fkey(lifecycle_status)), resorts!inner(name, slug)"
+    : "id, slug, title, short_description, created_at, check_in, check_out, points, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, badge, cta_label, href, featured, priority, sort_override, sleeps, expires_at, locked_until, verification_status, is_test_listing, test_guest_total_cents, owner:profiles!ready_stays_owner_id_fkey(owners!owners_user_id_fkey(lifecycle_status)), resorts(name, slug)";
 
   let query = supabase
     .from("ready_stays")

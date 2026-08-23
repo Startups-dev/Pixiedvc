@@ -10,7 +10,7 @@ let adminMock: {
   from: ReturnType<typeof vi.fn>;
 };
 
-const ownerRow = { id: "owner-record-1", user_id: "owner-user-1" };
+const ownerRow = { id: "owner-record-1", user_id: "owner-user-1", lifecycle_status: "active" };
 const membershipRow = {
   id: "membership-1",
   owner_id: "owner-record-1",
@@ -81,6 +81,17 @@ function setupAdmin(overrides: { notification?: typeof notificationRow | null; m
   };
 
   return { owners, memberships, notifications, membershipUpdate, notificationUpdate, insert };
+}
+
+function setupAdminWithOwner(owner: typeof ownerRow) {
+  const owners = selectMaybeSingle(owner);
+  adminMock = {
+    from: vi.fn((table: string) => {
+      if (table === "owners") return { select: owners.select };
+      return { select: vi.fn(), update: vi.fn(), insert: vi.fn() };
+    }),
+  };
+  return { owners };
 }
 
 describe("POST /api/owner/memberships/[membershipId]/point-status", () => {
@@ -167,5 +178,22 @@ describe("POST /api/owner/memberships/[membershipId]/point-status", () => {
         points_amount: null,
       }),
     );
+  });
+
+  test("rejects still-available confirmation for a deactivated owner", async () => {
+    setupAdminWithOwner({ ...ownerRow, lifecycle_status: "deactivated" });
+
+    const response = await POST(
+      new Request("http://localhost", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationId: "notification-1", action: "still_available" }),
+      }),
+      { params: Promise.resolve({ membershipId: "membership-1" }) },
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error).toBe("Owner account is not active for available point confirmation.");
   });
 });

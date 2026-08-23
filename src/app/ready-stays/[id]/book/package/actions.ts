@@ -43,7 +43,7 @@ export async function continueReadyStayToAgreement(input: {
 
   const { data: stay } = await adminClient
     .from("ready_stays")
-    .select("id, owner_id, rental_id, resort_id, check_in, check_out, points, room_type, calculator_room_code, calculator_view_code, guest_price_per_point_cents, is_test_listing, is_visible_publicly, test_guest_total_cents, status, slug, title, image_url, expires_at, locked_until, verification_status")
+    .select("id, owner_id, rental_id, resort_id, check_in, check_out, points, room_type, calculator_room_code, calculator_view_code, guest_price_per_point_cents, is_test_listing, is_visible_publicly, test_guest_total_cents, status, slug, title, image_url, expires_at, locked_until, verification_status, owner:profiles!ready_stays_owner_id_fkey(owners!owners_user_id_fkey(lifecycle_status))")
     .eq("id", input.readyStayId)
     .in("status", ["active", "test"])
     .maybeSingle();

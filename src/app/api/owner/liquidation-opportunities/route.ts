@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ingestSubscriber } from "@/lib/email-subscribers";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { isOwnerLifecycleActive } from "@/lib/owner/lifecycle";
 
 function splitFullName(fullName: string | null | undefined) {
   const value = fullName?.trim() ?? "";
@@ -89,13 +90,17 @@ export async function POST(request: NextRequest) {
   const { data: ownerRecord } = await admin
     .from("owners")
     .select(
-      "id, user_id, agreement_accepted_at, verification, founding_owner_bonus_started_at, founding_owner_granted_at, founding_owner_promotion_id, profiles:profiles!owners_user_id_fkey(email, full_name, country)",
+      "id, user_id, lifecycle_status, agreement_accepted_at, verification, founding_owner_bonus_started_at, founding_owner_granted_at, founding_owner_promotion_id, profiles:profiles!owners_user_id_fkey(email, full_name, country)",
     )
     .or(`id.eq.${user.id},user_id.eq.${user.id}`)
     .maybeSingle();
 
   if (!ownerRecord) {
     return NextResponse.json({ error: "Owner access required." }, { status: 403 });
+  }
+
+  if (!isOwnerLifecycleActive(ownerRecord)) {
+    return NextResponse.json({ error: "Owner account is not active for new point opportunities." }, { status: 403 });
   }
 
   if (!ownerRecord.agreement_accepted_at) {

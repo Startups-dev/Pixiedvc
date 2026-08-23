@@ -576,9 +576,10 @@ async function fetchOwnerSummary(supabase: AdminClient) {
     countRows(supabase, 'owners', (query) => query.eq('verification', 'verified')),
     supabase
       .from('owner_memberships')
-      .select('owner_id, owners!inner(verification)')
+      .select('owner_id, owners!inner(verification, lifecycle_status)')
       .gt('points_available', 0)
-      .eq('owners.verification', 'verified'),
+      .eq('owners.verification', 'verified')
+      .eq('owners.lifecycle_status', 'active'),
   ]);
 
   if (verifiedInventoryResponse.error) {

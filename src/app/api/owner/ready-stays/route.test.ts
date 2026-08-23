@@ -83,6 +83,13 @@ describe("POST /api/owner/ready-stays", () => {
     const resortsEq = vi.fn(() => ({ maybeSingle: resortsMaybeSingle }));
     const resortsSelect = vi.fn(() => ({ eq: resortsEq }));
 
+    const ownersMaybeSingle = vi.fn().mockResolvedValue({
+      data: { id: "owner-record-1", lifecycle_status: "active" },
+      error: null,
+    });
+    const ownersEq = vi.fn(() => ({ maybeSingle: ownersMaybeSingle }));
+    const ownersSelect = vi.fn(() => ({ eq: ownersEq }));
+
     supabaseMock = {
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -102,6 +109,9 @@ describe("POST /api/owner/ready-stays", () => {
         }
         if (table === "resorts") {
           return { select: resortsSelect };
+        }
+        if (table === "owners") {
+          return { select: ownersSelect };
         }
         if (table === "ready_stays") {
           return {
@@ -181,6 +191,18 @@ describe("POST /api/owner/ready-stays", () => {
         });
         const resortsEq = vi.fn(() => ({ maybeSingle: resortsMaybeSingle }));
         return { select: vi.fn(() => ({ eq: resortsEq })) };
+      }
+      if (table === "owners") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: "owner-record-1", lifecycle_status: "active" },
+                error: null,
+              }),
+            })),
+          })),
+        };
       }
       if (table === "ready_stays") {
         return {
@@ -264,6 +286,18 @@ describe("POST /api/owner/ready-stays", () => {
         });
         return { select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: resortsMaybeSingle })) })) };
       }
+      if (table === "owners") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: "owner-record-1", lifecycle_status: "active" },
+                error: null,
+              }),
+            })),
+          })),
+        };
+      }
       if (table === "ready_stays") {
         return {
           insert: readyStaysInsertMock,
@@ -346,6 +380,18 @@ describe("POST /api/owner/ready-stays", () => {
       if (table === "rentals") {
         return { select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: rentalsMaybeSingle })) })) };
       }
+      if (table === "owners") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: "owner-record-1", lifecycle_status: "active" },
+                error: null,
+              }),
+            })),
+          })),
+        };
+      }
       if (table === "resorts") {
         const resortsMaybeSingle = vi.fn().mockResolvedValue({
           data: { name: "Bay Lake Tower", slug: "bay-lake-tower", calculator_code: "BLT" },
@@ -370,6 +416,40 @@ describe("POST /api/owner/ready-stays", () => {
 
     expect(response.status).toBe(400);
     expect(body).toEqual({ error: "invalid_accommodation" });
+    expect(readyStaysInsertMock).not.toHaveBeenCalled();
+  });
+
+  test("rejects new Ready Stay creation for deactivated owners", async () => {
+    supabaseMock.from = vi.fn((table: string) => {
+      if (table === "owners") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: "owner-record-1", lifecycle_status: "deactivated" },
+                error: null,
+              }),
+            })),
+          })),
+        };
+      }
+      return { select: vi.fn() };
+    });
+
+    const request = new Request("http://localhost/api/owner/ready-stays", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rental_id: "rental-1",
+        owner_price_per_point_cents: 2100,
+      }),
+    });
+
+    const response = await POST(request as Request);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body).toEqual({ error: "Owner account is not active for new Ready Stay listings." });
     expect(readyStaysInsertMock).not.toHaveBeenCalled();
   });
 });

@@ -27,6 +27,10 @@ export type PixieReadyStayListingSourceRow = {
   locked_until?: string | null;
   verification_status?: string | null;
   updated_at?: string | null;
+  owner?: {
+    lifecycle_status?: string | null;
+    owners?: Array<{ lifecycle_status?: string | null }> | { lifecycle_status?: string | null } | null;
+  } | null;
   resorts?: {
     name?: string | null;
     slug?: string | null;

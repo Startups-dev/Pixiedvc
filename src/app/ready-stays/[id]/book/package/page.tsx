@@ -33,7 +33,7 @@ export default async function ReadyStayPackagePage({
 
   const { data: stay } = await adminClient
     .from("ready_stays")
-    .select("id, status, owner_id, rental_id, booking_request_id, lock_session_id, check_out, expires_at, locked_until, verification_status, is_visible_publicly, slug, title, image_url")
+    .select("id, status, owner_id, rental_id, booking_request_id, lock_session_id, check_out, expires_at, locked_until, verification_status, is_visible_publicly, slug, title, image_url, owner:profiles!ready_stays_owner_id_fkey(owners!owners_user_id_fkey(lifecycle_status))")
     .eq("id", params.id)
     .in("status", ["active", "test"])
     .maybeSingle();

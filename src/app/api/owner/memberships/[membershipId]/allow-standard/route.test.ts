@@ -72,4 +72,31 @@ describe("POST /api/owner/memberships/[membershipId]/allow-standard", () => {
     });
     expect(updateEq).toHaveBeenCalledWith("id", "11111111-1111-1111-1111-111111111111");
   });
+
+  test("rejects fallback activation for a deactivated owner", async () => {
+    const ownerMaybeSingle = vi.fn().mockResolvedValue({
+      data: { id: "owner-record-1", user_id: "owner-user-1", lifecycle_status: "deactivated" },
+      error: null,
+    });
+    const ownerOr = vi.fn(() => ({ maybeSingle: ownerMaybeSingle }));
+    const ownerSelect = vi.fn(() => ({ or: ownerOr }));
+    const update = vi.fn();
+
+    adminMock = {
+      from: vi.fn((table: string) => {
+        if (table === "owners") return { select: ownerSelect };
+        if (table === "owner_memberships") return { update };
+        return { select: vi.fn() };
+      }),
+    };
+
+    const response = await POST(new Request("http://localhost"), {
+      params: Promise.resolve({ membershipId: "11111111-1111-1111-1111-111111111111" }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error).toBe("Owner account is not active for standard-rate fallback matching.");
+    expect(update).not.toHaveBeenCalled();
+  });
 });

@@ -35,10 +35,11 @@ export default async function LiquidationOpportunitiesPage() {
   const { data } = await supabase
     .from("point_liquidation_requests")
     .select(
-      "id, points_available, expiration_date, travel_window_start, travel_window_end, room_type, target_price_per_point_cents, featured_in_newsletter, status, admin_approved, public_visibility, home_resort:resorts(name)",
+      "id, points_available, expiration_date, travel_window_start, travel_window_end, room_type, target_price_per_point_cents, featured_in_newsletter, status, admin_approved, public_visibility, home_resort:resorts(name), owners!inner(lifecycle_status)",
     )
     .eq("admin_approved", true)
     .eq("public_visibility", true)
+    .eq("owners.lifecycle_status", "active")
     .in("status", ["approved", "featured"])
     .gte("expiration_date", today)
     .order("featured_in_newsletter", { ascending: false })

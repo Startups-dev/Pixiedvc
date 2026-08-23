@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { isUserAdmin } from "@/lib/admin";
+import { isOwnerLifecycleActive } from "@/lib/owner/lifecycle";
 import { buildReadyStayShowcaseDefaults } from "@/lib/ready-stays/owner-submission";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -53,7 +54,7 @@ export async function POST(
   const { data: row, error } = await guard.adminClient
     .from("ready_stays")
     .select(
-      "id, status, verification_status, reservation_proof_path, check_in, room_type, slug, title, short_description, image_url, sleeps, badge, cta_label, href, resort_id, resorts(name, slug, calculator_code)",
+      "id, status, verification_status, reservation_proof_path, check_in, room_type, slug, title, short_description, image_url, sleeps, badge, cta_label, href, resort_id, owner:profiles!ready_stays_owner_id_fkey(owners!owners_user_id_fkey(lifecycle_status)), resorts(name, slug, calculator_code)",
     )
     .eq("id", readyStayId)
     .maybeSingle();
@@ -67,6 +68,12 @@ export async function POST(
       { error: "Reservation proof is required before this Ready Stay can be published." },
       { status: 400 },
     );
+  }
+
+  const nestedOwners = row.owner?.owners;
+  const ownerRecord = Array.isArray(nestedOwners) ? nestedOwners[0] : nestedOwners;
+  if (!isOwnerLifecycleActive(ownerRecord)) {
+    return NextResponse.json({ error: "Owner account is not active for new Ready Stay listings." }, { status: 409 });
   }
 
   const defaults = buildReadyStayShowcaseDefaults({

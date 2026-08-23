@@ -69,7 +69,7 @@ export default async function ReadyStaysPublicPage({
   let query = readyStaysClient
     .from("ready_stays")
     .select(
-      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, expires_at, locked_until, verification_status, status, is_test_listing, is_visible_publicly, test_guest_total_cents, slug, title, image_url, resorts(name, slug, calculator_code)",
+      "id, resort_id, check_in, check_out, points, room_type, season_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, expires_at, locked_until, verification_status, status, is_test_listing, is_visible_publicly, test_guest_total_cents, slug, title, image_url, owner:profiles!ready_stays_owner_id_fkey(owners!owners_user_id_fkey(lifecycle_status)), resorts(name, slug, calculator_code)",
     )
     .in("status", ["active", "test"])
     .gte("check_out", today)

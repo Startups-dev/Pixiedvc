@@ -9,7 +9,18 @@ export type ReadyStayVisibilityRow = {
   expires_at?: string | null;
   locked_until?: string | null;
   verification_status?: string | null;
+  owner?: {
+    lifecycle_status?: string | null;
+    owners?: Array<{ lifecycle_status?: string | null }> | { lifecycle_status?: string | null } | null;
+  } | null;
 };
+
+function getReadyStayOwnerLifecycleStatus(row: ReadyStayVisibilityRow) {
+  if (row.owner?.lifecycle_status) return row.owner.lifecycle_status;
+  const nestedOwners = row.owner?.owners;
+  if (Array.isArray(nestedOwners)) return nestedOwners[0]?.lifecycle_status ?? 'active';
+  return nestedOwners?.lifecycle_status ?? 'active';
+}
 
 export function isPublicReadyStayRow(row: ReadyStayVisibilityRow, nowMs = Date.now(), today = new Date().toISOString().slice(0, 10)) {
   const status = row.status ?? null;
@@ -38,6 +49,11 @@ export function isPublicReadyStayRow(row: ReadyStayVisibilityRow, nowMs = Date.n
   }
 
   if (row.verification_status === 'proof_uploaded' || row.verification_status === 'rejected') {
+    return false;
+  }
+
+  const ownerLifecycleStatus = getReadyStayOwnerLifecycleStatus(row);
+  if (ownerLifecycleStatus !== 'active') {
     return false;
   }
 

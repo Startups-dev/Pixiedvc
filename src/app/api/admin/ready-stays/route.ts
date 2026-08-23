@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { isUserAdmin } from "@/lib/admin";
+import { isOwnerLifecycleActive } from "@/lib/owner/lifecycle";
 import { READY_STAYS_SHOWCASE_FLAGS } from "@/lib/ready-stays/showcase-config";
 import { FEE_PER_POINT_CENTS } from "@/lib/ready-stays/ownerPricing";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
@@ -227,6 +228,22 @@ export async function POST(request: Request) {
   const activeError = validateActiveFields(payload);
   if (activeError) return NextResponse.json({ error: activeError }, { status: 400 });
 
+  if (status === "active" || status === "test") {
+    const { data: ownerRecord, error: ownerError } = await guard.adminClient
+      .from("owners")
+      .select("id, user_id, lifecycle_status")
+      .or(`id.eq.${payload.owner_id},user_id.eq.${payload.owner_id}`)
+      .maybeSingle();
+
+    if (ownerError) {
+      return NextResponse.json({ error: ownerError.message }, { status: 500 });
+    }
+
+    if (!isOwnerLifecycleActive(ownerRecord)) {
+      return NextResponse.json({ error: "Owner account is not active for new Ready Stay listings." }, { status: 409 });
+    }
+  }
+
   const insertPayload = normalizePayload(payload, true);
 
   const { data, error } = await guard.adminClient
@@ -267,6 +284,27 @@ export async function PATCH(request: Request) {
 
   const activeError = validateActiveFields(payload);
   if (activeError) return NextResponse.json({ error: activeError }, { status: 400 });
+
+  if (payload.status === "active") {
+    const { data: readyStay, error: readyStayError } = await guard.adminClient
+      .from("ready_stays")
+      .select("id, owner:profiles!ready_stays_owner_id_fkey(owners!owners_user_id_fkey(lifecycle_status))")
+      .eq("id", payload.id)
+      .maybeSingle();
+
+    if (readyStayError) {
+      return NextResponse.json({ error: readyStayError.message }, { status: 500 });
+    }
+
+    const nestedOwners = readyStay?.owner?.owners;
+    const ownerLifecycleStatus = Array.isArray(nestedOwners)
+      ? nestedOwners[0]?.lifecycle_status ?? "active"
+      : nestedOwners?.lifecycle_status ?? "active";
+
+    if (ownerLifecycleStatus !== "active") {
+      return NextResponse.json({ error: "Owner account is not active for new Ready Stay listings." }, { status: 409 });
+    }
+  }
 
   const updatePayload = normalizePayload(payload, false);
 

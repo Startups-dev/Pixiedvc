@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { isOwnerLifecycleActive } from "@/lib/owner/lifecycle";
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
@@ -18,6 +19,20 @@ export async function POST(request: Request) {
 
   if (!ownerMembershipId) {
     return NextResponse.json({ error: "owner_membership_id required" }, { status: 400 });
+  }
+
+  const { data: ownerRecord, error: ownerRecordError } = await supabase
+    .from("owners")
+    .select("id, lifecycle_status")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (ownerRecordError) {
+    return NextResponse.json({ error: "owner_status_unavailable" }, { status: 500 });
+  }
+
+  if (!isOwnerLifecycleActive(ownerRecord)) {
+    return NextResponse.json({ error: "owner_inactive" }, { status: 403 });
   }
 
   const { error } = await supabase.from("concierge_liquidation_intents").insert({

@@ -6,6 +6,7 @@ import { syncOwnerNewsletterSubscriber } from '@/lib/owner-newsletter';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
 import { supabaseServer } from '@/lib/supabase-server';
 import { getHomeForRole } from '@/lib/routes/home';
+import { isOwnerLifecycleActive, ownerLifecycleInactiveMessage } from '@/lib/owner/lifecycle';
 
 async function ensureProfileRow(sb: ReturnType<typeof supabaseServer>, userId: string) {
   const { error } = await sb
@@ -143,6 +144,19 @@ export async function saveOwnerContracts(input: {
     }
 
     await ensureOnboardingNotComplete(sb, user.id);
+
+    const { data: existingOwner, error: existingOwnerError } = await sb
+      .from('owners')
+      .select('id, lifecycle_status')
+      .or(`id.eq.${user.id},user_id.eq.${user.id}`)
+      .maybeSingle();
+    if (existingOwnerError) {
+      throw new Error(existingOwnerError.message);
+    }
+    if (existingOwner && !isOwnerLifecycleActive(existingOwner)) {
+      throw new Error(ownerLifecycleInactiveMessage('membership inventory changes'));
+    }
+
     const validContracts = input.contracts.filter((contract) => contract.resort_id);
     const totalOwned = validContracts.reduce((sum, contract) => {
       if (contract.vacation_points?.length) {

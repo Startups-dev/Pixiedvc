@@ -634,8 +634,9 @@ async function fetchUnmatchedOwners(options: {
   const { data: owners, error: ownersError } = await client
     .from('owners')
     .select(
-      'id, profiles:profiles!owners_user_id_fkey ( display_name, email )',
+      'id, lifecycle_status, profiles:profiles!owners_user_id_fkey ( display_name, email )',
     )
+    .eq('lifecycle_status', 'active')
     .in('id', unmatchedOwnerIds);
 
   if (ownersError) {

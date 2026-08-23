@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { applyPointsDelta, resolveResortMapping } from "@/lib/owner-membership-utils";
+import { isOwnerLifecycleActive, ownerLifecycleInactiveMessage } from "@/lib/owner/lifecycle";
 
 type MembershipInput = {
   resort_id: string;
@@ -28,10 +29,10 @@ async function getOwnerIdForUser(
 ) {
   const { data } = await client
     .from("owners")
-    .select("id, user_id")
+    .select("id, user_id, lifecycle_status")
     .or(`user_id.eq.${userId},id.eq.${userId}`)
     .maybeSingle();
-  return data?.id ?? null;
+  return data ?? null;
 }
 
 export async function upsertOwnerMembership(input: MembershipInput) {
@@ -45,9 +46,12 @@ export async function upsertOwnerMembership(input: MembershipInput) {
     return { ok: false, error: "Not authenticated" };
   }
 
-  const ownerId = await getOwnerIdForUser(user.id, supabase);
-  if (!ownerId) {
+  const owner = await getOwnerIdForUser(user.id, supabase);
+  if (!owner) {
     return { ok: false, error: "Owner record not found" };
+  }
+  if (!isOwnerLifecycleActive(owner)) {
+    return { ok: false, error: ownerLifecycleInactiveMessage("membership inventory changes") };
   }
 
   if (!input.resort_id || !input.use_year || input.buckets.length === 0) {
@@ -67,7 +71,7 @@ export async function upsertOwnerMembership(input: MembershipInput) {
   const homeResort = resortRow?.calculator_code ?? null;
 
   const payload = input.buckets.map((bucket) => ({
-    owner_id: ownerId,
+    owner_id: owner.id,
     resort_id: input.resort_id,
     home_resort: homeResort,
     use_year: input.use_year,
@@ -131,16 +135,19 @@ export async function adjustOwnerMembershipPoints(membershipId: string, delta: n
     return { ok: false, error: "Not authenticated" };
   }
 
-  const ownerId = await getOwnerIdForUser(user.id, supabase);
-  if (!ownerId) {
+  const owner = await getOwnerIdForUser(user.id, supabase);
+  if (!owner) {
     return { ok: false, error: "Owner record not found" };
+  }
+  if (!isOwnerLifecycleActive(owner)) {
+    return { ok: false, error: ownerLifecycleInactiveMessage("membership point adjustments") };
   }
 
   const { data: membership } = await supabase
     .from("owner_memberships")
     .select("id, owner_id, points_owned, points_available")
     .eq("id", membershipId)
-    .eq("owner_id", ownerId)
+    .eq("owner_id", owner.id)
     .maybeSingle();
 
   if (!membership) {
@@ -165,7 +172,7 @@ export async function adjustOwnerMembershipPoints(membershipId: string, delta: n
       points_available: updated.pointsAvailable,
     })
     .eq("id", membershipId)
-    .eq("owner_id", ownerId);
+    .eq("owner_id", owner.id);
 
   if (error) {
     return { ok: false, error: error.message };
@@ -186,16 +193,19 @@ export async function fixMembershipResortMapping(membershipId: string) {
     return { ok: false, error: "Not authenticated" };
   }
 
-  const ownerId = await getOwnerIdForUser(user.id, supabase);
-  if (!ownerId) {
+  const owner = await getOwnerIdForUser(user.id, supabase);
+  if (!owner) {
     return { ok: false, error: "Owner record not found" };
+  }
+  if (!isOwnerLifecycleActive(owner)) {
+    return { ok: false, error: ownerLifecycleInactiveMessage("membership inventory activation") };
   }
 
   const { data: membership } = await supabase
     .from("owner_memberships")
     .select("id, owner_id, home_resort, resort_id")
     .eq("id", membershipId)
-    .eq("owner_id", ownerId)
+    .eq("owner_id", owner.id)
     .maybeSingle();
 
   if (!membership) {
@@ -220,7 +230,7 @@ export async function fixMembershipResortMapping(membershipId: string) {
     .from("owner_memberships")
     .update({ resort_id: resortId })
     .eq("id", membershipId)
-    .eq("owner_id", ownerId);
+    .eq("owner_id", owner.id);
 
   if (error) {
     return { ok: false, error: error.message };
@@ -251,16 +261,19 @@ export async function updateOwnerMembershipMatchingPreferences(formData: FormDat
     return { ok: false, error: "Not authenticated." };
   }
 
-  const ownerId = await getOwnerIdForUser(user.id, supabase);
-  if (!ownerId) {
+  const owner = await getOwnerIdForUser(user.id, supabase);
+  if (!owner) {
     return { ok: false, error: "Owner record not found." };
+  }
+  if (!isOwnerLifecycleActive(owner)) {
+    return { ok: false, error: ownerLifecycleInactiveMessage("matching preference changes") };
   }
 
   const { data: membership, error: membershipError } = await supabase
     .from("owner_memberships")
     .select("id, owner_id")
     .eq("id", membershipId)
-    .eq("owner_id", ownerId)
+    .eq("owner_id", owner.id)
     .maybeSingle();
 
   if (membershipError) {
@@ -279,7 +292,7 @@ export async function updateOwnerMembershipMatchingPreferences(formData: FormDat
       fallback_remind_at: matchingMode === "premium_then_standard" ? null : undefined,
     })
     .eq("id", membershipId)
-    .eq("owner_id", ownerId);
+    .eq("owner_id", owner.id);
 
   if (updateError) {
     return { ok: false, error: updateError.message };

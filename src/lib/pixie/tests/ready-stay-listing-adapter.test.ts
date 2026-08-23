@@ -24,11 +24,32 @@ describe("Ready Stay listing adapter", () => {
       makeReadyStayRow({ id: "sold", status: "sold" }),
       makeReadyStayRow({ id: "locked", locked_until: "2026-07-11T13:00:00.000Z" }),
       makeReadyStayRow({ id: "proof", verification_status: "proof_uploaded" }),
+      makeReadyStayRow({ id: "inactive-owner", owner: { lifecycle_status: "deactivated" } }),
       makeReadyStayRow({ id: "visible" }),
     ];
     const result = await getPublicReadyStaysForPixie({ rows, today: "2026-07-11", nowMs: Date.parse("2026-07-11T12:00:00.000Z") });
     expect(result.listings.map((listing) => listing.listingId)).toEqual(["visible"]);
-    expect(result.excluded).toHaveLength(5);
+    expect(result.excluded).toHaveLength(6);
+  });
+
+  it("rejects rows from inactive owners when lifecycle status is nested through profiles", async () => {
+    const result = await getPublicReadyStaysForPixie({
+      rows: [
+        makeReadyStayRow({
+          id: "inactive-nested-owner",
+          owner: { owners: [{ lifecycle_status: "suspended" }] },
+        }),
+        makeReadyStayRow({
+          id: "active-nested-owner",
+          owner: { owners: [{ lifecycle_status: "active" }] },
+        }),
+      ],
+      today: "2026-07-11",
+      nowMs: Date.parse("2026-07-11T12:00:00.000Z"),
+    });
+
+    expect(result.listings.map((listing) => listing.listingId)).toEqual(["active-nested-owner"]);
+    expect(result.excluded.map((entry) => entry.listingId)).toEqual(["inactive-nested-owner"]);
   });
 
   it("allows visible test listings and applies test listing total", () => {

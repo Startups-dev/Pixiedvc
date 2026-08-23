@@ -41,7 +41,7 @@ export default async function ReadyStayBookPage({
   const { data: stay } = await adminClient
     .from("ready_stays")
     .select(
-      "id, status, owner_id, rental_id, resort_id, check_in, check_out, points, room_type, calculator_room_code, calculator_view_code, guest_price_per_point_cents, is_test_listing, is_visible_publicly, test_guest_total_cents, locked_until, lock_session_id, booking_request_id, slug, title, image_url, expires_at, verification_status",
+      "id, status, owner_id, rental_id, resort_id, check_in, check_out, points, room_type, calculator_room_code, calculator_view_code, guest_price_per_point_cents, is_test_listing, is_visible_publicly, test_guest_total_cents, locked_until, lock_session_id, booking_request_id, slug, title, image_url, expires_at, verification_status, owner:profiles!ready_stays_owner_id_fkey(owners!owners_user_id_fkey(lifecycle_status))",
     )
     .eq("id", params.id)
     .in("status", ["active", "test"])

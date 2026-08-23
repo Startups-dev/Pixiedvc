@@ -4,6 +4,7 @@ import { getActiveFoundingOwnerBonusCents } from '@/lib/founding-owner-bonus';
 import { computeOwnerPayout } from '@/lib/pricing';
 import { sendOwnerMatchEmail } from '@/lib/email';
 import { getAppUrl } from '@/lib/app-url';
+import { isOwnerLifecycleActive } from '@/lib/owner/lifecycle';
 
 function addYearsISO(dateStr: string, years: number) {
   const date = new Date(dateStr);
@@ -53,6 +54,7 @@ type ProfileRow = {
 type OwnerRow = {
   id: string;
   verification: string | null;
+  lifecycle_status?: string | null;
   payout_email?: string | null;
   founding_owner_bonus_cents_per_point?: number | null;
   founding_owner_bonus_started_at?: string | null;
@@ -376,6 +378,7 @@ export async function evaluateMatchBookings(options: {
         owner:owners (
           id,
           verification,
+          lifecycle_status,
           payout_email,
           founding_owner_bonus_cents_per_point,
           founding_owner_bonus_started_at,
@@ -601,6 +604,10 @@ export async function evaluateMatchBookings(options: {
         verificationStatus === 'approved' || owner?.verification === 'verified';
       if (!ownerVerified) {
         rejectReasons.push('owner_not_verified');
+      }
+
+      if (!isOwnerLifecycleActive(owner)) {
+        rejectReasons.push('owner_inactive');
       }
 
       const payoutEmail =

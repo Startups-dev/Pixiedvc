@@ -34,7 +34,7 @@ export default async function LastMinuteDealsPage() {
   const { data, error } = await readyStaysClient
     .from("ready_stays")
     .select(
-      "id, check_in, check_out, points, room_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, status, expires_at, locked_until, verification_status, slug, title, is_visible_publicly, sleeps, created_at, is_test_listing, test_guest_total_cents, resorts(name, slug)",
+      "id, check_in, check_out, points, room_type, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, image_url, status, expires_at, locked_until, verification_status, slug, title, is_visible_publicly, sleeps, created_at, is_test_listing, test_guest_total_cents, owner:profiles!ready_stays_owner_id_fkey(owners!owners_user_id_fkey(lifecycle_status)), resorts(name, slug)",
     )
     .in("status", ["active", "test"])
     .gte("check_in", startDate)

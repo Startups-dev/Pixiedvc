@@ -40,10 +40,11 @@ async function runWithLock() {
     const { data: memberships, error: membershipError } = await supabaseAdmin
       .from("owner_memberships")
       .select(
-        "id, owner_id, matching_mode, allow_standard_rate_fallback, premium_only_listed_at, last_fallback_prompted_at, fallback_remind_at, points_available",
+        "id, owner_id, matching_mode, allow_standard_rate_fallback, premium_only_listed_at, last_fallback_prompted_at, fallback_remind_at, points_available, owners!inner(lifecycle_status)",
       )
       .eq("matching_mode", "premium_only")
       .eq("allow_standard_rate_fallback", false)
+      .eq("owners.lifecycle_status", "active")
       .not("premium_only_listed_at", "is", null)
       .gt("points_available", 0);
 
