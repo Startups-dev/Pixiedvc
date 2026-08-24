@@ -3,9 +3,9 @@ import { redirect } from "next/navigation";
 
 import { Button, Card } from "@pixiedvc/design-system";
 import PendingTransfersCard from "./PendingTransfersCard";
+import OwnerReadyStayInventory from "./OwnerReadyStayInventory";
 import OwnerEmptyState from "@/components/owner/shared/OwnerEmptyState";
 import OwnerPageHeader from "@/components/owner/shared/OwnerPageHeader";
-import OwnerRecordStatusBadge from "@/components/owner/shared/OwnerRecordStatusBadge";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { requireOwnerAccess } from "@/lib/owner/requireOwnerAccess";
@@ -18,12 +18,6 @@ function formatCurrencyFromCents(value: number | null) {
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(value / 100);
-}
-
-function statusTone(group: string) {
-  if (group === "completed" || group === "active") return "success";
-  if (group === "inactive") return "issue";
-  return "attention";
 }
 
 export default async function ReadyStaysPage({
@@ -51,7 +45,7 @@ export default async function ReadyStaysPage({
   const { data: readyStays } = await adminClient
     .from("ready_stays")
     .select(
-      "id, rental_id, status, verification_status, sold_booking_request_id, booking_request_id, check_in, check_out, room_type, points, owner_price_per_point_cents, created_at, updated_at, reservation_proof_uploaded_at, resorts(name)",
+      "id, rental_id, status, verification_status, sold_booking_request_id, booking_request_id, check_in, check_out, room_type, points, owner_price_per_point_cents, created_at, updated_at, reservation_proof_uploaded_at, resorts(name, slug, calculator_code)",
     )
     .in("owner_id", ownerIds)
     .order("created_at", { ascending: false });
@@ -131,7 +125,6 @@ export default async function ReadyStaysPage({
   );
   const activeCount = activeListings.length;
   const pendingReviewCount = reviewListings.length;
-  const confirmedSalesCount = soldListings.length;
   const estimatedPayoutCents = dashboardListings.reduce((total, stay) => {
     return total + Number(stay.owner_price_per_point_cents ?? 0) * Number(stay.points ?? 0);
   }, 0);
@@ -164,87 +157,29 @@ export default async function ReadyStaysPage({
       <OwnerPageHeader
         eyebrow="Ready Stays"
         title="Ready Stays"
-        description="List confirmed reservations, monitor owner-facing listing status, and complete transfer actions when a guest books."
-        summary={`${dashboardListings.length} active listing${dashboardListings.length === 1 ? "" : "s"}`}
+        description="Manage your confirmed reservations and complete transfer actions when a guest books."
+        summary={`${activeCount} active listing${activeCount === 1 ? "" : "s"}`}
       />
 
-      <section className="grid gap-4 md:grid-cols-4">
-        {[
-          { label: "Active listings", value: String(activeCount), helper: "Visible owner inventory" },
-          { label: "Pending review", value: String(pendingReviewCount), helper: "Submitted or draft listings" },
-          { label: "Confirmed sales", value: String(confirmedSalesCount), helper: "Booked Ready Stays" },
-          {
-            label: "Estimated owner payout",
-            value: estimatedPayoutCents > 0 ? formatCurrencyFromCents(estimatedPayoutCents) : "Unavailable",
-            helper: "Owner rate times listing points",
-          },
-        ].map((metric) => (
-          <Card key={metric.label} className="rounded-[18px] border border-[#E7E7E4] bg-white p-5 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#7A8495]">{metric.label}</p>
-            <p className="mt-3 text-2xl font-semibold tracking-tight text-[#10224A]">{metric.value}</p>
-            <p className="mt-2 text-sm leading-6 text-[#667085]">{metric.helper}</p>
-          </Card>
-        ))}
-      </section>
+      <OwnerReadyStayInventory
+        items={dashboardItems}
+        activeCount={activeCount}
+        pendingReviewCount={pendingReviewCount}
+        potentialPayoutLabel={estimatedPayoutCents > 0 ? formatCurrencyFromCents(estimatedPayoutCents) : "Unavailable"}
+      />
 
-      <section id="how-it-works" className="space-y-4">
-        <Card className="rounded-[18px] border border-[#E7E7E4] bg-white p-6 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
-          <div className="mb-3">
-            <Link href="/owner/ready-stays/faq" className="text-xs font-semibold text-brand hover:underline">
-              Read the Ready Stays FAQ
-            </Link>
-          </div>
-          <details>
-            <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.2em] text-ink">
-              How Ready Stays Works
-            </summary>
-            <div className="mt-4 space-y-3 text-sm text-muted">
-              <p>1. Start with your private Disney reservation details.</p>
-              <p>2. Upload your existing Disney confirmation number to verify the reservation.</p>
-              <p>3. Once verified, your reservation can be listed as a Ready Stay for instant guest booking.</p>
-              <p>4. Guests can book instantly, sign the agreement, and complete payment.</p>
-              <p>5. Finalize transferring the reservation to guests via DVC.</p>
-              <p>6. Collect your payout.</p>
-            </div>
-          </details>
-        </Card>
-      </section>
-
-      <section id="post-ready-stay" className="space-y-4">
-        <Card className="rounded-[18px] border border-[#E7E7E4] bg-white p-7 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
-          <div className="flex flex-wrap items-start justify-between gap-6">
-            <div className="max-w-2xl space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0B1B3A] text-white shadow-sm">
-                  <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 12h16" />
-                    <path d="M12 4v16" />
-                  </svg>
-                </div>
-                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Submit a Ready Stay</h2>
-              </div>
-              <p className="text-base font-medium text-ink">
-                Have a confirmed Disney Vacation Club reservation? Submit it for review and turn it into a public Ready Stay guests can instantly book.
-              </p>
-              <div className="grid gap-2 text-sm text-slate-500 md:grid-cols-2">
-                <p>• Reservation proof verified before publishing</p>
-                <p>• You stay in control of payout details</p>
-                <p>• Guests can book instantly once live</p>
-                <p>• Payouts are confirmed before booking closes</p>
-              </div>
-            </div>
-            <div className="flex min-w-[220px] flex-col items-start gap-3">
-              <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-                Fastest path to guest booking
-              </div>
-              <Button asChild className="!text-white hover:!text-white">
-                <Link href="/owner/dashboard?tab=listings&mode=add" className="!text-white hover:!text-white" style={{ color: "#fff" }}>
-                  Submit Ready Stay
-                </Link>
+      <section id="post-ready-stay" className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+        {dashboardItems.length > 0 ? (
+          <Card className="rounded-[18px] border border-[#E7E7E4] bg-white p-5 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Have another confirmed reservation?</h2>
+            <p className="mt-2 text-sm text-muted">Submit it for Hanna review when you are ready to list.</p>
+            <div className="mt-5">
+              <Button asChild variant="ghost">
+                <Link href="/owner/dashboard?tab=listings&mode=add">List a Ready Stay</Link>
               </Button>
             </div>
-          </div>
-        </Card>
+          </Card>
+        ) : null}
         <Card className="rounded-[18px] border border-[#E8D6A8] bg-white p-6 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
           <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Need to move expiring points fast?</h2>
           <p className="mt-2 text-sm text-muted">
@@ -255,73 +190,6 @@ export default async function ReadyStaysPage({
               <Link href="/owner/liquidation-opportunities">Submit Expiring Points</Link>
             </Button>
           </div>
-        </Card>
-      </section>
-
-      <section id="trust" className="space-y-4">
-        <Card className="rounded-[18px] border border-[#E7E7E4] bg-white p-6 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
-          <p className="text-sm font-medium text-slate-700">
-            You stay in control. HannaDVC reviews every Ready Stay before it goes public, and payout details are confirmed before guest booking.
-          </p>
-        </Card>
-      </section>
-
-      <section id="active" className="space-y-4">
-        <Card className="space-y-4 rounded-[18px] border border-[#E7E7E4] bg-white p-6 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
-          <div className="space-y-1 border-b border-slate-200 pb-2">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Your Ready Stays</h2>
-            <p className="text-sm text-muted">Monitor listing stage, proof status, and projected payout totals.</p>
-          </div>
-          {dashboardItems.length === 0 ? (
-            <OwnerEmptyState
-              title="No Ready Stays yet."
-              body="Submit a confirmed reservation to start building your public Ready Stay inventory."
-            />
-          ) : (
-            <div className="overflow-x-auto rounded-2xl border border-slate-200">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50">
-                  <tr className="text-left text-xs uppercase tracking-[0.2em] text-slate-500">
-                    <th className="px-4 py-3 font-semibold">Resort</th>
-                    <th className="px-4 py-3 font-semibold">Dates</th>
-                    <th className="px-4 py-3 font-semibold">Approval</th>
-                    <th className="px-4 py-3 font-semibold">Proof</th>
-                    <th className="px-4 py-3 font-semibold">Points</th>
-                    <th className="px-4 py-3 font-semibold">Your Payout/PT</th>
-                    <th className="px-4 py-3 font-semibold">Your Payout</th>
-                    <th className="px-4 py-3 font-semibold">Listing Status</th>
-                    <th className="px-4 py-3 font-semibold">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {dashboardItems.map((stay) => (
-                    <tr key={stay.id} className="transition hover:bg-slate-50/70">
-                      <td className="px-4 py-4">
-                        <div className="space-y-1">
-                          <p className="font-semibold text-ink">{stay.resortLabel}</p>
-                          <p className="text-xs text-slate-500">{stay.roomLabel}</p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-slate-500">{stay.dateLabel}</td>
-                      <td className="px-4 py-3">
-                        <OwnerRecordStatusBadge label={stay.statusLabel} tone={statusTone(stay.group)} />
-                      </td>
-                      <td className="px-4 py-3 text-slate-500">{stay.proofLabel}</td>
-                      <td className="px-4 py-3 text-slate-500">{stay.pointsLabel}</td>
-                      <td className="px-4 py-3 text-slate-500">{stay.ownerRateLabel}</td>
-                      <td className="px-4 py-3 font-semibold text-ink">{stay.estimatedOwnerPayoutLabel}</td>
-                      <td className="px-4 py-3 text-slate-500">{stay.group === "active" ? "Visible to guests" : stay.statusLabel}</td>
-                      <td className="px-4 py-3">
-                        <Link href={stay.detailHref} className="text-xs font-semibold text-brand hover:underline">
-                          View/Edit
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </Card>
       </section>
 
@@ -347,6 +215,22 @@ export default async function ReadyStaysPage({
           ) : (
             <PendingTransfersCard initialRows={pendingTransferRows} />
           )}
+        </Card>
+      </section>
+
+      <section id="how-it-works" className="space-y-4">
+        <Card className="rounded-[18px] border border-[#E7E7E4] bg-white p-5 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
+          <details>
+            <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.2em] text-ink">
+              Ready Stays FAQ
+            </summary>
+            <div className="mt-4 space-y-3 text-sm text-muted">
+              <p>HannaDVC reviews every Ready Stay before it goes public, and payout details are confirmed before guest booking.</p>
+              <Link href="/owner/ready-stays/faq" className="inline-flex text-sm font-semibold text-brand hover:underline">
+                Read the Ready Stays FAQ
+              </Link>
+            </div>
+          </details>
         </Card>
       </section>
 
@@ -386,7 +270,7 @@ export default async function ReadyStaysPage({
                           <td className="px-4 py-3 text-slate-500">{stay.estimatedOwnerPayoutLabel}</td>
                           <td className="px-4 py-3 text-slate-500">
                             <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-                              {stay.statusLabel}
+                              {stay.displayStatusLabel}
                             </div>
                           </td>
                           <td className="px-4 py-3 text-slate-500">{stay.updatedAtLabel}</td>

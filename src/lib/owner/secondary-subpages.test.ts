@@ -77,8 +77,12 @@ describe("owner secondary subpage view models", () => {
     ]);
 
     expect(items[0].statusLabel).toBe("Active");
+    expect(items[0].displayStatusLabel).toBe("LIVE");
+    expect(items[0].displayStatusDescription).toBe("Visible to guests");
     expect(items[0].estimatedOwnerPayoutLabel).toBe("$2,400");
     expect(items[1].statusLabel).toBe("Submitted for review");
+    expect(items[1].displayStatusLabel).toBe("IN REVIEW");
+    expect(items[0].imageUrl).toContain("/storage/v1/object/public/resorts/");
     expect(items.map((item) => item.statusLabel)).not.toContain("proof_uploaded");
     expect(filterOwnerReadyStayItems(items, "active")).toHaveLength(1);
     expect(filterOwnerReadyStayItems(items, "action_required")).toHaveLength(1);

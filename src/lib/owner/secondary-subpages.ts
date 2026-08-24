@@ -1,5 +1,6 @@
 import type { NotificationRow, OwnerMembership } from "@/lib/owner-data";
 import { POINT_STATUS_NOTIFICATION_TYPES, type PointStatusAction } from "@/lib/owner/point-status";
+import { resolveResortImage } from "@/lib/resort-image";
 import {
   getOwnerReadyStayStatusLabel,
   getOwnerRewardStatusLabel,
@@ -19,7 +20,7 @@ export type OwnerReadyStayListInput = {
   owner_price_per_point_cents: number | null;
   reservation_proof_uploaded_at?: string | null;
   updated_at?: string | null;
-  resorts?: { name: string | null } | null;
+  resorts?: { name: string | null; slug?: string | null; calculator_code?: string | null } | null;
 };
 
 export type OwnerReadyStayListItem = {
@@ -31,10 +32,15 @@ export type OwnerReadyStayListItem = {
   ownerRateLabel: string;
   estimatedOwnerPayoutLabel: string;
   statusLabel: string;
+  displayStatusLabel: string;
+  displayStatusDescription: string;
+  displayStatusTone: "live" | "review" | "booked" | "removed" | "neutral";
   proofLabel: string;
   updatedAtLabel: string;
   group: Exclude<OwnerReadyStayFilter, "all">;
   detailHref: string;
+  imageUrl: string;
+  imageAlt: string;
 };
 
 export type OwnerMembershipListItem = {
@@ -106,23 +112,77 @@ function readyStayGroup(status: string | null, verificationStatus: string | null
   return "active";
 }
 
+function getOwnerReadyStayDisplayStatus(
+  status: string | null,
+  verificationStatus: string | null | undefined,
+): Pick<OwnerReadyStayListItem, "displayStatusLabel" | "displayStatusDescription" | "displayStatusTone"> {
+  if (status === "sold") {
+    return {
+      displayStatusLabel: "BOOKED",
+      displayStatusDescription: "Guest transfer required, if applicable.",
+      displayStatusTone: "booked",
+    };
+  }
+
+  if (status === "removed" || status === "expired" || verificationStatus === "rejected") {
+    return {
+      displayStatusLabel: "REMOVED",
+      displayStatusDescription: "No longer listed.",
+      displayStatusTone: "removed",
+    };
+  }
+
+  if (status === "active" && verificationStatus !== "proof_uploaded") {
+    return {
+      displayStatusLabel: "LIVE",
+      displayStatusDescription: "Visible to guests",
+      displayStatusTone: "live",
+    };
+  }
+
+  if (status === "draft" || status === "paused" || verificationStatus === "proof_uploaded") {
+    return {
+      displayStatusLabel: "IN REVIEW",
+      displayStatusDescription: "We're verifying your reservation.",
+      displayStatusTone: "review",
+    };
+  }
+
+  return {
+    displayStatusLabel: "IN REVIEW",
+    displayStatusDescription: "We're reviewing this listing.",
+    displayStatusTone: "neutral",
+  };
+}
+
 export function buildOwnerReadyStayListItems(rows: OwnerReadyStayListInput[]): OwnerReadyStayListItem[] {
   return rows.map((row) => {
     const points = Number(row.points ?? 0);
     const rate = Number(row.owner_price_per_point_cents ?? 0);
+    const resortLabel = row.resorts?.name ?? "Listing";
+    const image = resolveResortImage({
+      resortSlug: row.resorts?.slug ?? null,
+      resortCode: row.resorts?.calculator_code ?? null,
+      imageIndex: 1,
+    });
+    const displayStatus = getOwnerReadyStayDisplayStatus(row.status, row.verification_status ?? null);
+
     return {
       id: row.id,
-      resortLabel: row.resorts?.name ?? "Listing",
+      resortLabel,
       roomLabel: row.room_type ?? "Room unavailable",
       dateLabel: formatDateRange(row.check_in, row.check_out),
       pointsLabel: formatPoints(row.points),
       ownerRateLabel: formatCurrencyFromCents(row.owner_price_per_point_cents),
       estimatedOwnerPayoutLabel: points > 0 && rate > 0 ? formatCurrencyFromCents(points * rate) : "Unavailable",
       statusLabel: getOwnerReadyStayStatusLabel(row.status, row.verification_status ?? null),
+      ...displayStatus,
       proofLabel: row.reservation_proof_uploaded_at ? "Received" : "Missing",
       updatedAtLabel: formatDate(row.updated_at),
       group: readyStayGroup(row.status, row.verification_status),
       detailHref: `/owner/ready-stays/${row.id}`,
+      imageUrl: image.url,
+      imageAlt: `${resortLabel} resort`,
     };
   });
 }
