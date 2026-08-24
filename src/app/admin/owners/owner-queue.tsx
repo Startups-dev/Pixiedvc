@@ -15,6 +15,12 @@ const statusLabels: Record<string, { label: string; tone: string }> = {
   default: { label: 'Unverified', tone: 'bg-slate-100 text-slate-700 border border-slate-200' },
 };
 
+const lifecycleLabels: Record<string, { label: string; tone: string }> = {
+  active: { label: 'Active', tone: 'bg-emerald-100 text-emerald-900 border border-emerald-200' },
+  suspended: { label: 'Suspended', tone: 'bg-amber-100 text-amber-900 border border-amber-200' },
+  deactivated: { label: 'Deactivated', tone: 'bg-slate-200 text-slate-800 border border-slate-300' },
+};
+
 type Props = {
   owners: QueueOwnerRecord[];
   statusFilter: string;
@@ -100,6 +106,52 @@ export default function OwnerQueue({ owners, statusFilter }: Props) {
     router.refresh();
   }
 
+  async function handleLifecycleChange(status: 'active' | 'suspended' | 'deactivated') {
+    if (!selectedOwner) {
+      return;
+    }
+
+    let reason: string | undefined;
+    if (status === 'deactivated') {
+      const confirmed = window.confirm(
+        'Deactivate this owner account? Unsold marketplace inventory will be withdrawn and marketing email will be suppressed. Historical records will be preserved.',
+      );
+      if (!confirmed) return;
+      reason = window.prompt('Reason for deactivation (required for audit context):') ?? undefined;
+      if (!reason?.trim()) {
+        setActionError('A deactivation reason is required.');
+        return;
+      }
+    } else if (status === 'suspended') {
+      reason = window.prompt('Reason for suspension (optional):') ?? undefined;
+    } else {
+      reason = window.prompt('Reason for reactivation (optional):') ?? undefined;
+    }
+
+    setSubmitting(true);
+    setActionError(null);
+    setActionMessage(null);
+
+    const response = await fetch('/api/admin/owners/lifecycle', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ownerId: selectedOwner.id, status, reason }),
+    });
+
+    setSubmitting(false);
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      setActionError(payload.error ?? 'Unable to update lifecycle status');
+      return;
+    }
+
+    setActionMessage(`Lifecycle status changed to ${status}.`);
+    router.refresh();
+  }
+
   async function handleAddComment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!commentBody.trim() || !selectedOwner) {
@@ -177,6 +229,9 @@ export default function OwnerQueue({ owners, statusFilter }: Props) {
                       </div>
                       <p className="text-xs text-slate-500">{owner.email ?? 'No email on file'}</p>
                       <p className="text-xs text-slate-400">ID: {owner.id}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Lifecycle: {lifecycleLabels[owner.lifecycleStatus]?.label ?? owner.lifecycleStatus}
+                      </p>
                       {owner.foundingOwnerBonusCentsPerPoint && owner.foundingOwnerBonusCentsPerPoint > 0 ? (
                         <p className="mt-1 text-xs text-[#6d5b28]">
                           Founding Owner bonus active
@@ -244,6 +299,18 @@ export default function OwnerQueue({ owners, statusFilter }: Props) {
                       ) : null}
                     </div>
                     <p className="text-sm text-slate-500">{selectedOwner.email ?? 'No email on file'}</p>
+                    <div
+                      className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] ${
+                        lifecycleLabels[selectedOwner.lifecycleStatus]?.tone ?? lifecycleLabels.active.tone
+                      }`}
+                    >
+                      Account lifecycle: {lifecycleLabels[selectedOwner.lifecycleStatus]?.label ?? selectedOwner.lifecycleStatus}
+                    </div>
+                    {selectedOwner.lifecycleStatusReason ? (
+                      <p className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                        {selectedOwner.lifecycleStatusReason}
+                      </p>
+                    ) : null}
                     {selectedOwner.submittedAt ? (
                       <p className="text-xs text-slate-400">
                         Submitted {new Date(selectedOwner.submittedAt).toLocaleString()}
@@ -271,7 +338,7 @@ export default function OwnerQueue({ owners, statusFilter }: Props) {
                   </div>
 
                   <div className="space-y-3">
-                    <h3 className="text-sm font-semibold text-slate-900">Actions</h3>
+                    <h3 className="text-sm font-semibold text-slate-900">Owner verification</h3>
                     <div className="flex flex-wrap gap-3">
                       <button
                         type="button"
@@ -296,6 +363,33 @@ export default function OwnerQueue({ owners, statusFilter }: Props) {
                         disabled={submitting}
                       >
                         Reject
+                      </button>
+                    </div>
+                    <h3 className="pt-2 text-sm font-semibold text-slate-900">Account lifecycle</h3>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleLifecycleChange('suspended')}
+                        className="rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-amber-700 disabled:opacity-60"
+                        disabled={submitting || selectedOwner.lifecycleStatus === 'suspended'}
+                      >
+                        Suspend
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleLifecycleChange('deactivated')}
+                        className="rounded-full bg-slate-800 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-slate-900 disabled:opacity-60"
+                        disabled={submitting || selectedOwner.lifecycleStatus === 'deactivated'}
+                      >
+                        Deactivate
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleLifecycleChange('active')}
+                        className="rounded-full border border-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-700 shadow-sm hover:bg-emerald-50 disabled:opacity-60"
+                        disabled={submitting || selectedOwner.lifecycleStatus === 'active'}
+                      >
+                        Reactivate
                       </button>
                     </div>
                     {actionMessage ? <p className="text-sm text-emerald-600">{actionMessage}</p> : null}

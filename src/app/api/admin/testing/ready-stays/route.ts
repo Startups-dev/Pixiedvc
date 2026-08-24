@@ -250,7 +250,7 @@ export async function DELETE(request: Request) {
 
   const { data: row, error: fetchError } = await guard.adminClient
     .from("ready_stays")
-    .select("id, rental_id, booking_request_id, lock_session_id, sold_booking_request_id, is_test_listing")
+    .select("id, status, rental_id, booking_request_id, lock_session_id, sold_booking_request_id, is_test_listing")
     .eq("id", payload.id)
     .maybeSingle();
 
@@ -260,6 +260,17 @@ export async function DELETE(request: Request) {
 
   if (!row.is_test_listing) {
     return NextResponse.json({ error: "Only test listings can be deleted here." }, { status: 400 });
+  }
+
+  if (row.status === "sold" || row.sold_booking_request_id) {
+    return NextResponse.json({ error: "Sold test listings must be preserved for booking history." }, { status: 409 });
+  }
+
+  if (row.rental_id) {
+    const historyCheck = await assertDisposableTestRental(guard.adminClient, row.rental_id, row.id);
+    if (!historyCheck.ok) {
+      return NextResponse.json({ error: historyCheck.error }, { status: 409 });
+    }
   }
 
   const bookingIds = [row.booking_request_id, row.lock_session_id, row.sold_booking_request_id].filter(Boolean) as string[];
@@ -278,4 +289,33 @@ export async function DELETE(request: Request) {
   }
 
   return NextResponse.json({ ok: true });
+}
+
+async function assertDisposableTestRental(adminClient: any, rentalId: string, readyStayId: string) {
+  const [payouts, documents, exceptions, nonTestReadyStays] = await Promise.all([
+    adminClient.from("payout_ledger").select("id").eq("rental_id", rentalId).limit(1),
+    adminClient.from("rental_documents").select("id").eq("rental_id", rentalId).limit(1),
+    adminClient.from("rental_exceptions").select("id").eq("rental_id", rentalId).limit(1),
+    adminClient
+      .from("ready_stays")
+      .select("id")
+      .eq("rental_id", rentalId)
+      .eq("is_test_listing", false)
+      .neq("id", readyStayId)
+      .limit(1),
+  ]);
+
+  if (payouts.error || documents.error || exceptions.error || nonTestReadyStays.error) {
+    return { ok: false as const, error: "Unable to verify linked rental is disposable test data." };
+  }
+
+  if ((payouts.data ?? []).length || (documents.data ?? []).length || (exceptions.data ?? []).length) {
+    return { ok: false as const, error: "Linked rental has history-bearing records and cannot be hard-deleted here." };
+  }
+
+  if ((nonTestReadyStays.data ?? []).length) {
+    return { ok: false as const, error: "Linked rental is associated with non-test Ready Stay history." };
+  }
+
+  return { ok: true as const };
 }

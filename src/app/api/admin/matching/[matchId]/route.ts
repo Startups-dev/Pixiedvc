@@ -79,6 +79,13 @@ export async function DELETE(
     return NextResponse.json({ error: 'Match not found' }, { status: 404 });
   }
 
+  if (match.status === 'accepted' || match.status === 'booked') {
+    return NextResponse.json(
+      { error: 'Accepted or booked match history must be preserved.' },
+      { status: 409 },
+    );
+  }
+
   const { data: existingRental, error: rentalError } = await adminClient
     .from('rentals')
     .select('id')

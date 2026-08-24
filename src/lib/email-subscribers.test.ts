@@ -244,7 +244,7 @@ vi.mock('@/lib/supabase-admin', () => ({
   getSupabaseAdminClient: subscriberState.getSupabaseAdminClient,
 }));
 
-import { addSubscriberTag, ingestSubscriber, removeSubscriberTag, subscribeEmail, unsubscribeEmail } from '@/lib/email-subscribers';
+import { addSubscriberTag, ingestSubscriber, removeSubscriberTag, subscribeEmail, suppressSubscriberMarketing, unsubscribeEmail } from '@/lib/email-subscribers';
 import {
   buildUnsubscribeUrl,
   createOrRotateUnsubscribeToken,
@@ -561,6 +561,52 @@ describe('email subscriber helpers', () => {
     expect(row?.status).toBe('unsubscribed');
     expect(row?.email_preferences).toEqual({ marketing: false });
     expect(subscriberState.events.at(-1)).toMatchObject({ event_type: 'unsubscribed' });
+  });
+
+  it('suppresses owner marketing without deleting the subscriber record', async () => {
+    subscriberState.subscribersByEmail.set('owner@example.com', {
+      id: 'subscriber-1',
+      email: 'owner@example.com',
+      first_name: 'Owner',
+      last_name: null,
+      user_id: 'owner-user-1',
+      status: 'subscribed',
+      source: 'owner_onboarding',
+      country: null,
+      tags: ['owner_lead', 'newsletter_subscriber'],
+      email_preferences: { marketing: true },
+      is_founding_owner: false,
+      bounce_count: 0,
+      last_bounced_at: null,
+      suppressed_at: null,
+      suppression_reason: null,
+      last_email_sent_at: null,
+      last_opened_at: null,
+      last_clicked_at: null,
+      subscribed_at: '2026-01-01T00:00:00.000Z',
+      unsubscribed_at: null,
+      welcome_sequence_started_at: null,
+      welcome_sequence_completed_at: null,
+      welcome_sequence_step: null,
+      unsubscribe_token_hash: hashUnsubscribeToken('seed-token'),
+      unsubscribe_token_created_at: '2026-01-01T00:00:00.000Z',
+      unsubscribe_token_rotated_at: '2026-01-01T00:00:00.000Z',
+    });
+
+    const row = await suppressSubscriberMarketing({
+      email: 'owner@example.com',
+      reason: 'owner_account_deactivated',
+    });
+
+    expect(row?.status).toBe('unsubscribed');
+    expect(row?.email_preferences).toEqual({ marketing: false });
+    expect(row?.suppressed_at).toEqual(expect.any(String));
+    expect(row?.suppression_reason).toBe('owner_account_deactivated');
+    expect(subscriberState.subscribersByEmail.has('owner@example.com')).toBe(true);
+    expect(subscriberState.events.at(-1)).toMatchObject({
+      event_type: 'marketing_suppressed',
+      metadata: { reason: 'owner_account_deactivated' },
+    });
   });
 
   it('adds and removes tags while logging events', async () => {

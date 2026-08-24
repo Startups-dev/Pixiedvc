@@ -75,6 +75,12 @@ type UnsubscribeParams = {
   client?: AdminClient | null;
 };
 
+type SuppressMarketingParams = {
+  email: string;
+  reason: string;
+  client?: AdminClient | null;
+};
+
 type UpdatePreferencesByTokenParams = {
   token: string;
   preferences: Record<string, unknown>;
@@ -526,6 +532,46 @@ export async function unsubscribeEmail(params: UnsubscribeParams) {
   }
 
   await recordEvent(client, existing.id, 'unsubscribed');
+
+  return data;
+}
+
+export async function suppressSubscriberMarketing(params: SuppressMarketingParams) {
+  const client = getClient(params.client);
+  if (!client) {
+    throw new Error('service_role_missing');
+  }
+
+  const email = assertValidEmail(params.email);
+  const existing = await getSubscriberByEmail(client, email);
+  if (!existing) {
+    return null;
+  }
+
+  const nowIso = new Date().toISOString();
+  const { data, error } = await client
+    .from('email_subscribers')
+    .update({
+      status: 'unsubscribed',
+      email_preferences: {
+        ...(existing.email_preferences ?? {}),
+        marketing: false,
+      },
+      suppressed_at: existing.suppressed_at ?? nowIso,
+      suppression_reason: params.reason,
+      unsubscribed_at: existing.unsubscribed_at ?? nowIso,
+    })
+    .eq('id', existing.id)
+    .select(getSubscriberSelect())
+    .single<EmailSubscriberRow>();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  await recordEvent(client, existing.id, 'marketing_suppressed', {
+    reason: params.reason,
+  });
 
   return data;
 }

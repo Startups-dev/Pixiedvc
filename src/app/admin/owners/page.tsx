@@ -11,6 +11,8 @@ const STATUS_OPTIONS = ['pending', 'needs_more_info', 'verified', 'rejected', 'a
 type OwnerRow = {
   id: string;
   verification: string | null;
+  lifecycle_status?: string | null;
+  lifecycle_status_reason?: string | null;
   created_at: string | null;
   founding_owner_bonus_cents_per_point: number | null;
   founding_owner_bonus_expires_at: string | null;
@@ -48,7 +50,7 @@ export default async function OwnersAdminPage({ searchParams }: { searchParams: 
 
   const baseQuery = supabase
     .from('owners')
-    .select('id, verification, created_at, founding_owner_bonus_cents_per_point, founding_owner_bonus_expires_at, profiles:profiles!owners_user_id_fkey(display_name)')
+    .select('id, verification, lifecycle_status, lifecycle_status_reason, created_at, founding_owner_bonus_cents_per_point, founding_owner_bonus_expires_at, profiles:profiles!owners_user_id_fkey(display_name)')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -195,6 +197,8 @@ const documentMap = new Map<string, QueueOwnerDocument[]>();
   const queueRecords: QueueOwnerRecord[] = owners.map((owner) => ({
     id: owner.id,
     status: owner.verification ?? 'pending',
+    lifecycleStatus: owner.lifecycle_status ?? 'active',
+    lifecycleStatusReason: owner.lifecycle_status_reason ?? null,
     submittedAt: owner.created_at,
     displayName: owner.profiles?.display_name ?? null,
     email: null,

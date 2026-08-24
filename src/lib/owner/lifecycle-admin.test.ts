@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
+const suppressSubscriberMarketing = vi.fn();
+
+vi.mock("@/lib/email-subscribers", () => ({
+  suppressSubscriberMarketing: (...args: unknown[]) => suppressSubscriberMarketing(...args),
+}));
+
 import { updateOwnerLifecycleStatus } from "@/lib/owner/lifecycle-admin";
 
 describe("owner lifecycle admin actions", () => {
@@ -16,7 +22,12 @@ describe("owner lifecycle admin actions", () => {
     const readyStayEq = vi.fn(() => ({ in: readyStayIn }));
     const readyStaysUpdate = vi.fn(() => ({ eq: readyStayEq }));
     const readyStaysDelete = vi.fn();
+    const privateInventorySelect = vi.fn().mockResolvedValue({ data: [{ id: "private-1" }], error: null });
+    const privateInventoryIn = vi.fn(() => ({ select: privateInventorySelect }));
+    const privateInventoryEq = vi.fn(() => ({ in: privateInventoryIn }));
+    const privateInventoryUpdate = vi.fn(() => ({ eq: privateInventoryEq }));
     const commentsInsert = vi.fn().mockResolvedValue({ error: null });
+    suppressSubscriberMarketing.mockResolvedValue({ id: "subscriber-1" });
 
     const client = {
       from: (table: string) => {
@@ -25,7 +36,13 @@ describe("owner lifecycle admin actions", () => {
             select: vi.fn(() => ({
               eq: vi.fn(() => ({
                 maybeSingle: vi.fn().mockResolvedValue({
-                  data: { id: "owner-1", user_id: "profile-1", lifecycle_status: "active" },
+                  data: {
+                    id: "owner-1",
+                    user_id: "profile-1",
+                    lifecycle_status: "active",
+                    email: "owner@example.com",
+                    profiles: { email: "profile@example.com" },
+                  },
                   error: null,
                 }),
               })),
@@ -41,6 +58,9 @@ describe("owner lifecycle admin actions", () => {
         }
         if (table === "owner_comments") {
           return { insert: commentsInsert };
+        }
+        if (table === "private_inventory") {
+          return { update: privateInventoryUpdate };
         }
         return {};
       },
@@ -60,6 +80,8 @@ describe("owner lifecycle admin actions", () => {
       previousStatus: "active",
       status: "deactivated",
       readyStaysRemoved: 2,
+      privateInventoryWithdrawn: 1,
+      marketingSuppressed: true,
     });
     expect(ownersUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -80,6 +102,16 @@ describe("owner lifecycle admin actions", () => {
     expect(readyStayIn).toHaveBeenCalledWith("status", ["draft", "active", "test", "paused"]);
     expect(readyStayIs).toHaveBeenCalledWith("sold_booking_request_id", null);
     expect(readyStaysDelete).not.toHaveBeenCalled();
+    expect(privateInventoryUpdate).toHaveBeenCalledWith({
+      status: "closed",
+      closed_reason: "owner_lifecycle_inactive",
+    });
+    expect(suppressSubscriberMarketing).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: "profile@example.com",
+        reason: "owner_account_deactivated",
+      }),
+    );
     expect(commentsInsert).toHaveBeenCalledWith(
       expect.objectContaining({
         owner_id: "owner-1",
@@ -95,6 +127,7 @@ describe("owner lifecycle admin actions", () => {
     }));
     const readyStaysUpdate = vi.fn();
     const commentsInsert = vi.fn().mockResolvedValue({ error: null });
+    suppressSubscriberMarketing.mockClear();
 
     const client = {
       from: (table: string) => {
@@ -103,7 +136,13 @@ describe("owner lifecycle admin actions", () => {
             select: vi.fn(() => ({
               eq: vi.fn(() => ({
                 maybeSingle: vi.fn().mockResolvedValue({
-                  data: { id: "owner-1", user_id: "profile-1", lifecycle_status: "deactivated" },
+                  data: {
+                    id: "owner-1",
+                    user_id: "profile-1",
+                    lifecycle_status: "deactivated",
+                    email: "owner@example.com",
+                    profiles: { email: "profile@example.com" },
+                  },
                   error: null,
                 }),
               })),
@@ -136,5 +175,6 @@ describe("owner lifecycle admin actions", () => {
       readyStaysRemoved: 0,
     });
     expect(readyStaysUpdate).not.toHaveBeenCalled();
+    expect(suppressSubscriberMarketing).not.toHaveBeenCalled();
   });
 });

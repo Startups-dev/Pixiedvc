@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import PrivateInventoryForm from "@/components/PrivateInventoryForm";
+import { isOwnerLifecycleActive } from "@/lib/owner/lifecycle";
 
 export const dynamic = "force-dynamic";
 
@@ -34,9 +35,23 @@ export default async function OwnerUrgentPage() {
 
   const { data: ownerRow } = await supabase
     .from("owners")
-    .select("verification")
-    .eq("id", user.id)
+    .select("verification, lifecycle_status")
+    .or(`id.eq.${user.id},user_id.eq.${user.id}`)
     .maybeSingle();
+
+  if (!isOwnerLifecycleActive(ownerRow)) {
+    return (
+      <main className="mx-auto max-w-4xl space-y-6 px-6 py-12">
+        <header className="space-y-3">
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Urgent Placement</p>
+          <h1 className="text-2xl font-semibold text-slate-900">Owner access is not active</h1>
+          <p className="text-sm text-slate-500">
+            This owner account cannot submit new private placement inventory.
+          </p>
+        </header>
+      </main>
+    );
+  }
 
   const verification = ownerRow?.verification ?? "not_started";
   if (verification !== "verified") {

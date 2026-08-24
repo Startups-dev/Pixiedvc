@@ -17,6 +17,8 @@ export type QueueOwnerDocument = {
 export type QueueOwnerRecord = {
   id: string;
   status: string;
+  lifecycleStatus: string;
+  lifecycleStatusReason: string | null;
   submittedAt: string | null;
   displayName: string | null;
   email: string | null;

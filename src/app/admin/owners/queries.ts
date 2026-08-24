@@ -7,6 +7,8 @@ import { isAdminEmail } from '@/lib/admin';
 export type OwnerDetailRow = {
   id: string;
   verification: string | null;
+  lifecycle_status?: string | null;
+  lifecycle_status_reason?: string | null;
   rejection_reason: string | null;
   home_resort: string | null;
   use_year: string | null;
@@ -93,7 +95,7 @@ export async function fetchOwnerQueue(statusFilter: string) {
 export async function fetchOwnerById(supabase: SupabaseClient, ownerId: string) {
   const { data, error } = await supabase
     .from('owners')
-    .select('id, verification, rejection_reason, home_resort, use_year, founding_owner_bonus_cents_per_point, founding_owner_bonus_started_at, founding_owner_bonus_expires_at, founding_owner_granted_at, founding_owner_promotion_id, profiles:profiles!owners_user_id_fkey(display_name, email)')
+    .select('id, verification, lifecycle_status, lifecycle_status_reason, rejection_reason, home_resort, use_year, founding_owner_bonus_cents_per_point, founding_owner_bonus_started_at, founding_owner_bonus_expires_at, founding_owner_granted_at, founding_owner_promotion_id, profiles:profiles!owners_user_id_fkey(display_name, email)')
     .eq('id', ownerId)
     .maybeSingle();
   if (error) {

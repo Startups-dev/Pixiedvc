@@ -83,6 +83,10 @@ export default async function AdminOwnerDetailPage({ params }: { params: { id: s
             {foundingOwnerActive ? <FoundingOwnerBadge showBonusText /> : null}
           </div>
           <p className="text-sm text-slate-500">Verification status: {owner.verification ?? 'pending'}</p>
+          <p className="text-sm text-slate-500">Account lifecycle: {owner.lifecycle_status ?? 'active'}</p>
+          {owner.lifecycle_status_reason ? (
+            <p className="mt-1 text-sm text-slate-500">{owner.lifecycle_status_reason}</p>
+          ) : null}
           {owner.founding_owner_bonus_cents_per_point && owner.founding_owner_bonus_cents_per_point > 0 ? (
             <p className={`text-sm ${foundingOwnerActive ? 'text-[#6d5b28]' : 'text-slate-500'}`}>
               {foundingOwnerActive ? 'Founding Owner bonus active' : 'Founding Owner bonus expired'}

@@ -4,10 +4,12 @@ import type { RequestCookies } from "next/dist/compiled/@edge-runtime/cookies";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getHomeForRole } from "@/lib/routes/home";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { isOwnerLifecycleActive, normalizeOwnerLifecycleStatus, type OwnerLifecycleStatus } from "@/lib/owner/lifecycle";
 
 type OwnerRow = {
   id: string;
   user_id: string | null;
+  lifecycle_status?: string | null;
   agreement_accepted_at?: string | null;
   agreement_version?: string | null;
   metadata?: Record<string, unknown> | null;
@@ -26,6 +28,7 @@ export type OwnerAccessState = {
   owner: OwnerRow | null;
   role: string | null;
   onboardingComplete: boolean;
+  lifecycleStatus: OwnerLifecycleStatus | null;
   agreementAcceptedAt: string | null;
   redirectTo: string | null;
 };
@@ -64,7 +67,7 @@ async function resolveOwnerRecord({
 }) {
   const { data: ownerByUserId, error: byUserError } = await db
     .from("owners")
-    .select("id, user_id, agreement_accepted_at, agreement_version, metadata")
+    .select("id, user_id, lifecycle_status, agreement_accepted_at, agreement_version, metadata")
     .eq("user_id", userId)
     .maybeSingle();
   let owner = ownerByUserId;
@@ -76,7 +79,7 @@ async function resolveOwnerRecord({
   if (!owner) {
     const { data: byIdOwner, error: byIdError } = await db
       .from("owners")
-      .select("id, user_id, agreement_accepted_at, agreement_version, metadata")
+      .select("id, user_id, lifecycle_status, agreement_accepted_at, agreement_version, metadata")
       .eq("id", userId)
       .maybeSingle();
     if (byIdError) {
@@ -95,7 +98,7 @@ async function resolveOwnerRecord({
 
     const { data: createdOwner, error: createdOwnerError } = await db
       .from("owners")
-      .select("id, user_id, agreement_accepted_at, agreement_version, metadata")
+      .select("id, user_id, lifecycle_status, agreement_accepted_at, agreement_version, metadata")
       .eq("id", userId)
       .maybeSingle();
     if (createdOwnerError) {
@@ -139,6 +142,7 @@ export async function getOwnerAccessState({
       owner: null,
       role: null,
       onboardingComplete: false,
+      lifecycleStatus: null,
       agreementAcceptedAt: null,
       redirectTo: `/login?redirect=${encodeURIComponent(redirectPath)}`,
     };
@@ -165,6 +169,7 @@ export async function getOwnerAccessState({
       owner: null,
       role,
       onboardingComplete,
+      lifecycleStatus: null,
       agreementAcceptedAt: null,
       redirectTo: getHomeForRole(role),
     };
@@ -176,6 +181,7 @@ export async function getOwnerAccessState({
       owner: null,
       role,
       onboardingComplete,
+      lifecycleStatus: null,
       agreementAcceptedAt: null,
       redirectTo: "/owner/onboarding",
     };
@@ -194,19 +200,35 @@ export async function getOwnerAccessState({
       owner: null,
       role,
       onboardingComplete,
+      lifecycleStatus: null,
       agreementAcceptedAt: null,
       redirectTo: "/owner/onboarding",
     };
   }
 
   if (!agreementAcceptedAt) {
+    const lifecycleStatus = normalizeOwnerLifecycleStatus(owner.lifecycle_status);
     return {
       user,
       owner,
       role,
       onboardingComplete,
+      lifecycleStatus,
       agreementAcceptedAt: null,
       redirectTo: "/owner/onboarding/agreement",
+    };
+  }
+
+  const lifecycleStatus = normalizeOwnerLifecycleStatus(owner.lifecycle_status);
+  if (!isOwnerLifecycleActive(owner)) {
+    return {
+      user,
+      owner,
+      role,
+      onboardingComplete,
+      lifecycleStatus,
+      agreementAcceptedAt,
+      redirectTo: "/owner/account-status",
     };
   }
 
@@ -215,6 +237,7 @@ export async function getOwnerAccessState({
     owner,
     role,
     onboardingComplete,
+    lifecycleStatus,
     agreementAcceptedAt,
     redirectTo: null,
   };

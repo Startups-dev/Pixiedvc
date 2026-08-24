@@ -124,6 +124,64 @@ describe("getOwnerAccessState", () => {
 
     expect(state.redirectTo).toBeNull();
     expect(state.owner?.id).toBe("owner-1");
+    expect(state.lifecycleStatus).toBe("active");
     expect(state.agreementAcceptedAt).toBe(acceptedAt);
+  });
+
+  test("redirects suspended owners away from active owner marketplace pages", async () => {
+    const acceptedAt = "2026-08-18T12:05:00.000Z";
+    const supabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "owner-1", email: "owner@example.com", user_metadata: { role: "owner" } } },
+        }),
+      },
+      ...createDbStub({
+        profile: { role: "owner", onboarding_completed: true, onboarding_completed_at: "2026-08-18T12:00:00.000Z" },
+        owner: {
+          id: "owner-1",
+          user_id: "owner-1",
+          lifecycle_status: "suspended",
+          agreement_accepted_at: acceptedAt,
+          agreement_version: "v1",
+          metadata: null,
+        },
+      }),
+    };
+    createSupabaseServerClient.mockResolvedValue(supabase);
+
+    const state = await getOwnerAccessState({ redirectPath: "/owner/dashboard" });
+
+    expect(state.redirectTo).toBe("/owner/account-status");
+    expect(state.lifecycleStatus).toBe("suspended");
+    expect(state.owner?.id).toBe("owner-1");
+  });
+
+  test("redirects deactivated owners away from active owner marketplace pages", async () => {
+    const acceptedAt = "2026-08-18T12:05:00.000Z";
+    const supabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "owner-1", email: "owner@example.com", user_metadata: { role: "owner" } } },
+        }),
+      },
+      ...createDbStub({
+        profile: { role: "owner", onboarding_completed: true, onboarding_completed_at: "2026-08-18T12:00:00.000Z" },
+        owner: {
+          id: "owner-1",
+          user_id: "owner-1",
+          lifecycle_status: "deactivated",
+          agreement_accepted_at: acceptedAt,
+          agreement_version: "v1",
+          metadata: null,
+        },
+      }),
+    };
+    createSupabaseServerClient.mockResolvedValue(supabase);
+
+    const state = await getOwnerAccessState({ redirectPath: "/owner/ready-stays" });
+
+    expect(state.redirectTo).toBe("/owner/account-status");
+    expect(state.lifecycleStatus).toBe("deactivated");
   });
 });

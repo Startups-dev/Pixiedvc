@@ -1,9 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { suppressSubscriberMarketing } from "@/lib/email-subscribers";
 import type { OwnerLifecycleStatus } from "@/lib/owner/lifecycle";
 
 const INACTIVE_STATUSES = new Set<OwnerLifecycleStatus>(["suspended", "deactivated"]);
 const UNSOLD_READY_STAY_STATUSES = ["draft", "active", "test", "paused"];
+const ACTIVE_PRIVATE_INVENTORY_STATUSES = ["submitted", "reviewed", "approved", "offered"];
 
 export async function updateOwnerLifecycleStatus(params: {
   client: SupabaseClient;
@@ -17,7 +19,7 @@ export async function updateOwnerLifecycleStatus(params: {
 
   const { data: owner, error: ownerError } = await client
     .from("owners")
-    .select("id, user_id, lifecycle_status")
+    .select("id, user_id, lifecycle_status, email, profiles:profiles!owners_user_id_fkey(email)")
     .eq("id", ownerId)
     .maybeSingle();
 
@@ -37,6 +39,8 @@ export async function updateOwnerLifecycleStatus(params: {
   if (updateError) return { ok: false as const, error: updateError.message };
 
   let readyStaysRemoved = 0;
+  let privateInventoryWithdrawn = 0;
+  let marketingSuppressed = false;
   if (owner.user_id && INACTIVE_STATUSES.has(status)) {
     const { data: removedRows, error: readyStayError } = await client
       .from("ready_stays")
@@ -55,6 +59,42 @@ export async function updateOwnerLifecycleStatus(params: {
       return { ok: false as const, error: readyStayError.message };
     }
     readyStaysRemoved = removedRows?.length ?? 0;
+
+    const { data: privateInventoryRows, error: privateInventoryError } = await client
+      .from("private_inventory")
+      .update({
+        status: "closed",
+        closed_reason: "owner_lifecycle_inactive",
+      })
+      .eq("owner_id", owner.user_id)
+      .in("status", ACTIVE_PRIVATE_INVENTORY_STATUSES)
+      .select("id");
+
+    if (privateInventoryError) {
+      return { ok: false as const, error: privateInventoryError.message };
+    }
+    privateInventoryWithdrawn = privateInventoryRows?.length ?? 0;
+
+  }
+
+  if (status === "deactivated") {
+    const profile = Array.isArray(owner.profiles) ? owner.profiles[0] : owner.profiles;
+    const ownerEmail = profile?.email ?? owner.email ?? null;
+    if (ownerEmail) {
+      try {
+        const subscriber = await suppressSubscriberMarketing({
+          email: ownerEmail,
+          reason: "owner_account_deactivated",
+          client: client as any,
+        });
+        marketingSuppressed = Boolean(subscriber);
+      } catch (error) {
+        return {
+          ok: false as const,
+          error: error instanceof Error ? error.message : "Unable to suppress owner marketing subscriber.",
+        };
+      }
+    }
   }
 
   await client.from("owner_comments").insert({
@@ -70,5 +110,7 @@ export async function updateOwnerLifecycleStatus(params: {
     previousStatus: owner.lifecycle_status ?? "active",
     status,
     readyStaysRemoved,
+    privateInventoryWithdrawn,
+    marketingSuppressed,
   };
 }
