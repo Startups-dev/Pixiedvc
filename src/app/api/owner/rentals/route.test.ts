@@ -12,6 +12,7 @@ let supabaseMock: {
 let adminMock: {
   from: ReturnType<typeof vi.fn>;
 };
+let resortRow: { id: string; slug: string; calculator_code: string | null };
 
 vi.mock("next/headers", () => ({
   cookies: vi.fn(async () => ({ get: vi.fn(), set: vi.fn() })),
@@ -61,7 +62,7 @@ describe("POST /api/owner/rentals", () => {
           return makeSelectSingle({ id: "owner-profile-1" });
         }
         if (table === "resorts") {
-          return makeSelectSingle({ id: "resort-1", slug: "bay-lake-tower", calculator_code: "BLT" });
+          return makeSelectSingle(resortRow);
         }
         return { select: vi.fn() };
       }),
@@ -75,6 +76,8 @@ describe("POST /api/owner/rentals", () => {
         return { insert: vi.fn() };
       }),
     };
+
+    resortRow = { id: "resort-1", slug: "bay-lake-tower", calculator_code: "BLT" };
   });
 
   test("stores valid exact BLT accommodation identity", async () => {
@@ -160,6 +163,41 @@ describe("POST /api/owner/rentals", () => {
         room_type: "Studio",
         calculator_room_code: null,
         calculator_view_code: null,
+      }),
+    );
+  });
+
+  test("accepts exact BWV Boardwalk/Preferred Sept 4-5 submission", async () => {
+    resortRow = { id: "bwv-id", slug: "boardwalk-villas", calculator_code: "BWV" };
+
+    const response = await POST(
+      rentalRequest({
+        resort_id: "bwv-id",
+        room_type: "Deluxe Studio - Boardwalk/Preferred View",
+        calculator_room_code: "STUDIO",
+        calculator_view_code: "P",
+        check_in: "2026-09-04",
+        check_out: "2026-09-05",
+        points: 14,
+        confirmation_number: null,
+        confirmation_uploaded: false,
+      }) as any,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({ rentalId: "rental-1" });
+    expect(insertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resort_id: "bwv-id",
+        resort_code: "BWV",
+        room_type: "Deluxe Studio - Boardwalk/Preferred View",
+        calculator_room_code: "STUDIO",
+        calculator_view_code: "P",
+        check_in: "2026-09-04",
+        check_out: "2026-09-05",
+        points_required: 14,
+        status: "draft",
       }),
     );
   });

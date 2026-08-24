@@ -39,6 +39,7 @@ function setDates(checkIn: string, checkOut: string) {
 
 const RESORTS = [
   { id: "blt-id", name: "Bay Lake Tower", calculator_code: "BLT" },
+  { id: "bwv-id", name: "BoardWalk Villas", calculator_code: "BWV" },
   { id: "bcv-id", name: "Beach Club Villas", calculator_code: "BCV" },
   { id: "pvb-id", name: "Polynesian Villas", calculator_code: "PVB" },
 ];
@@ -52,7 +53,12 @@ describe("OwnerReservationForm", () => {
       if (url.includes("/api/owner/points-quote")) {
         const body = init?.body ? JSON.parse(String(init.body)) : {};
         const byView: Record<string, number> = { S: 26, L: 32, T: 36 };
-        const totalPoints = body.resort_code === "BLT" ? byView[String(body.view_code)] ?? 84 : 84;
+        const totalPoints =
+          body.resort_code === "BLT"
+            ? byView[String(body.view_code)] ?? 84
+            : body.resort_code === "BWV" && body.room_code === "STUDIO" && body.view_code === "P"
+              ? 14
+              : 84;
         return makeJsonResponse({
           total_points: totalPoints,
           total_nights: 2,
@@ -197,6 +203,64 @@ describe("OwnerReservationForm", () => {
         calculator_view_code: "L",
       });
     });
+  });
+
+  it("sends the exact BWV Boardwalk/Preferred Sept 4-5 rental payload", async () => {
+    const user = userEvent.setup();
+
+    render(<OwnerReservationForm resorts={RESORTS} />);
+
+    await user.selectOptions(screen.getByLabelText(/Resort/i), "bwv-id");
+    await user.selectOptions(screen.getByLabelText(/Accommodation/i), accommodationKey("BWV", "STUDIO", "P"));
+    setDates("2026-09-04", "2026-09-05");
+    await user.clear(screen.getByLabelText(/Set your payout/i));
+    await user.type(screen.getByLabelText(/Set your payout/i), "22");
+
+    await waitFor(() => {
+      expect((screen.getByLabelText(/^Points/i) as HTMLInputElement).value).toBe("14");
+    });
+
+    await user.click(screen.getByRole("button", { name: /Save Reservation/i }));
+
+    await waitFor(() => {
+      const rentalsCall = (global.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls.find(([input]) =>
+        String(input).includes("/api/owner/rentals"),
+      );
+      expect(rentalsCall).toBeTruthy();
+      expect(JSON.parse(String(rentalsCall?.[1]?.body))).toEqual({
+        resort_id: "bwv-id",
+        check_in: "2026-09-04",
+        check_out: "2026-09-05",
+        room_type: "Deluxe Studio - Boardwalk/Preferred View",
+        calculator_room_code: "STUDIO",
+        calculator_view_code: "P",
+        points: 14,
+        confirmation_number: null,
+        confirmation_uploaded: false,
+      });
+    });
+  });
+
+  it("does not persist a Ready Stay submission when confirmation proof is missing", async () => {
+    const user = userEvent.setup();
+
+    render(<OwnerReservationForm resorts={RESORTS} />);
+
+    await user.selectOptions(screen.getByLabelText(/Resort/i), "bwv-id");
+    await user.selectOptions(screen.getByLabelText(/Accommodation/i), accommodationKey("BWV", "STUDIO", "P"));
+    setDates("2026-09-04", "2026-09-05");
+    await user.clear(screen.getByLabelText(/Set your payout/i));
+    await user.type(screen.getByLabelText(/Set your payout/i), "22");
+    await user.type(screen.getByLabelText(/Confirmation number/i), "ABC123");
+
+    await user.click(screen.getByRole("button", { name: /Submit Ready Stay/i }));
+
+    expect(await screen.findByText("Upload reservation proof before submitting this Ready Stay.")).toBeInTheDocument();
+    const calledUrls = (global.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls.map(([input]) =>
+      String(input),
+    );
+    expect(calledUrls.some((url) => url.includes("/api/owner/rentals"))).toBe(false);
+    expect(calledUrls.some((url) => url.includes("/api/owner/ready-stays"))).toBe(false);
   });
 
   it("does not overwrite manually edited points and allows use calculated points", async () => {
