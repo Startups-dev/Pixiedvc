@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { isUserAdmin } from "@/lib/admin";
 import { sendReadyStayRejectedEmail } from "@/lib/email";
+import { READY_STAYS_SHOWCASE_FLAGS } from "@/lib/ready-stays/showcase-config";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -27,6 +28,13 @@ async function assertAdmin() {
 
   if (!allowed) {
     return { ok: false as const, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  }
+
+  if (!READY_STAYS_SHOWCASE_FLAGS.enableReadyStaysAdmin) {
+    return {
+      ok: false as const,
+      response: NextResponse.json({ error: "Ready Stays admin is disabled by feature flag." }, { status: 403 }),
+    };
   }
 
   const adminClient = getSupabaseAdminClient();

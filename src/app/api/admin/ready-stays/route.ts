@@ -326,6 +326,10 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "id is required." }, { status: 400 });
   }
 
+  if (payload.purge && !READY_STAYS_SHOWCASE_FLAGS.enableReadyStaysAdminPurge) {
+    return NextResponse.json({ error: "Ready Stays physical purge is disabled by feature flag." }, { status: 403 });
+  }
+
   const operation = payload.purge
     ? guard.adminClient.from("ready_stays").delete().eq("id", payload.id)
     : guard.adminClient

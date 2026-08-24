@@ -11,4 +11,5 @@ export const READY_STAYS_SHOWCASE_FLAGS = {
   enableSearchReadyStays: envFlag("READY_STAYS_SHOWCASE_SEARCH", true),
   enableReadyStaysLiveData: envFlag("READY_STAYS_LIVE_DATA", false),
   enableReadyStaysAdmin: envFlag("READY_STAYS_ADMIN", false),
+  enableReadyStaysAdminPurge: envFlag("READY_STAYS_ADMIN_PURGE", false),
 } as const;
