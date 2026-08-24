@@ -8,6 +8,29 @@ import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const ALLOWED_STATUSES = new Set(["draft", "active", "test", "sold", "expired", "paused", "removed"]);
+const TERMINAL_ADMIN_STATUSES = new Set(["sold", "expired", "removed"]);
+const MUTABLE_ADMIN_FIELDS = [
+  "slug",
+  "title",
+  "short_description",
+  "image_url",
+  "badge",
+  "cta_label",
+  "href",
+  "featured",
+  "priority",
+  "sort_override",
+  "placement_home",
+  "placement_resort",
+  "placement_search",
+  "expires_at",
+  "status",
+  "sleeps",
+  "owner_price_per_point_cents",
+  "guest_price_per_point_cents",
+  "original_guest_price_per_point_cents",
+  "price_reduced_at",
+] as const;
 
 type ReadyStayMutationPayload = {
   id?: string;
@@ -75,6 +98,10 @@ function validateDates(payload: ReadyStayMutationPayload) {
   }
 
   return null;
+}
+
+function hasAdminMutationFields(payload: ReadyStayMutationPayload) {
+  return MUTABLE_ADMIN_FIELDS.some((field) => payload[field] !== undefined);
 }
 
 function normalizePayload(payload: ReadyStayMutationPayload, createMode = false) {
@@ -279,6 +306,37 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Guest price must be at least Pixie fee amount." }, { status: 400 });
   }
 
+  const { data: currentReadyStay, error: currentReadyStayError } = await guard.adminClient
+    .from("ready_stays")
+    .select("id, status, verification_status")
+    .eq("id", payload.id)
+    .maybeSingle();
+
+  if (currentReadyStayError) {
+    return NextResponse.json({ error: currentReadyStayError.message }, { status: 500 });
+  }
+
+  if (!currentReadyStay) {
+    return NextResponse.json({ error: "Ready Stay not found." }, { status: 404 });
+  }
+
+  if (
+    hasAdminMutationFields(payload) &&
+    (TERMINAL_ADMIN_STATUSES.has(currentReadyStay.status) || currentReadyStay.verification_status === "rejected")
+  ) {
+    return NextResponse.json(
+      { error: "This Ready Stay is historical and cannot be edited. View it in history/audit instead." },
+      { status: 409 },
+    );
+  }
+
+  if (payload.status === "active" && currentReadyStay.verification_status !== "approved") {
+    return NextResponse.json(
+      { error: "Use the Ready Stay approval action before publishing this listing." },
+      { status: 409 },
+    );
+  }
+
   const dateError = validateDates(payload);
   if (dateError) return NextResponse.json({ error: dateError }, { status: 400 });
 
@@ -328,6 +386,34 @@ export async function DELETE(request: Request) {
 
   if (payload.purge && !READY_STAYS_SHOWCASE_FLAGS.enableReadyStaysAdminPurge) {
     return NextResponse.json({ error: "Ready Stays physical purge is disabled by feature flag." }, { status: 403 });
+  }
+
+  const { data: currentReadyStay, error: currentReadyStayError } = await guard.adminClient
+    .from("ready_stays")
+    .select("id, status, verification_status")
+    .eq("id", payload.id)
+    .maybeSingle();
+
+  if (currentReadyStayError) {
+    return NextResponse.json({ error: currentReadyStayError.message }, { status: 500 });
+  }
+
+  if (!currentReadyStay) {
+    return NextResponse.json({ error: "Ready Stay not found." }, { status: 404 });
+  }
+
+  if (!payload.purge && TERMINAL_ADMIN_STATUSES.has(currentReadyStay.status)) {
+    return NextResponse.json(
+      { error: "This Ready Stay is already historical and cannot be removed again." },
+      { status: 409 },
+    );
+  }
+
+  if (!payload.purge && currentReadyStay.verification_status === "rejected") {
+    return NextResponse.json(
+      { error: "Rejected Ready Stays are audit records and cannot be removed again." },
+      { status: 409 },
+    );
   }
 
   const operation = payload.purge

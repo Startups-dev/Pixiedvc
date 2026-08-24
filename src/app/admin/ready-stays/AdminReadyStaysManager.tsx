@@ -131,7 +131,19 @@ function formatDollars(value: number) {
 }
 
 function rowNeedsReview(row: ReadyStayRow) {
-  return row.status === 'draft' || row.verification_status === 'proof_uploaded';
+  return !isHistoricalReadyStay(row) && (row.status === 'draft' || row.verification_status === 'proof_uploaded');
+}
+
+export function isHistoricalReadyStay(row: Pick<ReadyStayRow, 'status' | 'verification_status'>) {
+  return row.verification_status === 'rejected' || ['sold', 'expired', 'removed'].includes(row.status);
+}
+
+export function canEditReadyStayPricing(row: Pick<ReadyStayRow, 'status' | 'verification_status'>) {
+  return !isHistoricalReadyStay(row) && ['active', 'test', 'paused'].includes(row.status);
+}
+
+export function canSoftRemoveReadyStay(row: Pick<ReadyStayRow, 'status' | 'verification_status'>) {
+  return !isHistoricalReadyStay(row) && ['active', 'test', 'paused'].includes(row.status);
 }
 
 function getAdminStatusLabel(row: ReadyStayRow) {
@@ -245,8 +257,8 @@ function updateRowOwnerPrice(id: string, nextOwnerPrice: number) {
     router.refresh();
   }
 
-  async function deleteListing(id: string) {
-    if (!window.confirm('Are you sure you want to delete this listing?')) return;
+  async function removeListing(id: string) {
+    if (!window.confirm('Remove this listing from public/admin active controls?')) return;
 
     setBusyId(id);
     setError(null);
@@ -260,38 +272,13 @@ function updateRowOwnerPrice(id: string, nextOwnerPrice: number) {
 
     const payload = (await response.json().catch(() => ({}))) as { error?: string };
     if (!response.ok) {
-      setError(payload.error ?? 'Unable to delete this listing.');
+      setError(payload.error ?? 'Unable to remove this listing.');
       setBusyId(null);
       return;
     }
 
     setBusyId(null);
-    setNotice('Listing deleted.');
-    router.refresh();
-  }
-
-  async function purgeListing(id: string) {
-    if (!window.confirm('Do you want to purge this listing from the admin list?')) return;
-
-    setBusyId(id);
-    setError(null);
-    setNotice(null);
-
-    const response = await fetch('/api/admin/ready-stays', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, purge: true }),
-    });
-
-    const payload = (await response.json().catch(() => ({}))) as { error?: string };
-    if (!response.ok) {
-      setError(payload.error ?? 'Unable to purge this listing.');
-      setBusyId(null);
-      return;
-    }
-
-    setBusyId(null);
-    setNotice('Listing purged from admin list.');
+    setNotice('Listing removed.');
     router.refresh();
   }
 
@@ -417,6 +404,8 @@ function updateRowOwnerPrice(id: string, nextOwnerPrice: number) {
           const totalPlatformEarningsCents = platformEarningsPerPointCents * row.points;
           const isDeclined = row.verification_status === 'rejected';
           const isAccepted = row.status === 'active';
+          const canEditPricing = canEditReadyStayPricing(row);
+          const canRemove = canSoftRemoveReadyStay(row);
 
           return (
             <article key={row.id} className="rounded-2xl border border-[#3a3a3a] bg-[#2f2f2f] p-5">
@@ -490,17 +479,19 @@ function updateRowOwnerPrice(id: string, nextOwnerPrice: number) {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Adjust Owner Payout / Point</p>
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="mt-3 w-full rounded border border-[#3a3a3a] bg-[#2f2f2f] px-2 py-1 text-sm text-[#ececec]"
-                      value={ownerPayoutPerPoint}
-                      onChange={(e) => updateRowOwnerPrice(row.id, Number(e.target.value))}
-                      placeholder="owner payout / pt"
-                    />
-                  </div>
+                  {canEditPricing ? (
+                    <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Adjust Owner Payout / Point</p>
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="mt-3 w-full rounded border border-[#3a3a3a] bg-[#2f2f2f] px-2 py-1 text-sm text-[#ececec]"
+                        value={ownerPayoutPerPoint}
+                        onChange={(e) => updateRowOwnerPrice(row.id, Number(e.target.value))}
+                        placeholder="owner payout / pt"
+                      />
+                    </div>
+                  ) : null}
 
                   <div className="flex flex-wrap gap-3">
                     {requiresApproval ? (
@@ -521,44 +512,22 @@ function updateRowOwnerPrice(id: string, nextOwnerPrice: number) {
                         >
                           Decline
                         </button>
-                        <button
-                          type="button"
-                          disabled={rowBusy}
-                          onClick={() => deleteListing(row.id)}
-                          className="rounded-full border border-slate-700 bg-transparent px-4 py-2 text-xs font-semibold text-[#b4b4b4] disabled:opacity-50"
-                        >
-                          Delete Listing
-                        </button>
-                        <button
-                          type="button"
-                          disabled={rowBusy}
-                          onClick={() => purgeListing(row.id)}
-                          className="px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8e8ea0] underline underline-offset-4 disabled:opacity-50"
-                        >
-                          Purge
-                        </button>
                       </>
                     ) : isAccepted ? (
                       <>
                         <div className="rounded-xl border border-emerald-800/60 bg-emerald-950/40 px-4 py-3 text-sm text-emerald-200">
                           Listing accepted.
                         </div>
-                        <button
-                          type="button"
-                          disabled={rowBusy}
-                          onClick={() => deleteListing(row.id)}
-                          className="rounded-full border border-slate-700 bg-transparent px-4 py-2 text-xs font-semibold text-[#b4b4b4] disabled:opacity-50"
-                        >
-                          Delete Listing
-                        </button>
-                        <button
-                          type="button"
-                          disabled={rowBusy}
-                          onClick={() => purgeListing(row.id)}
-                          className="px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8e8ea0] underline underline-offset-4 disabled:opacity-50"
-                        >
-                          Purge
-                        </button>
+                        {canRemove ? (
+                          <button
+                            type="button"
+                            disabled={rowBusy}
+                            onClick={() => removeListing(row.id)}
+                            className="rounded-full border border-slate-700 bg-transparent px-4 py-2 text-xs font-semibold text-[#b4b4b4] disabled:opacity-50"
+                          >
+                            Remove Listing
+                          </button>
+                        ) : null}
                       </>
                     ) : isDeclined ? (
                       <>
@@ -571,44 +540,22 @@ function updateRowOwnerPrice(id: string, nextOwnerPrice: number) {
                             </div>
                           ) : null}
                         </div>
-                        <button
-                          type="button"
-                          disabled={rowBusy}
-                          onClick={() => deleteListing(row.id)}
-                          className="rounded-full border border-slate-700 bg-transparent px-4 py-2 text-xs font-semibold text-[#b4b4b4] disabled:opacity-50"
-                        >
-                          Delete Listing
-                        </button>
-                        <button
-                          type="button"
-                          disabled={rowBusy}
-                          onClick={() => purgeListing(row.id)}
-                          className="px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8e8ea0] underline underline-offset-4 disabled:opacity-50"
-                        >
-                          Purge
-                        </button>
                       </>
                     ) : (
                       <>
                         <div className="rounded-xl border border-slate-700 bg-[#212121] px-4 py-3 text-sm text-[#b4b4b4]">
                           Listing status saved.
                         </div>
-                        <button
-                          type="button"
-                          disabled={rowBusy}
-                          onClick={() => deleteListing(row.id)}
-                          className="rounded-full border border-slate-700 bg-transparent px-4 py-2 text-xs font-semibold text-[#b4b4b4] disabled:opacity-50"
-                        >
-                          Delete Listing
-                        </button>
-                        <button
-                          type="button"
-                          disabled={rowBusy}
-                          onClick={() => purgeListing(row.id)}
-                          className="px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8e8ea0] underline underline-offset-4 disabled:opacity-50"
-                        >
-                          Purge
-                        </button>
+                        {canRemove ? (
+                          <button
+                            type="button"
+                            disabled={rowBusy}
+                            onClick={() => removeListing(row.id)}
+                            className="rounded-full border border-slate-700 bg-transparent px-4 py-2 text-xs font-semibold text-[#b4b4b4] disabled:opacity-50"
+                          >
+                            Remove Listing
+                          </button>
+                        ) : null}
                       </>
                     )}
                   </div>

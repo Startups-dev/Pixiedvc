@@ -71,6 +71,8 @@ function makeAdminClient() {
           ...selectMaybeSingle({
             id: "ready-1",
             owner_id: "owner-user-1",
+            status: "draft",
+            verification_status: "proof_uploaded",
             check_in: "2026-10-10",
             check_out: "2026-10-15",
             room_type: "Studio",
@@ -131,7 +133,10 @@ describe("POST /api/admin/ready-stays/[id]/reject", () => {
     expect(body).toEqual({ ok: true, id: "ready-1" });
     expect(updateReadyStay).toHaveBeenCalledWith(
       expect.objectContaining({
-        status: "draft",
+        status: "removed",
+        placement_home: false,
+        placement_resort: false,
+        placement_search: false,
         verification_status: "rejected",
         verification_review_notes: "Needs corrected proof.",
       }),

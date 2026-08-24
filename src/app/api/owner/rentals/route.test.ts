@@ -144,6 +144,25 @@ describe("POST /api/owner/rentals", () => {
     expect(insertMock).not.toHaveBeenCalled();
   });
 
+  test("rejects past-date Ready Stay submissions before inserting rental", async () => {
+    const response = await POST(
+      rentalRequest({
+        resort_id: "resort-1",
+        room_type: "Deluxe Studio - Lake View",
+        calculator_room_code: "STUDIO",
+        calculator_view_code: "L",
+        check_in: "2026-08-04",
+        check_out: "2026-08-05",
+        points: 16,
+      }) as any,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body).toEqual({ error: "Check-in must be today or later." });
+    expect(insertMock).not.toHaveBeenCalled();
+  });
+
   test("preserves legacy caller compatibility without assigning category", async () => {
     const response = await POST(
       rentalRequest({

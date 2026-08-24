@@ -48,6 +48,10 @@ export function isPublicReadyStayRow(row: ReadyStayVisibilityRow, nowMs = Date.n
     }
   }
 
+  if (status === 'active' && row.verification_status !== 'approved') {
+    return false;
+  }
+
   if (row.verification_status === 'proof_uploaded' || row.verification_status === 'rejected') {
     return false;
   }

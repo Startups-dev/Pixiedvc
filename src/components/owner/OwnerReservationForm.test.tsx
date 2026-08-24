@@ -263,6 +263,45 @@ describe("OwnerReservationForm", () => {
     expect(calledUrls.some((url) => url.includes("/api/owner/ready-stays"))).toBe(false);
   });
 
+  it("surfaces owner rental API failures without redirecting", async () => {
+    const user = userEvent.setup();
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+
+      if (url.includes("/api/owner/points-quote")) {
+        return makeJsonResponse({
+          total_points: 14,
+          total_nights: 1,
+          nights: [{ night: "2026-09-04", points: 14 }],
+        });
+      }
+
+      if (url.includes("/api/owner/rentals")) {
+        return makeJsonResponse({ error: "Check-in must be today or later." }, 400);
+      }
+
+      return makeJsonResponse({});
+    }) as unknown as typeof fetch;
+
+    render(<OwnerReservationForm resorts={RESORTS} />);
+
+    await user.selectOptions(screen.getByLabelText(/Resort/i), "bwv-id");
+    await user.selectOptions(screen.getByLabelText(/Accommodation/i), accommodationKey("BWV", "STUDIO", "P"));
+    setDates("2026-09-04", "2026-09-05");
+    await user.clear(screen.getByLabelText(/Set your payout/i));
+    await user.type(screen.getByLabelText(/Set your payout/i), "22");
+
+    await waitFor(() => {
+      expect((screen.getByLabelText(/^Points/i) as HTMLInputElement).value).toBe("14");
+    });
+
+    await user.click(screen.getByRole("button", { name: /Save Reservation/i }));
+
+    expect(await screen.findByText("Check-in must be today or later.")).toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("does not overwrite manually edited points and allows use calculated points", async () => {
     const user = userEvent.setup();
 

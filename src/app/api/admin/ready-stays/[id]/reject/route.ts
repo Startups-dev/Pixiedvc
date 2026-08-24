@@ -66,7 +66,7 @@ export async function POST(
 
   const { data: row, error } = await guard.adminClient
     .from("ready_stays")
-    .select("id, owner_id, check_in, check_out, room_type, resorts(name)")
+    .select("id, owner_id, status, verification_status, check_in, check_out, room_type, resorts(name)")
     .eq("id", readyStayId)
     .maybeSingle();
 
@@ -74,10 +74,17 @@ export async function POST(
     return NextResponse.json({ error: "Ready Stay not found." }, { status: 404 });
   }
 
+  if (["sold", "expired", "removed"].includes(row.status ?? "")) {
+    return NextResponse.json({ error: "Historical Ready Stays cannot be rejected again." }, { status: 409 });
+  }
+
   const { error: updateError } = await guard.adminClient
     .from("ready_stays")
     .update({
-      status: "draft",
+      status: "removed",
+      placement_home: false,
+      placement_resort: false,
+      placement_search: false,
       verification_status: "rejected",
       verification_rejected_at: new Date().toISOString(),
       verification_approved_at: null,

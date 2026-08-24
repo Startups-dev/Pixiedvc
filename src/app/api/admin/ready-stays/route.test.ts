@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-import { DELETE } from "./route";
+import { DELETE, PATCH } from "./route";
 
 const flags = vi.hoisted(() => ({
   value: {
@@ -13,6 +13,7 @@ let sessionClient: any;
 let adminClient: any;
 let updateReadyStay: ReturnType<typeof vi.fn>;
 let deleteReadyStay: ReturnType<typeof vi.fn>;
+let currentReadyStay: { id: string; status: string; verification_status: string | null } | null;
 
 vi.mock("@/lib/ready-stays/showcase-config", () => ({
   READY_STAYS_SHOWCASE_FLAGS: flags.value,
@@ -48,6 +49,9 @@ function makeSessionClient() {
 }
 
 function makeAdminClient() {
+  const maybeSingle = vi.fn().mockImplementation(async () => ({ data: currentReadyStay, error: null }));
+  const selectEq = vi.fn(() => ({ maybeSingle }));
+  const select = vi.fn(() => ({ eq: selectEq }));
   updateReadyStay = vi.fn(() => ({
     eq: vi.fn().mockResolvedValue({ error: null }),
   }));
@@ -58,6 +62,7 @@ function makeAdminClient() {
     from: vi.fn((table: string) => {
       if (table === "ready_stays") {
         return {
+          select,
           update: updateReadyStay,
           delete: deleteReadyStay,
         };
@@ -71,6 +76,7 @@ describe("DELETE /api/admin/ready-stays", () => {
   beforeEach(() => {
     flags.value.enableReadyStaysAdmin = true;
     flags.value.enableReadyStaysAdminPurge = false;
+    currentReadyStay = { id: "ready-1", status: "active", verification_status: "approved" };
     sessionClient = makeSessionClient();
     adminClient = makeAdminClient();
   });
@@ -108,6 +114,67 @@ describe("DELETE /api/admin/ready-stays", () => {
       placement_search: false,
     });
     expect(deleteReadyStay).not.toHaveBeenCalled();
+  });
+
+  test("blocks soft remove for sold listings", async () => {
+    currentReadyStay = { id: "ready-1", status: "sold", verification_status: "approved" };
+
+    const response = await DELETE(
+      new Request("http://localhost", {
+        method: "DELETE",
+        body: JSON.stringify({ id: "ready-1" }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body).toEqual({ error: "This Ready Stay is already historical and cannot be removed again." });
+    expect(updateReadyStay).not.toHaveBeenCalled();
+    expect(deleteReadyStay).not.toHaveBeenCalled();
+  });
+
+  test("blocks pricing edits for rejected audit records", async () => {
+    currentReadyStay = { id: "ready-1", status: "removed", verification_status: "rejected" };
+
+    const response = await PATCH(
+      new Request("http://localhost", {
+        method: "PATCH",
+        body: JSON.stringify({
+          id: "ready-1",
+          owner_price_per_point_cents: 2100,
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body).toEqual({
+      error: "This Ready Stay is historical and cannot be edited. View it in history/audit instead.",
+    });
+    expect(updateReadyStay).not.toHaveBeenCalled();
+  });
+
+  test("blocks direct publish before approval workflow", async () => {
+    currentReadyStay = { id: "ready-1", status: "draft", verification_status: "proof_uploaded" };
+
+    const response = await PATCH(
+      new Request("http://localhost", {
+        method: "PATCH",
+        body: JSON.stringify({
+          id: "ready-1",
+          status: "active",
+          slug: "ready-1",
+          title: "Ready Stay",
+          image_url: "https://example.com/ready.jpg",
+          sleeps: 4,
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body).toEqual({ error: "Use the Ready Stay approval action before publishing this listing." });
+    expect(updateReadyStay).not.toHaveBeenCalled();
   });
 
   test("allows physical purge only behind explicit purge flag", async () => {

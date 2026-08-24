@@ -23,6 +23,10 @@ function normalizeCode(value: unknown) {
   return typeof value === "string" ? value.trim().toUpperCase() : "";
 }
 
+function todayYmd() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export async function GET() {
   const cookieStore = await cookies();
   const supabase = await createSupabaseServerClient();
@@ -78,6 +82,10 @@ export async function POST(request: NextRequest) {
 
   if (checkIn >= checkOut) {
     return NextResponse.json({ error: "Check-out must be after check-in." }, { status: 400 });
+  }
+
+  if (checkIn < todayYmd()) {
+    return NextResponse.json({ error: "Check-in must be today or later." }, { status: 400 });
   }
 
   if (confirmationUploaded && confirmationNumber.length < 6) {
