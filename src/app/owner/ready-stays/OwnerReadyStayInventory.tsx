@@ -1,7 +1,7 @@
 import Link from "next/link";
+import { ArrowRight, CalendarDays, Clock3, DollarSign, Plus } from "lucide-react";
 
-import { Button, Card } from "@pixiedvc/design-system";
-import OwnerEmptyState from "@/components/owner/shared/OwnerEmptyState";
+import { Button } from "@pixiedvc/design-system";
 import type { OwnerReadyStayListItem } from "@/lib/owner/secondary-subpages";
 import { resolveResortImage } from "@/lib/resort-image";
 
@@ -33,75 +33,76 @@ function StatusMarker({ tone }: { tone: OwnerReadyStayListItem["displayStatusTon
   return <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: "#A7F3D0" }} />;
 }
 
+const metricIcons = [CalendarDays, Clock3, DollarSign];
+
 function OwnerReadyStayCard({ stay }: { stay: OwnerReadyStayListItem }) {
   return (
-    <article className="overflow-hidden rounded-[22px] bg-white shadow-[0_18px_50px_rgba(16,34,74,0.10)] ring-1 ring-[#E9E2D5]">
-      <div className="grid md:grid-cols-[38%_1fr]">
-        <div className="relative min-h-[220px] bg-[#EEE8DA] md:min-h-full">
+    <article className="overflow-hidden rounded-md border border-[#D9CDB8] bg-white">
+      <div className="grid lg:grid-cols-[42%_1fr]">
+        <div className="relative min-h-[260px] bg-[#EEE8DA] lg:min-h-[410px]">
           <img
             src={stay.imageUrl}
             alt={stay.imageAlt}
-            className="h-full min-h-[220px] w-full object-cover"
+            className="h-full min-h-[260px] w-full object-cover lg:min-h-[410px]"
             loading="lazy"
           />
-          <div className="absolute left-4 top-4 rounded-full bg-white/92 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#10224A] shadow-sm">
-            Ready Stay
-          </div>
         </div>
-        <div className="flex flex-col gap-6 p-6 sm:p-7">
+        <div className="flex flex-col justify-between gap-8 p-6 sm:p-8 lg:p-10">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
-              <h3 className="font-serif text-2xl font-semibold leading-tight text-[#10224A] sm:text-3xl">
+              <h3 className="font-serif text-3xl font-semibold leading-tight text-[#10224A] sm:text-4xl">
                 {stay.resortLabel}
               </h3>
-              <p className="mt-2 text-sm font-medium text-[#5E6878]">{stay.roomLabel}</p>
+              <p className="mt-2 text-base text-[#51607A]">{stay.roomLabel}</p>
             </div>
-            <div
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold tracking-[0.14em] ${statusClassName(stay.displayStatusTone)}`}
-              style={statusStyle(stay.displayStatusTone)}
-            >
-              <StatusMarker tone={stay.displayStatusTone} />
-              {stay.displayStatusLabel}
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8992A3]">Dates</p>
-              <p className="mt-1 text-sm font-semibold text-[#10224A]">{stay.dateLabel}</p>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8992A3]">Points</p>
-              <p className="mt-1 text-sm font-semibold text-[#10224A]">{stay.pointsLabel}</p>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8992A3]">Payout / point</p>
-              <p className="mt-1 text-sm font-semibold text-[#10224A]">{stay.ownerRateLabel}</p>
+            <div className="text-right">
+              <div
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold tracking-[0.14em] ${statusClassName(stay.displayStatusTone)}`}
+                style={statusStyle(stay.displayStatusTone)}
+              >
+                <StatusMarker tone={stay.displayStatusTone} />
+                {stay.displayStatusLabel}
+              </div>
+              <p className="mt-2 text-xs text-[#51607A]">{stay.displayStatusDescription}</p>
             </div>
           </div>
 
-          <div className="rounded-2xl bg-[#F7F2E8] px-5 py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7A6B43]">
-              Estimated owner payout
-            </p>
-            <p className="mt-1 text-2xl font-semibold text-[#10224A]">{stay.estimatedOwnerPayoutLabel}</p>
+          <div className="grid gap-6 sm:grid-cols-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#6F7B93]">Dates</p>
+              <p className="mt-2 text-base font-semibold text-[#10224A]">{stay.dateLabel}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#6F7B93]">Points</p>
+              <p className="mt-2 text-base font-semibold text-[#10224A]">{stay.pointsLabel}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#6F7B93]">Payout / point</p>
+              <p className="mt-2 text-base font-semibold text-[#10224A]">{stay.ownerRateLabel}</p>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#EFE8DC] pt-4">
-            <p className="text-sm text-[#667085]">{stay.displayStatusDescription}</p>
-            <div className="flex flex-wrap gap-3">
+          <div className="border-t border-[#C89A3D]/45 pt-8">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#9A6A1E]">Estimated owner payout</p>
+            <p className="mt-2 font-serif text-4xl font-semibold text-[#10224A]">{stay.estimatedOwnerPayoutLabel}</p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-end gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               {stay.publicHref ? (
-                <Button asChild variant="ghost">
-                  <Link href={stay.publicHref}>View listing</Link>
-                </Button>
+                <Link href={stay.publicHref} className="inline-flex items-center gap-2 text-sm font-semibold text-[#10224A] underline-offset-4 hover:underline">
+                  View listing
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
               ) : (
-                <span className="inline-flex items-center rounded-full border border-[#E7E0D2] bg-[#FBF8F1] px-4 py-2 text-xs font-semibold text-[#667085]">
+                <span className="text-sm font-semibold text-[#667085]">
                   Not public yet
                 </span>
               )}
-              <Button asChild>
+              <Button asChild className="!rounded-md !bg-[#10224A] !px-6 !py-3 !shadow-none">
                 <Link href={stay.detailHref} className="!text-white hover:!text-white">
-                  Manage
+                  Manage listing
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
               </Button>
             </div>
@@ -121,55 +122,69 @@ export default function OwnerReadyStayInventory({
   const emptyStateImage = resolveResortImage({ resortCode: "SSR", imageIndex: 1 });
 
   return (
-    <section id="active" className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <section id="active" className="space-y-9">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight text-[#10224A]">Your Ready Stays</h2>
+          <h1 className="font-serif text-5xl font-semibold tracking-tight text-[#10224A] sm:text-6xl">
+            Your Ready Stays
+          </h1>
         </div>
-        <Button asChild>
-          <Link href="/owner/dashboard?tab=listings&mode=add" className="!text-white hover:!text-white">
-            + List a Ready Stay
-          </Link>
-        </Button>
+        <Link
+          href="/owner/dashboard?tab=listings&mode=add"
+          className="inline-flex items-center gap-2 rounded-md border border-[#C89A3D] bg-white px-5 py-3 text-sm font-semibold text-[#8A570F] transition hover:bg-[#FBFAF7] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C89A3D]"
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          <span>List a Ready Stay</span>
+        </Link>
       </div>
 
-      <div className="flex flex-wrap gap-3 rounded-[18px] bg-white/72 p-3 shadow-[0_1px_2px_rgba(16,34,74,0.04)] ring-1 ring-[#E9E2D5]">
+      <div className="grid gap-6 border-y border-[#E1D7C7] py-7 sm:grid-cols-3 sm:gap-0">
         {[
           ["Active listings", String(activeCount)],
           ["Pending review", String(pendingReviewCount)],
-          ["Potential payout", potentialPayoutLabel],
-        ].map(([label, value]) => (
-          <div key={label} className="min-w-[150px] flex-1 rounded-[14px] bg-[#FBF8F1] px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7A8495]">{label}</p>
-            <p className="mt-1 text-xl font-semibold text-[#10224A]">{value}</p>
-          </div>
-        ))}
+          ["Estimated payout", potentialPayoutLabel],
+        ].map(([label, value], index) => {
+          const Icon = metricIcons[index] ?? CalendarDays;
+          return (
+            <div key={label} className="flex gap-4 sm:border-l sm:border-[#E1D7C7] sm:px-8 first:sm:border-l-0 first:sm:pl-0">
+              <Icon className="mt-1 h-6 w-6 shrink-0 text-[#9A6A1E]" aria-hidden="true" />
+              <div>
+                <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#53617A]">{label}</p>
+                <p className={index === 2 ? "mt-2 font-serif text-3xl font-semibold text-[#10224A]" : "mt-2 text-3xl font-semibold text-[#10224A]"}>
+                  {value}
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {items.length === 0 ? (
-        <Card className="overflow-hidden rounded-[24px] border border-[#E9E2D5] bg-white shadow-[0_18px_50px_rgba(16,34,74,0.08)]">
-          <div className="grid md:grid-cols-[40%_1fr]">
+        <div className="overflow-hidden rounded-md border border-[#D9CDB8] bg-white">
+          <div className="grid md:grid-cols-[42%_1fr]">
             <img
               src={emptyStateImage.url}
               alt="Disney Vacation Club resort"
               className="h-56 w-full object-cover md:h-full"
               loading="lazy"
             />
-            <div className="p-7 sm:p-9">
-              <OwnerEmptyState
-                title="No Ready Stays yet"
-                body="Have a confirmed DVC reservation you no longer need? List it for Hanna review."
-              />
+            <div className="p-8 sm:p-10">
+              <div className="max-w-xl">
+                <p className="font-serif text-3xl font-semibold text-[#10224A]">No Ready Stays yet</p>
+                <p className="mt-3 text-sm leading-6 text-[#51607A]">
+                  Have a confirmed DVC reservation you no longer need? List it for Hanna review.
+                </p>
+              </div>
               <div className="mt-6">
-                <Button asChild>
+                <Button asChild className="!rounded-md !bg-[#10224A] !shadow-none">
                   <Link href="/owner/dashboard?tab=listings&mode=add" className="!text-white hover:!text-white">
-                    + List a Ready Stay
+                    List a Ready Stay
                   </Link>
                 </Button>
               </div>
             </div>
           </div>
-        </Card>
+        </div>
       ) : (
         <div className="space-y-5" data-testid="ready-stay-card-list">
           {items.map((stay) => (

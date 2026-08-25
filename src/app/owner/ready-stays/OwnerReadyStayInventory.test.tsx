@@ -43,7 +43,7 @@ describe("OwnerReadyStayInventory", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Your Ready Stays" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "+ List a Ready Stay" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "List a Ready Stay" })).toHaveAttribute(
       "href",
       "/owner/dashboard?tab=listings&mode=add",
     );
@@ -59,7 +59,7 @@ describe("OwnerReadyStayInventory", () => {
       expect.stringContaining("/storage/v1/object/public/resorts/bay-lake-tower/BTC1.png"),
     );
     expect(screen.getByRole("link", { name: "View listing" })).toHaveAttribute("href", "/ready-stays/stay-1");
-    expect(screen.getByRole("link", { name: "Manage" })).toHaveAttribute("href", "/owner/ready-stays/stay-1");
+    expect(screen.getByRole("link", { name: "Manage listing" })).toHaveAttribute("href", "/owner/ready-stays/stay-1");
 
     const primaryInventory = screen.getByTestId("ready-stay-card-list");
     expect(within(primaryInventory).queryByRole("table")).not.toBeInTheDocument();
@@ -108,6 +108,6 @@ describe("OwnerReadyStayInventory", () => {
       "src",
       expect.stringContaining("/storage/v1/object/public/resorts/saratoga-springs-resort/SSR1.png"),
     );
-    expect(screen.getAllByRole("link", { name: "+ List a Ready Stay" })).toHaveLength(2);
+    expect(screen.getAllByRole("link", { name: "List a Ready Stay" })).toHaveLength(2);
   });
 });

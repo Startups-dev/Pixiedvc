@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArrowRight, CalendarDays, CheckSquare, FileCheck, Sparkles } from "lucide-react";
 
-import { Button, Card } from "@pixiedvc/design-system";
+import { Card } from "@pixiedvc/design-system";
 import PendingTransfersCard from "./PendingTransfersCard";
 import OwnerReadyStayInventory from "./OwnerReadyStayInventory";
-import OwnerEmptyState from "@/components/owner/shared/OwnerEmptyState";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { requireOwnerAccess } from "@/lib/owner/requireOwnerAccess";
@@ -131,7 +131,7 @@ export default async function ReadyStaysPage({
   const soldItems = buildOwnerReadyStayListItems(soldListings);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-12 bg-white px-6 py-10 sm:px-8 lg:px-12">
       {resolvedSearchParams?.notice === "select" ? (
         <Card className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           Choose a reservation to list.
@@ -160,121 +160,125 @@ export default async function ReadyStaysPage({
         potentialPayoutLabel={estimatedPayoutCents > 0 ? formatCurrencyFromCents(estimatedPayoutCents) : "Unavailable"}
       />
 
-      <section id="post-ready-stay" className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+      <section id="post-ready-stay" className="grid gap-8 border-b border-[#E1D7C7] pb-10 lg:grid-cols-2 lg:gap-0">
         {dashboardItems.length > 0 ? (
-          <Card className="rounded-[18px] border border-[#E7E7E4] bg-white p-5 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Have another confirmed reservation?</h2>
-            <p className="mt-2 text-sm text-muted">Submit it for Hanna review when you are ready to list.</p>
-            <div className="mt-5">
-              <Button asChild variant="ghost">
-                <Link href="/owner/dashboard?tab=listings&mode=add">List a Ready Stay</Link>
-              </Button>
-            </div>
-          </Card>
-        ) : null}
-        <Card className="rounded-[18px] border border-[#E8D6A8] bg-white p-6 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Need to move expiring points fast?</h2>
-          <p className="mt-2 text-sm text-muted">
-            Submit expiring points for concierge-assisted last-minute placement.
-          </p>
-          <div className="mt-5">
-            <Button asChild variant="ghost">
-              <Link href="/owner/liquidation-opportunities">Submit Expiring Points</Link>
-            </Button>
-          </div>
-        </Card>
-      </section>
-
-      <section id="pending-transfers" className="space-y-4">
-        {pendingTransferRows.length > 0 ? (
-          <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-            <p className="text-sm font-semibold text-ink">Transfer required</p>
-            <p className="mt-1 text-sm text-slate-500">
-              A guest has paid. Complete the Disney transfer to release the confirmation number.
-            </p>
-          </div>
-        ) : null}
-        <Card className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-ink">Pending Transfers</h2>
-          </div>
-          {/* TODO: Expand this to include contract-linked transfers once transfer completion fields are available. */}
-          {pendingTransferRows.length === 0 ? (
-            <OwnerEmptyState
-              title="No pending transfers right now."
-              body="Once a guest completes payment and a transfer is needed, those reservations will appear here."
-            />
-          ) : (
-            <PendingTransfersCard initialRows={pendingTransferRows} />
-          )}
-        </Card>
-      </section>
-
-      <section id="how-it-works" className="space-y-4">
-        <Card className="rounded-[18px] border border-[#E7E7E4] bg-white p-5 shadow-[0_1px_2px_rgba(16,34,74,0.04)]">
-          <details>
-            <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.2em] text-ink">
-              Ready Stays FAQ
-            </summary>
-            <div className="mt-4 space-y-3 text-sm text-muted">
-              <p>HannaDVC reviews every Ready Stay before it goes public, and payout details are confirmed before guest booking.</p>
-              <Link href="/owner/ready-stays/faq" className="inline-flex text-sm font-semibold text-brand hover:underline">
-                Read the Ready Stays FAQ
+          <div className="flex gap-5 pr-0 lg:pr-10">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FBFAF7] text-[#9A6A1E]">
+              <CalendarDays className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div>
+              <h2 className="font-serif text-2xl font-semibold text-[#10224A]">Have another confirmed reservation?</h2>
+              <p className="mt-2 text-sm leading-6 text-[#51607A]">Submit it for Hanna review when you are ready to list.</p>
+              <Link href="/owner/dashboard?tab=listings&mode=add" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#10224A] hover:underline">
+                List a Ready Stay
+                <ArrowRight className="h-4 w-4 text-[#9A6A1E]" aria-hidden="true" />
               </Link>
             </div>
-          </details>
-        </Card>
+          </div>
+        ) : null}
+        <div className={dashboardItems.length > 0 ? "flex gap-5 border-[#E1D7C7] lg:border-l lg:pl-10" : "flex gap-5"}>
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FBFAF7] text-[#9A6A1E]">
+            <Sparkles className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div>
+            <h2 className="font-serif text-2xl font-semibold text-[#10224A]">Need to move expiring points fast?</h2>
+            <p className="mt-2 text-sm leading-6 text-[#51607A]">
+              Submit expiring points for concierge-assisted last-minute placement.
+            </p>
+            <Link href="/owner/liquidation-opportunities" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#10224A] hover:underline">
+              Submit Expiring Points
+              <ArrowRight className="h-4 w-4 text-[#9A6A1E]" aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
       </section>
 
-      <section id="completed-sales" className="space-y-4">
-        <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <details open>
-            <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.2em] text-ink">
-              Completed Sales
-            </summary>
-            <div className="mt-4">
-              {soldItems.length === 0 ? (
-                <OwnerEmptyState
-                  title="No completed Ready Stay sales yet."
-                  body="Approved listings will appear here once booked."
-                />
-              ) : (
-                <div className="overflow-x-auto rounded-2xl border border-slate-200">
-                  <table className="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead className="bg-slate-50">
-                      <tr className="text-left text-xs uppercase tracking-[0.2em] text-slate-500">
-                        <th className="px-4 py-3 font-semibold">Resort</th>
-                        <th className="px-4 py-3 font-semibold">Dates</th>
-                        <th className="px-4 py-3 font-semibold">Points</th>
-                        <th className="px-4 py-3 font-semibold">Your Payout/PT</th>
-                        <th className="px-4 py-3 font-semibold">Your Payout</th>
-                        <th className="px-4 py-3 font-semibold">Status</th>
-                        <th className="px-4 py-3 font-semibold">Sold date</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      {soldItems.map((stay) => (
-                        <tr key={stay.id}>
-                          <td className="px-4 py-3 text-ink">{stay.resortLabel}</td>
-                          <td className="px-4 py-3 text-slate-500">{stay.dateLabel}</td>
-                          <td className="px-4 py-3 text-slate-500">{stay.pointsLabel}</td>
-                          <td className="px-4 py-3 text-slate-500">{stay.ownerRateLabel}</td>
-                          <td className="px-4 py-3 text-slate-500">{stay.estimatedOwnerPayoutLabel}</td>
-                          <td className="px-4 py-3 text-slate-500">
-                            <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-                              {stay.displayStatusLabel}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-slate-500">{stay.updatedAtLabel}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+      <section className="grid gap-10 lg:grid-cols-2 lg:gap-0">
+        <div id="pending-transfers" className="lg:pr-10">
+          <div className="flex items-center justify-between border-b border-[#C89A3D]/45 pb-4">
+            <h2 className="font-serif text-2xl font-semibold text-[#10224A]">Pending Transfers</h2>
+          </div>
+          <div className="py-10">
+            {pendingTransferRows.length === 0 ? (
+              <div className="flex items-start gap-6">
+                <CheckSquare className="mt-1 h-9 w-9 shrink-0 text-[#10224A]" strokeWidth={1.5} aria-hidden="true" />
+                <div>
+                  <p className="text-base font-semibold text-[#10224A]">No pending transfers right now.</p>
+                  <p className="mt-2 max-w-md text-sm leading-6 text-[#51607A]">
+                    Once a guest completes payment and a transfer is needed, those reservations will appear here.
+                  </p>
                 </div>
-              )}
-            </div>
-          </details>
-        </Card>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm font-semibold text-[#10224A]">Transfer required</p>
+                <p className="text-sm leading-6 text-[#51607A]">
+                  A guest has paid. Complete the Disney transfer to release the confirmation number.
+                </p>
+                <PendingTransfersCard initialRows={pendingTransferRows} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div id="completed-sales" className="border-[#E1D7C7] lg:border-l lg:pl-10">
+          <div className="flex items-center justify-between border-b border-[#C89A3D]/45 pb-4">
+            <h2 className="font-serif text-2xl font-semibold text-[#10224A]">Completed Sales</h2>
+          </div>
+          <div className="py-10">
+            {soldItems.length === 0 ? (
+              <div className="flex items-start gap-6">
+                <FileCheck className="mt-1 h-9 w-9 shrink-0 text-[#10224A]" strokeWidth={1.5} aria-hidden="true" />
+                <div>
+                  <p className="text-base font-semibold text-[#10224A]">No completed sales yet.</p>
+                  <p className="mt-2 max-w-md text-sm leading-6 text-[#51607A]">
+                    Your completed Ready Stay sales will appear here.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-[#E1D7C7] text-sm">
+                  <thead>
+                    <tr className="text-left text-[11px] uppercase tracking-[0.18em] text-[#6F7B93]">
+                      <th className="py-3 pr-4 font-semibold">Resort</th>
+                      <th className="px-4 py-3 font-semibold">Dates</th>
+                      <th className="px-4 py-3 font-semibold">Points</th>
+                      <th className="px-4 py-3 font-semibold">Payout</th>
+                      <th className="px-4 py-3 font-semibold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#EFE8DC]">
+                    {soldItems.map((stay) => (
+                      <tr key={stay.id}>
+                        <td className="py-3 pr-4 font-semibold text-[#10224A]">{stay.resortLabel}</td>
+                        <td className="px-4 py-3 text-[#51607A]">{stay.dateLabel}</td>
+                        <td className="px-4 py-3 text-[#51607A]">{stay.pointsLabel}</td>
+                        <td className="px-4 py-3 text-[#51607A]">{stay.estimatedOwnerPayoutLabel}</td>
+                        <td className="px-4 py-3 text-[#51607A]">{stay.displayStatusLabel}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section id="how-it-works" className="border-t border-[#E1D7C7] pt-6">
+        <details>
+          <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.18em] text-[#10224A]">
+            Ready Stays FAQ
+          </summary>
+          <div className="mt-4 max-w-2xl space-y-3 text-sm leading-6 text-[#51607A]">
+            <p>HannaDVC reviews every Ready Stay before it goes public, and payout details are confirmed before guest booking.</p>
+            <Link href="/owner/ready-stays/faq" className="inline-flex items-center gap-2 font-semibold text-[#10224A] hover:underline">
+              Read the Ready Stays FAQ
+              <ArrowRight className="h-4 w-4 text-[#9A6A1E]" aria-hidden="true" />
+            </Link>
+          </div>
+        </details>
       </section>
     </div>
   );
