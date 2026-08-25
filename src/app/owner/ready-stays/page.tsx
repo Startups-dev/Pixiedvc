@@ -12,7 +12,7 @@ import { buildOwnerReadyStayListItems } from "@/lib/owner/secondary-subpages";
 
 const hannaIconPaths = {
   readyStayActive: "/images/hanna-icons/ready-stay-active.png",
-  concierge: "/images/affiliate/icons/concierge-bell-transparent-v4.png",
+  concierge: "/images/hanna-icons/concierge.png",
   payoutComplete: "/images/affiliate/icons/payout-ribbon-transparent-v4.png",
 } as const;
 

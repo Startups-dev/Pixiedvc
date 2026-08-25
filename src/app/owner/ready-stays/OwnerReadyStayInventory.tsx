@@ -36,7 +36,7 @@ function StatusMarker({ tone }: { tone: OwnerReadyStayListItem["displayStatusTon
 const hannaIconPaths = {
   readyStayActive: "/images/hanna-icons/ready-stay-active.png",
   pendingReview: "/images/hanna-icons/pending-review.png",
-  ownerEarnings: "/images/affiliate/icons/stacked-coins-transparent-v4.png",
+  ownerEarnings: "/images/hanna-icons/owner-earnings.png",
 } as const;
 
 function HannaMetricIcon({ src }: { src: string }) {
