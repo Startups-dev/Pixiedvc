@@ -52,13 +52,17 @@ describe("owner secondary subpage view models", () => {
       {
         id: "stay-active",
         status: "active",
-        verification_status: null,
+        verification_status: "approved",
         check_in: "2026-10-10",
         check_out: "2026-10-17",
         room_type: "Deluxe Studio",
         points: 120,
         owner_price_per_point_cents: 2000,
         reservation_proof_uploaded_at: "2026-08-01T00:00:00.000Z",
+        is_visible_publicly: true,
+        slug: "beach-club-october",
+        title: "Beach Club Villas Ready Stay",
+        image_url: "https://hannadvc.test/storage/v1/object/public/resorts/beach-club-villa/BCV1.png",
         updated_at: "2026-08-02T00:00:00.000Z",
         resorts: { name: "Beach Club Villas" },
       },
@@ -79,6 +83,7 @@ describe("owner secondary subpage view models", () => {
     expect(items[0].statusLabel).toBe("Active");
     expect(items[0].displayStatusLabel).toBe("LIVE");
     expect(items[0].displayStatusDescription).toBe("Visible to guests");
+    expect(items[0].publicHref).toBe("/ready-stays/stay-active");
     expect(items[0].estimatedOwnerPayoutLabel).toBe("$2,400");
     expect(items[1].statusLabel).toBe("Submitted for review");
     expect(items[1].displayStatusLabel).toBe("IN REVIEW");

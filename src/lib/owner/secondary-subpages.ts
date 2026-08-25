@@ -1,5 +1,6 @@
 import type { NotificationRow, OwnerMembership } from "@/lib/owner-data";
 import { POINT_STATUS_NOTIFICATION_TYPES, type PointStatusAction } from "@/lib/owner/point-status";
+import { isPublicReadyStayRow } from "@/lib/ready-stays/visibility";
 import { resolveResortImage } from "@/lib/resort-image";
 import {
   getOwnerReadyStayStatusLabel,
@@ -20,6 +21,12 @@ export type OwnerReadyStayListInput = {
   owner_price_per_point_cents: number | null;
   reservation_proof_uploaded_at?: string | null;
   updated_at?: string | null;
+  is_visible_publicly?: boolean | null;
+  slug?: string | null;
+  title?: string | null;
+  image_url?: string | null;
+  expires_at?: string | null;
+  locked_until?: string | null;
   resorts?: { name: string | null; slug?: string | null; calculator_code?: string | null } | null;
 };
 
@@ -39,6 +46,7 @@ export type OwnerReadyStayListItem = {
   updatedAtLabel: string;
   group: Exclude<OwnerReadyStayFilter, "all">;
   detailHref: string;
+  publicHref: string | null;
   imageUrl: string;
   imageAlt: string;
 };
@@ -181,6 +189,7 @@ export function buildOwnerReadyStayListItems(rows: OwnerReadyStayListInput[]): O
       updatedAtLabel: formatDate(row.updated_at),
       group: readyStayGroup(row.status, row.verification_status),
       detailHref: `/owner/ready-stays/${row.id}`,
+      publicHref: isPublicReadyStayRow(row) ? `/ready-stays/${row.id}` : null,
       imageUrl: image.url,
       imageAlt: `${resortLabel} resort`,
     };

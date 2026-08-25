@@ -23,6 +23,7 @@ function readyStay(overrides: Partial<OwnerReadyStayListItem> = {}): OwnerReadyS
     updatedAtLabel: overrides.updatedAtLabel ?? "Aug 20, 2026",
     group: overrides.group ?? "active",
     detailHref: overrides.detailHref ?? "/owner/ready-stays/stay-1",
+    publicHref: overrides.publicHref === undefined ? "/ready-stays/stay-1" : overrides.publicHref,
     imageUrl:
       overrides.imageUrl ??
       "https://hannadvc.test/storage/v1/object/public/resorts/bay-lake-tower/BTC1.png",
@@ -57,10 +58,7 @@ describe("OwnerReadyStayInventory", () => {
       "src",
       expect.stringContaining("/storage/v1/object/public/resorts/bay-lake-tower/BTC1.png"),
     );
-    expect(screen.getByRole("link", { name: "View listing" })).toHaveAttribute(
-      "href",
-      "/owner/ready-stays/stay-1",
-    );
+    expect(screen.getByRole("link", { name: "View listing" })).toHaveAttribute("href", "/ready-stays/stay-1");
     expect(screen.getByRole("link", { name: "Manage" })).toHaveAttribute("href", "/owner/ready-stays/stay-1");
 
     const primaryInventory = screen.getByTestId("ready-stay-card-list");
@@ -73,6 +71,7 @@ describe("OwnerReadyStayInventory", () => {
         items={[
           readyStay({
             id: "stay-review",
+            publicHref: null,
             displayStatusLabel: "IN REVIEW",
             displayStatusDescription: "We're verifying your reservation.",
             displayStatusTone: "review",
@@ -87,6 +86,8 @@ describe("OwnerReadyStayInventory", () => {
 
     expect(screen.getByText("IN REVIEW")).toBeInTheDocument();
     expect(screen.getByText("We're verifying your reservation.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "View listing" })).not.toBeInTheDocument();
+    expect(screen.getByText("Not public yet")).toBeInTheDocument();
     expect(screen.getByText("Pending review")).toBeInTheDocument();
     expect(screen.getByText("1")).toBeInTheDocument();
   });

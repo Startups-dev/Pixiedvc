@@ -72,11 +72,19 @@ function OwnerReadyStayCard({ stay }: { stay: OwnerReadyStayListItem }) {
           <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#EFE8DC] pt-4">
             <p className="text-sm text-[#667085]">{stay.displayStatusDescription}</p>
             <div className="flex flex-wrap gap-3">
-              <Button asChild variant="ghost">
-                <Link href={stay.detailHref}>View listing</Link>
-              </Button>
+              {stay.publicHref ? (
+                <Button asChild variant="ghost">
+                  <Link href={stay.publicHref}>View listing</Link>
+                </Button>
+              ) : (
+                <span className="inline-flex items-center rounded-full border border-[#E7E0D2] bg-[#FBF8F1] px-4 py-2 text-xs font-semibold text-[#667085]">
+                  Not public yet
+                </span>
+              )}
               <Button asChild>
-                <Link href={stay.detailHref}>Manage</Link>
+                <Link href={stay.detailHref} className="!text-white hover:!text-white">
+                  Manage
+                </Link>
               </Button>
             </div>
           </div>
@@ -102,7 +110,9 @@ export default function OwnerReadyStayInventory({
           <p className="mt-1 text-sm text-[#667085]">Manage your confirmed reservations.</p>
         </div>
         <Button asChild>
-          <Link href="/owner/dashboard?tab=listings&mode=add">+ List a Ready Stay</Link>
+          <Link href="/owner/dashboard?tab=listings&mode=add" className="!text-white hover:!text-white">
+            + List a Ready Stay
+          </Link>
         </Button>
       </div>
 
@@ -135,7 +145,9 @@ export default function OwnerReadyStayInventory({
               />
               <div className="mt-6">
                 <Button asChild>
-                  <Link href="/owner/dashboard?tab=listings&mode=add">+ List a Ready Stay</Link>
+                  <Link href="/owner/dashboard?tab=listings&mode=add" className="!text-white hover:!text-white">
+                    + List a Ready Stay
+                  </Link>
                 </Button>
               </div>
             </div>

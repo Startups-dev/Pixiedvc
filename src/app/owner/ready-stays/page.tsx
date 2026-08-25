@@ -45,7 +45,7 @@ export default async function ReadyStaysPage({
   const { data: readyStays } = await adminClient
     .from("ready_stays")
     .select(
-      "id, rental_id, status, verification_status, sold_booking_request_id, booking_request_id, check_in, check_out, room_type, points, owner_price_per_point_cents, created_at, updated_at, reservation_proof_uploaded_at, resorts(name, slug, calculator_code)",
+      "id, rental_id, status, verification_status, sold_booking_request_id, booking_request_id, check_in, check_out, room_type, points, owner_price_per_point_cents, created_at, updated_at, reservation_proof_uploaded_at, is_visible_publicly, slug, title, image_url, expires_at, locked_until, resorts(name, slug, calculator_code)",
     )
     .in("owner_id", ownerIds)
     .order("created_at", { ascending: false });

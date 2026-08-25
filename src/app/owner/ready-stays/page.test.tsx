@@ -15,6 +15,12 @@ type ReadyStayRow = {
   points: number | null;
   owner_price_per_point_cents: number | null;
   reservation_proof_uploaded_at: string | null;
+  is_visible_publicly: boolean | null;
+  slug: string | null;
+  title: string | null;
+  image_url: string | null;
+  expires_at: string | null;
+  locked_until: string | null;
   updated_at: string | null;
   created_at: string | null;
   resorts: { name: string | null; slug: string | null; calculator_code: string | null } | null;
@@ -93,6 +99,12 @@ describe("ReadyStaysPage", () => {
       points: 32,
       owner_price_per_point_cents: 2300,
       reservation_proof_uploaded_at: "2026-08-01T00:00:00.000Z",
+      is_visible_publicly: true,
+      slug: "bay-lake-tower-sep-2026",
+      title: "Bay Lake Tower ready stay",
+      image_url: "https://hannadvc.test/storage/v1/object/public/resorts/bay-lake-tower/BTC1.png",
+      expires_at: null,
+      locked_until: null,
       updated_at: "2026-08-02T00:00:00.000Z",
       created_at: "2026-08-01T00:00:00.000Z",
       resorts: { name: "Bay Lake Tower", slug: "bay-lake-tower", calculator_code: "BLT" },
