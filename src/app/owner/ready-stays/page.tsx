@@ -19,7 +19,7 @@ const hannaIconPaths = {
 
 function HannaUtilityIcon({ src, className = "h-9 w-9" }: { src: string; className?: string }) {
   return (
-    <span className={`relative shrink-0 ${className}`}>
+    <span className={`relative block shrink-0 ${className}`}>
       <Image src={src} alt="" fill sizes="40px" className="object-contain" />
     </span>
   );
