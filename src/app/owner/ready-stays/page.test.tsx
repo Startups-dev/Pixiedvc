@@ -118,6 +118,10 @@ describe("ReadyStaysPage", () => {
     const { default: ReadyStaysPage } = await import("./page");
     render(await ReadyStaysPage({ searchParams: {} }));
 
+    expect(screen.queryByRole("heading", { name: "Ready Stays" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Manage your confirmed reservations and complete transfer actions when a guest books.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Manage your confirmed reservations.")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Your Ready Stays" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Pending Transfers" })).toBeInTheDocument();
     expect(screen.getByText("Pending transfer rows")).toBeInTheDocument();
     expect(screen.getByText("Completed Sales")).toBeInTheDocument();
