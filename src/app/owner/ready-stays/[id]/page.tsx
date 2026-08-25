@@ -25,15 +25,24 @@ function formatCurrencyFromCents(value: number | null) {
 }
 
 function statusClassName(tone: OwnerReadyStayListItem["displayStatusTone"]) {
-  if (tone === "live") return "border-emerald-700 bg-emerald-700 text-white shadow-[0_8px_18px_rgba(4,120,87,0.25)]";
+  if (tone === "live") return "border-transparent text-white shadow-[0_8px_18px_rgba(4,120,87,0.25)]";
   if (tone === "booked") return "border-[#D9C27A] bg-[#FFF8E1] text-[#6B5315]";
   if (tone === "removed") return "border-slate-200 bg-slate-100 text-slate-600";
   return "border-amber-200 bg-amber-50 text-amber-800";
 }
 
+function statusStyle(tone: OwnerReadyStayListItem["displayStatusTone"]) {
+  if (tone !== "live") return undefined;
+  return {
+    backgroundColor: "#047857",
+    borderColor: "#047857",
+    color: "#ffffff",
+  };
+}
+
 function StatusMarker({ tone }: { tone: OwnerReadyStayListItem["displayStatusTone"] }) {
   if (tone !== "live") return null;
-  return <span aria-hidden="true" className="h-2 w-2 rounded-full bg-emerald-200" />;
+  return <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: "#A7F3D0" }} />;
 }
 
 export default async function OwnerReadyStayDetailPage({
@@ -123,7 +132,10 @@ export default async function OwnerReadyStayDetailPage({
                 {formatDate(readyStay.check_in)} - {formatDate(readyStay.check_out)}
               </p>
             </div>
-            <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold tracking-[0.16em] ${statusClassName(displayItem.displayStatusTone)}`}>
+            <div
+              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold tracking-[0.16em] ${statusClassName(displayItem.displayStatusTone)}`}
+              style={statusStyle(displayItem.displayStatusTone)}
+            >
               <StatusMarker tone={displayItem.displayStatusTone} />
               {displayItem.displayStatusLabel}
             </div>

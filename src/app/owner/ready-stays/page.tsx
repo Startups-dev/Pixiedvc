@@ -5,7 +5,6 @@ import { Button, Card } from "@pixiedvc/design-system";
 import PendingTransfersCard from "./PendingTransfersCard";
 import OwnerReadyStayInventory from "./OwnerReadyStayInventory";
 import OwnerEmptyState from "@/components/owner/shared/OwnerEmptyState";
-import OwnerPageHeader from "@/components/owner/shared/OwnerPageHeader";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { requireOwnerAccess } from "@/lib/owner/requireOwnerAccess";
@@ -153,13 +152,6 @@ export default async function ReadyStaysPage({
           Your Ready Stay has been submitted. Listings may take up to 10 minutes to appear.
         </Card>
       ) : null}
-
-      <OwnerPageHeader
-        eyebrow="Ready Stays"
-        title="Ready Stays"
-        description="Manage your confirmed reservations and complete transfer actions when a guest books."
-        summary={`${activeCount} active listing${activeCount === 1 ? "" : "s"}`}
-      />
 
       <OwnerReadyStayInventory
         items={dashboardItems}
