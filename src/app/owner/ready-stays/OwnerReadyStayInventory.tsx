@@ -13,10 +13,15 @@ type OwnerReadyStayInventoryProps = {
 };
 
 function statusClassName(tone: OwnerReadyStayListItem["displayStatusTone"]) {
-  if (tone === "live") return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  if (tone === "live") return "border-emerald-700 bg-emerald-700 text-white shadow-[0_8px_18px_rgba(4,120,87,0.25)]";
   if (tone === "booked") return "border-[#D9C27A] bg-[#FFF8E1] text-[#6B5315]";
   if (tone === "removed") return "border-slate-200 bg-slate-100 text-slate-600";
   return "border-amber-200 bg-amber-50 text-amber-800";
+}
+
+function StatusMarker({ tone }: { tone: OwnerReadyStayListItem["displayStatusTone"] }) {
+  if (tone !== "live") return null;
+  return <span aria-hidden="true" className="h-2 w-2 rounded-full bg-emerald-200" />;
 }
 
 function OwnerReadyStayCard({ stay }: { stay: OwnerReadyStayListItem }) {
@@ -42,7 +47,8 @@ function OwnerReadyStayCard({ stay }: { stay: OwnerReadyStayListItem }) {
               </h3>
               <p className="mt-2 text-sm font-medium text-[#5E6878]">{stay.roomLabel}</p>
             </div>
-            <div className={`rounded-full border px-3 py-1 text-xs font-semibold tracking-[0.14em] ${statusClassName(stay.displayStatusTone)}`}>
+            <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold tracking-[0.14em] ${statusClassName(stay.displayStatusTone)}`}>
+              <StatusMarker tone={stay.displayStatusTone} />
               {stay.displayStatusLabel}
             </div>
           </div>
