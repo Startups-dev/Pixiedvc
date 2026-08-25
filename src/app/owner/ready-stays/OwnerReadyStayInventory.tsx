@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, CalendarDays, Clock3, DollarSign, Plus } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, Clock3, Plus } from "lucide-react";
 
 import { Button } from "@pixiedvc/design-system";
 import type { OwnerReadyStayListItem } from "@/lib/owner/secondary-subpages";
@@ -33,7 +34,18 @@ function StatusMarker({ tone }: { tone: OwnerReadyStayListItem["displayStatusTon
   return <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: "#A7F3D0" }} />;
 }
 
-const metricIcons = [CalendarDays, Clock3, DollarSign];
+const hannaIconPaths = {
+  readyStayActive: "/images/hanna-icons/ready-stay-active.png",
+  ownerEarnings: "/images/affiliate/icons/stacked-coins-transparent-v4.png",
+} as const;
+
+function HannaMetricIcon({ src }: { src: string }) {
+  return (
+    <span className="relative mt-0.5 h-8 w-8 shrink-0">
+      <Image src={src} alt="" fill sizes="32px" className="object-contain" />
+    </span>
+  );
+}
 
 function OwnerReadyStayCard({ stay }: { stay: OwnerReadyStayListItem }) {
   return (
@@ -140,14 +152,17 @@ export default function OwnerReadyStayInventory({
 
       <div className="grid gap-6 border-y border-[#E1D7C7] py-7 sm:grid-cols-3 sm:gap-0">
         {[
-          ["Active listings", String(activeCount)],
-          ["Pending review", String(pendingReviewCount)],
-          ["Estimated payout", potentialPayoutLabel],
-        ].map(([label, value], index) => {
-          const Icon = metricIcons[index] ?? CalendarDays;
+          ["Active listings", String(activeCount), hannaIconPaths.readyStayActive],
+          ["Pending review", String(pendingReviewCount), null],
+          ["Estimated payout", potentialPayoutLabel, hannaIconPaths.ownerEarnings],
+        ].map(([label, value, iconSrc], index) => {
           return (
             <div key={label} className="flex gap-4 sm:border-l sm:border-[#E1D7C7] sm:px-8 first:sm:border-l-0 first:sm:pl-0">
-              <Icon className="mt-1 h-6 w-6 shrink-0 text-[#9A6A1E]" aria-hidden="true" />
+              {iconSrc ? (
+                <HannaMetricIcon src={iconSrc} />
+              ) : (
+                <Clock3 className="mt-1 h-7 w-7 shrink-0 text-[#9A6A1E]" aria-hidden="true" strokeWidth={1.6} />
+              )}
               <div>
                 <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#53617A]">{label}</p>
                 <p className={index === 2 ? "mt-2 font-serif text-3xl font-semibold text-[#10224A]" : "mt-2 text-3xl font-semibold text-[#10224A]"}>

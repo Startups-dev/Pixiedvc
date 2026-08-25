@@ -1,6 +1,7 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
-import { ArrowRight, CalendarDays, CheckSquare, FileCheck, Sparkles } from "lucide-react";
+import { ArrowRight, CheckSquare } from "lucide-react";
 
 import { Card } from "@pixiedvc/design-system";
 import PendingTransfersCard from "./PendingTransfersCard";
@@ -9,6 +10,20 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { requireOwnerAccess } from "@/lib/owner/requireOwnerAccess";
 import { buildOwnerReadyStayListItems } from "@/lib/owner/secondary-subpages";
+
+const hannaIconPaths = {
+  readyStayActive: "/images/hanna-icons/ready-stay-active.png",
+  concierge: "/images/affiliate/icons/concierge-bell-transparent-v4.png",
+  payoutComplete: "/images/affiliate/icons/payout-ribbon-transparent-v4.png",
+} as const;
+
+function HannaUtilityIcon({ src, className = "h-9 w-9" }: { src: string; className?: string }) {
+  return (
+    <span className={`relative shrink-0 ${className}`}>
+      <Image src={src} alt="" fill sizes="40px" className="object-contain" />
+    </span>
+  );
+}
 
 function formatCurrencyFromCents(value: number | null) {
   if (value == null || Number.isNaN(value)) return "—";
@@ -163,9 +178,7 @@ export default async function ReadyStaysPage({
       <section id="post-ready-stay" className="grid gap-8 border-b border-[#E1D7C7] pb-10 lg:grid-cols-2 lg:gap-0">
         {dashboardItems.length > 0 ? (
           <div className="flex gap-5 pr-0 lg:pr-10">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FBFAF7] text-[#9A6A1E]">
-              <CalendarDays className="h-5 w-5" aria-hidden="true" />
-            </span>
+            <HannaUtilityIcon src={hannaIconPaths.readyStayActive} />
             <div>
               <h2 className="font-serif text-2xl font-semibold text-[#10224A]">Have another confirmed reservation?</h2>
               <p className="mt-2 text-sm leading-6 text-[#51607A]">Submit it for Hanna review when you are ready to list.</p>
@@ -177,9 +190,7 @@ export default async function ReadyStaysPage({
           </div>
         ) : null}
         <div className={dashboardItems.length > 0 ? "flex gap-5 border-[#E1D7C7] lg:border-l lg:pl-10" : "flex gap-5"}>
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FBFAF7] text-[#9A6A1E]">
-            <Sparkles className="h-5 w-5" aria-hidden="true" />
-          </span>
+          <HannaUtilityIcon src={hannaIconPaths.concierge} className="h-10 w-10" />
           <div>
             <h2 className="font-serif text-2xl font-semibold text-[#10224A]">Need to move expiring points fast?</h2>
             <p className="mt-2 text-sm leading-6 text-[#51607A]">
@@ -228,7 +239,7 @@ export default async function ReadyStaysPage({
           <div className="py-10">
             {soldItems.length === 0 ? (
               <div className="flex items-start gap-6">
-                <FileCheck className="mt-1 h-9 w-9 shrink-0 text-[#10224A]" strokeWidth={1.5} aria-hidden="true" />
+                <HannaUtilityIcon src={hannaIconPaths.payoutComplete} className="h-10 w-10" />
                 <div>
                   <p className="text-base font-semibold text-[#10224A]">No completed sales yet.</p>
                   <p className="mt-2 max-w-md text-sm leading-6 text-[#51607A]">
