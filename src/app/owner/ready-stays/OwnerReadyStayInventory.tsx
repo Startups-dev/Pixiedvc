@@ -1,6 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
-import { ArrowRight, Clock3, Plus } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
 
 import { Button } from "@pixiedvc/design-system";
 import type { OwnerReadyStayListItem } from "@/lib/owner/secondary-subpages";
@@ -36,13 +35,14 @@ function StatusMarker({ tone }: { tone: OwnerReadyStayListItem["displayStatusTon
 
 const hannaIconPaths = {
   readyStayActive: "/images/hanna-icons/ready-stay-active.png",
+  pendingReview: "/images/hanna-icons/pending-review.png",
   ownerEarnings: "/images/affiliate/icons/stacked-coins-transparent-v4.png",
 } as const;
 
 function HannaMetricIcon({ src }: { src: string }) {
   return (
     <span className="relative mt-0.5 block h-8 w-8 shrink-0">
-      <Image src={src} alt="" fill sizes="32px" className="object-contain" />
+      <img src={src} alt="" className="h-full w-full object-contain" aria-hidden="true" />
     </span>
   );
 }
@@ -153,16 +153,12 @@ export default function OwnerReadyStayInventory({
       <div className="grid gap-6 border-y border-[#E1D7C7] py-7 sm:grid-cols-3 sm:gap-0">
         {[
           ["Active listings", String(activeCount), hannaIconPaths.readyStayActive],
-          ["Pending review", String(pendingReviewCount), null],
+          ["Pending review", String(pendingReviewCount), hannaIconPaths.pendingReview],
           ["Estimated payout", potentialPayoutLabel, hannaIconPaths.ownerEarnings],
         ].map(([label, value, iconSrc], index) => {
           return (
             <div key={label} className="flex gap-4 sm:border-l sm:border-[#E1D7C7] sm:px-8 first:sm:border-l-0 first:sm:pl-0">
-              {iconSrc ? (
-                <HannaMetricIcon src={iconSrc} />
-              ) : (
-                <Clock3 className="mt-1 h-7 w-7 shrink-0 text-[#9A6A1E]" aria-hidden="true" strokeWidth={1.6} />
-              )}
+              <HannaMetricIcon src={iconSrc} />
               <div>
                 <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#53617A]">{label}</p>
                 <p className={index === 2 ? "mt-2 font-serif text-3xl font-semibold text-[#10224A]" : "mt-2 text-3xl font-semibold text-[#10224A]"}>

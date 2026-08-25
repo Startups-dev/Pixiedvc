@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 import { ArrowRight, CheckSquare } from "lucide-react";
 
@@ -20,7 +19,7 @@ const hannaIconPaths = {
 function HannaUtilityIcon({ src, className = "h-9 w-9" }: { src: string; className?: string }) {
   return (
     <span className={`relative block shrink-0 ${className}`}>
-      <Image src={src} alt="" fill sizes="40px" className="object-contain" />
+      <img src={src} alt="" className="h-full w-full object-contain" aria-hidden="true" />
     </span>
   );
 }
