@@ -41,7 +41,7 @@ const hannaIconPaths = {
 
 function HannaMetricIcon({ src }: { src: string }) {
   return (
-    <span className="relative mt-0.5 block h-8 w-8 shrink-0">
+    <span className="relative mt-0.5 block h-9 w-9 shrink-0">
       <img src={src} alt="" className="h-full w-full object-contain" aria-hidden="true" />
     </span>
   );

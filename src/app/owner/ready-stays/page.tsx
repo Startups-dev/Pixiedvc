@@ -13,10 +13,10 @@ import { buildOwnerReadyStayListItems } from "@/lib/owner/secondary-subpages";
 const hannaIconPaths = {
   readyStayActive: "/images/hanna-icons/ready-stay-active.png",
   concierge: "/images/hanna-icons/concierge.png",
-  payoutComplete: "/images/affiliate/icons/payout-ribbon-transparent-v4.png",
+  payoutComplete: "/images/hanna-icons/payout-complete.png",
 } as const;
 
-function HannaUtilityIcon({ src, className = "h-9 w-9" }: { src: string; className?: string }) {
+function HannaUtilityIcon({ src, className = "h-11 w-11" }: { src: string; className?: string }) {
   return (
     <span className={`relative block shrink-0 ${className}`}>
       <img src={src} alt="" className="h-full w-full object-contain" aria-hidden="true" />
@@ -189,7 +189,7 @@ export default async function ReadyStaysPage({
           </div>
         ) : null}
         <div className={dashboardItems.length > 0 ? "flex gap-5 border-[#E1D7C7] lg:border-l lg:pl-10" : "flex gap-5"}>
-          <HannaUtilityIcon src={hannaIconPaths.concierge} className="h-10 w-10" />
+          <HannaUtilityIcon src={hannaIconPaths.concierge} />
           <div>
             <h2 className="font-serif text-2xl font-semibold text-[#10224A]">Need to move expiring points fast?</h2>
             <p className="mt-2 text-sm leading-6 text-[#51607A]">
@@ -238,7 +238,7 @@ export default async function ReadyStaysPage({
           <div className="py-10">
             {soldItems.length === 0 ? (
               <div className="flex items-start gap-6">
-                <HannaUtilityIcon src={hannaIconPaths.payoutComplete} className="h-10 w-10" />
+                <HannaUtilityIcon src={hannaIconPaths.payoutComplete} />
                 <div>
                   <p className="text-base font-semibold text-[#10224A]">No completed sales yet.</p>
                   <p className="mt-2 max-w-md text-sm leading-6 text-[#51607A]">
