@@ -16,7 +16,7 @@ const hannaIconPaths = {
   payoutComplete: "/images/hanna-icons/payout-complete.png",
 } as const;
 
-function HannaUtilityIcon({ src, className = "h-11 w-11" }: { src: string; className?: string }) {
+function HannaUtilityIcon({ src, className = "h-14 w-14" }: { src: string; className?: string }) {
   return (
     <span className={`relative block shrink-0 ${className}`}>
       <img src={src} alt="" className="h-full w-full object-contain" aria-hidden="true" />
