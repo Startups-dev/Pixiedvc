@@ -4,7 +4,7 @@ values
   ('animal-kingdom-kidani', 'Disney''s Animal Kingdom Villas – Kidani Village', 'Animal Kingdom Resort Area', 'Savanna-view villas steps from Sanaa and cultural activities.'),
   ('animal-kingdom-jambo', 'Disney''s Animal Kingdom Villas – Jambo House', 'Animal Kingdom Resort Area', 'Arusha savanna overlooks with grand atrium lobby vibes.'),
   ('beach-club-villas', 'Disney''s Beach Club Villas', 'EPCOT Resort Area', 'Stormalong Bay access with Crescent Lake breezes.'),
-  ('boardwalk-villas', 'Disney''s BoardWalk Villas', 'EPCOT Resort Area', 'Jellyrolls nights and quick walks to EPCOT and Studios.'),
+  ('boardwalk-villas', 'Disney''s BoardWalk Villas', 'EPCOT Resort Area', 'Lively BoardWalk nights and easy walks to EPCOT and Hollywood Studios.'),
   ('hilton-head-island', 'Disney''s Hilton Head Island Resort', 'Hilton Head Island, South Carolina', 'Low-country marsh sunsets minutes from Coligny Beach.'),
   ('old-key-west', 'Disney''s Old Key West Resort', 'Lake Buena Vista, Florida', 'Original DVC charm with the biggest villas on property.'),
   ('saratoga-springs', 'Disney''s Saratoga Springs Resort & Spa', 'Lake Buena Vista, Florida', 'Treehouse villas and a stroll to Disney Springs dining.'),
