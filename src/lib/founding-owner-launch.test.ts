@@ -32,7 +32,7 @@ describe("Founding Owner enrollment copy", () => {
     })).toEqual({
       badge: "OCT 15–DEC 31, 2026",
       eligibility: "Available to qualifying owners who join between October 15 and December 31, 2026.",
-      timing: "Enrollment opens October 15, 2026 at 4:56 AM EDT and closes December 31, 2026 at 6:59 PM EST (Eastern Time).",
+      timing: "Enroll by December 31, 2026 at 6:59 PM EST.",
     });
   });
 
@@ -43,7 +43,7 @@ describe("Founding Owner enrollment copy", () => {
     })).toEqual({
       badge: "DEC 15, 2026–JAN 15, 2027",
       eligibility: "Available to qualifying owners who join between December 15, 2026 and January 15, 2027.",
-      timing: "Enrollment opens December 15, 2026 at 4:00 AM EST and closes January 15, 2027 at 6:59 PM EST (Eastern Time).",
+      timing: "Enroll by January 15, 2027 at 6:59 PM EST.",
     });
   });
 
@@ -52,7 +52,7 @@ describe("Founding Owner enrollment copy", () => {
       starts_at: "2026-11-01T05:30:00Z",
       ends_at: "2026-11-01T06:30:00Z",
     });
-    expect(copy.timing).toBe("Enrollment opens November 1, 2026 at 1:30 AM EDT and closes November 1, 2026 at 1:30 AM EST (Eastern Time).");
+    expect(copy.timing).toBe("Enroll by November 1, 2026 at 1:30 AM EST.");
   });
 
   it("shows saved seconds instead of rounding the closing boundary", () => {
@@ -60,7 +60,7 @@ describe("Founding Owner enrollment copy", () => {
       starts_at: null,
       ends_at: "2026-12-31T23:59:30.500Z",
     });
-    expect(copy.eligibility).toBe("Available to qualifying owners who join by December 31, 2026 at 6:59:30.500 PM EST (Eastern Time).");
+    expect(copy.timing).toBe("Enroll by December 31, 2026 at 6:59:30.500 PM EST.");
   });
 
   it("handles each missing schedule boundary", () => {
@@ -72,7 +72,7 @@ describe("Founding Owner enrollment copy", () => {
     expect(getFoundingOwnerEnrollmentCopy({ starts_at: null, ends_at: "2026-12-31T23:59:00Z" })).toEqual({
       badge: "THROUGH DEC 31, 2026",
       eligibility: "Available to qualifying owners who join by December 31, 2026 at 6:59 PM EST (Eastern Time).",
-      timing: null,
+      timing: "Enroll by December 31, 2026 at 6:59 PM EST.",
     });
     expect(getFoundingOwnerEnrollmentCopy({ starts_at: null, ends_at: null })).toEqual({
       badge: "ENROLLMENT OPEN",
