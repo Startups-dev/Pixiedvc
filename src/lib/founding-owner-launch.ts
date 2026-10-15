@@ -99,7 +99,7 @@ export function getFoundingOwnerEnrollmentCopy(
     return {
       badge,
       eligibility: `Available to qualifying owners who join ${dateRange}.`,
-      timing: `Enrollment opens ${fullDate(start)} at ${localTime(start.date)} and closes ${fullDate(end)} at ${localTime(end.date)} (Toronto time).`,
+      timing: `Enrollment opens ${fullDate(start)} at ${localTime(start.date)} and closes ${fullDate(end)} at ${localTime(end.date)} (Eastern Time).`,
     };
   }
 
@@ -107,14 +107,14 @@ export function getFoundingOwnerEnrollmentCopy(
     return {
       badge: `FROM ${shortDate(start)}, ${start.year}`,
       eligibility: `Available to qualifying owners who join from ${fullDate(start)}.`,
-      timing: `Enrollment opens ${fullDate(start)} at ${localTime(start.date)} (Toronto time).`,
+      timing: `Enrollment opens ${fullDate(start)} at ${localTime(start.date)} (Eastern Time).`,
     };
   }
 
   if (end) {
     return {
       badge: `THROUGH ${shortDate(end)}, ${end.year}`,
-      eligibility: `Available to qualifying owners who join by ${fullDate(end)} at ${localTime(end.date)} (Toronto time).`,
+      eligibility: `Available to qualifying owners who join by ${fullDate(end)} at ${localTime(end.date)} (Eastern Time).`,
       timing: null,
     };
   }

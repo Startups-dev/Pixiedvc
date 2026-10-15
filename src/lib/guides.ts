@@ -45,6 +45,8 @@ export type GuideMeta = {
   heroImage: string | null;
   readingTime: number;
   publishedAt: string;
+  lastModified?: string | null;
+  status?: GuideStatus;
   viewCount: number;
   metaTitle: string | null;
   metaDescription: string | null;
@@ -80,6 +82,8 @@ function mapGuideRow(row: GuideRow): GuideMeta {
     heroImage: row.hero_image_url,
     readingTime: row.reading_time_minutes ?? DEFAULT_READING_TIME,
     publishedAt: row.published_at ?? row.created_at ?? new Date().toISOString(),
+    lastModified: row.updated_at ?? row.published_at ?? row.created_at,
+    status: row.status,
     viewCount: row.view_count ?? 0,
     metaTitle: row.meta_title,
     metaDescription: row.meta_description,
@@ -174,6 +178,8 @@ async function loadMdxGuides(): Promise<MdxGuide[]> {
         heroImage: typeof data.hero === "string" ? data.hero : null,
         readingTime: computeReadingTime(content),
         publishedAt,
+        lastModified: typeof data.date === "string" ? data.date : null,
+        status: data.status === "draft" ? "draft" : "published",
         viewCount: 0,
         metaTitle: null,
         metaDescription: null,

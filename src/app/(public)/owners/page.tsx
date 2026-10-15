@@ -305,8 +305,8 @@ export default async function OwnersPage() {
       </section>
 
       {foundingOwnerSchedule && foundingOwnerOffer ? (
-        <section className="px-6 pt-16 md:pt-20" aria-labelledby="founding-owner-benefit">
-          <div className="mx-auto max-w-4xl">
+        <section className="px-6 py-12 md:py-14" aria-labelledby="founding-owner-benefit">
+          <div className="mx-auto max-w-6xl">
             <FoundingOwnerPromoPanel schedule={foundingOwnerSchedule} offer={foundingOwnerOffer} />
           </div>
         </section>
@@ -328,11 +328,6 @@ export default async function OwnersPage() {
               <p className="text-[17px] font-semibold leading-[1.6] text-[#30405f] sm:text-[18px]">
                 You always see and approve the payout before accepting any booking.
               </p>
-              {foundingOwnerOffer ? (
-                <p className="text-[15px] leading-6 text-[#5f6673]">
-                  Eligible Founding Owners receive an additional {foundingOwnerOffer.amount} per point for {foundingOwnerOffer.durationYears} years. The 70%/30% payout schedule applies to the final agreed payout, including any active bonus.
-                </p>
-              ) : null}
               <details className="group mx-auto max-w-2xl text-left">
                 <summary className="cursor-pointer list-none text-sm font-semibold text-[#0B1F44] underline underline-offset-4 marker:content-none">
                   See how pricing works

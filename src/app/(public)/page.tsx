@@ -131,40 +131,11 @@ export default async function Home() {
 
   return (
     <>
-      {foundingOwnerSchedule && foundingOwnerOffer ? (
-        <section className="bg-[#08152f] text-white">
-          <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-            <p className="text-sm leading-6 text-white/86">
-              <span className="font-semibold text-white">Founding Owner Launch</span>
-              {" — "}
-              {foundingOwnerSchedule.eligibility} Earn an extra {foundingOwnerOffer.amount} per rented point for your first {foundingOwnerOffer.durationYears} years.
-            </p>
-            <Link
-              href="/owners"
-              className="inline-flex w-full items-center justify-center rounded-full border border-white/18 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-white/16 lg:w-auto"
-            >
-              Become a Founding Owner
-            </Link>
-          </div>
-        </section>
-      ) : null}
       <Hero />
       {foundingOwnerSchedule && foundingOwnerOffer ? (
-        <section className="border-b border-[#dce6f7] bg-[linear-gradient(180deg,#f6f9ff_0%,#ffffff_100%)]">
-          <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-            <div className="order-2 lg:order-1">
-              <FoundingOwnerPromoPanel schedule={foundingOwnerSchedule} offer={foundingOwnerOffer} />
-            </div>
-
-            <div className="order-1 lg:order-2">
-              <p className="text-xs uppercase tracking-[0.28em] text-[#5c6f98]">Founding Owner Launch</p>
-              <h2 className="mt-4 max-w-[22ch] text-4xl font-semibold leading-[1.04] text-[#0F2148] sm:text-5xl">
-                Become a HannaDVC Founding Owner and earn an extra {foundingOwnerOffer.amount} per point for your first {foundingOwnerOffer.durationYears} years.
-              </h2>
-              <p className="mt-5 max-w-[58ch] text-[16px] leading-8 text-[#53627e]">
-                List unused DVC points or a confirmed reservation with clear payout terms and concierge support.
-              </p>
-            </div>
+        <section className="border-b border-[#dce6f7] bg-[linear-gradient(180deg,#f6f9ff_0%,#ffffff_100%)]" aria-labelledby="founding-owner-benefit">
+          <div className="mx-auto max-w-7xl px-6 py-12 lg:py-14">
+            <FoundingOwnerPromoPanel schedule={foundingOwnerSchedule} offer={foundingOwnerOffer} />
           </div>
         </section>
       ) : null}
