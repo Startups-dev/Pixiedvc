@@ -55,4 +55,18 @@ describe("pricing promotion effective status", () => {
 
     expect(result?.id).toBe("promo-1");
   });
+
+  it("preserves the exact saved start and end instants", () => {
+    const promotion = {
+      ...basePromotion,
+      starts_at: "2026-10-15T08:56:00+00:00",
+      ends_at: "2026-12-31T23:59:00+00:00",
+    };
+
+    expect(getEffectivePromotionStatus(promotion, new Date("2026-10-15T08:55:59.999Z")).reason).toBe("starts_in_future");
+    expect(getEffectivePromotionStatus(promotion, new Date("2026-10-15T08:56:00Z")).reason).toBe("active");
+    expect(getEffectivePromotionStatus(promotion, new Date("2026-12-31T23:59:00Z")).reason).toBe("active");
+    expect(getEffectivePromotionStatus(promotion, new Date("2026-12-31T23:59:00.001Z")).reason).toBe("ended");
+    expect(getEffectivePromotionStatus({ ...promotion, is_active: false }, new Date("2026-11-01T00:00:00Z")).reason).toBe("inactive_flag");
+  });
 });

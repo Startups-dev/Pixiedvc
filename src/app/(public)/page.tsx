@@ -7,15 +7,18 @@ import BridgeChips from "@/components/BridgeChips";
 import ResortShowcase from "@/components/ResortShowcase";
 import ResortCollectionCard from "@/components/ResortCollectionCard";
 import ContextualGuides from "@/components/guides/ContextualGuides";
+import FoundingOwnerPromoPanel from "@/components/founding-owner/FoundingOwnerPromoPanel";
 import ReadyStaysEmptyState from "@/components/ready-stays-showcase/ReadyStaysEmptyState";
 import ReadyStaysSection from "@/components/ready-stays-showcase/ReadyStaysSection";
 import { STORIES } from "@/content/stories";
 import {
   foundingOwnerLaunchDiagnosticsEnabled,
+  getFoundingOwnerEnrollmentCopy,
   getFoundingOwnerLaunchDiagnostics,
   shouldShowFoundingOwnerLaunch,
 } from "@/lib/founding-owner-launch";
 import { getActivePromotion } from "@/lib/pricing-promotions";
+import { getFoundingOwnerOfferDisplay } from "@/lib/founding-owner-bonus";
 import {
   READY_STAYS_SHOWCASE_FLAGS,
 } from "@/lib/ready-stays/showcase-mock";
@@ -58,30 +61,6 @@ const resortShowcase = [
 
 // Launch Phase: Testimonials temporarily hidden. Re-enable when sufficient verified reviews are available.
 const SHOW_HOME_STORIES_FOR_LAUNCH = false;
-
-const foundingOwnerPromo = {
-  windowStart: "2026-07-01",
-  windowEnd: "2026-08-31",
-  displayLabel: "July–August Launch",
-  monthLabel: "July–August",
-  badge: "July–August Only",
-  offer: "+$2/pt",
-  offerDescription: "+$2/pt above standard payout rates",
-  duration: "first 2 years",
-  headline:
-    "Partner with HannaDVC for our July–August launch and earn enhanced payout rates for 2 years.",
-  body:
-    "A streamlined owner experience for renting DVC points and confirmed reservations, with added launch benefits for early partners.",
-  benefits: [
-    "+$2/pt vs standard payouts",
-    "Premium owner visibility",
-    "Founding Owner status",
-    "Early access to Ready Stay",
-    "Concierge-matched reservations",
-  ],
-  ctaLabel: "Apply as DVC Owner",
-  ctaNote: "Available to qualifying owners who join during the July–August 2026 launch.",
-};
 
 export default async function Home() {
   noStore();
@@ -142,17 +121,23 @@ export default async function Home() {
   }
 
   const showFoundingOwnerLaunch = shouldShowFoundingOwnerLaunch(activePromotion);
+  const foundingOwnerSchedule = showFoundingOwnerLaunch && activePromotion
+    ? getFoundingOwnerEnrollmentCopy(activePromotion)
+    : null;
+  const foundingOwnerOffer = foundingOwnerSchedule && activePromotion
+    ? getFoundingOwnerOfferDisplay(activePromotion)
+    : null;
   const homeReadyStays = await getHomeReadyStaysShowcase(3);
 
   return (
     <>
-      {showFoundingOwnerLaunch ? (
+      {foundingOwnerSchedule && foundingOwnerOffer ? (
         <section className="bg-[#08152f] text-white">
           <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
             <p className="text-sm leading-6 text-white/86">
               <span className="font-semibold text-white">Founding Owner Launch</span>
               {" — "}
-              Join during the {foundingOwnerPromo.displayLabel} and receive {foundingOwnerPromo.offerDescription} for your {foundingOwnerPromo.duration}.
+              {foundingOwnerSchedule.eligibility} Earn an extra {foundingOwnerOffer.amount} per rented point for your first {foundingOwnerOffer.durationYears} years.
             </p>
             <Link
               href="/owners"
@@ -164,75 +149,21 @@ export default async function Home() {
         </section>
       ) : null}
       <Hero />
-      {showFoundingOwnerLaunch ? (
+      {foundingOwnerSchedule && foundingOwnerOffer ? (
         <section className="border-b border-[#dce6f7] bg-[linear-gradient(180deg,#f6f9ff_0%,#ffffff_100%)]">
           <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
             <div className="order-2 lg:order-1">
-              <div className="relative overflow-hidden rounded-[34px] border border-[#d8e3f8] bg-[radial-gradient(circle_at_top_left,rgba(91,120,255,0.2),transparent_38%),linear-gradient(155deg,#11244b_0%,#17325f_58%,#1d457e_100%)] p-7 shadow-[0_28px_70px_rgba(15,33,72,0.16)] sm:p-8">
-                <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-[26px] border border-white/10 bg-white/[0.06] p-5 backdrop-blur-sm">
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/58">Boosted launch payout</p>
-                    <p className="mt-3 text-3xl font-semibold text-white">{foundingOwnerPromo.offer}</p>
-                    <p className="mt-2 text-sm leading-6 text-white/72">Above standard payout rates for your {foundingOwnerPromo.duration}.</p>
-                  </div>
-                  <div className="rounded-[26px] border border-white/10 bg-white/[0.06] p-5 backdrop-blur-sm">
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-white/58">Founder access</p>
-                    <p className="mt-3 text-lg font-semibold text-white">Ready Stay priority</p>
-                    <p className="mt-2 text-sm leading-6 text-white/72">Earlier access to high-intent listing opportunities.</p>
-                  </div>
-                </div>
-                <div className="mt-4 rounded-[28px] border border-white/10 bg-white/[0.05] p-5 backdrop-blur-sm">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-[11px] uppercase tracking-[0.22em] text-white/58">Founder positioning</p>
-                      <p className="mt-2 text-xl font-semibold text-white">Concierge-supported from application through first bookings</p>
-                    </div>
-                    <div className="inline-flex h-[34px] shrink-0 items-center justify-center whitespace-nowrap rounded-full border border-[#D6B45A]/55 bg-[#D6B45A]/10 px-[18px] text-[11px] font-semibold uppercase tracking-[0.18em] text-[#D6B45A] shadow-[0_10px_24px_rgba(2,6,23,0.18)]">
-                      {foundingOwnerPromo.badge}
-                    </div>
-                  </div>
-                  <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                    {[
-                      "Priority owner visibility",
-                      "Founding Owner status",
-                      "Human concierge support",
-                    ].map((item) => (
-                      <div key={item} className="rounded-2xl border border-white/10 bg-[#0b1d3f]/55 px-4 py-3 text-sm text-white/76">
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <FoundingOwnerPromoPanel schedule={foundingOwnerSchedule} offer={foundingOwnerOffer} />
             </div>
 
             <div className="order-1 lg:order-2">
               <p className="text-xs uppercase tracking-[0.28em] text-[#5c6f98]">Founding Owner Launch</p>
-              <h2 className="mt-4 max-w-[15ch] text-4xl font-semibold leading-[1.04] text-[#0F2148] sm:text-5xl">
-                {foundingOwnerPromo.headline}
+              <h2 className="mt-4 max-w-[22ch] text-4xl font-semibold leading-[1.04] text-[#0F2148] sm:text-5xl">
+                Become a HannaDVC Founding Owner and earn an extra {foundingOwnerOffer.amount} per point for your first {foundingOwnerOffer.durationYears} years.
               </h2>
               <p className="mt-5 max-w-[58ch] text-[16px] leading-8 text-[#53627e]">
-                {foundingOwnerPromo.body}
+                List unused DVC points or a confirmed reservation with clear payout terms and concierge support.
               </p>
-
-              <ul className="mt-8 space-y-3 text-[15px] leading-7 text-[#24334f]">
-                {foundingOwnerPromo.benefits.map((benefit) => (
-                  <li key={benefit}>• {benefit}</li>
-                ))}
-              </ul>
-
-              <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-                <Link
-                  href="/owners"
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-full border border-[#263d68]/55 bg-[linear-gradient(135deg,#0B1B3A_0%,#102C5F_55%,#173F78_100%)] px-6 py-2.5 text-sm font-semibold !text-white shadow-[0_14px_30px_rgba(15,33,72,0.24)] transition duration-200 hover:-translate-y-[1px] hover:bg-[linear-gradient(135deg,#10264F_0%,#173E7A_55%,#1E5598_100%)] hover:shadow-[0_18px_38px_rgba(15,33,72,0.28)]"
-                >
-                  {foundingOwnerPromo.ctaLabel}
-                </Link>
-                <p className="text-sm text-[#6a7891]">
-                  {foundingOwnerPromo.ctaNote}
-                </p>
-              </div>
             </div>
           </div>
         </section>

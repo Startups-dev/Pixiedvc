@@ -4,11 +4,27 @@ import {
   FOUNDING_OWNER_BONUS_CENTS_PER_POINT,
   buildFoundingOwnerGrantUpdate,
   getActiveFoundingOwnerBonusCents,
+  getFoundingOwnerOfferDisplay,
   hasFoundingOwnerGrant,
   isActiveFoundingOwner,
 } from "@/lib/founding-owner-bonus";
 
 describe("founding owner bonus", () => {
+  it("derives the advertised amount and example from the grant and promotion cap", () => {
+    expect(getFoundingOwnerOfferDisplay({ owner_max_bonus_per_point_cents: 200 })).toEqual({
+      bonusCentsPerPoint: 200,
+      amount: "$2",
+      durationYears: 2,
+      example: "300 rented points = $600 extra.",
+    });
+    expect(getFoundingOwnerOfferDisplay({ owner_max_bonus_per_point_cents: 150 })).toEqual({
+      bonusCentsPerPoint: 150,
+      amount: "$1.50",
+      durationYears: 2,
+      example: "300 rented points = $450 extra.",
+    });
+  });
+
   it("builds a founding owner grant during an active founders launch promotion", () => {
     const now = new Date("2026-06-10T15:00:00.000Z");
     const update = buildFoundingOwnerGrantUpdate({

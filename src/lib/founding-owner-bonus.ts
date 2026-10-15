@@ -7,6 +7,34 @@ import type { OwnerPayoutResult } from "@/lib/pricing";
 export const FOUNDING_OWNER_BONUS_CENTS_PER_POINT = 200;
 export const FOUNDING_OWNER_BONUS_TERM_YEARS = 2;
 
+const FOUNDING_OWNER_EXAMPLE_POINTS = 300;
+
+function formatUsd(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
+export function getFoundingOwnerOfferDisplay(
+  promotion: Pick<PricingPromotion, "owner_max_bonus_per_point_cents">,
+) {
+  const configuredCap = Number(promotion.owner_max_bonus_per_point_cents);
+  const bonusCentsPerPoint = Math.min(
+    FOUNDING_OWNER_BONUS_CENTS_PER_POINT,
+    Number.isFinite(configuredCap) ? Math.max(0, configuredCap) : 0,
+  );
+
+  return {
+    bonusCentsPerPoint,
+    amount: formatUsd(bonusCentsPerPoint),
+    durationYears: FOUNDING_OWNER_BONUS_TERM_YEARS,
+    example: `${FOUNDING_OWNER_EXAMPLE_POINTS} rented points = ${formatUsd(FOUNDING_OWNER_EXAMPLE_POINTS * bonusCentsPerPoint)} extra.`,
+  };
+}
+
 export type FoundingOwnerBonusFields = {
   founding_owner_bonus_cents_per_point?: number | null;
   founding_owner_bonus_started_at?: string | null;

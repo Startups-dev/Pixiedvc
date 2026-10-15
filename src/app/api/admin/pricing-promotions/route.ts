@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { emailIsAllowedForAdmin } from "@/lib/admin-emails";
@@ -147,6 +148,9 @@ export async function POST(request: Request) {
   if (!data) {
     return NextResponse.json({ promotion: null });
   }
+
+  revalidatePath("/");
+  revalidatePath("/owners");
 
   return NextResponse.json({
     promotion: serializePromotion(data as PricingPromotion),

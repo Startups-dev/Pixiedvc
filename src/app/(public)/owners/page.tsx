@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import { Card } from "@pixiedvc/design-system";
-import { shouldShowFoundingOwnerLaunch } from "@/lib/founding-owner-launch";
+import FoundingOwnerPromoPanel from "@/components/founding-owner/FoundingOwnerPromoPanel";
+import { getFoundingOwnerOfferDisplay } from "@/lib/founding-owner-bonus";
+import { getFoundingOwnerEnrollmentCopy, shouldShowFoundingOwnerLaunch } from "@/lib/founding-owner-launch";
 import { getActivePromotion } from "@/lib/pricing-promotions";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
@@ -234,7 +236,8 @@ function HowItWorksPanel({
 }
 
 export default async function OwnersPage() {
-  let showFoundingOwnerLaunch = false;
+  let foundingOwnerSchedule: ReturnType<typeof getFoundingOwnerEnrollmentCopy> | null = null;
+  let foundingOwnerOffer: ReturnType<typeof getFoundingOwnerOfferDisplay> | null = null;
   try {
     const adminClient = getSupabaseAdminClient();
     if (adminClient) {
@@ -244,7 +247,10 @@ export default async function OwnersPage() {
           message: error.message,
         });
       }
-      showFoundingOwnerLaunch = shouldShowFoundingOwnerLaunch(activePromotion);
+      if (shouldShowFoundingOwnerLaunch(activePromotion) && activePromotion) {
+        foundingOwnerSchedule = getFoundingOwnerEnrollmentCopy(activePromotion);
+        foundingOwnerOffer = getFoundingOwnerOfferDisplay(activePromotion);
+      }
     }
   } catch (error) {
     console.warn("[FoundingOwnerLaunch] owner page promotion lookup failed", {
@@ -298,27 +304,10 @@ export default async function OwnersPage() {
         </div>
       </section>
 
-      {showFoundingOwnerLaunch ? (
-        <section className="px-6 pt-16 md:pt-20" aria-labelledby="founding-owner-offer">
-          <div className="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-[#d5b76a]/50 bg-[linear-gradient(135deg,#0b1b3a_0%,#173a70_100%)] px-8 py-10 text-white shadow-[0_24px_60px_rgba(15,33,72,0.18)] md:px-12">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#e5cb85]">Founding Owner Launch</p>
-            <h2 id="founding-owner-offer" className="mt-4 text-3xl font-bold leading-tight !text-white sm:text-4xl">
-              Earn an extra $2 per point for your first 2 years
-            </h2>
-            <p className="mt-4 max-w-2xl text-[17px] leading-7 text-white/80">
-              Qualifying owners who join during the launch receive a $2 per point bonus above their standard payout rate. Your exact rate and total payout are confirmed before you accept a booking.
-            </p>
-            <div className="mt-7 grid gap-3 text-sm sm:grid-cols-3">
-              <p className="rounded-xl border border-white/15 bg-white/8 px-4 py-3">Founding Owner status</p>
-              <p className="rounded-xl border border-white/15 bg-white/8 px-4 py-3">Priority owner visibility</p>
-              <p className="rounded-xl border border-white/15 bg-white/8 px-4 py-3">Concierge support</p>
-            </div>
-            <Link
-              href="/owner/onboarding"
-              className="mt-8 inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold !text-[#0B1F44] transition hover:bg-[#edf3ff] hover:!text-[#0B1F44]"
-            >
-              Apply as a Founding Owner
-            </Link>
+      {foundingOwnerSchedule && foundingOwnerOffer ? (
+        <section className="px-6 pt-16 md:pt-20" aria-labelledby="founding-owner-benefit">
+          <div className="mx-auto max-w-4xl">
+            <FoundingOwnerPromoPanel schedule={foundingOwnerSchedule} offer={foundingOwnerOffer} />
           </div>
         </section>
       ) : null}
@@ -339,9 +328,9 @@ export default async function OwnersPage() {
               <p className="text-[17px] font-semibold leading-[1.6] text-[#30405f] sm:text-[18px]">
                 You always see and approve the payout before accepting any booking.
               </p>
-              {showFoundingOwnerLaunch ? (
+              {foundingOwnerOffer ? (
                 <p className="text-[15px] leading-6 text-[#5f6673]">
-                  Eligible Founding Owners receive an additional $2 per point for 2 years. The 70%/30% payout schedule applies to the final agreed payout, including any active bonus.
+                  Eligible Founding Owners receive an additional {foundingOwnerOffer.amount} per point for {foundingOwnerOffer.durationYears} years. The 70%/30% payout schedule applies to the final agreed payout, including any active bonus.
                 </p>
               ) : null}
               <details className="group mx-auto max-w-2xl text-left">
