@@ -8,11 +8,11 @@ const bookingPaths = [
     label: "Custom Matching",
     title: "Request your stay",
     description:
-      "For guests who want HannaDVC to help secure a specific Disney villa stay.",
+      "Choose your preferred dates, resort, and villa type. We coordinate with verified DVC owners to find a suitable match and confirm availability.",
     bullets: [
-      "Flexible dates and resort choices",
-      "Concierge matching with verified owners",
-      "Ideal for planning ahead",
+      "Personalized resort and date preferences",
+      "Alternative options for greater flexibility",
+      "Concierge guidance throughout the process",
     ],
     href: "/plan",
     cta: "Start a request",
@@ -144,47 +144,36 @@ export default function HowItWorksPage() {
           <article className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
             <div className="max-w-2xl">
               <h3 className="text-[2.6rem] font-semibold tracking-tight text-[#10224b]">Custom Matching</h3>
-              <p className="mt-3 text-lg font-medium leading-8 text-[#51678f]">
-                Best when you already know the Disney villa experience you want.
-              </p>
-              <div className="mt-7 grid gap-3 sm:grid-cols-3">
+              <ol className="mt-7 space-y-5">
                 {[
-                  { label: "Works through", value: "Verified DVC owners" },
-                  { label: "Requires", value: "DVC availability" },
-                  { label: "Before payment", value: "You review full details" },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="rounded-[1.4rem] border border-[#dbe4f4] bg-white/86 px-4 py-4 shadow-[0_10px_24px_rgba(15,33,72,0.04)]"
-                  >
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7a8fb3]">{item.label}</p>
-                    <p className="mt-2 text-sm font-medium leading-6 text-[#314f98]">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-7 space-y-4 text-[16px] leading-8 text-[#5a6d8f]">
-                <p>
-                  HannaDVC reviews your requested dates, resort, room type, and flexibility, then looks for verified
-                  owners with eligible DVC points that fit your stay.
-                </p>
-                <p>
-                  We search verified owner inventory that fits your requested stay. After that, you review the pricing,
-                  agreement, and payment terms before moving forward.
-                </p>
-              </div>
-              <ul className="mt-7 space-y-3 text-sm text-[#5a6d8f]">
-                {[
-                  "Best for specific dates, resorts, or room types",
-                  "Works through verified DVC owners with eligible points",
-                  "Availability must be confirmed before the agreement is sent",
-                  "You review the details before committing",
-                ].map((bullet) => (
-                  <li key={bullet} className="flex items-start gap-3">
-                    <span className="mt-2 h-2 w-2 rounded-full bg-[#4c5fd7]" aria-hidden="true" />
-                    <span>{bullet}</span>
+                  {
+                    title: "Plan your stay",
+                    description: "Choose your dates, resort, and room preferences. Pricing estimates do not confirm availability.",
+                  },
+                  {
+                    title: "Submit your request",
+                    description: "Pay a $99 request deposit, applied toward your accommodation price. It remains refundable while we search for a match and confirm availability.",
+                  },
+                  {
+                    title: "Review and pay",
+                    description: "Once an owner is secured, availability is confirmed, and your Rental Agreement is generated, the deposit becomes non-refundable. Review your agreement and pay the remaining balance by the stated deadline.",
+                  },
+                  {
+                    title: "Receive confirmation",
+                    description: "Once the owner finalizes your Disney reservation, we send your confirmation number and linking instructions.",
+                  },
+                ].map((step, index) => (
+                  <li key={step.title} className="flex items-start gap-4">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#203b78] text-sm font-semibold text-white" aria-hidden="true">
+                      {index + 1}
+                    </span>
+                    <div>
+                      <h4 className="text-lg font-semibold text-[#10224b]">{step.title}</h4>
+                      <p className="mt-1 text-[16px] leading-7 text-[#5a6d8f]">{step.description}</p>
+                    </div>
                   </li>
                 ))}
-              </ul>
+              </ol>
               <ReferralLink
                 href="/plan"
                 className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(180deg,#203b78,#152c5b)] px-5 py-3 text-sm font-semibold !text-white shadow-[0_10px_24px_rgba(15,33,72,0.18)] transition hover:brightness-110 hover:shadow-[0_14px_28px_rgba(15,33,72,0.22)] hover:!text-white"
@@ -212,47 +201,36 @@ export default function HowItWorksPage() {
             />
             <div className="order-1 max-w-2xl lg:order-2 lg:justify-self-end">
               <h3 className="text-[2.6rem] font-semibold tracking-tight text-[#10224b]">Ready Stays</h3>
-              <p className="mt-3 text-lg font-medium leading-8 text-[#51678f]">
-                Best when you are flexible and want the fastest path to a Disney villa.
-              </p>
-              <div className="mt-7 grid gap-3 sm:grid-cols-3">
+              <ol className="mt-7 space-y-5">
                 {[
-                  { label: "Already secured", value: "Reservation in place" },
-                  { label: "Best for", value: "Faster booking" },
-                  { label: "Inventory", value: "Limited and fixed" },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="rounded-[1.4rem] border border-[#dbe4f4] bg-white/86 px-4 py-4 shadow-[0_10px_24px_rgba(15,33,72,0.04)]"
-                  >
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7a8fb3]">{item.label}</p>
-                    <p className="mt-2 text-sm font-medium leading-6 text-[#314f98]">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-7 space-y-4 text-[16px] leading-8 text-[#5a6d8f]">
-                <p>
-                  Ready Stays are pre-confirmed Disney villa reservations already secured by DVC owners, with fixed
-                  resort, room type, check-in, and check-out details.
-                </p>
-                <p>
-                  Because the reservation is already in place, this is usually the fastest path through HannaDVC.
-                  Inventory is limited and may disappear once booked.
-                </p>
-              </div>
-              <ul className="mt-7 space-y-3 text-sm text-[#5a6d8f]">
-                {[
-                  "Pre-confirmed Disney villa reservations",
-                  "Fixed resort, room type, and travel dates",
-                  "Faster booking path than custom matching",
-                  "Best for flexible travelers and limited-time deals",
-                ].map((bullet) => (
-                  <li key={bullet} className="flex items-start gap-3">
-                    <span className="mt-2 h-2 w-2 rounded-full bg-[#4c5fd7]" aria-hidden="true" />
-                    <span>{bullet}</span>
+                  {
+                    title: "Choose your stay",
+                    description: "Select an existing reservation with fixed dates, resort, and room details.",
+                  },
+                  {
+                    title: "Review and purchase",
+                    description: "Check the full price, payment requirements, and cancellation terms. Complete your agreement and payment.",
+                  },
+                  {
+                    title: "We coordinate guest updates",
+                    description: "The owner updates the reservation with your guest details. Payment does not mean it is immediately ready to link.",
+                  },
+                  {
+                    title: "Receive confirmation",
+                    description: "Once the updates are confirmed, we send your Disney confirmation details and linking instructions.",
+                  },
+                ].map((step, index) => (
+                  <li key={step.title} className="flex items-start gap-4">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#203b78] text-sm font-semibold text-white" aria-hidden="true">
+                      {index + 1}
+                    </span>
+                    <div>
+                      <h4 className="text-lg font-semibold text-[#10224b]">{step.title}</h4>
+                      <p className="mt-1 text-[16px] leading-7 text-[#5a6d8f]">{step.description}</p>
+                    </div>
                   </li>
                 ))}
-              </ul>
+              </ol>
               <Link
                 href="/ready-stays"
                 className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[linear-gradient(180deg,#203b78,#152c5b)] px-5 py-3 text-sm font-semibold !text-white shadow-[0_10px_24px_rgba(15,33,72,0.18)] transition hover:brightness-110 hover:shadow-[0_14px_28px_rgba(15,33,72,0.22)] hover:!text-white"

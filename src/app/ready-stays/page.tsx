@@ -155,7 +155,7 @@ export default async function ReadyStaysPublicPage({
     <main className="mx-auto max-w-6xl space-y-10 px-6 py-12">
       <section className="max-w-4xl space-y-3">
         <div className="space-y-2.5">
-          <p className="text-xs uppercase tracking-[0.3em] text-muted">PIXIE READY STAYS</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-muted">READY STAYS</p>
           <h1 className="text-[2rem] font-semibold leading-tight text-ink sm:text-[2.45rem]">
             Instant-Book Disney Villa Stays
           </h1>
