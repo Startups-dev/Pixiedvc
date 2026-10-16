@@ -8,7 +8,6 @@ import FoundersJourneyLink from "@/components/founding-owner/FoundersJourneyLink
 import { FOUNDING_OWNER_BONUS_TERM_YEARS } from "@/lib/founding-owner-bonus";
 import { getFoundingOwnerEnrollmentCopy, shouldShowFoundingOwnerLaunch } from "@/lib/founding-owner-launch";
 import { getActivePromotion } from "@/lib/pricing-promotions";
-import { resolveResortImage } from "@/lib/resort-image";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
@@ -19,14 +18,14 @@ export const metadata: Metadata = {
   alternates: { canonical: "/owners/founders-club" },
 };
 
-const signupClass = "inline-flex min-h-12 items-center justify-center rounded-full bg-[#d7b462] px-7 py-3 text-center text-sm font-bold text-[#102345] transition hover:bg-[#f0d18a] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
+const signupClass = "inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[#0F2148] px-6 py-3 text-center text-sm font-semibold !text-white transition hover:bg-[#1d3d73] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F2148] sm:w-auto";
 const headingClass = "font-semibold tracking-tight text-[#102345]";
 
 function Signup({ active, children }: { active: boolean; children?: React.ReactNode }) {
   return (
-    <Suspense fallback={<Link href="/owner/onboarding" className={signupClass}>{children ?? (active ? "Join as a Founding Owner" : "Sign up as an owner")}</Link>}>
+    <Suspense fallback={<Link href="/owner/onboarding" className={signupClass}>{children ?? (active ? "Apply as a Founding Owner" : "Sign up as an owner")}</Link>}>
       <FoundersJourneyLink href="/owner/onboarding" className={signupClass}>
-        {children ?? (active ? "Join as a Founding Owner" : "Sign up as an owner")}
+        {children ?? (active ? "Apply as a Founding Owner" : "Sign up as an owner")}
       </FoundersJourneyLink>
     </Suspense>
   );
@@ -37,9 +36,6 @@ export default async function FoundersClubPage() {
   const promotion = adminClient ? (await getActivePromotion({ adminClient })).data : null;
   const active = shouldShowFoundingOwnerLaunch(promotion);
   const schedule = active && promotion ? getFoundingOwnerEnrollmentCopy(promotion) : null;
-  const floridian = resolveResortImage({ resortSlug: "grand-floridian-villas", imageIndex: 1 }).url;
-  const riviera = resolveResortImage({ resortSlug: "riviera-resort", imageIndex: 1 }).url;
-
   const faqs = active ? [
     { question: "Do I need a separate Founders application?", answer: "No. Use HannaDVC’s regular owner signup. The Founding Owner benefit is granted when eligible owners complete onboarding while the launch promotion is active." },
     { question: "Is the bonus above every broker’s rate?", answer: "The additional $2 per rented point is above HannaDVC’s standard owner payout. You can review the full payout before approving a booking." },
@@ -95,11 +91,11 @@ export default async function FoundersClubPage() {
 
       <section className="mx-auto grid max-w-7xl gap-6 px-5 py-16 sm:px-8 lg:grid-cols-2">
         <article className="overflow-hidden rounded-[24px] bg-[#102345] text-white">
-          <div className="relative h-64 sm:h-80"><Image src={floridian} alt="Grand Floridian Villas resort" fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" /></div>
+          <div className="relative h-64 sm:h-80"><Image src="/images/founders-club-boardwalk-promenade.webp" alt="Disney's BoardWalk promenade at dusk" fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" /></div>
           <div className="p-6 sm:p-8"><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#f0ce7c]">Your membership</p><h2 className="mt-2 text-2xl font-semibold !text-white">Your decision.</h2><p className="mt-2 text-sm leading-6 text-white/85">Keep control of your DVC points and approve each booking.</p></div>
         </article>
         <article className="overflow-hidden rounded-[24px] bg-[#102345] text-white">
-          <div className="relative h-64 sm:h-80"><Image src={riviera} alt="Riviera Resort grounds" fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" /></div>
+          <div className="relative h-64 sm:h-80"><Image src="/images/founders-club-boardwalk-lighthouse.webp" alt="Disney's BoardWalk lighthouse at sunset" fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" /></div>
           <div className="p-6 sm:p-8"><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#f0ce7c]">Less to manage</p><h2 className="mt-2 text-2xl font-semibold !text-white">Leave the coordination to us.</h2><p className="mt-2 text-sm leading-6 text-white/85">HannaDVC handles guest communication throughout the rental process.</p></div>
         </article>
       </section>
