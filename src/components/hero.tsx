@@ -24,11 +24,27 @@ export async function Hero() {
           sizes="100vw"
           className="h-full w-full scale-[1.04] object-cover object-center brightness-[0.95]"
         />
-        <>
-          <div className="absolute inset-0 bg-gradient-to-b from-[#050811]/80 via-[#0c1324]/70 to-[#191e47]/90" />
-          <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_15%,rgba(5,8,17,0.25),rgba(5,8,17,0.75))]" />
-          <div className="absolute inset-0 bg-[radial-gradient(130%_80%_at_50%_20%,rgba(15,21,49,0.18),rgba(15,21,49,0.55))]" />
-        </>
+        <div
+          className="absolute inset-0 hidden lg:block"
+          style={{
+            backgroundImage:
+              "linear-gradient(90deg, rgba(5,8,17,0.68) 0%, rgba(5,8,17,0.50) 42%, rgba(5,8,17,0.14) 76%, rgba(5,8,17,0.08) 100%), linear-gradient(180deg, rgba(5,8,17,0.12) 0%, transparent 38%)",
+          }}
+        />
+        <div
+          className="absolute inset-0 lg:hidden"
+          style={{
+            backgroundImage:
+              "linear-gradient(180deg, rgba(5,8,17,0.66) 0%, rgba(5,8,17,0.50) 34%, rgba(5,8,17,0.40) 64%, rgba(5,8,17,0.70) 100%)",
+          }}
+        />
+        <div
+          className="absolute inset-x-0 bottom-0 h-[42%]"
+          style={{
+            backgroundImage:
+              "linear-gradient(0deg, rgba(15,21,49,0.82) 0%, rgba(15,21,49,0.34) 42%, rgba(15,21,49,0) 100%)",
+          }}
+        />
       </div>
 
       <div className="relative z-20 mx-auto max-w-[1200px] px-4 pt-[56px] pb-16 md:px-6 lg:pt-[64px]">
