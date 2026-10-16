@@ -42,11 +42,22 @@ export default function ReadyStayCard({ item, compact = false }: ReadyStayCardPr
     checkIn: item.startDate,
     totalPriceCents: Math.round(item.totalPriceUsd * 100),
   });
+  const normalizedStatus = item.status?.trim().toLowerCase();
+  const availabilityLabel =
+    normalizedStatus === "sold"
+      ? "Sold"
+      : normalizedStatus === "expired" || item.endDate < new Date().toISOString().slice(0, 10)
+        ? "Expired"
+        : null;
 
   return (
     <Link
       href={safeDestination}
-      aria-label={`View ready stay: ${item.title}`}
+      aria-label={
+        availabilityLabel
+          ? `${availabilityLabel} stay: ${item.title}. Browse current stays.`
+          : `View ready stay: ${item.title}`
+      }
       className={`group relative overflow-hidden rounded-3xl border border-white/20 shadow-[0_16px_45px_rgba(15,23,42,0.2)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_55px_rgba(15,23,42,0.28)] ${
         compact ? "min-h-[220px]" : "min-h-[460px]"
       }`}
@@ -65,7 +76,19 @@ export default function ReadyStayCard({ item, compact = false }: ReadyStayCardPr
           }`}
         >
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/14 to-black/28" />
-          {signals.primary ? (
+          {availabilityLabel ? (
+            <div className="relative z-10 mb-3">
+              <span
+                className={`inline-flex shrink-0 items-center rounded-full border border-white/35 bg-white/10 font-semibold uppercase leading-none !text-white ${
+                  compact
+                    ? "px-2.5 py-1 text-[10px] tracking-[0.14em] whitespace-nowrap"
+                    : "px-3 py-1 text-[11px] tracking-[0.18em] whitespace-nowrap"
+                }`}
+              >
+                {availabilityLabel}
+              </span>
+            </div>
+          ) : signals.primary ? (
             <div className="relative z-10 mb-3">
               <span
                 className={`inline-flex shrink-0 items-center rounded-full border border-white/35 bg-white/10 font-semibold uppercase leading-none !text-white ${
@@ -103,7 +126,7 @@ export default function ReadyStayCard({ item, compact = false }: ReadyStayCardPr
           </div>
 
           <span className="relative z-10 mt-6 inline-flex items-center rounded-full border border-white/70 bg-white/22 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] !text-white transition duration-300 hover:-translate-y-0.5 hover:border-white hover:bg-white/30 group-hover:border-white group-hover:bg-white/28">
-            Book Instantly
+            {availabilityLabel ? "Browse Current Stays" : "Book Instantly"}
           </span>
         </div>
       </div>

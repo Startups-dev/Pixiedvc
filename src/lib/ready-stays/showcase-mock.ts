@@ -13,6 +13,7 @@ export type ReadyStayShowcaseItem = {
   badge: string;
   ctaLabel: string;
   href: string;
+  status?: string | null;
   featured: boolean;
   priority: number;
   priceReducedAt?: string;
