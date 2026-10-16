@@ -58,7 +58,7 @@ export default async function FoundersClubPage() {
   return (
     <div className="overflow-x-clip bg-[#f8f5ee]">
       <section className="relative isolate overflow-hidden bg-[#091a36] text-white">
-        <Image src="/images/hero-new.png" alt="Guests walking toward a resort at sunset" fill priority sizes="100vw" className="object-cover object-center" />
+        <Image src="/images/founders-club-sunset.webp" alt="Resort waterfront and pirate ship at sunset" fill priority sizes="100vw" className="object-cover object-center" />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,18,42,0.88)_0%,rgba(7,23,50,0.75)_46%,rgba(7,23,50,0.44)_100%)]" />
         <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 py-20 sm:px-8 sm:py-24 lg:grid-cols-[1.08fr_0.92fr] lg:gap-16 lg:py-32">
           <div className="max-w-[620px]">
