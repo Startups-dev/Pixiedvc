@@ -135,7 +135,7 @@ export default async function Home() {
       {foundingOwnerSchedule && foundingOwnerOffer ? (
         <section className="border-b border-[#dce6f7] bg-[linear-gradient(180deg,#f6f9ff_0%,#ffffff_100%)]" aria-labelledby="founding-owner-benefit">
           <div className="mx-auto max-w-7xl px-6 py-12 lg:py-14">
-            <FoundingOwnerPromoPanel schedule={foundingOwnerSchedule} offer={foundingOwnerOffer} />
+            <FoundingOwnerPromoPanel schedule={foundingOwnerSchedule} offer={foundingOwnerOffer} ctaHref="/owners/founders-club" />
           </div>
         </section>
       ) : null}

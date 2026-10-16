@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { ensureRentalForMatch } from "./ensureRentalForMatch";
 
 let insertedRentalPayload: Record<string, unknown> | null = null;
+let existingRentalPayload: Record<string, unknown> | null = null;
+let matchPayoutPayload: Record<string, unknown> | null = null;
+let rentalInsertCount = 0;
 
 function makeSelectMaybeSingle(data: unknown) {
   const maybeSingle = vi.fn().mockResolvedValue({ data, error: null });
@@ -11,7 +14,8 @@ function makeSelectMaybeSingle(data: unknown) {
   return { select };
 }
 
-function makeUpdateQuery() {
+function makeUpdateQuery(payload?: Record<string, unknown>) {
+  if (payload) matchPayoutPayload = payload;
   const eq = vi.fn().mockResolvedValue({ error: null });
   return { eq };
 }
@@ -20,11 +24,16 @@ function makeRentalsQuery() {
   return {
     select: vi.fn(() => ({
       eq: vi.fn(() => ({
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        maybeSingle: vi.fn().mockImplementation(async () => ({ data: existingRentalPayload, error: null })),
       })),
     })),
     insert: vi.fn((payload: Record<string, unknown>) => {
+      rentalInsertCount += 1;
       insertedRentalPayload = payload;
+      existingRentalPayload = {
+        id: "rental-1", check_in: payload.check_in,
+        owner_user_id: payload.owner_user_id, rental_amount_cents: payload.rental_amount_cents,
+      };
       return {
         select: vi.fn(() => ({
           single: vi.fn().mockResolvedValue({
@@ -43,7 +52,7 @@ function makeRentalsQuery() {
   };
 }
 
-function makeAdminClient(bookingOverride: Record<string, unknown> = {}) {
+function makeAdminClient(bookingOverride: Record<string, unknown> = {}, ownerOverride: Record<string, unknown> = {}, matchOverride: Record<string, unknown> = {}) {
   const booking = {
     id: "booking-1",
     renter_id: "guest-user-1",
@@ -100,17 +109,19 @@ function makeAdminClient(bookingOverride: Record<string, unknown> = {}) {
                   booking_id: "booking-1",
                   owner_id: "owner-1",
                   owner_membership_id: null,
+                  created_at: "2027-01-01T00:00:00.000Z",
                   owner_base_rate_per_point_cents: null,
                   owner_premium_per_point_cents: null,
                   owner_rate_per_point_cents: null,
                   owner_total_cents: null,
                   owner_home_resort_premium_applied: null,
+                  ...matchOverride,
                 },
                 error: null,
               }),
             })),
           })),
-          update: vi.fn(() => makeUpdateQuery()),
+          update: vi.fn((payload) => makeUpdateQuery(payload)),
         };
       }
       if (table === "booking_requests") {
@@ -125,11 +136,20 @@ function makeAdminClient(bookingOverride: Record<string, unknown> = {}) {
           founding_owner_bonus_expires_at: null,
           founding_owner_granted_at: null,
           founding_owner_promotion_id: null,
+          ...ownerOverride,
         });
       }
       if (table === "profiles") {
         return makeSelectMaybeSingle({ id: "owner-user-1", owner_rewards_enrolled_at: null });
       }
+      if (table === "pricing_promotions") return {
+        select: vi.fn(() => ({ eq: vi.fn(() => ({ order: vi.fn().mockResolvedValue({
+          data: [{ id: "promo-1", name: "Founders Launch", is_active: true, starts_at: null,
+            ends_at: null, owner_max_bonus_per_point_cents: 0,
+            guest_max_reward_per_point_cents: 0, min_spread_per_point_cents: 500,
+            created_at: "2026-10-15T00:00:00.000Z" }], error: null,
+        }) })) })),
+      };
       if (table === "rentals") {
         return rentalsQuery;
       }
@@ -149,13 +169,16 @@ describe("ensureRentalForMatch accommodation identity", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     insertedRentalPayload = null;
+    existingRentalPayload = null;
+    matchPayoutPayload = null;
+    rentalInsertCount = 0;
   });
 
   test("copies exact BLT STUDIO/L booking identity into matched rental and booking package", async () => {
     const adminClient = makeAdminClient();
 
     const result = await ensureRentalForMatch({
-      adminClient: adminClient as any,
+      adminClient: adminClient as never,
       matchId: "match-1",
     });
 
@@ -186,7 +209,7 @@ describe("ensureRentalForMatch accommodation identity", () => {
     });
 
     await ensureRentalForMatch({
-      adminClient: adminClient as any,
+      adminClient: adminClient as never,
       matchId: "match-1",
     });
 
@@ -204,10 +227,45 @@ describe("ensureRentalForMatch accommodation identity", () => {
 
     await expect(
       ensureRentalForMatch({
-        adminClient: adminClient as any,
+        adminClient: adminClient as never,
         matchId: "match-1",
       }),
     ).rejects.toThrow("invalid_accommodation_identity");
     expect(insertedRentalPayload).toBeNull();
+  });
+
+  test("custom match preserves standard payout and adds full bonus at a negative margin, once", async () => {
+    const adminClient = makeAdminClient({ guest_rate_per_point_cents: 1700, guest_total_cents: 54400 }, {
+      founding_owner_bonus_cents_per_point: 200,
+      founding_owner_bonus_started_at: "2026-10-15T00:00:00.000Z",
+      founding_owner_bonus_expires_at: "2028-10-15T00:00:00.000Z",
+    });
+    const first = await ensureRentalForMatch({ adminClient: adminClient as never, matchId: "match-1" });
+    expect(first.rentalAmountCents).toBe(32 * 1800);
+    expect(insertedRentalPayload).toMatchObject({
+      owner_base_rate_per_point_cents: 1600,
+      owner_rate_per_point_cents: 1800,
+      owner_total_cents: 57600,
+      rental_amount_cents: 57600,
+    });
+    expect(matchPayoutPayload).toMatchObject({ owner_rate_per_point_cents: 1800, owner_total_cents: 57600 });
+    const second = await ensureRentalForMatch({ adminClient: adminClient as never, matchId: "match-1" });
+    expect(second).toEqual(first);
+    expect(rentalInsertCount).toBe(1);
+  });
+
+  test("keeps a preferred owner quote above standard before adding the founding bonus", async () => {
+    const adminClient = makeAdminClient({}, {
+      founding_owner_bonus_cents_per_point: 200,
+      founding_owner_bonus_started_at: "2026-10-15T00:00:00.000Z",
+      founding_owner_bonus_expires_at: "2028-10-15T00:00:00.000Z",
+    }, { owner_rate_per_point_cents: 1900 });
+    await ensureRentalForMatch({ adminClient: adminClient as never, matchId: "match-1" });
+    expect(insertedRentalPayload).toMatchObject({
+      owner_base_rate_per_point_cents: 1600,
+      owner_rate_per_point_cents: 1900,
+      owner_total_cents: 60800,
+      rental_amount_cents: 60800,
+    });
   });
 });

@@ -19,6 +19,7 @@ export type OwnerReadyStayListInput = {
   room_type: string | null;
   points: number | null;
   owner_price_per_point_cents: number | null;
+  owner_payout_rate_cents?: number | null;
   reservation_proof_uploaded_at?: string | null;
   updated_at?: string | null;
   is_visible_publicly?: boolean | null;
@@ -166,7 +167,7 @@ function getOwnerReadyStayDisplayStatus(
 export function buildOwnerReadyStayListItems(rows: OwnerReadyStayListInput[]): OwnerReadyStayListItem[] {
   return rows.map((row) => {
     const points = Number(row.points ?? 0);
-    const rate = Number(row.owner_price_per_point_cents ?? 0);
+    const rate = Number(row.owner_payout_rate_cents ?? row.owner_price_per_point_cents ?? 0);
     const resortLabel = row.resorts?.name ?? "Listing";
     const image = resolveResortImage({
       resortSlug: row.resorts?.slug ?? null,
@@ -181,7 +182,7 @@ export function buildOwnerReadyStayListItems(rows: OwnerReadyStayListInput[]): O
       roomLabel: row.room_type ?? "Room unavailable",
       dateLabel: formatDateRange(row.check_in, row.check_out),
       pointsLabel: formatPoints(row.points),
-      ownerRateLabel: formatCurrencyFromCents(row.owner_price_per_point_cents),
+      ownerRateLabel: formatCurrencyFromCents(rate),
       estimatedOwnerPayoutLabel: points > 0 && rate > 0 ? formatCurrencyFromCents(points * rate) : "Unavailable",
       statusLabel: getOwnerReadyStayStatusLabel(row.status, row.verification_status ?? null),
       ...displayStatus,

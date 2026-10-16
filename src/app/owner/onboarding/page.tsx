@@ -27,6 +27,22 @@ function defaultVacationPoints(): VacationPointsRow[] {
   return FIXED_USE_YEARS.map((year) => ({ useYear: year, available: 0, holding: 0 }));
 }
 
+function trackingSearch() {
+  const incoming = new URLSearchParams(window.location.search);
+  const tracking = new URLSearchParams();
+  for (const key of ['ref', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']) {
+    const value = incoming.get(key);
+    if (value) tracking.set(key, value);
+  }
+  return tracking.toString();
+}
+
+function ownerLoginUrl() {
+  const tracking = trackingSearch();
+  const next = `/owner/onboarding${tracking ? `?${tracking}` : ''}`;
+  return `/login?next=${encodeURIComponent(next)}&intent=owner${tracking ? `&${tracking}` : ''}`;
+}
+
 export default function OwnerOnboarding() {
   const router = useRouter();
   const supabase = createClient();
@@ -54,7 +70,7 @@ export default function OwnerOnboarding() {
     supabase.auth.getUser().then(async ({ data }) => {
       const user = data.user;
       if (!user) {
-        router.replace('/login?next=%2Fowner%2Fonboarding&intent=owner');
+        router.replace(ownerLoginUrl());
         return;
       }
       const { data: existingMemberships } = await supabase
@@ -116,7 +132,7 @@ export default function OwnerOnboarding() {
     } = await supabase.auth.getUser();
     if (!user) {
       setLoading(false);
-      router.replace('/login?next=%2Fowner%2Fonboarding&intent=owner');
+      router.replace(ownerLoginUrl());
       return;
     }
 
@@ -217,7 +233,8 @@ export default function OwnerOnboarding() {
       }
 
       setLoading(false);
-      window.location.href = '/owner/onboarding/agreement';
+      const tracking = trackingSearch();
+      window.location.href = `/owner/onboarding/agreement${tracking ? `?${tracking}` : ''}`;
     } catch (error) {
       setLoading(false);
       setFormError(error instanceof Error ? error.message : 'Unable to submit onboarding right now.');

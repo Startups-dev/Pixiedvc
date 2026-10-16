@@ -31,6 +31,7 @@ const PUBLIC_PAGES = [
   "/our-story",
   "/owner-first-protection",
   "/owners",
+  "/owners/founders-club",
   "/partners",
   "/partners/affiliate-program",
   "/partners/become-a-partner",

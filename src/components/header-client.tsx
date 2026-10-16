@@ -275,7 +275,7 @@ export default function HeaderClient({
     ],
   };
 
-  if (pathname?.startsWith("/owner") || pathname?.startsWith("/my-trip")) {
+  if (pathname === "/owner" || pathname?.startsWith("/owner/") || pathname?.startsWith("/my-trip")) {
     return null;
   }
 

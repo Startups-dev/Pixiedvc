@@ -9,6 +9,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { requireOwnerAccess } from "@/lib/owner/requireOwnerAccess";
 import { buildOwnerReadyStayListItems } from "@/lib/owner/secondary-subpages";
+import { getActiveFoundingOwnerBonusCents } from "@/lib/founding-owner-bonus";
 
 const hannaIconPaths = {
   readyStayActive: "/images/hanna-icons/ready-stay-active.png",
@@ -54,6 +55,10 @@ export default async function ReadyStaysPage({
       ),
     ),
   );
+  const { data: foundingOwner } = await adminClient.from("owners")
+    .select("founding_owner_bonus_cents_per_point, founding_owner_bonus_started_at, founding_owner_bonus_expires_at")
+    .eq("id", owner.id).maybeSingle();
+  const foundingBonusCents = getActiveFoundingOwnerBonusCents(foundingOwner);
 
   const { data: readyStays } = await adminClient
     .from("ready_stays")
@@ -63,8 +68,19 @@ export default async function ReadyStaysPage({
     .in("owner_id", ownerIds)
     .order("created_at", { ascending: false });
 
+  const soldRentalIds = (readyStays ?? []).filter((stay) => stay.status === "sold" && stay.rental_id)
+    .map((stay) => stay.rental_id as string);
+  const { data: soldRentals } = soldRentalIds.length
+    ? await adminClient.from("rentals").select("id, owner_rate_per_point_cents").in("id", soldRentalIds)
+    : { data: [] };
+  const soldRateByRentalId = new Map((soldRentals ?? []).map((rental) => [rental.id, rental.owner_rate_per_point_cents]));
+
   const normalizedReadyStays = (readyStays ?? []).map((stay) => ({
     ...stay,
+    resorts: Array.isArray(stay.resorts) ? (stay.resorts[0] ?? null) : stay.resorts,
+    owner_payout_rate_cents: stay.status === "sold"
+      ? (soldRateByRentalId.get(stay.rental_id ?? "") ?? stay.owner_price_per_point_cents)
+      : Number(stay.owner_price_per_point_cents ?? 0) + foundingBonusCents,
     status:
       stay.status === "active" && stay.verification_status === "proof_uploaded"
         ? ("draft" as typeof stay.status)
@@ -139,7 +155,7 @@ export default async function ReadyStaysPage({
   const activeCount = activeListings.length;
   const pendingReviewCount = reviewListings.length;
   const estimatedPayoutCents = dashboardListings.reduce((total, stay) => {
-    return total + Number(stay.owner_price_per_point_cents ?? 0) * Number(stay.points ?? 0);
+    return total + Number(stay.owner_payout_rate_cents ?? 0) * Number(stay.points ?? 0);
   }, 0);
   const dashboardItems = buildOwnerReadyStayListItems(dashboardListings);
   const soldItems = buildOwnerReadyStayListItems(soldListings);

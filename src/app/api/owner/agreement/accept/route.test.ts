@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const createSupabaseServerClient = vi.fn();
 const getSupabaseAdminClient = vi.fn();
+const maybeGrantFoundingOwnerBonus = vi.fn();
 
 let ownerUpdatePayload: Record<string, unknown> | null;
 let profileUpsertPayload: Record<string, unknown> | null;
@@ -17,6 +18,10 @@ vi.mock("@/lib/supabase-server", () => ({
 
 vi.mock("@/lib/supabase-admin", () => ({
   getSupabaseAdminClient: () => getSupabaseAdminClient(),
+}));
+
+vi.mock("@/lib/founding-owner-bonus", () => ({
+  maybeGrantFoundingOwnerBonus: (...args: unknown[]) => maybeGrantFoundingOwnerBonus(...args),
 }));
 
 import { POST } from "@/app/api/owner/agreement/accept/route";
@@ -73,6 +78,7 @@ describe("POST /api/owner/agreement/accept", () => {
       },
     });
     getSupabaseAdminClient.mockReturnValue(makeAdminClient());
+    maybeGrantFoundingOwnerBonus.mockReset().mockResolvedValue({ granted: true, error: null });
   });
 
   test("accepting agreement also marks owner onboarding complete for route guards", async () => {
@@ -105,5 +111,20 @@ describe("POST /api/owner/agreement/accept", () => {
         role: "owner",
       },
     });
+    expect(maybeGrantFoundingOwnerBonus).toHaveBeenCalledWith({
+      adminClient: expect.objectContaining({ from: expect.any(Function) }),
+      ownerId: "owner-1",
+    });
+  });
+
+  test("does not mark onboarding complete when the Founding Owner grant lookup fails", async () => {
+    maybeGrantFoundingOwnerBonus.mockResolvedValue({ granted: false, error: new Error("lookup failed") });
+    const response = await POST(new Request("http://localhost/api/owner/agreement/accept", {
+      method: "POST",
+      body: JSON.stringify({ signedName: "Jane Owner" }),
+    }));
+
+    expect(response.status).toBe(500);
+    expect(profileUpsertPayload).toBeNull();
   });
 });

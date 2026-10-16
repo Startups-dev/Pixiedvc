@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { isValidDvcAccommodationIdentity } from "../../../packages/pixiedvc-calculator/src/engine/accommodations";
 import type { RoomCode, ViewCode } from "../../../packages/pixiedvc-calculator/src/engine/types";
-import { getActiveFoundingOwnerBonusCents } from "@/lib/founding-owner-bonus";
+import { applyFoundingOwnerBonusToPayout, getActiveFoundingOwnerBonusCents } from "@/lib/founding-owner-bonus";
 import { resolveCalculatorCode } from "@/lib/resort-calculator";
 import { computeOwnerPayout } from "@/lib/pricing";
 import {
@@ -37,6 +37,11 @@ const RENTAL_PAYLOAD_KEYS = new Set([
   "check_out",
   "points_required",
   "rental_amount_cents",
+  "owner_base_rate_per_point_cents",
+  "owner_premium_per_point_cents",
+  "owner_rate_per_point_cents",
+  "owner_total_cents",
+  "owner_home_resort_premium_applied",
   "status",
   "booking_package",
   "match_id",
@@ -78,13 +83,29 @@ export async function ensureRentalForMatch(params: {
   const { data: match } = await adminClient
     .from("booking_matches")
     .select(
-      "id, booking_id, owner_id, owner_membership_id, owner_base_rate_per_point_cents, owner_premium_per_point_cents, owner_rate_per_point_cents, owner_total_cents, owner_home_resort_premium_applied",
+      "id, booking_id, owner_id, owner_membership_id, created_at, owner_base_rate_per_point_cents, owner_premium_per_point_cents, owner_rate_per_point_cents, owner_total_cents, owner_home_resort_premium_applied",
     )
     .eq("id", matchId)
     .maybeSingle();
 
   if (!match) {
     throw new Error("match_not_found");
+  }
+
+  const { data: existingRental, error: existingRentalError } = await adminClient
+    .from("rentals")
+    .select("id, check_in, owner_user_id, rental_amount_cents")
+    .eq("match_id", match.id)
+    .maybeSingle();
+  if (existingRentalError) throw new Error(existingRentalError.message);
+  // A rental is the agreed payout snapshot. Reprocessing must not recalculate it.
+  if (existingRental) {
+    return {
+      rentalId: existingRental.id,
+      checkIn: existingRental.check_in ?? null,
+      ownerUserId: existingRental.owner_user_id,
+      rentalAmountCents: existingRental.rental_amount_cents ?? null,
+    };
   }
 
   const { data: booking } = await adminClient
@@ -212,18 +233,28 @@ export async function ensureRentalForMatch(params: {
     membershipResortId = membership?.resort_id ?? null;
   }
 
-  const ownerPayout = computeOwnerPayout({
+  const standardPayout = computeOwnerPayout({
     totalPoints: booking.total_points,
     matchedMembershipResortId: membershipResortId,
     bookingResortId: booking.primary_resort_id ?? null,
-    additionalBonusPerPointCents: getActiveFoundingOwnerBonusCents(ownerRow),
   });
+  const matchCreatedAt = match.created_at ? new Date(match.created_at) : new Date();
+  const foundingBonusCents = getActiveFoundingOwnerBonusCents(ownerRow, matchCreatedAt);
 
-  let owner_total_cents = ownerPayout.owner_total_cents;
-  let ownerRatePerPointCents = ownerPayout.owner_rate_per_point_cents;
-  let ownerBaseRateCents = ownerPayout.owner_base_rate_per_point_cents;
-  let ownerPremiumCents = ownerPayout.owner_premium_per_point_cents;
-  let ownerPremiumApplied = ownerPayout.owner_home_resort_premium_applied;
+  let owner_total_cents = standardPayout.owner_total_cents;
+  let ownerRatePerPointCents = standardPayout.owner_rate_per_point_cents;
+  // The owner saw this amount in the match quote. Keep its ordinary preferred reward fixed.
+  if (foundingBonusCents > 0 && typeof match.owner_rate_per_point_cents === "number") {
+    const quotedPreferredCents = Math.max(
+      0,
+      match.owner_rate_per_point_cents - standardPayout.owner_rate_per_point_cents - foundingBonusCents,
+    );
+    ownerRatePerPointCents += quotedPreferredCents;
+    owner_total_cents = standardPayout.total_points_for_payout * ownerRatePerPointCents;
+  }
+  const ownerBaseRateCents = standardPayout.owner_base_rate_per_point_cents;
+  const ownerPremiumCents = standardPayout.owner_premium_per_point_cents;
+  const ownerPremiumApplied = standardPayout.owner_home_resort_premium_applied;
   let ownerBonusCandidate = 0;
   let ownerRewardsPoints = 0;
   let ownerRewardsTier: ReturnType<typeof getOwnerPreferredTier> | null = null;
@@ -249,10 +280,9 @@ export async function ensureRentalForMatch(params: {
         hint: matchUpdateError.hint,
         match_id: match.id,
       });
+      throw new Error(matchUpdateError.message);
     }
   };
-
-  await persistMatchPayout();
 
   if (resolvedOwnerUserId) {
     const { data: ownerProfile, error: ownerProfileError } = await adminClient
@@ -271,7 +301,7 @@ export async function ensureRentalForMatch(params: {
       });
     }
 
-    if (isOwnerRewardsEnrolled(ownerProfile)) {
+    if (foundingBonusCents === 0 && isOwnerRewardsEnrolled(ownerProfile)) {
       const { points, error: pointsError } = await sumOwnerCompletedPoints({
         adminClient,
         ownerUserId: resolvedOwnerUserId,
@@ -429,7 +459,7 @@ export async function ensureRentalForMatch(params: {
           guestRewardPerPointRaw,
           activePromotion.guest_max_reward_per_point_cents,
         );
-        const spreadPerPoint = currentGuestRate - ownerPayout.owner_rate_per_point_cents;
+        const spreadPerPoint = currentGuestRate - standardPayout.owner_rate_per_point_cents;
         appliedBonus = applyOwnerBonusWithMargin({
           owner_bonus_candidate_cents: ownerBonusCandidate,
           owner_max_bonus_cents: activePromotion.owner_max_bonus_per_point_cents,
@@ -440,12 +470,8 @@ export async function ensureRentalForMatch(params: {
       }
 
       if (appliedBonus > 0) {
-        ownerBaseRateCents = ownerPayout.owner_base_rate_per_point_cents;
-        ownerPremiumCents = ownerPayout.owner_premium_per_point_cents;
-        ownerPremiumApplied = ownerPayout.owner_home_resort_premium_applied;
-        ownerRatePerPointCents = ownerPayout.owner_rate_per_point_cents + appliedBonus;
+        ownerRatePerPointCents = standardPayout.owner_rate_per_point_cents + appliedBonus;
         owner_total_cents = pointsTotal * ownerRatePerPointCents;
-        await persistMatchPayout();
 
         console.info("[owner-rewards] bonus applied", {
           owner_user_id: resolvedOwnerUserId,
@@ -455,6 +481,29 @@ export async function ensureRentalForMatch(params: {
           owner_total_cents,
         });
       }
+    }
+  }
+
+  const finalPayout = applyFoundingOwnerBonusToPayout(
+    { ...standardPayout, owner_rate_per_point_cents: ownerRatePerPointCents, owner_total_cents },
+    foundingBonusCents,
+  );
+  ownerRatePerPointCents = finalPayout.owner_rate_per_point_cents;
+  owner_total_cents = finalPayout.owner_total_cents;
+  await persistMatchPayout();
+
+  if (foundingBonusCents > 0 && typeof guestRatePerPointCents === "number") {
+    const spreadCents = guestRatePerPointCents - ownerRatePerPointCents;
+    const { data: marginPromotion } = await getActivePromotion({ adminClient });
+    const minSpreadCents = marginPromotion?.min_spread_per_point_cents ?? 0;
+    if (spreadCents < minSpreadCents) {
+      console.warn("[founding-owner] match margin shortfall", {
+        match_id: match.id,
+        spread_cents_per_point: spreadCents,
+        minimum_spread_cents_per_point: minSpreadCents,
+        shortfall_cents_per_point: minSpreadCents - spreadCents,
+        founding_bonus_cents_per_point: foundingBonusCents,
+      });
     }
   }
 
@@ -473,6 +522,11 @@ export async function ensureRentalForMatch(params: {
     points_required: booking.total_points ?? null,
     rental_amount_cents:
       typeof owner_total_cents === "number" && owner_total_cents > 0 ? owner_total_cents : null,
+    owner_base_rate_per_point_cents: ownerBaseRateCents,
+    owner_premium_per_point_cents: ownerPremiumCents,
+    owner_rate_per_point_cents: ownerRatePerPointCents,
+    owner_total_cents,
+    owner_home_resort_premium_applied: ownerPremiumApplied,
     status: "needs_dvc_booking",
     booking_package: bookingPackage,
     adults: booking.adults ?? null,
@@ -493,25 +547,16 @@ export async function ensureRentalForMatch(params: {
     });
   }
 
-  const { data: existingRental } = await adminClient
-    .from("rentals")
-    .select("id, check_in, owner_user_id, rental_amount_cents")
-    .eq("match_id", match.id)
-    .maybeSingle();
-
-  let rentalRow = existingRental ?? null;
-  if (!rentalRow) {
-    const { data: insertedRental, error: rentalError } = await adminClient
+  const { data: rentalRow, error: rentalError } = await adminClient
       .from("rentals")
       .insert(rentalPayload)
       .select("id, check_in, owner_user_id, rental_amount_cents")
       .single();
 
-    if (rentalError || !insertedRental) {
+    if (rentalError || !rentalRow) {
       const message = rentalError?.message ?? "rental_create_failed";
       throw new Error(message);
     }
-    rentalRow = insertedRental;
 
     const guestVerified = Boolean(
       booking.guest_profile_complete_at && booking.guest_agreement_accepted_at,
@@ -543,10 +588,6 @@ export async function ensureRentalForMatch(params: {
       { rental_id: rentalRow.id, code: "check_in", status: "pending", occurred_at: null },
       { rental_id: rentalRow.id, code: "check_out", status: "pending", occurred_at: null },
     ]);
-  } else {
-    await adminClient.from("rentals").update(rentalPayload).eq("id", rentalRow.id);
-  }
-
   return {
     rentalId: rentalRow.id,
     checkIn: rentalRow.check_in ?? null,

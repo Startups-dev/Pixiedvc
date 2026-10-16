@@ -424,7 +424,7 @@ export default async function OwnerReadyStayBookingPackagePage({
   let ownerRatePerPointCents =
     typeof readyStay.owner_price_per_point_cents === "number" ? readyStay.owner_price_per_point_cents : null;
 
-  if (ownerRatePerPointCents === null && readyStay.rental_id) {
+  if (readyStay.rental_id) {
     const { data: rentalRateRow } = await adminClient
       .from("rentals")
       .select("owner_rate_per_point_cents")

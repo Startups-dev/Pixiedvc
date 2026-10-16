@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { maybeGrantFoundingOwnerBonus } from "@/lib/founding-owner-bonus";
 
 export type AcceptOwnerAgreementState = {
   error: string | null;
@@ -79,6 +80,13 @@ export async function acceptOwnerAgreement(
 
   if (error) {
     return { error: "Unable to accept the agreement right now. Please try again." };
+  }
+
+  if (adminClient) {
+    const grant = await maybeGrantFoundingOwnerBonus({ adminClient, ownerId: owner.id });
+    if (grant.error) {
+      return { error: "Unable to finish owner onboarding right now. Please try again." };
+    }
   }
 
   const onboardingCompletedAt = new Date().toISOString();

@@ -227,4 +227,22 @@ describe("owner public chrome exclusions", () => {
 
     expect(screen.getByText("Public footer")).toBeInTheDocument();
   });
+
+  it("renders the public chrome on the Founding Owner marketing page", () => {
+    pathname = "/owners/founders-club";
+
+    const header = render(
+      <HeaderClient
+        userLabel={null}
+        userRole={null}
+        isAdmin={false}
+        isAuthenticated={false}
+        hasAffiliateAccess={false}
+      />,
+    );
+    expect(header.container).not.toBeEmptyDOMElement();
+
+    render(<SiteFooterClient />);
+    expect(screen.getByText("Public footer")).toBeInTheDocument();
+  });
 });

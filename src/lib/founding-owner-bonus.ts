@@ -19,13 +19,10 @@ function formatUsd(cents: number) {
 }
 
 export function getFoundingOwnerOfferDisplay(
-  promotion: Pick<PricingPromotion, "owner_max_bonus_per_point_cents">,
+  _promotion?: Pick<PricingPromotion, "owner_max_bonus_per_point_cents">,
 ) {
-  const configuredCap = Number(promotion.owner_max_bonus_per_point_cents);
-  const bonusCentsPerPoint = Math.min(
-    FOUNDING_OWNER_BONUS_CENTS_PER_POINT,
-    Number.isFinite(configuredCap) ? Math.max(0, configuredCap) : 0,
-  );
+  void _promotion;
+  const bonusCentsPerPoint = FOUNDING_OWNER_BONUS_CENTS_PER_POINT;
 
   return {
     bonusCentsPerPoint,
@@ -82,7 +79,7 @@ export function getActiveFoundingOwnerBonusCents(
     return 0;
   }
 
-  return cents;
+  return FOUNDING_OWNER_BONUS_CENTS_PER_POINT;
 }
 
 export function isActiveFoundingOwner(
@@ -133,20 +130,22 @@ export function applyFoundingOwnerBonusToPayout(
   payout: OwnerPayoutResult,
   foundingOwnerBonusCents: number,
 ): OwnerPayoutResult {
-  const safeBonus = Number.isFinite(foundingOwnerBonusCents) && foundingOwnerBonusCents > 0
-    ? foundingOwnerBonusCents
+  const safeBonus = foundingOwnerBonusCents > 0
+    ? FOUNDING_OWNER_BONUS_CENTS_PER_POINT
     : 0;
 
   if (safeBonus === 0) {
     return payout;
   }
 
+  const existingBonus = Math.min(Math.max(payout.owner_bonus_per_point_cents, 0), safeBonus);
+  const addedBonus = safeBonus - existingBonus;
   return {
     ...payout,
     owner_bonus_per_point_cents: safeBonus,
-    owner_rate_per_point_cents: payout.owner_rate_per_point_cents + safeBonus,
+    owner_rate_per_point_cents: payout.owner_rate_per_point_cents + addedBonus,
     owner_total_cents:
-      payout.owner_total_cents + payout.total_points_for_payout * safeBonus,
+      payout.owner_total_cents + payout.total_points_for_payout * addedBonus,
   };
 }
 

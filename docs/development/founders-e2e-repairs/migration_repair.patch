@@ -1,0 +1,2209 @@
+diff -ruN supabase/migrations/2025-03-13_owner_match_guest_policy.sql /private/tmp/founders-e2e/supabase/migrations/2025-03-13_owner_match_guest_policy.sql
+--- supabase/migrations/2025-03-13_owner_match_guest_policy.sql	2026-02-22 23:35:30
++++ /private/tmp/founders-e2e/supabase/migrations/2025-03-13_owner_match_guest_policy.sql	1969-12-31 19:00:00
+@@ -1,15 +0,0 @@
+-alter table public.booking_request_guests enable row level security;
+-
+-drop policy if exists "Owners can view matched booking guests" on public.booking_request_guests;
+-create policy "Owners can view matched booking guests"
+-on public.booking_request_guests
+-for select
+-using (
+-  exists (
+-    select 1
+-    from public.booking_matches m
+-    join public.owners o on o.id = m.owner_id
+-    where m.booking_id = booking_request_guests.booking_id
+-      and (o.user_id = auth.uid() or o.id = auth.uid())
+-  )
+-);
+diff -ruN supabase/migrations/20250313000007_owner_match_guest_policy.sql /private/tmp/founders-e2e/supabase/migrations/20250313000007_owner_match_guest_policy.sql
+--- supabase/migrations/20250313000007_owner_match_guest_policy.sql	1969-12-31 19:00:00
++++ /private/tmp/founders-e2e/supabase/migrations/20250313000007_owner_match_guest_policy.sql	2026-10-15 21:29:22
+@@ -0,0 +1,15 @@
++alter table public.booking_request_guests enable row level security;
++
++drop policy if exists "Owners can view matched booking guests" on public.booking_request_guests;
++create policy "Owners can view matched booking guests"
++on public.booking_request_guests
++for select
++using (
++  exists (
++    select 1
++    from public.booking_matches m
++    join public.owners o on o.id = m.owner_id
++    where m.booking_id = booking_request_guests.booking_id
++      and (o.user_id = auth.uid() or o.id = auth.uid())
++  )
++);
+diff -ruN supabase/migrations/20250315000001_support_handoff_agents.sql /private/tmp/founders-e2e/supabase/migrations/20250315000001_support_handoff_agents.sql
+--- supabase/migrations/20250315000001_support_handoff_agents.sql	2026-02-22 23:35:30
++++ /private/tmp/founders-e2e/supabase/migrations/20250315000001_support_handoff_agents.sql	1969-12-31 19:00:00
+@@ -1,199 +0,0 @@
+-drop table if exists support_handoffs;
+-
+-create table if not exists support_agents (
+-  id uuid primary key default gen_random_uuid(),
+-  user_id uuid references auth.users unique not null,
+-  role text not null default 'agent' check (role in ('admin','agent')),
+-  active boolean not null default true,
+-  online boolean not null default false,
+-  max_concurrent int not null default 1,
+-  last_assigned_at timestamptz,
+-  created_at timestamptz default now()
+-);
+-
+-create table if not exists support_conversations (
+-  id uuid primary key default gen_random_uuid(),
+-  guest_email text,
+-  status text not null default 'ai' check (status in ('ai','handoff','closed')),
+-  created_at timestamptz default now()
+-);
+-
+-create table if not exists support_messages (
+-  id uuid primary key default gen_random_uuid(),
+-  conversation_id uuid references support_conversations on delete cascade not null,
+-  sender text not null check (sender in ('guest','ai','agent')),
+-  agent_user_id uuid references auth.users,
+-  content text not null,
+-  created_at timestamptz default now()
+-);
+-
+-create table if not exists support_handoffs (
+-  id uuid primary key default gen_random_uuid(),
+-  conversation_id uuid references support_conversations on delete cascade unique,
+-  assigned_agent_user_id uuid references auth.users,
+-  status text not null default 'open' check (status in ('open','claimed','resolved')),
+-  created_at timestamptz default now(),
+-  claimed_at timestamptz,
+-  resolved_at timestamptz
+-);
+-
+-create index if not exists support_messages_conversation_idx
+-  on support_messages (conversation_id);
+-
+-create index if not exists support_handoffs_status_idx
+-  on support_handoffs (status);
+-
+-alter table support_agents enable row level security;
+-alter table support_conversations enable row level security;
+-alter table support_messages enable row level security;
+-alter table support_handoffs enable row level security;
+-
+-create policy support_agents_self_select
+-  on support_agents
+-  for select
+-  using (user_id = auth.uid());
+-
+-create policy support_agents_self_update
+-  on support_agents
+-  for update
+-  using (user_id = auth.uid());
+-
+-create policy support_agents_self_insert
+-  on support_agents
+-  for insert
+-  with check (user_id = auth.uid());
+-
+-create policy support_conversations_agent_select
+-  on support_conversations
+-  for select
+-  using (
+-    exists (
+-      select 1
+-      from support_handoffs h
+-      where h.conversation_id = support_conversations.id
+-        and (h.assigned_agent_user_id = auth.uid())
+-    )
+-    or exists (
+-      select 1
+-      from support_agents a
+-      where a.user_id = auth.uid()
+-        and a.role = 'admin'
+-    )
+-  );
+-
+-create policy support_messages_agent_select
+-  on support_messages
+-  for select
+-  using (
+-    exists (
+-      select 1
+-      from support_handoffs h
+-      where h.conversation_id = support_messages.conversation_id
+-        and (h.assigned_agent_user_id = auth.uid())
+-    )
+-    or exists (
+-      select 1
+-      from support_agents a
+-      where a.user_id = auth.uid()
+-        and a.role = 'admin'
+-    )
+-  );
+-
+-create policy support_messages_agent_insert
+-  on support_messages
+-  for insert
+-  with check (
+-    exists (
+-      select 1
+-      from support_handoffs h
+-      where h.conversation_id = support_messages.conversation_id
+-        and h.assigned_agent_user_id = auth.uid()
+-    )
+-    or exists (
+-      select 1
+-      from support_agents a
+-      where a.user_id = auth.uid()
+-        and a.role = 'admin'
+-    )
+-  );
+-
+-create policy support_handoffs_agent_select
+-  on support_handoffs
+-  for select
+-  using (
+-    assigned_agent_user_id = auth.uid()
+-    or assigned_agent_user_id is null
+-    or exists (
+-      select 1
+-      from support_agents a
+-      where a.user_id = auth.uid()
+-        and a.role = 'admin'
+-    )
+-  );
+-
+-create policy support_handoffs_agent_update
+-  on support_handoffs
+-  for update
+-  using (
+-    assigned_agent_user_id is null
+-    or assigned_agent_user_id = auth.uid()
+-    or exists (
+-      select 1
+-      from support_agents a
+-      where a.user_id = auth.uid()
+-        and a.role = 'admin'
+-    )
+-  );
+-
+-create or replace function assign_support_handoff(
+-  p_conversation_id uuid
+-)
+-returns table (
+-  assigned_agent_user_id uuid,
+-  status text
+-)
+-language plpgsql
+-as $$
+-declare
+-  v_agent uuid;
+-  v_updated int;
+-begin
+-  select sa.user_id
+-  into v_agent
+-  from support_agents sa
+-  left join lateral (
+-    select count(*) as active_count
+-    from support_handoffs sh
+-    where sh.assigned_agent_user_id = sa.user_id
+-      and sh.status in ('open','claimed')
+-  ) counts on true
+-  where sa.active = true
+-    and sa.online = true
+-    and coalesce(counts.active_count, 0) < sa.max_concurrent
+-  order by counts.active_count asc, sa.last_assigned_at nulls first, sa.created_at asc
+-  limit 1;
+-
+-  if v_agent is null then
+-    return;
+-  end if;
+-
+-  update support_handoffs
+-  set assigned_agent_user_id = v_agent,
+-      status = 'claimed',
+-      claimed_at = now()
+-  where conversation_id = p_conversation_id
+-    and assigned_agent_user_id is null;
+-
+-  get diagnostics v_updated = row_count;
+-
+-  if v_updated = 0 then
+-    return;
+-  end if;
+-
+-  update support_agents
+-  set last_assigned_at = now()
+-  where user_id = v_agent;
+-
+-  return query select v_agent, 'claimed';
+-end;
+-$$;
+diff -ruN supabase/migrations/20250315000005_support_handoff_agents.sql /private/tmp/founders-e2e/supabase/migrations/20250315000005_support_handoff_agents.sql
+--- supabase/migrations/20250315000005_support_handoff_agents.sql	1969-12-31 19:00:00
++++ /private/tmp/founders-e2e/supabase/migrations/20250315000005_support_handoff_agents.sql	2026-10-15 21:29:22
+@@ -0,0 +1,199 @@
++drop table if exists support_handoffs;
++
++create table if not exists support_agents (
++  id uuid primary key default gen_random_uuid(),
++  user_id uuid references auth.users unique not null,
++  role text not null default 'agent' check (role in ('admin','agent')),
++  active boolean not null default true,
++  online boolean not null default false,
++  max_concurrent int not null default 1,
++  last_assigned_at timestamptz,
++  created_at timestamptz default now()
++);
++
++create table if not exists support_conversations (
++  id uuid primary key default gen_random_uuid(),
++  guest_email text,
++  status text not null default 'ai' check (status in ('ai','handoff','closed')),
++  created_at timestamptz default now()
++);
++
++create table if not exists support_messages (
++  id uuid primary key default gen_random_uuid(),
++  conversation_id uuid references support_conversations on delete cascade not null,
++  sender text not null check (sender in ('guest','ai','agent')),
++  agent_user_id uuid references auth.users,
++  content text not null,
++  created_at timestamptz default now()
++);
++
++create table if not exists support_handoffs (
++  id uuid primary key default gen_random_uuid(),
++  conversation_id uuid references support_conversations on delete cascade unique,
++  assigned_agent_user_id uuid references auth.users,
++  status text not null default 'open' check (status in ('open','claimed','resolved')),
++  created_at timestamptz default now(),
++  claimed_at timestamptz,
++  resolved_at timestamptz
++);
++
++create index if not exists support_messages_conversation_idx
++  on support_messages (conversation_id);
++
++create index if not exists support_handoffs_status_idx
++  on support_handoffs (status);
++
++alter table support_agents enable row level security;
++alter table support_conversations enable row level security;
++alter table support_messages enable row level security;
++alter table support_handoffs enable row level security;
++
++create policy support_agents_self_select
++  on support_agents
++  for select
++  using (user_id = auth.uid());
++
++create policy support_agents_self_update
++  on support_agents
++  for update
++  using (user_id = auth.uid());
++
++create policy support_agents_self_insert
++  on support_agents
++  for insert
++  with check (user_id = auth.uid());
++
++create policy support_conversations_agent_select
++  on support_conversations
++  for select
++  using (
++    exists (
++      select 1
++      from support_handoffs h
++      where h.conversation_id = support_conversations.id
++        and (h.assigned_agent_user_id = auth.uid())
++    )
++    or exists (
++      select 1
++      from support_agents a
++      where a.user_id = auth.uid()
++        and a.role = 'admin'
++    )
++  );
++
++create policy support_messages_agent_select
++  on support_messages
++  for select
++  using (
++    exists (
++      select 1
++      from support_handoffs h
++      where h.conversation_id = support_messages.conversation_id
++        and (h.assigned_agent_user_id = auth.uid())
++    )
++    or exists (
++      select 1
++      from support_agents a
++      where a.user_id = auth.uid()
++        and a.role = 'admin'
++    )
++  );
++
++create policy support_messages_agent_insert
++  on support_messages
++  for insert
++  with check (
++    exists (
++      select 1
++      from support_handoffs h
++      where h.conversation_id = support_messages.conversation_id
++        and h.assigned_agent_user_id = auth.uid()
++    )
++    or exists (
++      select 1
++      from support_agents a
++      where a.user_id = auth.uid()
++        and a.role = 'admin'
++    )
++  );
++
++create policy support_handoffs_agent_select
++  on support_handoffs
++  for select
++  using (
++    assigned_agent_user_id = auth.uid()
++    or assigned_agent_user_id is null
++    or exists (
++      select 1
++      from support_agents a
++      where a.user_id = auth.uid()
++        and a.role = 'admin'
++    )
++  );
++
++create policy support_handoffs_agent_update
++  on support_handoffs
++  for update
++  using (
++    assigned_agent_user_id is null
++    or assigned_agent_user_id = auth.uid()
++    or exists (
++      select 1
++      from support_agents a
++      where a.user_id = auth.uid()
++        and a.role = 'admin'
++    )
++  );
++
++create or replace function assign_support_handoff(
++  p_conversation_id uuid
++)
++returns table (
++  assigned_agent_user_id uuid,
++  status text
++)
++language plpgsql
++as $$
++declare
++  v_agent uuid;
++  v_updated int;
++begin
++  select sa.user_id
++  into v_agent
++  from support_agents sa
++  left join lateral (
++    select count(*) as active_count
++    from support_handoffs sh
++    where sh.assigned_agent_user_id = sa.user_id
++      and sh.status in ('open','claimed')
++  ) counts on true
++  where sa.active = true
++    and sa.online = true
++    and coalesce(counts.active_count, 0) < sa.max_concurrent
++  order by counts.active_count asc, sa.last_assigned_at nulls first, sa.created_at asc
++  limit 1;
++
++  if v_agent is null then
++    return;
++  end if;
++
++  update support_handoffs
++  set assigned_agent_user_id = v_agent,
++      status = 'claimed',
++      claimed_at = now()
++  where conversation_id = p_conversation_id
++    and assigned_agent_user_id is null;
++
++  get diagnostics v_updated = row_count;
++
++  if v_updated = 0 then
++    return;
++  end if;
++
++  update support_agents
++  set last_assigned_at = now()
++  where user_id = v_agent;
++
++  return query select v_agent, 'claimed';
++end;
++$$;
+diff -ruN supabase/migrations/2026-01-06_create_apply_booking_match_rpc.sql /private/tmp/founders-e2e/supabase/migrations/2026-01-06_create_apply_booking_match_rpc.sql
+--- supabase/migrations/2026-01-06_create_apply_booking_match_rpc.sql	2026-02-22 23:35:30
++++ /private/tmp/founders-e2e/supabase/migrations/2026-01-06_create_apply_booking_match_rpc.sql	1969-12-31 19:00:00
+@@ -1,143 +0,0 @@
+--- RPC used by cron matcher to atomically reserve points, create a booking match,
+--- and move the booking request into pending_owner.
+-create or replace function public.apply_booking_match(
+-  p_booking_id uuid,
+-  p_borrow_membership_id uuid,
+-  p_expires_at timestamptz,
+-  p_owner_base_rate_per_point_cents int,
+-  p_owner_home_resort_premium_applied boolean,
+-  p_owner_id uuid,
+-  p_owner_membership_id uuid,
+-  p_owner_premium_per_point_cents int,
+-  p_owner_rate_per_point_cents int,
+-  p_owner_total_cents int,
+-  p_points_reserved int,
+-  p_points_reserved_borrowed int,
+-  p_points_reserved_current int
+-) returns uuid
+-language plpgsql
+-security definer
+-set search_path = public
+-as $$
+-declare
+-  current_available int;
+-  current_reserved int;
+-  borrow_available int;
+-  borrow_reserved int;
+-  match_id uuid;
+-begin
+-  if not exists (
+-    select 1
+-    from public.booking_requests
+-    where id = p_booking_id
+-      and status = 'submitted'
+-  ) then
+-    raise exception 'booking_not_submitted';
+-  end if;
+-
+-  select points_available, points_reserved
+-    into current_available, current_reserved
+-  from public.owner_memberships
+-  where id = p_owner_membership_id
+-  for update;
+-
+-  if not found then
+-    raise exception 'membership_not_found';
+-  end if;
+-
+-  if p_points_reserved_current > 0 then
+-    if current_available is null then
+-      raise exception 'membership_points_available_null';
+-    end if;
+-    if (current_available - coalesce(current_reserved, 0)) < p_points_reserved_current then
+-      raise exception 'insufficient_points';
+-    end if;
+-
+-    update public.owner_memberships
+-      set points_reserved = coalesce(points_reserved, 0) + p_points_reserved_current
+-    where id = p_owner_membership_id;
+-  end if;
+-
+-  if p_points_reserved_borrowed > 0 then
+-    if p_borrow_membership_id is null then
+-      raise exception 'missing_borrow_membership';
+-    end if;
+-
+-    select points_available, points_reserved
+-      into borrow_available, borrow_reserved
+-    from public.owner_memberships
+-    where id = p_borrow_membership_id
+-    for update;
+-
+-    if not found then
+-      raise exception 'borrow_membership_not_found';
+-    end if;
+-
+-    if borrow_available is null then
+-      raise exception 'borrow_points_available_null';
+-    end if;
+-    if (borrow_available - coalesce(borrow_reserved, 0)) < p_points_reserved_borrowed then
+-      raise exception 'insufficient_borrow_points';
+-    end if;
+-
+-    update public.owner_memberships
+-      set points_reserved = coalesce(points_reserved, 0) + p_points_reserved_borrowed
+-    where id = p_borrow_membership_id;
+-  end if;
+-
+-  insert into public.booking_matches (
+-    booking_id,
+-    owner_id,
+-    owner_membership_id,
+-    points_reserved,
+-    points_reserved_current,
+-    points_reserved_borrowed,
+-    status,
+-    expires_at,
+-    owner_base_rate_per_point_cents,
+-    owner_premium_per_point_cents,
+-    owner_rate_per_point_cents,
+-    owner_total_cents,
+-    owner_home_resort_premium_applied
+-  ) values (
+-    p_booking_id,
+-    p_owner_id,
+-    p_owner_membership_id,
+-    p_points_reserved,
+-    coalesce(p_points_reserved_current, 0),
+-    coalesce(p_points_reserved_borrowed, 0),
+-    'pending_owner',
+-    p_expires_at,
+-    p_owner_base_rate_per_point_cents,
+-    p_owner_premium_per_point_cents,
+-    p_owner_rate_per_point_cents,
+-    p_owner_total_cents,
+-    p_owner_home_resort_premium_applied
+-  )
+-  returning id into match_id;
+-
+-  update public.booking_requests
+-    set status = 'pending_owner',
+-        updated_at = now()
+-  where id = p_booking_id
+-    and status = 'submitted';
+-
+-  return match_id;
+-end;
+-$$;
+-
+-grant execute on function public.apply_booking_match(
+-  uuid,
+-  uuid,
+-  timestamptz,
+-  int,
+-  boolean,
+-  uuid,
+-  uuid,
+-  int,
+-  int,
+-  int,
+-  int,
+-  int,
+-  int
+-) to service_role;
+diff -ruN supabase/migrations/20260106000001_create_apply_booking_match_rpc.sql /private/tmp/founders-e2e/supabase/migrations/20260106000001_create_apply_booking_match_rpc.sql
+--- supabase/migrations/20260106000001_create_apply_booking_match_rpc.sql	1969-12-31 19:00:00
++++ /private/tmp/founders-e2e/supabase/migrations/20260106000001_create_apply_booking_match_rpc.sql	2026-10-15 21:29:22
+@@ -0,0 +1,143 @@
++-- RPC used by cron matcher to atomically reserve points, create a booking match,
++-- and move the booking request into pending_owner.
++create or replace function public.apply_booking_match(
++  p_booking_id uuid,
++  p_borrow_membership_id uuid,
++  p_expires_at timestamptz,
++  p_owner_base_rate_per_point_cents int,
++  p_owner_home_resort_premium_applied boolean,
++  p_owner_id uuid,
++  p_owner_membership_id uuid,
++  p_owner_premium_per_point_cents int,
++  p_owner_rate_per_point_cents int,
++  p_owner_total_cents int,
++  p_points_reserved int,
++  p_points_reserved_borrowed int,
++  p_points_reserved_current int
++) returns uuid
++language plpgsql
++security definer
++set search_path = public
++as $$
++declare
++  current_available int;
++  current_reserved int;
++  borrow_available int;
++  borrow_reserved int;
++  match_id uuid;
++begin
++  if not exists (
++    select 1
++    from public.booking_requests
++    where id = p_booking_id
++      and status = 'submitted'
++  ) then
++    raise exception 'booking_not_submitted';
++  end if;
++
++  select points_available, points_reserved
++    into current_available, current_reserved
++  from public.owner_memberships
++  where id = p_owner_membership_id
++  for update;
++
++  if not found then
++    raise exception 'membership_not_found';
++  end if;
++
++  if p_points_reserved_current > 0 then
++    if current_available is null then
++      raise exception 'membership_points_available_null';
++    end if;
++    if (current_available - coalesce(current_reserved, 0)) < p_points_reserved_current then
++      raise exception 'insufficient_points';
++    end if;
++
++    update public.owner_memberships
++      set points_reserved = coalesce(points_reserved, 0) + p_points_reserved_current
++    where id = p_owner_membership_id;
++  end if;
++
++  if p_points_reserved_borrowed > 0 then
++    if p_borrow_membership_id is null then
++      raise exception 'missing_borrow_membership';
++    end if;
++
++    select points_available, points_reserved
++      into borrow_available, borrow_reserved
++    from public.owner_memberships
++    where id = p_borrow_membership_id
++    for update;
++
++    if not found then
++      raise exception 'borrow_membership_not_found';
++    end if;
++
++    if borrow_available is null then
++      raise exception 'borrow_points_available_null';
++    end if;
++    if (borrow_available - coalesce(borrow_reserved, 0)) < p_points_reserved_borrowed then
++      raise exception 'insufficient_borrow_points';
++    end if;
++
++    update public.owner_memberships
++      set points_reserved = coalesce(points_reserved, 0) + p_points_reserved_borrowed
++    where id = p_borrow_membership_id;
++  end if;
++
++  insert into public.booking_matches (
++    booking_id,
++    owner_id,
++    owner_membership_id,
++    points_reserved,
++    points_reserved_current,
++    points_reserved_borrowed,
++    status,
++    expires_at,
++    owner_base_rate_per_point_cents,
++    owner_premium_per_point_cents,
++    owner_rate_per_point_cents,
++    owner_total_cents,
++    owner_home_resort_premium_applied
++  ) values (
++    p_booking_id,
++    p_owner_id,
++    p_owner_membership_id,
++    p_points_reserved,
++    coalesce(p_points_reserved_current, 0),
++    coalesce(p_points_reserved_borrowed, 0),
++    'pending_owner',
++    p_expires_at,
++    p_owner_base_rate_per_point_cents,
++    p_owner_premium_per_point_cents,
++    p_owner_rate_per_point_cents,
++    p_owner_total_cents,
++    p_owner_home_resort_premium_applied
++  )
++  returning id into match_id;
++
++  update public.booking_requests
++    set status = 'pending_owner',
++        updated_at = now()
++  where id = p_booking_id
++    and status = 'submitted';
++
++  return match_id;
++end;
++$$;
++
++grant execute on function public.apply_booking_match(
++  uuid,
++  uuid,
++  timestamptz,
++  int,
++  boolean,
++  uuid,
++  uuid,
++  int,
++  int,
++  int,
++  int,
++  int,
++  int
++) to service_role;
+diff -ruN supabase/migrations/20260111000001_create_payments_tables.sql /private/tmp/founders-e2e/supabase/migrations/20260111000001_create_payments_tables.sql
+--- supabase/migrations/20260111000001_create_payments_tables.sql	2026-02-22 23:35:30
++++ /private/tmp/founders-e2e/supabase/migrations/20260111000001_create_payments_tables.sql	2026-10-15 21:49:23
+@@ -43,7 +43,7 @@
+   id uuid primary key default gen_random_uuid(),
+   payment_id uuid not null references public.payments(id) on delete cascade,
+   recipient_type text not null check (recipient_type in ('platform','owner')),
+-  owner_id bigint references public.owner_memberships(id) on delete set null,
++  owner_id uuid references public.owner_memberships(id) on delete set null,
+   amount_cents integer not null check (amount_cents >= 0),
+   created_at timestamptz not null default now()
+ );
+diff -ruN supabase/migrations/20260111000002_add_tax_and_transactions.sql /private/tmp/founders-e2e/supabase/migrations/20260111000002_add_tax_and_transactions.sql
+--- supabase/migrations/20260111000002_add_tax_and_transactions.sql	2026-02-22 23:35:30
++++ /private/tmp/founders-e2e/supabase/migrations/20260111000002_add_tax_and_transactions.sql	2026-10-15 21:49:23
+@@ -74,7 +74,7 @@
+   id uuid primary key default gen_random_uuid(),
+   transaction_id uuid not null references public.transactions(id) on delete cascade,
+   recipient_type text not null check (recipient_type in ('platform','owner','tax_authority')),
+-  owner_id bigint null references public.owner_memberships(id) on delete set null,
++  owner_id uuid null references public.owner_memberships(id) on delete set null,
+   jurisdiction_id uuid null references public.tax_jurisdictions(id) on delete set null,
+   amount_cents integer not null check (amount_cents >= 0)
+ );
+diff -ruN supabase/migrations/20260127000001_add_booking_request_number.sql /private/tmp/founders-e2e/supabase/migrations/20260127000001_add_booking_request_number.sql
+--- supabase/migrations/20260127000001_add_booking_request_number.sql	2026-02-22 23:35:30
++++ /private/tmp/founders-e2e/supabase/migrations/20260127000001_add_booking_request_number.sql	2026-10-15 21:49:23
+@@ -19,5 +19,5 @@
+
+ select setval(
+   'public.booking_requests_request_number_seq',
+-  coalesce((select max(request_number) from public.booking_requests), 0)
++  greatest(1, coalesce((select max(request_number) from public.booking_requests), 1))
+ );
+diff -ruN supabase/migrations/20260127000002_confirm_booking_availability_rpc.sql /private/tmp/founders-e2e/supabase/migrations/20260127000002_confirm_booking_availability_rpc.sql
+--- supabase/migrations/20260127000002_confirm_booking_availability_rpc.sql	2026-02-22 23:35:30
++++ /private/tmp/founders-e2e/supabase/migrations/20260127000002_confirm_booking_availability_rpc.sql	2026-10-15 21:49:23
+@@ -1,15 +1,26 @@
++do $$
++begin
++  if not exists (
++    select 1 from pg_type t join pg_namespace n on n.oid = t.typnamespace
++    where n.nspname = 'public' and t.typname = 'confirm_booking_availability_result'
++  ) then
++    create type public.confirm_booking_availability_result as (
++      id uuid,
++      status text,
++      availability_status text,
++      availability_checked_at timestamptz
++    );
++  end if;
++end;
++$$;
++
+ create or replace function public.confirm_booking_availability(
+   request_id uuid,
+   availability_status text,
+   note text,
+   actor_id uuid
+ )
+-returns table (
+-  id uuid,
+-  status text,
+-  availability_status text,
+-  availability_checked_at timestamptz
+-)
++returns setof public.confirm_booking_availability_result
+ language plpgsql
+ security definer
+ set search_path = public
+diff -ruN supabase/migrations/20260205000002_add_owner_memberships_use_year_start.sql /private/tmp/founders-e2e/supabase/migrations/20260205000002_add_owner_memberships_use_year_start.sql
+--- supabase/migrations/20260205000002_add_owner_memberships_use_year_start.sql	2026-02-22 23:35:30
++++ /private/tmp/founders-e2e/supabase/migrations/20260205000002_add_owner_memberships_use_year_start.sql	2026-10-15 21:49:23
+@@ -1,30 +1,26 @@
+--- Enable per-use-year rows for owner memberships
+-
+-alter table if exists public.owner_memberships
+-  add column if not exists contract_year integer;
+-
+-update public.owner_memberships
+-set contract_year = extract(year from current_date)::int
+-where contract_year is null;
+-
+-alter table if exists public.owner_memberships
+-  alter column contract_year set not null;
+-
+--- Drop legacy unique index (owner_id,resort_id,use_year) if present
++-- The canonical use_year_start date was introduced in 20250311000001.
++-- Some historical database lineages may instead need the legacy integer column;
++-- preserve that fallback without shadowing or replacing the canonical date.
+ DO $$
+ BEGIN
+-  IF EXISTS (
+-    SELECT 1
+-    FROM pg_indexes
+-    WHERE schemaname = 'public'
+-      AND indexname = 'owner_memberships_owner_resort_useyear_idx'
++  IF NOT EXISTS (
++    SELECT 1 FROM information_schema.columns
++    WHERE table_schema = 'public' AND table_name = 'owner_memberships'
++      AND column_name = 'use_year_start'
+   ) THEN
+-    EXECUTE 'DROP INDEX public.owner_memberships_owner_resort_useyear_idx';
++    ALTER TABLE public.owner_memberships ADD COLUMN contract_year integer;
++    UPDATE public.owner_memberships
++      SET contract_year = extract(year from current_date)::int
++      WHERE contract_year IS NULL;
++    ALTER TABLE public.owner_memberships ALTER COLUMN contract_year SET NOT NULL;
++    DROP INDEX IF EXISTS public.owner_memberships_owner_resort_useyear_idx;
++    CREATE UNIQUE INDEX IF NOT EXISTS owner_memberships_owner_resort_useyear_contract_year_idx
++      ON public.owner_memberships (owner_id, resort_id, use_year, contract_year);
++    COMMENT ON COLUMN public.owner_memberships.contract_year IS
++      'Start year for the use-year bucket (e.g., 2025).';
++  ELSE
++    DROP INDEX IF EXISTS public.owner_memberships_owner_resort_useyear_idx;
++    CREATE UNIQUE INDEX IF NOT EXISTS owner_memberships_owner_resort_useyear_start_idx
++      ON public.owner_memberships (owner_id, resort_id, use_year, use_year_start);
+   END IF;
+ END $$;
+-
+-create unique index if not exists owner_memberships_owner_resort_useyear_contract_year_idx
+-  on public.owner_memberships (owner_id, resort_id, use_year, contract_year);
+-
+-comment on column public.owner_memberships.contract_year is
+-  'Start year for the use-year bucket (e.g., 2025).';
+diff -ruN supabase/migrations/20260205000003_rename_contract_year_to_use_year_start.sql /private/tmp/founders-e2e/supabase/migrations/20260205000003_rename_contract_year_to_use_year_start.sql
+--- supabase/migrations/20260205000003_rename_contract_year_to_use_year_start.sql	2026-02-22 23:35:30
++++ /private/tmp/founders-e2e/supabase/migrations/20260205000003_rename_contract_year_to_use_year_start.sql	2026-10-15 21:49:23
+@@ -1,22 +1,21 @@
+--- Rename contract_year to use_year_start and update unique index
+-
+-alter table if exists public.owner_memberships
+-  rename column contract_year to use_year_start;
+-
++-- Rename only on legacy schemas that have not already introduced the canonical date.
+ DO $$
+ BEGIN
+   IF EXISTS (
+-    SELECT 1
+-    FROM pg_indexes
+-    WHERE schemaname = 'public'
+-      AND indexname = 'owner_memberships_owner_resort_useyear_contract_year_idx'
++    SELECT 1 FROM information_schema.columns
++    WHERE table_schema = 'public' AND table_name = 'owner_memberships'
++      AND column_name = 'contract_year'
++  ) AND NOT EXISTS (
++    SELECT 1 FROM information_schema.columns
++    WHERE table_schema = 'public' AND table_name = 'owner_memberships'
++      AND column_name = 'use_year_start'
+   ) THEN
+-    EXECUTE 'DROP INDEX public.owner_memberships_owner_resort_useyear_contract_year_idx';
++    ALTER TABLE public.owner_memberships RENAME COLUMN contract_year TO use_year_start;
+   END IF;
+ END $$;
+
+-create unique index if not exists owner_memberships_owner_resort_useyear_start_idx
+-  on public.owner_memberships (owner_id, resort_id, use_year, use_year_start);
+-
+-comment on column public.owner_memberships.use_year_start is
+-  'Start year for the use-year bucket (e.g., 2025).';
++DROP INDEX IF EXISTS public.owner_memberships_owner_resort_useyear_contract_year_idx;
++CREATE UNIQUE INDEX IF NOT EXISTS owner_memberships_owner_resort_useyear_start_idx
++  ON public.owner_memberships (owner_id, resort_id, use_year, use_year_start);
++COMMENT ON COLUMN public.owner_memberships.use_year_start IS
++  'DATE for the first day of the Use Year month (YYYY-MM-01).';
+diff -ruN supabase/migrations/20260205000004_owner_memberships_use_year_start_date.sql /private/tmp/founders-e2e/supabase/migrations/20260205000004_owner_memberships_use_year_start_date.sql
+--- supabase/migrations/20260205000004_owner_memberships_use_year_start_date.sql	2026-02-22 23:35:30
++++ /private/tmp/founders-e2e/supabase/migrations/20260205000004_owner_memberships_use_year_start_date.sql	2026-10-15 21:49:23
+@@ -1,26 +1,28 @@
+--- Enforce use_year_start as DATE (first day of Use Year month)
++-- Convert only legacy integer year values. The canonical baseline already stores DATE.
++DO $$
++DECLARE col_type text;
++BEGIN
++  SELECT data_type INTO col_type
++  FROM information_schema.columns
++  WHERE table_schema = 'public' AND table_name = 'owner_memberships'
++    AND column_name = 'use_year_start';
+
+-alter table if exists public.owner_memberships
+-  alter column use_year_start type date
+-  using make_date(
+-    use_year_start::int,
+-    case lower(coalesce(use_year, 'january'))
+-      when 'january' then 1
+-      when 'february' then 2
+-      when 'march' then 3
+-      when 'april' then 4
+-      when 'may' then 5
+-      when 'june' then 6
+-      when 'july' then 7
+-      when 'august' then 8
+-      when 'september' then 9
+-      when 'october' then 10
+-      when 'november' then 11
+-      when 'december' then 12
+-      else 1
+-    end,
+-    1
+-  );
++  IF col_type IS NOT NULL AND col_type <> 'date' THEN
++    ALTER TABLE public.owner_memberships
++      ALTER COLUMN use_year_start TYPE date
++      USING make_date(
++        use_year_start::int,
++        CASE lower(coalesce(use_year, 'january'))
++          WHEN 'january' THEN 1 WHEN 'february' THEN 2 WHEN 'march' THEN 3
++          WHEN 'april' THEN 4 WHEN 'may' THEN 5 WHEN 'june' THEN 6
++          WHEN 'july' THEN 7 WHEN 'august' THEN 8 WHEN 'september' THEN 9
++          WHEN 'october' THEN 10 WHEN 'november' THEN 11 WHEN 'december' THEN 12
++          ELSE 1
++        END,
++        1
++      );
++  END IF;
++END $$;
+
+-comment on column public.owner_memberships.use_year_start is
++COMMENT ON COLUMN public.owner_memberships.use_year_start IS
+   'DATE for the first day of the Use Year month (YYYY-MM-01).';
+diff -ruN supabase/migrations/20260205000007_dedupe_resorts.sql /private/tmp/founders-e2e/supabase/migrations/20260205000007_dedupe_resorts.sql
+--- supabase/migrations/20260205000007_dedupe_resorts.sql	2026-02-22 23:35:30
++++ /private/tmp/founders-e2e/supabase/migrations/20260205000007_dedupe_resorts.sql	2026-10-15 21:50:11
+@@ -109,7 +109,7 @@
+   array_agg(r.calculator_code order by r.rn) as calculator_codes,
+   array_agg(r.created_at order by r.rn) as created_at,
+   array_agg(r.ref_count order by r.rn) as ref_counts,
+-  max(case when r.rn = 1 then r.id end) as canonical_id
++  (array_agg(r.id order by r.rn))[1] as canonical_id
+ from resort_ranked r
+ group by r.normalized_name
+ order by r.normalized_name;
+diff -ruN supabase/migrations/20260205000008_add_kidani_and_rename_akv_jambo.sql /private/tmp/founders-e2e/supabase/migrations/20260205000008_add_kidani_and_rename_akv_jambo.sql
+--- supabase/migrations/20260205000008_add_kidani_and_rename_akv_jambo.sql	2026-02-22 23:35:30
++++ /private/tmp/founders-e2e/supabase/migrations/20260205000008_add_kidani_and_rename_akv_jambo.sql	2026-10-15 21:50:48
+@@ -4,12 +4,14 @@
+ set name = 'Disney''s Animal Kingdom Villas – Jambo House'
+ where id = '9d796d31-30f6-45fb-9902-1c6f769475d0';
+
+-insert into public.resorts (name, slug, calculator_code)
++insert into public.resorts (name, slug, calculator_code, canonical_slug)
+ values (
+   'Disney''s Animal Kingdom Villas – Kidani Village',
+   'animal-kingdom-kidani',
+-  'KV'
++  'KV',
++  public.normalize_resort_name('Disney''s Animal Kingdom Villas – Kidani Village')
+ )
+ on conflict (slug) do update
+ set name = excluded.name,
+-    calculator_code = excluded.calculator_code;
++    calculator_code = excluded.calculator_code,
++    canonical_slug = excluded.canonical_slug;
+diff -ruN supabase/migrations/20260205000009_concierge_liquidation_intents.sql /private/tmp/founders-e2e/supabase/migrations/20260205000009_concierge_liquidation_intents.sql
+--- supabase/migrations/20260205000009_concierge_liquidation_intents.sql	2026-02-22 23:35:30
++++ /private/tmp/founders-e2e/supabase/migrations/20260205000009_concierge_liquidation_intents.sql	2026-10-15 21:51:21
+@@ -1,7 +1,7 @@
+ create table if not exists public.concierge_liquidation_intents (
+   id uuid primary key default gen_random_uuid(),
+   owner_id uuid not null references auth.users(id) on delete cascade,
+-  owner_membership_id bigint not null references public.owner_memberships(id) on delete cascade,
++  owner_membership_id uuid not null references public.owner_memberships(id) on delete cascade,
+   reason text null,
+   created_at timestamptz not null default now(),
+   status text not null default 'new'
+diff -ruN supabase/migrations/20260221000001_owner_membership_use_year_points.sql /private/tmp/founders-e2e/supabase/migrations/20260221000001_owner_membership_use_year_points.sql
+--- supabase/migrations/20260221000001_owner_membership_use_year_points.sql	2026-02-23 20:36:00
++++ /private/tmp/founders-e2e/supabase/migrations/20260221000001_owner_membership_use_year_points.sql	2026-10-15 21:51:21
+@@ -1,6 +1,6 @@
+ create table if not exists public.owner_membership_use_year_points (
+   id bigserial primary key,
+-  owner_membership_id bigint not null references public.owner_memberships(id) on delete cascade,
++  owner_membership_id uuid not null references public.owner_memberships(id) on delete cascade,
+   use_year int not null,
+   available int not null default 0,
+   holding int not null default 0,
+diff -ruN supabase/migrations/20260227000004_affiliate_tiered_onboarding.sql /private/tmp/founders-e2e/supabase/migrations/20260227000004_affiliate_tiered_onboarding.sql
+--- supabase/migrations/20260227000004_affiliate_tiered_onboarding.sql	2026-02-27 18:49:16
++++ /private/tmp/founders-e2e/supabase/migrations/20260227000004_affiliate_tiered_onboarding.sql	2026-10-15 21:51:51
+@@ -3,44 +3,3 @@
+ alter type public.affiliate_status add value if not exists 'suspended';
+ alter type public.affiliate_status add value if not exists 'rejected';
+
+-alter table if exists public.affiliates
+-  add column if not exists name text,
+-  add column if not exists website text,
+-  add column if not exists social_links jsonb not null default '[]'::jsonb,
+-  add column if not exists promotion_description text,
+-  add column if not exists traffic_estimate text,
+-  add column if not exists reviewed_at timestamptz,
+-  add column if not exists review_notes text,
+-  add column if not exists suspend_reason text;
+-
+-update public.affiliates
+-set
+-  name = coalesce(name, display_name),
+-  status = case
+-    when status = 'active' then 'verified'::public.affiliate_status
+-    when status = 'paused' then 'suspended'::public.affiliate_status
+-    when status = 'closed' then 'rejected'::public.affiliate_status
+-    else status
+-  end,
+-  tier = case
+-    when tier in ('standard', 'base') then 'basic'
+-    else tier
+-  end
+-where true;
+-
+-alter table if exists public.affiliates
+-  alter column status set default 'pending_review'::public.affiliate_status,
+-  alter column tier set default 'basic';
+-
+-create index if not exists affiliates_status_tier_idx
+-  on public.affiliates (status, tier, created_at desc);
+-
+-alter table if exists public.affiliates
+-  drop constraint if exists affiliates_suspend_reason_required;
+-
+-alter table if exists public.affiliates
+-  add constraint affiliates_suspend_reason_required
+-  check (
+-    status <> 'suspended'::public.affiliate_status
+-    or length(trim(coalesce(suspend_reason, ''))) > 0
+-  );
+diff -ruN supabase/migrations/20260227000005_affiliate_tiered_onboarding_data.sql /private/tmp/founders-e2e/supabase/migrations/20260227000005_affiliate_tiered_onboarding_data.sql
+--- supabase/migrations/20260227000005_affiliate_tiered_onboarding_data.sql	1969-12-31 19:00:00
++++ /private/tmp/founders-e2e/supabase/migrations/20260227000005_affiliate_tiered_onboarding_data.sql	2026-10-15 21:51:51
+@@ -0,0 +1,42 @@
++-- Apply status values in a transaction after enum labels committed by migration 04.
++alter table if exists public.affiliates
++  add column if not exists name text,
++  add column if not exists website text,
++  add column if not exists social_links jsonb not null default '[]'::jsonb,
++  add column if not exists promotion_description text,
++  add column if not exists traffic_estimate text,
++  add column if not exists reviewed_at timestamptz,
++  add column if not exists review_notes text,
++  add column if not exists suspend_reason text;
++
++update public.affiliates
++set
++  name = coalesce(name, display_name),
++  status = case
++    when status = 'active' then 'verified'::public.affiliate_status
++    when status = 'paused' then 'suspended'::public.affiliate_status
++    when status = 'closed' then 'rejected'::public.affiliate_status
++    else status
++  end,
++  tier = case
++    when tier in ('standard', 'base') then 'basic'
++    else tier
++  end
++where true;
++
++alter table if exists public.affiliates
++  alter column status set default 'pending_review'::public.affiliate_status,
++  alter column tier set default 'basic';
++
++create index if not exists affiliates_status_tier_idx
++  on public.affiliates (status, tier, created_at desc);
++
++alter table if exists public.affiliates
++  drop constraint if exists affiliates_suspend_reason_required;
++
++alter table if exists public.affiliates
++  add constraint affiliates_suspend_reason_required
++  check (
++    status <> 'suspended'::public.affiliate_status
++    or length(trim(coalesce(suspend_reason, ''))) > 0
++  );
+diff -ruN supabase/migrations/20260302000001_critical_hardening_phase1.sql /private/tmp/founders-e2e/supabase/migrations/20260302000001_critical_hardening_phase1.sql
+--- supabase/migrations/20260302000001_critical_hardening_phase1.sql	1969-12-31 19:00:00
++++ /private/tmp/founders-e2e/supabase/migrations/20260302000001_critical_hardening_phase1.sql	2026-10-15 21:29:22
+@@ -0,0 +1,478 @@
++begin;
++
++-- ---------------------------------------------------------------------------
++-- B1) Enable RLS on uncovered tables (deny-by-default unless policies exist).
++-- ---------------------------------------------------------------------------
++alter table if exists public.owners enable row level security;
++alter table if exists public.owner_comments enable row level security;
++alter table if exists public.owner_verification_events enable row level security;
++alter table if exists public.guest_preferences enable row level security;
++alter table if exists public.guest_request_activity enable row level security;
++alter table if exists public.renter_requests enable row level security;
++alter table if exists public.pricing_promotions enable row level security;
++alter table if exists public.resorts enable row level security;
++alter table if exists public.resort_photos enable row level security;
++alter table if exists public.confirmed_bookings enable row level security;
++alter table if exists public.cron_locks enable row level security;
++alter table if exists public.owner_membership_use_year_points enable row level security;
++
++-- Keep core owner/admin flows working with least privilege.
++drop policy if exists owners_self_select on public.owners;
++drop policy if exists owners_self_insert on public.owners;
++drop policy if exists owners_self_update on public.owners;
++drop policy if exists owners_admin_manage on public.owners;
++
++create policy owners_self_select
++  on public.owners
++  for select
++  to authenticated
++  using (user_id = auth.uid());
++
++create policy owners_self_insert
++  on public.owners
++  for insert
++  to authenticated
++  with check (user_id = auth.uid());
++
++create policy owners_self_update
++  on public.owners
++  for update
++  to authenticated
++  using (user_id = auth.uid())
++  with check (user_id = auth.uid());
++
++create policy owners_admin_manage
++  on public.owners
++  for all
++  to authenticated
++  using (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  )
++  with check (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  );
++
++drop policy if exists owner_comments_owner_select on public.owner_comments;
++drop policy if exists owner_comments_admin_manage on public.owner_comments;
++
++create policy owner_comments_owner_select
++  on public.owner_comments
++  for select
++  to authenticated
++  using (
++    exists (
++      select 1
++      from public.owners o
++      where o.id = owner_comments.owner_id
++        and o.user_id = auth.uid()
++    )
++  );
++
++create policy owner_comments_admin_manage
++  on public.owner_comments
++  for all
++  to authenticated
++  using (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  )
++  with check (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  );
++
++drop policy if exists owner_verification_events_owner_select on public.owner_verification_events;
++drop policy if exists owner_verification_events_admin_manage on public.owner_verification_events;
++
++create policy owner_verification_events_owner_select
++  on public.owner_verification_events
++  for select
++  to authenticated
++  using (
++    exists (
++      select 1
++      from public.owners o
++      where o.id = owner_verification_events.owner_id
++        and o.user_id = auth.uid()
++    )
++  );
++
++create policy owner_verification_events_admin_manage
++  on public.owner_verification_events
++  for all
++  to authenticated
++  using (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  )
++  with check (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  );
++
++drop policy if exists guest_preferences_self_select on public.guest_preferences;
++drop policy if exists guest_preferences_self_insert on public.guest_preferences;
++drop policy if exists guest_preferences_self_update on public.guest_preferences;
++drop policy if exists guest_preferences_admin_manage on public.guest_preferences;
++
++create policy guest_preferences_self_select
++  on public.guest_preferences
++  for select
++  to authenticated
++  using (user_id = auth.uid());
++
++create policy guest_preferences_self_insert
++  on public.guest_preferences
++  for insert
++  to authenticated
++  with check (user_id = auth.uid());
++
++create policy guest_preferences_self_update
++  on public.guest_preferences
++  for update
++  to authenticated
++  using (user_id = auth.uid())
++  with check (user_id = auth.uid());
++
++create policy guest_preferences_admin_manage
++  on public.guest_preferences
++  for all
++  to authenticated
++  using (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  )
++  with check (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  );
++
++drop policy if exists renter_requests_self_select on public.renter_requests;
++drop policy if exists renter_requests_self_insert on public.renter_requests;
++drop policy if exists renter_requests_self_update on public.renter_requests;
++drop policy if exists renter_requests_admin_manage on public.renter_requests;
++
++create policy renter_requests_self_select
++  on public.renter_requests
++  for select
++  to authenticated
++  using (renter_id = auth.uid());
++
++create policy renter_requests_self_insert
++  on public.renter_requests
++  for insert
++  to authenticated
++  with check (renter_id = auth.uid());
++
++create policy renter_requests_self_update
++  on public.renter_requests
++  for update
++  to authenticated
++  using (renter_id = auth.uid())
++  with check (renter_id = auth.uid());
++
++create policy renter_requests_admin_manage
++  on public.renter_requests
++  for all
++  to authenticated
++  using (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  )
++  with check (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  );
++
++drop policy if exists guest_request_activity_renter_select on public.guest_request_activity;
++drop policy if exists guest_request_activity_admin_manage on public.guest_request_activity;
++
++create policy guest_request_activity_renter_select
++  on public.guest_request_activity
++  for select
++  to authenticated
++  using (
++    exists (
++      select 1
++      from public.renter_requests rr
++      where rr.id = guest_request_activity.request_id
++        and rr.renter_id = auth.uid()
++    )
++  );
++
++create policy guest_request_activity_admin_manage
++  on public.guest_request_activity
++  for all
++  to authenticated
++  using (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  )
++  with check (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  );
++
++drop policy if exists pricing_promotions_admin_manage on public.pricing_promotions;
++create policy pricing_promotions_admin_manage
++  on public.pricing_promotions
++  for all
++  to authenticated
++  using (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  )
++  with check (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  );
++
++drop policy if exists confirmed_bookings_admin_manage on public.confirmed_bookings;
++create policy confirmed_bookings_admin_manage
++  on public.confirmed_bookings
++  for all
++  to authenticated
++  using (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  )
++  with check (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  );
++
++drop policy if exists cron_locks_service_manage on public.cron_locks;
++create policy cron_locks_service_manage
++  on public.cron_locks
++  for all
++  to service_role
++  using (true)
++  with check (true);
++
++drop policy if exists owner_membership_use_year_points_owner_select on public.owner_membership_use_year_points;
++drop policy if exists owner_membership_use_year_points_owner_insert on public.owner_membership_use_year_points;
++drop policy if exists owner_membership_use_year_points_owner_update on public.owner_membership_use_year_points;
++drop policy if exists owner_membership_use_year_points_admin_manage on public.owner_membership_use_year_points;
++
++create policy owner_membership_use_year_points_owner_select
++  on public.owner_membership_use_year_points
++  for select
++  to authenticated
++  using (
++    exists (
++      select 1
++      from public.owner_memberships om
++      join public.owners o on o.id = om.owner_id
++      where om.id = owner_membership_use_year_points.owner_membership_id
++        and o.user_id = auth.uid()
++    )
++  );
++
++create policy owner_membership_use_year_points_owner_insert
++  on public.owner_membership_use_year_points
++  for insert
++  to authenticated
++  with check (
++    exists (
++      select 1
++      from public.owner_memberships om
++      join public.owners o on o.id = om.owner_id
++      where om.id = owner_membership_use_year_points.owner_membership_id
++        and o.user_id = auth.uid()
++    )
++  );
++
++create policy owner_membership_use_year_points_owner_update
++  on public.owner_membership_use_year_points
++  for update
++  to authenticated
++  using (
++    exists (
++      select 1
++      from public.owner_memberships om
++      join public.owners o on o.id = om.owner_id
++      where om.id = owner_membership_use_year_points.owner_membership_id
++        and o.user_id = auth.uid()
++    )
++  )
++  with check (
++    exists (
++      select 1
++      from public.owner_memberships om
++      join public.owners o on o.id = om.owner_id
++      where om.id = owner_membership_use_year_points.owner_membership_id
++        and o.user_id = auth.uid()
++    )
++  );
++
++create policy owner_membership_use_year_points_admin_manage
++  on public.owner_membership_use_year_points
++  for all
++  to authenticated
++  using (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  )
++  with check (
++    exists (
++      select 1 from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  );
++
++-- Public browse access for resort listing/content only.
++drop policy if exists resorts_public_read on public.resorts;
++create policy resorts_public_read
++  on public.resorts
++  for select
++  to anon, authenticated
++  using (true);
++
++drop policy if exists resort_photos_public_read on public.resort_photos;
++create policy resort_photos_public_read
++  on public.resort_photos
++  for select
++  to anon, authenticated
++  using (true);
++
++-- ---------------------------------------------------------------------------
++-- B3) Tighten affiliate lead insertion to prevent attribution poisoning.
++-- ---------------------------------------------------------------------------
++drop policy if exists "Authenticated can insert affiliate leads" on public.affiliate_leads;
++drop policy if exists affiliate_leads_insert_owned_booking on public.affiliate_leads;
++
++create policy affiliate_leads_insert_owned_booking
++  on public.affiliate_leads
++  for insert
++  to authenticated
++  with check (
++    exists (
++      select 1
++      from public.affiliates a
++      where a.id = affiliate_id
++        and a.status::text in ('active', 'verified', 'pending_review')
++    )
++    and exists (
++      select 1
++      from public.booking_requests b
++      where b.id = booking_request_id
++        and b.renter_id = auth.uid()
++    )
++  );
++
++-- ---------------------------------------------------------------------------
++-- B4) Fix support privilege escalation paths.
++-- ---------------------------------------------------------------------------
++drop policy if exists support_agents_self_insert on public.support_agents;
++drop policy if exists support_agents_admin_insert on public.support_agents;
++
++create policy support_agents_admin_insert
++  on public.support_agents
++  for insert
++  to authenticated
++  with check (
++    exists (
++      select 1
++      from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  );
++
++drop policy if exists support_handoffs_agent_select on public.support_handoffs;
++drop policy if exists support_handoffs_agent_update on public.support_handoffs;
++drop policy if exists support_handoffs_agent_select_strict on public.support_handoffs;
++drop policy if exists support_handoffs_agent_update_strict on public.support_handoffs;
++
++create policy support_handoffs_agent_select_strict
++  on public.support_handoffs
++  for select
++  to authenticated
++  using (
++    assigned_agent_user_id = auth.uid()
++    or exists (
++      select 1
++      from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  );
++
++create policy support_handoffs_agent_update_strict
++  on public.support_handoffs
++  for update
++  to authenticated
++  using (
++    assigned_agent_user_id = auth.uid()
++    or exists (
++      select 1
++      from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  )
++  with check (
++    assigned_agent_user_id = auth.uid()
++    or exists (
++      select 1
++      from public.profiles p
++      where p.id = auth.uid()
++        and p.role = 'admin'
++    )
++  );
++
++commit;
+diff -ruN supabase/migrations/20260302_critical_hardening_phase1.sql /private/tmp/founders-e2e/supabase/migrations/20260302_critical_hardening_phase1.sql
+--- supabase/migrations/20260302_critical_hardening_phase1.sql	2026-03-02 19:11:59
++++ /private/tmp/founders-e2e/supabase/migrations/20260302_critical_hardening_phase1.sql	1969-12-31 19:00:00
+@@ -1,478 +0,0 @@
+-begin;
+-
+--- ---------------------------------------------------------------------------
+--- B1) Enable RLS on uncovered tables (deny-by-default unless policies exist).
+--- ---------------------------------------------------------------------------
+-alter table if exists public.owners enable row level security;
+-alter table if exists public.owner_comments enable row level security;
+-alter table if exists public.owner_verification_events enable row level security;
+-alter table if exists public.guest_preferences enable row level security;
+-alter table if exists public.guest_request_activity enable row level security;
+-alter table if exists public.renter_requests enable row level security;
+-alter table if exists public.pricing_promotions enable row level security;
+-alter table if exists public.resorts enable row level security;
+-alter table if exists public.resort_photos enable row level security;
+-alter table if exists public.confirmed_bookings enable row level security;
+-alter table if exists public.cron_locks enable row level security;
+-alter table if exists public.owner_membership_use_year_points enable row level security;
+-
+--- Keep core owner/admin flows working with least privilege.
+-drop policy if exists owners_self_select on public.owners;
+-drop policy if exists owners_self_insert on public.owners;
+-drop policy if exists owners_self_update on public.owners;
+-drop policy if exists owners_admin_manage on public.owners;
+-
+-create policy owners_self_select
+-  on public.owners
+-  for select
+-  to authenticated
+-  using (user_id = auth.uid());
+-
+-create policy owners_self_insert
+-  on public.owners
+-  for insert
+-  to authenticated
+-  with check (user_id = auth.uid());
+-
+-create policy owners_self_update
+-  on public.owners
+-  for update
+-  to authenticated
+-  using (user_id = auth.uid())
+-  with check (user_id = auth.uid());
+-
+-create policy owners_admin_manage
+-  on public.owners
+-  for all
+-  to authenticated
+-  using (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  )
+-  with check (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  );
+-
+-drop policy if exists owner_comments_owner_select on public.owner_comments;
+-drop policy if exists owner_comments_admin_manage on public.owner_comments;
+-
+-create policy owner_comments_owner_select
+-  on public.owner_comments
+-  for select
+-  to authenticated
+-  using (
+-    exists (
+-      select 1
+-      from public.owners o
+-      where o.id = owner_comments.owner_id
+-        and o.user_id = auth.uid()
+-    )
+-  );
+-
+-create policy owner_comments_admin_manage
+-  on public.owner_comments
+-  for all
+-  to authenticated
+-  using (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  )
+-  with check (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  );
+-
+-drop policy if exists owner_verification_events_owner_select on public.owner_verification_events;
+-drop policy if exists owner_verification_events_admin_manage on public.owner_verification_events;
+-
+-create policy owner_verification_events_owner_select
+-  on public.owner_verification_events
+-  for select
+-  to authenticated
+-  using (
+-    exists (
+-      select 1
+-      from public.owners o
+-      where o.id = owner_verification_events.owner_id
+-        and o.user_id = auth.uid()
+-    )
+-  );
+-
+-create policy owner_verification_events_admin_manage
+-  on public.owner_verification_events
+-  for all
+-  to authenticated
+-  using (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  )
+-  with check (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  );
+-
+-drop policy if exists guest_preferences_self_select on public.guest_preferences;
+-drop policy if exists guest_preferences_self_insert on public.guest_preferences;
+-drop policy if exists guest_preferences_self_update on public.guest_preferences;
+-drop policy if exists guest_preferences_admin_manage on public.guest_preferences;
+-
+-create policy guest_preferences_self_select
+-  on public.guest_preferences
+-  for select
+-  to authenticated
+-  using (user_id = auth.uid());
+-
+-create policy guest_preferences_self_insert
+-  on public.guest_preferences
+-  for insert
+-  to authenticated
+-  with check (user_id = auth.uid());
+-
+-create policy guest_preferences_self_update
+-  on public.guest_preferences
+-  for update
+-  to authenticated
+-  using (user_id = auth.uid())
+-  with check (user_id = auth.uid());
+-
+-create policy guest_preferences_admin_manage
+-  on public.guest_preferences
+-  for all
+-  to authenticated
+-  using (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  )
+-  with check (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  );
+-
+-drop policy if exists renter_requests_self_select on public.renter_requests;
+-drop policy if exists renter_requests_self_insert on public.renter_requests;
+-drop policy if exists renter_requests_self_update on public.renter_requests;
+-drop policy if exists renter_requests_admin_manage on public.renter_requests;
+-
+-create policy renter_requests_self_select
+-  on public.renter_requests
+-  for select
+-  to authenticated
+-  using (renter_id = auth.uid());
+-
+-create policy renter_requests_self_insert
+-  on public.renter_requests
+-  for insert
+-  to authenticated
+-  with check (renter_id = auth.uid());
+-
+-create policy renter_requests_self_update
+-  on public.renter_requests
+-  for update
+-  to authenticated
+-  using (renter_id = auth.uid())
+-  with check (renter_id = auth.uid());
+-
+-create policy renter_requests_admin_manage
+-  on public.renter_requests
+-  for all
+-  to authenticated
+-  using (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  )
+-  with check (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  );
+-
+-drop policy if exists guest_request_activity_renter_select on public.guest_request_activity;
+-drop policy if exists guest_request_activity_admin_manage on public.guest_request_activity;
+-
+-create policy guest_request_activity_renter_select
+-  on public.guest_request_activity
+-  for select
+-  to authenticated
+-  using (
+-    exists (
+-      select 1
+-      from public.renter_requests rr
+-      where rr.id = guest_request_activity.request_id
+-        and rr.renter_id = auth.uid()
+-    )
+-  );
+-
+-create policy guest_request_activity_admin_manage
+-  on public.guest_request_activity
+-  for all
+-  to authenticated
+-  using (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  )
+-  with check (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  );
+-
+-drop policy if exists pricing_promotions_admin_manage on public.pricing_promotions;
+-create policy pricing_promotions_admin_manage
+-  on public.pricing_promotions
+-  for all
+-  to authenticated
+-  using (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  )
+-  with check (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  );
+-
+-drop policy if exists confirmed_bookings_admin_manage on public.confirmed_bookings;
+-create policy confirmed_bookings_admin_manage
+-  on public.confirmed_bookings
+-  for all
+-  to authenticated
+-  using (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  )
+-  with check (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  );
+-
+-drop policy if exists cron_locks_service_manage on public.cron_locks;
+-create policy cron_locks_service_manage
+-  on public.cron_locks
+-  for all
+-  to service_role
+-  using (true)
+-  with check (true);
+-
+-drop policy if exists owner_membership_use_year_points_owner_select on public.owner_membership_use_year_points;
+-drop policy if exists owner_membership_use_year_points_owner_insert on public.owner_membership_use_year_points;
+-drop policy if exists owner_membership_use_year_points_owner_update on public.owner_membership_use_year_points;
+-drop policy if exists owner_membership_use_year_points_admin_manage on public.owner_membership_use_year_points;
+-
+-create policy owner_membership_use_year_points_owner_select
+-  on public.owner_membership_use_year_points
+-  for select
+-  to authenticated
+-  using (
+-    exists (
+-      select 1
+-      from public.owner_memberships om
+-      join public.owners o on o.id = om.owner_id
+-      where om.id = owner_membership_use_year_points.owner_membership_id
+-        and o.user_id = auth.uid()
+-    )
+-  );
+-
+-create policy owner_membership_use_year_points_owner_insert
+-  on public.owner_membership_use_year_points
+-  for insert
+-  to authenticated
+-  with check (
+-    exists (
+-      select 1
+-      from public.owner_memberships om
+-      join public.owners o on o.id = om.owner_id
+-      where om.id = owner_membership_use_year_points.owner_membership_id
+-        and o.user_id = auth.uid()
+-    )
+-  );
+-
+-create policy owner_membership_use_year_points_owner_update
+-  on public.owner_membership_use_year_points
+-  for update
+-  to authenticated
+-  using (
+-    exists (
+-      select 1
+-      from public.owner_memberships om
+-      join public.owners o on o.id = om.owner_id
+-      where om.id = owner_membership_use_year_points.owner_membership_id
+-        and o.user_id = auth.uid()
+-    )
+-  )
+-  with check (
+-    exists (
+-      select 1
+-      from public.owner_memberships om
+-      join public.owners o on o.id = om.owner_id
+-      where om.id = owner_membership_use_year_points.owner_membership_id
+-        and o.user_id = auth.uid()
+-    )
+-  );
+-
+-create policy owner_membership_use_year_points_admin_manage
+-  on public.owner_membership_use_year_points
+-  for all
+-  to authenticated
+-  using (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  )
+-  with check (
+-    exists (
+-      select 1 from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  );
+-
+--- Public browse access for resort listing/content only.
+-drop policy if exists resorts_public_read on public.resorts;
+-create policy resorts_public_read
+-  on public.resorts
+-  for select
+-  to anon, authenticated
+-  using (true);
+-
+-drop policy if exists resort_photos_public_read on public.resort_photos;
+-create policy resort_photos_public_read
+-  on public.resort_photos
+-  for select
+-  to anon, authenticated
+-  using (true);
+-
+--- ---------------------------------------------------------------------------
+--- B3) Tighten affiliate lead insertion to prevent attribution poisoning.
+--- ---------------------------------------------------------------------------
+-drop policy if exists "Authenticated can insert affiliate leads" on public.affiliate_leads;
+-drop policy if exists affiliate_leads_insert_owned_booking on public.affiliate_leads;
+-
+-create policy affiliate_leads_insert_owned_booking
+-  on public.affiliate_leads
+-  for insert
+-  to authenticated
+-  with check (
+-    exists (
+-      select 1
+-      from public.affiliates a
+-      where a.id = affiliate_id
+-        and a.status::text in ('active', 'verified', 'pending_review')
+-    )
+-    and exists (
+-      select 1
+-      from public.booking_requests b
+-      where b.id = booking_request_id
+-        and b.renter_id = auth.uid()
+-    )
+-  );
+-
+--- ---------------------------------------------------------------------------
+--- B4) Fix support privilege escalation paths.
+--- ---------------------------------------------------------------------------
+-drop policy if exists support_agents_self_insert on public.support_agents;
+-drop policy if exists support_agents_admin_insert on public.support_agents;
+-
+-create policy support_agents_admin_insert
+-  on public.support_agents
+-  for insert
+-  to authenticated
+-  with check (
+-    exists (
+-      select 1
+-      from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  );
+-
+-drop policy if exists support_handoffs_agent_select on public.support_handoffs;
+-drop policy if exists support_handoffs_agent_update on public.support_handoffs;
+-drop policy if exists support_handoffs_agent_select_strict on public.support_handoffs;
+-drop policy if exists support_handoffs_agent_update_strict on public.support_handoffs;
+-
+-create policy support_handoffs_agent_select_strict
+-  on public.support_handoffs
+-  for select
+-  to authenticated
+-  using (
+-    assigned_agent_user_id = auth.uid()
+-    or exists (
+-      select 1
+-      from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  );
+-
+-create policy support_handoffs_agent_update_strict
+-  on public.support_handoffs
+-  for update
+-  to authenticated
+-  using (
+-    assigned_agent_user_id = auth.uid()
+-    or exists (
+-      select 1
+-      from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  )
+-  with check (
+-    assigned_agent_user_id = auth.uid()
+-    or exists (
+-      select 1
+-      from public.profiles p
+-      where p.id = auth.uid()
+-        and p.role = 'admin'
+-    )
+-  );
+-
+-commit;
+diff -ruN supabase/migrations/20260306000001_support_conversation_metadata.sql /private/tmp/founders-e2e/supabase/migrations/20260306000001_support_conversation_metadata.sql
+--- supabase/migrations/20260306000001_support_conversation_metadata.sql	2026-03-06 00:44:23
++++ /private/tmp/founders-e2e/supabase/migrations/20260306000001_support_conversation_metadata.sql	1969-12-31 19:00:00
+@@ -1,9 +0,0 @@
+-alter table if exists public.support_conversations
+-  add column if not exists page_url text,
+-  add column if not exists context jsonb not null default '{}'::jsonb,
+-  add column if not exists guest_name text,
+-  add column if not exists topic text,
+-  add column if not exists intake_message text;
+-
+-alter table if exists public.support_messages
+-  add column if not exists metadata jsonb not null default '{}'::jsonb;
+diff -ruN supabase/migrations/20260306000003_support_conversation_metadata.sql /private/tmp/founders-e2e/supabase/migrations/20260306000003_support_conversation_metadata.sql
+--- supabase/migrations/20260306000003_support_conversation_metadata.sql	1969-12-31 19:00:00
++++ /private/tmp/founders-e2e/supabase/migrations/20260306000003_support_conversation_metadata.sql	2026-10-15 21:29:22
+@@ -0,0 +1,9 @@
++alter table if exists public.support_conversations
++  add column if not exists page_url text,
++  add column if not exists context jsonb not null default '{}'::jsonb,
++  add column if not exists guest_name text,
++  add column if not exists topic text,
++  add column if not exists intake_message text;
++
++alter table if exists public.support_messages
++  add column if not exists metadata jsonb not null default '{}'::jsonb;
+diff -ruN supabase/migrations/20260313000001_admin_reset_test_data_bookings_counts.sql /private/tmp/founders-e2e/supabase/migrations/20260313000001_admin_reset_test_data_bookings_counts.sql
+--- supabase/migrations/20260313000001_admin_reset_test_data_bookings_counts.sql	2026-03-12 22:41:18
++++ /private/tmp/founders-e2e/supabase/migrations/20260313000001_admin_reset_test_data_bookings_counts.sql	2026-10-15 21:57:36
+@@ -1,3 +1,9 @@
++-- This intentionally expands the OUT record. PostgreSQL cannot CREATE OR REPLACE
++-- a zero-argument function with a different OUT row type. The prior scratch-chain
++-- function has no dependent objects or application call during migration; its
++-- service_role RPC grant is re-applied below.
++drop function if exists public.admin_reset_test_data_bookings();
++
+ create or replace function public.admin_reset_test_data_bookings()
+ returns table (
+   booking_requests_deleted bigint,
+diff -ruN supabase/migrations/20260607160000_ready_stays_test_listings.sql /private/tmp/founders-e2e/supabase/migrations/20260607160000_ready_stays_test_listings.sql
+--- supabase/migrations/20260607160000_ready_stays_test_listings.sql	2026-06-07 22:04:53
++++ /private/tmp/founders-e2e/supabase/migrations/20260607160000_ready_stays_test_listings.sql	2026-10-15 22:00:12
+@@ -1,36 +1,2 @@
+ alter type public.ready_stay_status add value if not exists 'test';
+
+-alter table if exists public.ready_stays
+-  add column if not exists is_test_listing boolean not null default false,
+-  add column if not exists is_visible_publicly boolean not null default false,
+-  add column if not exists test_created_by uuid references auth.users(id) on delete set null,
+-  add column if not exists test_notes text,
+-  add column if not exists test_guest_total_cents integer,
+-  add column if not exists test_owner_payout_cents integer;
+-
+-create index if not exists ready_stays_test_listing_idx
+-  on public.ready_stays (is_test_listing, is_visible_publicly, created_at desc);
+-
+-create index if not exists ready_stays_test_created_by_idx
+-  on public.ready_stays (test_created_by, created_at desc)
+-  where test_created_by is not null;
+-
+-drop policy if exists "Public can view active ready stays showcase" on public.ready_stays;
+-create policy "Public can view active ready stays showcase"
+-  on public.ready_stays
+-  for select
+-  to anon, authenticated
+-  using (
+-    (
+-      status = 'active'::ready_stay_status
+-      or (
+-        status = 'test'::ready_stay_status
+-        and coalesce(is_visible_publicly, false) = true
+-      )
+-    )
+-    and coalesce(nullif(slug, ''), '') <> ''
+-    and coalesce(nullif(title, ''), '') <> ''
+-    and coalesce(nullif(image_url, ''), '') <> ''
+-    and check_out >= current_date
+-    and (expires_at is null or expires_at > now())
+-  );
+diff -ruN supabase/migrations/20260607160001_ready_stays_test_listings_schema.sql /private/tmp/founders-e2e/supabase/migrations/20260607160001_ready_stays_test_listings_schema.sql
+--- supabase/migrations/20260607160001_ready_stays_test_listings_schema.sql	1969-12-31 19:00:00
++++ /private/tmp/founders-e2e/supabase/migrations/20260607160001_ready_stays_test_listings_schema.sql	2026-10-15 22:00:12
+@@ -0,0 +1,35 @@
++-- Apply schema and policy after enum label commits in migration 20260607160000.
++alter table if exists public.ready_stays
++  add column if not exists is_test_listing boolean not null default false,
++  add column if not exists is_visible_publicly boolean not null default false,
++  add column if not exists test_created_by uuid references auth.users(id) on delete set null,
++  add column if not exists test_notes text,
++  add column if not exists test_guest_total_cents integer,
++  add column if not exists test_owner_payout_cents integer;
++
++create index if not exists ready_stays_test_listing_idx
++  on public.ready_stays (is_test_listing, is_visible_publicly, created_at desc);
++
++create index if not exists ready_stays_test_created_by_idx
++  on public.ready_stays (test_created_by, created_at desc)
++  where test_created_by is not null;
++
++drop policy if exists "Public can view active ready stays showcase" on public.ready_stays;
++create policy "Public can view active ready stays showcase"
++  on public.ready_stays
++  for select
++  to anon, authenticated
++  using (
++    (
++      status = 'active'::ready_stay_status
++      or (
++        status = 'test'::ready_stay_status
++        and coalesce(is_visible_publicly, false) = true
++      )
++    )
++    and coalesce(nullif(slug, ''), '') <> ''
++    and coalesce(nullif(title, ''), '') <> ''
++    and coalesce(nullif(image_url, ''), '') <> ''
++    and check_out >= current_date
++    and (expires_at is null or expires_at > now())
++  );
+diff -ruN supabase/migrations/20260824000003_owner_newsletter_consent.sql /private/tmp/founders-e2e/supabase/migrations/20260824000003_owner_newsletter_consent.sql
+--- supabase/migrations/20260824000003_owner_newsletter_consent.sql	1969-12-31 19:00:00
++++ /private/tmp/founders-e2e/supabase/migrations/20260824000003_owner_newsletter_consent.sql	2026-10-15 22:20:45
+@@ -0,0 +1,8 @@
++-- Application onboarding writes these owner consent fields, but no prior migration
++-- in the copied chain defined them. Keep the normal opt-out default.
++alter table public.owners
++  add column if not exists newsletter_opt_in boolean not null default false,
++  add column if not exists newsletter_opt_in_at timestamptz,
++  add column if not exists newsletter_opt_in_source text;
++
++select pg_notify('pgrst', 'reload schema');
+diff -ruN supabase/migrations/20260824000004_booking_matches_updated_at.sql /private/tmp/founders-e2e/supabase/migrations/20260824000004_booking_matches_updated_at.sql
+--- supabase/migrations/20260824000004_booking_matches_updated_at.sql	1969-12-31 19:00:00
++++ /private/tmp/founders-e2e/supabase/migrations/20260824000004_booking_matches_updated_at.sql	2026-10-15 22:35:38
+@@ -0,0 +1,3 @@
++-- Scratch-only compatibility repair: ensureRentalForMatch persists updated_at.
++alter table public.booking_matches
++  add column if not exists updated_at timestamptz not null default now();

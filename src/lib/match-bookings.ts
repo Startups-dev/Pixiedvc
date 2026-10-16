@@ -1,7 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import { getActiveFoundingOwnerBonusCents } from '@/lib/founding-owner-bonus';
+import { applyFoundingOwnerBonusToPayout, getActiveFoundingOwnerBonusCents } from '@/lib/founding-owner-bonus';
 import { computeOwnerPayout } from '@/lib/pricing';
+import { applyOwnerBonusWithMargin, getOwnerPreferredBonusCents } from '@/lib/owner-rewards';
+import { getActivePromotion } from '@/lib/pricing-promotions';
 import { sendOwnerMatchEmail } from '@/lib/email';
 import { getAppUrl } from '@/lib/app-url';
 import { isOwnerLifecycleActive } from '@/lib/owner/lifecycle';
@@ -49,6 +51,7 @@ type ProfileRow = {
   email: string | null;
   display_name: string | null;
   payout_email?: string | null;
+  owner_rewards_enrolled_at?: string | null;
 };
 
 type OwnerRow = {
@@ -389,7 +392,8 @@ export async function evaluateMatchBookings(options: {
             id,
             email,
             display_name,
-            payout_email
+            payout_email,
+            owner_rewards_enrolled_at
           )
         )
       `,
@@ -840,12 +844,36 @@ export async function evaluateMatchBookings(options: {
       });
     }
 
-    const ownerPayout = computeOwnerPayout({
+    const standardPayout = computeOwnerPayout({
       totalPoints: booking.total_points,
       matchedMembershipResortId: bestCandidate.membership.resort_id,
       bookingResortId: booking.primary_resort_id,
-      additionalBonusPerPointCents: getActiveFoundingOwnerBonusCents(bestCandidate.membership.owner),
     });
+    const foundingBonusCents = getActiveFoundingOwnerBonusCents(bestCandidate.membership.owner, options.now ?? new Date());
+    let quotedStandardPayout = standardPayout;
+    if (foundingBonusCents > 0 && bestCandidate.ownerProfile.owner_rewards_enrolled_at) {
+      const rewardStats = rewardsStatsMap.get(bestCandidate.membership.owner_id);
+      const preferredCandidate = getOwnerPreferredBonusCents(rewardStats?.lifetime_points_rented ?? 0);
+      if (preferredCandidate > 0) {
+        const { data: activePromotion } = await getActivePromotion({ adminClient: client });
+        const guestRate = Number(booking.guest_rate_per_point_cents ?? 0);
+        const preferredBonus = activePromotion && guestRate > 0
+          ? applyOwnerBonusWithMargin({
+            owner_bonus_candidate_cents: preferredCandidate,
+            owner_max_bonus_cents: activePromotion.owner_max_bonus_per_point_cents,
+            guest_reward_per_point_cents: 0,
+            spread_per_point_cents: guestRate - standardPayout.owner_rate_per_point_cents,
+            min_spread_per_point_cents: activePromotion.min_spread_per_point_cents,
+          })
+          : preferredCandidate;
+        quotedStandardPayout = {
+          ...standardPayout,
+          owner_rate_per_point_cents: standardPayout.owner_rate_per_point_cents + preferredBonus,
+          owner_total_cents: standardPayout.owner_total_cents + standardPayout.total_points_for_payout * preferredBonus,
+        };
+      }
+    }
+    const ownerPayout = applyFoundingOwnerBonusToPayout(quotedStandardPayout, foundingBonusCents);
 
     evaluated.finalDecision = 'matched';
     evaluatedBookings.push(evaluated);

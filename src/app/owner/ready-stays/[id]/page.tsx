@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import ReadyStayMarkdownForm from "@/components/owner/ReadyStayMarkdownForm";
 import OwnerPageHeader from "@/components/owner/shared/OwnerPageHeader";
 import { buildOwnerReadyStayListItems, type OwnerReadyStayListItem } from "@/lib/owner/secondary-subpages";
+import { getActiveFoundingOwnerBonusCents } from "@/lib/founding-owner-bonus";
 
 function formatDate(value: string | null) {
   if (!value) return "—";
@@ -88,8 +89,23 @@ export default async function OwnerReadyStayDetailPage({
 
   const points = Number(readyStay.points ?? 0);
   const ownerPrice = Number(readyStay.owner_price_per_point_cents ?? 0);
-  const estimatedOwnerPayout = points * ownerPrice;
-  const [displayItem] = buildOwnerReadyStayListItems([readyStay]);
+  const [{ data: foundingOwner }, { data: storedRental }] = await Promise.all([
+    supabase.from("owners")
+      .select("founding_owner_bonus_cents_per_point, founding_owner_bonus_started_at, founding_owner_bonus_expires_at")
+      .eq("user_id", user.id).maybeSingle(),
+    readyStay.rental_id
+      ? supabase.from("rentals").select("owner_rate_per_point_cents").eq("id", readyStay.rental_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const payoutRate = readyStay.status === "sold"
+    ? Number(storedRental?.owner_rate_per_point_cents ?? ownerPrice)
+    : ownerPrice + getActiveFoundingOwnerBonusCents(foundingOwner);
+  const estimatedOwnerPayout = points * payoutRate;
+  const [displayItem] = buildOwnerReadyStayListItems([{
+    ...readyStay,
+    resorts: Array.isArray(readyStay.resorts) ? (readyStay.resorts[0] ?? null) : readyStay.resorts,
+    owner_payout_rate_cents: payoutRate,
+  }]);
   const noticeCopy =
     resolvedSearchParams?.notice === "submitted"
       ? "Your Ready Stay has been submitted. Listings may take up to 10 minutes to appear."
@@ -150,7 +166,7 @@ export default async function OwnerReadyStayDetailPage({
             </div>
             <div className="rounded-2xl bg-[#FBF8F1] px-5 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8992A3]">Payout / point</p>
-              <p className="mt-1 text-xl font-semibold text-[#10224A]">{formatCurrencyFromCents(ownerPrice)}</p>
+              <p className="mt-1 text-xl font-semibold text-[#10224A]">{formatCurrencyFromCents(payoutRate)}</p>
             </div>
             <div className="rounded-2xl bg-[#F7F2E8] px-5 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7A6B43]">Estimated payout</p>

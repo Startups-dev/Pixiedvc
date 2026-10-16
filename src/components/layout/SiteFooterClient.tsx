@@ -9,7 +9,8 @@ export default function SiteFooterClient() {
 
   if (
     pathname?.startsWith("/affiliate") ||
-    pathname?.startsWith("/owner") ||
+    pathname === "/owner" ||
+    pathname?.startsWith("/owner/") ||
     pathname?.startsWith("/my-trip")
   ) {
     return null;

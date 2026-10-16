@@ -71,6 +71,8 @@ vi.mock("@/lib/supabase-admin", () => ({
           })),
         };
       }
+      if (table === "owners") return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) };
+      if (table === "rentals") return { select: () => ({ in: async () => ({ data: [], error: null }) }) };
       throw new Error(`unexpected table:${table}`);
     },
   })),

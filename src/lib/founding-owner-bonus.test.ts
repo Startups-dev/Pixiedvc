@@ -7,10 +7,12 @@ import {
   getFoundingOwnerOfferDisplay,
   hasFoundingOwnerGrant,
   isActiveFoundingOwner,
+  applyFoundingOwnerBonusToPayout,
 } from "@/lib/founding-owner-bonus";
+import { computeOwnerPayout } from "@/lib/pricing";
 
 describe("founding owner bonus", () => {
-  it("derives the advertised amount and example from the grant and promotion cap", () => {
+  it("advertises the fixed offer regardless of promotion cap", () => {
     expect(getFoundingOwnerOfferDisplay({ owner_max_bonus_per_point_cents: 200 })).toEqual({
       bonusCentsPerPoint: 200,
       amount: "$2",
@@ -18,11 +20,19 @@ describe("founding owner bonus", () => {
       example: "300 rented points = $600 extra.",
     });
     expect(getFoundingOwnerOfferDisplay({ owner_max_bonus_per_point_cents: 150 })).toEqual({
-      bonusCentsPerPoint: 150,
-      amount: "$1.50",
+      bonusCentsPerPoint: 200,
+      amount: "$2",
       durationYears: 2,
-      example: "300 rented points = $450 extra.",
+      example: "300 rented points = $600 extra.",
     });
+  });
+
+  it("adds exactly $2 to independent standard payout even with low guest margin and is idempotent", () => {
+    const standard = computeOwnerPayout({ totalPoints: 300, matchedMembershipResortId: null, bookingResortId: null });
+    const once = applyFoundingOwnerBonusToPayout(standard, 200);
+    expect(once.owner_rate_per_point_cents).toBe(standard.owner_rate_per_point_cents + 200);
+    expect(once.owner_total_cents).toBe(standard.owner_total_cents + 60000);
+    expect(applyFoundingOwnerBonusToPayout(once, 200)).toEqual(once);
   });
 
   it("builds a founding owner grant during an active founders launch promotion", () => {
@@ -80,6 +90,7 @@ describe("founding owner bonus", () => {
     expect(getActiveFoundingOwnerBonusCents(owner, new Date("2027-01-01T00:00:00.000Z"))).toBe(200);
     expect(getActiveFoundingOwnerBonusCents(owner, new Date("2028-06-10T15:00:00.000Z"))).toBe(0);
     expect(getActiveFoundingOwnerBonusCents(owner, new Date("2026-06-01T00:00:00.000Z"))).toBe(0);
+    expect(getActiveFoundingOwnerBonusCents({ ...owner, founding_owner_bonus_cents_per_point: 150 }, new Date("2027-01-01T00:00:00.000Z"))).toBe(200);
   });
 
   it("treats any prior founding owner grant markers as already granted", () => {

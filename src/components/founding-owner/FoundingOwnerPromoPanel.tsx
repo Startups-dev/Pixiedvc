@@ -1,4 +1,6 @@
-import Link from "next/link";
+import { Suspense } from "react";
+
+import FoundersJourneyLink from "@/components/founding-owner/FoundersJourneyLink";
 
 import type { getFoundingOwnerEnrollmentCopy } from "@/lib/founding-owner-launch";
 import type { getFoundingOwnerOfferDisplay } from "@/lib/founding-owner-bonus";
@@ -6,9 +8,10 @@ import type { getFoundingOwnerOfferDisplay } from "@/lib/founding-owner-bonus";
 type Props = {
   schedule: ReturnType<typeof getFoundingOwnerEnrollmentCopy>;
   offer: ReturnType<typeof getFoundingOwnerOfferDisplay>;
+  ctaHref?: string;
 };
 
-export default function FoundingOwnerPromoPanel({ schedule, offer }: Props) {
+export default function FoundingOwnerPromoPanel({ schedule, offer, ctaHref = "/owner/onboarding" }: Props) {
   return (
     <div className="grid items-start gap-7 lg:grid-cols-2 lg:gap-x-12 lg:gap-y-5">
       <div className="lg:col-start-1 lg:row-start-1">
@@ -40,12 +43,12 @@ export default function FoundingOwnerPromoPanel({ schedule, offer }: Props) {
       </div>
 
       <div className="lg:col-start-1 lg:row-start-2 lg:self-start">
-        <Link
-          href="/owner/onboarding"
+        <Suspense fallback={null}><FoundersJourneyLink
+          href={ctaHref}
           className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[#0F2148] px-6 py-3 text-center text-sm font-semibold !text-white transition hover:bg-[#1d3d73] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0F2148] sm:w-auto"
         >
           Apply as a Founding Owner
-        </Link>
+        </FoundersJourneyLink></Suspense>
         <p className="mt-3 max-w-[56ch] text-sm leading-6 text-[#53627e]">
           {schedule.timing ?? schedule.eligibility}
         </p>

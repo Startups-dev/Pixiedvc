@@ -5,6 +5,7 @@ import { sendReadyStayBookingPackageToOwner } from "@/lib/email";
 import { getAppUrl } from "@/lib/app-url";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { ensureAffiliateConversionForBooking } from "@/lib/affiliate-conversions";
+import { lockReadyStayOwnerPayout } from "@/lib/ready-stays/owner-payout";
 
 type StripeEvent = {
   id: string;
@@ -184,6 +185,29 @@ export async function POST(request: Request) {
               { received: true, alreadyProcessed: true, bookingRequestId: bookingId },
               { status: 200 },
             );
+          }
+
+          let payoutReadyStayId = readyStayIdFromMetadata;
+          if (!payoutReadyStayId) {
+            const { data: linkedStay, error: linkedStayError } = await supabase
+              .from("ready_stays").select("id").eq("booking_request_id", bookingId).limit(1).maybeSingle();
+            if (linkedStayError) throw new Error(linkedStayError.message);
+            payoutReadyStayId = linkedStay?.id ?? null;
+          }
+          if (payoutReadyStayId) {
+            try {
+              await lockReadyStayOwnerPayout({
+                adminClient: supabase,
+                readyStayId: payoutReadyStayId,
+                bookingId,
+                soldAt: new Date(nowIso),
+              });
+            } catch (payoutError) {
+              console.error("[stripe] Ready Stay payout lock failed", {
+                bookingId, readyStayId: payoutReadyStayId, error: payoutError,
+              });
+              return NextResponse.json({ error: "ready_stay_payout_lock_failed" }, { status: 500 });
+            }
           }
 
           const { error: markPaidError } = await supabase

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { maybeGrantFoundingOwnerBonus } from "@/lib/founding-owner-bonus";
 
-async function resolveOwner(userId: string, db: any) {
-  let { data: owner, error: byUserError } = await db
+async function resolveOwner(userId: string, db: SupabaseClient) {
+  const { data: ownerByUser, error: byUserError } = await db
     .from("owners")
     .select("id, user_id, metadata")
     .eq("user_id", userId)
@@ -15,6 +16,7 @@ async function resolveOwner(userId: string, db: any) {
     throw byUserError;
   }
 
+  let owner = ownerByUser;
   if (!owner) {
     const { data: byIdOwner, error: byIdError } = await db
       .from("owners")
@@ -133,6 +135,13 @@ export async function POST(request: Request) {
       if (metadataError) {
         return NextResponse.json({ ok: false, error: metadataError.message }, { status: 500 });
       }
+    }
+
+    // Enrollment completes through this regular owner agreement, regardless of the entry link.
+    // The grant helper checks the current promotion and preserves any existing benefit.
+    const grant = await maybeGrantFoundingOwnerBonus({ adminClient: db, ownerId: owner.id });
+    if (grant.error) {
+      return NextResponse.json({ ok: false, error: "Unable to finish owner onboarding right now. Please try again." }, { status: 500 });
     }
 
     const onboardingCompletedAt = new Date().toISOString();

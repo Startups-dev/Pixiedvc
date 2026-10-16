@@ -43,7 +43,9 @@ vi.mock("@/lib/supabase-server", () => ({
     auth: {
       getUser: vi.fn(async () => ({ data: { user: { id: "owner-user-1" } } })),
     },
-    from: vi.fn(() => ({
+    from: vi.fn((table: string) => table === "owners" || table === "rentals" ? ({
+      select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: null, error: null })) })) })),
+    }) : ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           eq: vi.fn(() => ({
@@ -62,8 +64,8 @@ function activeReadyStay(overrides: Partial<ReadyStayRow> = {}): ReadyStayRow {
     status: overrides.status ?? "active",
     verification_status: overrides.verification_status ?? "approved",
     verification_review_notes: overrides.verification_review_notes ?? null,
-    check_in: overrides.check_in ?? "2026-09-01",
-    check_out: overrides.check_out ?? "2026-09-03",
+    check_in: overrides.check_in ?? "2027-09-01",
+    check_out: overrides.check_out ?? "2027-09-03",
     room_type: overrides.room_type ?? "Deluxe Studio - Lake View",
     points: overrides.points ?? 32,
     owner_price_per_point_cents: overrides.owner_price_per_point_cents ?? 2300,
@@ -97,7 +99,7 @@ describe("OwnerReadyStayDetailPage", () => {
     );
     expect(screen.getByRole("heading", { name: "Bay Lake Tower" })).toBeInTheDocument();
     expect(screen.getAllByText("Deluxe Studio - Lake View")[0]).toBeInTheDocument();
-    expect(screen.getByText("Sep 1, 2026 - Sep 3, 2026")).toBeInTheDocument();
+    expect(screen.getByText("Sep 1, 2027 - Sep 3, 2027")).toBeInTheDocument();
     expect(screen.getByText("32 pts")).toBeInTheDocument();
     expect(screen.getAllByText("$23")[0]).toBeInTheDocument();
     expect(screen.getAllByText("$736")[0]).toBeInTheDocument();
