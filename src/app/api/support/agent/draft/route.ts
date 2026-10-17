@@ -67,6 +67,7 @@ function normalizeSender(row: MessageRow) {
     senderType,
     senderLabel,
     content,
+    visibility: row.visibility === "internal" ? "internal" : "customer",
   };
 }
 
@@ -299,7 +300,7 @@ export async function POST(request: Request) {
 
   const normalized = ((rows ?? []) as MessageRow[])
     .map(normalizeSender)
-    .filter((row) => row.content.length > 0);
+    .filter((row) => row.content.length > 0 && row.visibility !== "internal" && !/^\s*\[internal note\]/i.test(row.content));
 
   const transcriptText = normalized
     .slice(-20)

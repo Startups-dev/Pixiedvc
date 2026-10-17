@@ -60,7 +60,12 @@ export function verifySupportLiveGuestToken(
   if (!token || !conversationId) return false;
   const [encodedPayload, signature] = token.split(".");
   if (!encodedPayload || !signature) return false;
-  const expected = sign(encodedPayload);
+  let expected: string;
+  try {
+    expected = sign(encodedPayload);
+  } catch {
+    return false;
+  }
   if (expected !== signature) return false;
   try {
     const payload = JSON.parse(base64UrlDecode(encodedPayload)) as {

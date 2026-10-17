@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
   const eligibility = user ? await getSupportAgentEligibility() : null;
   const isSupportAgent = Boolean(eligibility?.isAdmin || eligibility?.isSupportAgent);
-  const isAssignedAgent = Boolean(user?.id) && handoff?.assigned_agent_user_id === user?.id;
+  const isAssignedAgent = isSupportAgent && handoff?.assigned_agent_user_id === user?.id;
   const isConversationGuest = Boolean(user?.id) && conversation?.guest_user_id === user?.id;
   const isAnonymousGuestWithToken =
     !user &&
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
 
   const { data: transcript } = await serviceClient
     .from("support_messages")
-    .select("sender_type, sender, sender_display_name, message, content, created_at")
+    .select("sender_type, sender, sender_display_name, message, content, visibility, created_at")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: false })
     .limit(12);
@@ -93,6 +93,7 @@ export async function POST(request: Request) {
   const summary = (transcript ?? [])
     .slice()
     .reverse()
+    .filter((entry) => entry.visibility !== "internal" && !/^\s*\[internal note\]/i.test(entry.message ?? entry.content ?? ""))
     .map((entry) => {
       const senderType = entry.sender_type ?? entry.sender ?? "system";
       const senderName =
@@ -116,6 +117,8 @@ export async function POST(request: Request) {
     .from("support_conversations")
     .update({
       status: "closed",
+      inbox_status: "closed",
+      unread_for_staff: false,
       closed_at: nowIso,
       updated_at: nowIso,
       summary: summary || null,

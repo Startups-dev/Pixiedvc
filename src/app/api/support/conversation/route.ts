@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 
 import { createServiceClient } from "@/lib/supabase-service-client";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupportAgentEligibility } from "@/lib/support-agent-auth";
+import { verifySupportLiveGuestToken } from "@/lib/support/live-guest-token";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const conversationId = searchParams.get("conversationId");
   const includeClosed = searchParams.get("includeClosed") === "1";
+  const guestLiveToken = searchParams.get("guestLiveToken") ?? "";
 
   if (!conversationId) {
     return NextResponse.json(
@@ -14,10 +18,14 @@ export async function GET(request: Request) {
     );
   }
 
+  const sessionClient = await createSupabaseServerClient();
+  const { data: { user } } = await sessionClient.auth.getUser();
+  const eligibility = user ? await getSupportAgentEligibility() : null;
+  const isStaff = Boolean(eligibility?.isAdmin || eligibility?.isSupportAgent);
   const supabase = createServiceClient();
   const { data: conversation, error: conversationError } = await supabase
     .from("support_conversations")
-    .select("id, status, handoff_mode")
+    .select("id, status, handoff_mode, guest_user_id, guest_type")
     .eq("id", conversationId)
     .maybeSingle();
 
@@ -26,6 +34,17 @@ export async function GET(request: Request) {
       { ok: false, error: "Conversation not found." },
       { status: 400 },
     );
+  }
+
+  const isAuthenticatedGuest = Boolean(user?.id) && conversation.guest_user_id === user?.id;
+  const isAnonymousGuest = !user && conversation.guest_type === "anonymous" &&
+    verifySupportLiveGuestToken(guestLiveToken, conversationId);
+  if (!isStaff && !isAuthenticatedGuest && !isAnonymousGuest) {
+    return NextResponse.json({ ok: false, error: "FORBIDDEN" }, { status: user ? 403 : 401 });
+  }
+
+  if (includeClosed && !isStaff) {
+    return NextResponse.json({ ok: false, error: "FORBIDDEN" }, { status: 403 });
   }
 
   if (conversation.status === "closed" && !includeClosed) {
@@ -58,7 +77,12 @@ export async function GET(request: Request) {
     );
   }
 
-  const normalizedMessages = ((rows ?? []) as Array<Record<string, unknown>>).map((row, index) => {
+  const visibleRows = isStaff ? rows ?? [] : (rows ?? []).filter((row) => {
+    if (row.visibility === "internal") return false;
+    const message = typeof row.message === "string" ? row.message : "";
+    return !/^\s*\[internal note\]/i.test(message);
+  });
+  const normalizedMessages = (visibleRows as Array<Record<string, unknown>>).map((row, index) => {
     const senderType = typeof row.sender_type === "string" ? row.sender_type : null;
     const sender = senderType ?? (typeof row.sender === "string" ? row.sender : "system");
     const messageValue = typeof row.message === "string" ? row.message : null;
@@ -78,6 +102,8 @@ export async function GET(request: Request) {
       created_at: createdAt,
       sender_display_name: senderDisplayName,
       sender_user_id: senderUserId,
+      visibility: row.visibility === "internal" ? "internal" : "customer",
+      delivery_status: typeof row.delivery_status === "string" ? row.delivery_status : null,
     };
   });
 

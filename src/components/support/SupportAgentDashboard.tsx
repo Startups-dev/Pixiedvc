@@ -32,6 +32,7 @@ type SupportMessage = {
   content: string;
   created_at: string;
   sender_display_name?: string | null;
+  visibility?: "customer" | "internal";
 };
 
 type AgentInboxResponse = {
@@ -175,6 +176,7 @@ function composeAiSummary(messages: SupportMessage[]) {
 
 function isInternalNote(message: SupportMessage) {
   return (
+    message.visibility === "internal" ||
     message.sender === "internal_note" ||
     message.sender === "system" ||
     message.content.trim().toLowerCase().startsWith("[internal note]")

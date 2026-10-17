@@ -1,15 +1,9 @@
 import Link from "next/link";
 
-import { Button, Card, FieldLabel, TextArea, TextInput } from "@pixiedvc/design-system";
+import { Card } from "@pixiedvc/design-system";
+import ContactForm from "./ContactForm";
 
 export default function ContactPage() {
-  const control =
-    "mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 ring-1 ring-slate-200 shadow-sm " +
-    "placeholder:text-slate-400 transition-colors " +
-    "hover:border-slate-400 hover:ring-slate-300 " +
-    "focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 focus:ring-offset-0 " +
-    "disabled:cursor-not-allowed disabled:opacity-60";
-
   return (
     <div className="min-h-screen bg-surface text-ink">
       <div className="relative overflow-hidden">
@@ -41,36 +35,7 @@ export default function ContactPage() {
             </div>
 
             <Card className="bg-white/90">
-              <form className="space-y-6">
-                <div>
-                  <FieldLabel htmlFor="name">Name</FieldLabel>
-                  <TextInput id="name" className={control} placeholder="Mickey Mouse" />
-                </div>
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <div>
-                    <FieldLabel htmlFor="email">Email</FieldLabel>
-                    <TextInput id="email" type="email" className={control} placeholder="mickey@hannadvc.com" />
-                  </div>
-                  <div>
-                    <FieldLabel htmlFor="role">I am a</FieldLabel>
-                    <select id="role" className={`${control} appearance-none`}>
-                      <option value="guest">Guest</option>
-                      <option value="owner">Owner</option>
-                      <option value="partner">Partner</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <FieldLabel htmlFor="message">How can we help?</FieldLabel>
-                  <TextArea
-                    id="message"
-                    rows={5}
-                    className={control}
-                    placeholder="Tell us about your stay, dates, or what you’d like help with."
-                  />
-                </div>
-                <Button type="submit">Send Message</Button>
-              </form>
+              <ContactForm />
             </Card>
           </div>
 

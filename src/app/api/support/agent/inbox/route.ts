@@ -10,6 +10,9 @@ export async function GET() {
   if (!eligibility) {
     return NextResponse.json({ ok: false, error: "AUTH_REQUIRED" }, { status: 401 });
   }
+  if (!eligibility.isAdmin && !eligibility.isSupportAgent) {
+    return NextResponse.json({ ok: false, error: "NOT_AGENT_ELIGIBLE" }, { status: 403 });
+  }
 
   const supabase = createServiceClient();
   const [assignedResult, queueResult, resolvedResult] = await Promise.all([

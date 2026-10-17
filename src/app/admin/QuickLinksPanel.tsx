@@ -34,10 +34,10 @@ const SECTIONS: QuickLinkSection[] = [
         href: '/admin/guests',
       },
       {
-        id: 'concierge-requests',
-        title: 'Concierge Requests',
-        description: 'Review human handoff requests from support chat.',
-        href: '/admin/concierge',
+        id: 'inbox',
+        title: 'Inbox',
+        description: 'Reply to support handoffs and website inquiries.',
+        href: '/admin/inbox',
       },
       {
         id: 'owners',

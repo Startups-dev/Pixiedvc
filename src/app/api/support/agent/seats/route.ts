@@ -10,6 +10,9 @@ export async function GET() {
   if (!eligibility) {
     return NextResponse.json({ ok: false, error: "AUTH_REQUIRED" }, { status: 401 });
   }
+  if (!eligibility.isAdmin && !eligibility.isSupportAgent) {
+    return NextResponse.json({ ok: false, error: "NOT_AGENT_ELIGIBLE" }, { status: 403 });
+  }
 
   const supabase = createServiceClient();
   const { data, error } = await supabase
@@ -40,6 +43,9 @@ export async function POST(request: Request) {
   const eligibility = await getSupportAgentEligibility();
   if (!eligibility) {
     return NextResponse.json({ ok: false, error: "AUTH_REQUIRED" }, { status: 401 });
+  }
+  if (!eligibility.isAdmin && !eligibility.isSupportAgent) {
+    return NextResponse.json({ ok: false, error: "NOT_AGENT_ELIGIBLE" }, { status: 403 });
   }
 
   const supabase = createServiceClient();
@@ -73,13 +79,13 @@ export async function POST(request: Request) {
   if (clearAll) {
     await supabase
       .from("support_conversations")
-      .update({ status: "closed", closed_at: nowIso, updated_at: nowIso })
+      .update({ status: "closed", inbox_status: "closed", unread_for_staff: false, closed_at: nowIso, updated_at: nowIso })
       .eq("agent_user_id", eligibility.user.id)
       .in("status", ["open", "claimed"]);
   } else {
     await supabase
       .from("support_conversations")
-      .update({ status: "closed", closed_at: nowIso, updated_at: nowIso })
+      .update({ status: "closed", inbox_status: "closed", unread_for_staff: false, closed_at: nowIso, updated_at: nowIso })
       .eq("id", conversationId)
       .in("status", ["open", "claimed"]);
   }

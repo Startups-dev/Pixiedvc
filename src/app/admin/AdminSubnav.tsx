@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 type AdminSubnavProps = {
   current:
+    | 'inbox'
     | 'matching'
     | 'ledger'
     | 'affiliates'
@@ -13,6 +14,7 @@ type AdminSubnavProps = {
 
 const items = [
   { key: 'admin', label: 'Admin', href: '/admin' },
+  { key: 'inbox', label: 'Inbox', href: '/admin/inbox' },
   { key: 'matching', label: 'Matching', href: '/admin/matching' },
   { key: 'affiliates', label: 'Affiliates', href: '/admin/affiliates' },
   { key: 'affiliate-applications', label: 'Affiliate Applications', href: '/admin/affiliates/applications' },

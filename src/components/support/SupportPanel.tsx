@@ -204,7 +204,7 @@ export default function SupportPanel({
     escalationCheckInFlightRef.current = true;
     try {
       const response = await fetch(
-        `/api/support/conversation?conversationId=${encodeURIComponent(conversationId)}`,
+        `/api/support/conversation?conversationId=${encodeURIComponent(conversationId)}${guestLiveToken ? `&guestLiveToken=${encodeURIComponent(guestLiveToken)}` : ""}`,
       );
       if (!response.ok) {
         resetConversationState();
@@ -366,7 +366,7 @@ export default function SupportPanel({
       conversationPollInFlightRef.current = true;
       try {
         const response = await fetch(
-          `/api/support/conversation?conversationId=${conversationId}`,
+          `/api/support/conversation?conversationId=${encodeURIComponent(conversationId)}${guestLiveToken ? `&guestLiveToken=${encodeURIComponent(guestLiveToken)}` : ""}`,
         );
         if (!response.ok) {
           const payload = (await response.json().catch(() => null)) as
@@ -456,6 +456,7 @@ export default function SupportPanel({
     };
   }, [
     conversationId,
+    guestLiveToken,
     shouldPollConversation,
     liveChatActive,
     connectedAgentNickname,
