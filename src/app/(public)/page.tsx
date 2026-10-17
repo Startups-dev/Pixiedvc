@@ -199,9 +199,9 @@ export default async function Home() {
           <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition duration-200 hover:border-slate-300 hover:shadow-md">
             <div className="mb-6 h-48 w-full overflow-hidden rounded-xl bg-slate-100">
               <img
-                src="https://iyfpphzlyufhndpedijv.supabase.co/storage/v1/object/public/main%20page%20ready-stay/ready-stay.png"
-                alt="Confirmed Disney Vacation Club villa"
-                className="h-full w-full object-cover"
+                src="/images/polynesian-ready-stays.webp"
+                alt="Disney’s Polynesian Village Resort beside its sandy beach and palm trees"
+                className="h-full w-full object-cover object-[48%_center] md:object-center"
               />
             </div>
 
