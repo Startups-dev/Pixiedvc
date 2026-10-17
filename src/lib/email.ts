@@ -51,6 +51,9 @@ type SendPlainEmailPayload = {
   body: string;
   html?: string;
   context: string;
+  replyTo?: string;
+  headers?: Record<string, string>;
+  idempotencyKey?: string;
 } & EmailLogContext;
 
 type WelcomeSequenceEmailPayload = {
@@ -280,6 +283,9 @@ async function sendResendEmail({
   relatedEntityId,
   metadata,
   outboundEmailLogId,
+  replyTo,
+  headers: emailHeaders,
+  idempotencyKey,
 }: {
   to: string;
   subject: string;
@@ -292,6 +298,9 @@ async function sendResendEmail({
   relatedEntityId?: string | null;
   metadata?: EmailLogMetadata | null;
   outboundEmailLogId?: string | null;
+  replyTo?: string;
+  headers?: Record<string, string>;
+  idempotencyKey?: string;
 }) {
   const logId =
     outboundEmailLogId ??
@@ -328,6 +337,7 @@ async function sendResendEmail({
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
+        ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
       },
       body: JSON.stringify({
         from: DEFAULT_FROM,
@@ -335,6 +345,8 @@ async function sendResendEmail({
         subject,
         text,
         html: html ?? undefined,
+        reply_to: replyTo,
+        headers: emailHeaders,
       }),
     });
 
@@ -382,6 +394,9 @@ export async function sendPlainEmail({
   relatedEntityId,
   metadata,
   outboundEmailLogId,
+  replyTo,
+  headers,
+  idempotencyKey,
 }: SendPlainEmailPayload) {
   return sendResendEmail({
     to,
@@ -395,6 +410,9 @@ export async function sendPlainEmail({
     relatedEntityId,
     metadata,
     outboundEmailLogId,
+    replyTo,
+    headers,
+    idempotencyKey,
   });
 }
 

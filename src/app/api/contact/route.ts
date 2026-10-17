@@ -168,9 +168,10 @@ export async function POST(request: Request) {
         html: `<p>Hi ${escapedName},</p><p>Thanks for reaching out. Our team has received your message and will follow up.</p><p>HannaDVC Support</p>`,
         context: "public contact acknowledgment",
         templateKey: "public_contact_acknowledgment",
+        replyTo: "hello@hannadvc.com",
         relatedEntityType: "support_conversation",
         relatedEntityId: conversation.id,
-        metadata: { conversation_id: conversation.id, source: "public_contact_form" },
+        metadata: { conversation_id: conversation.id, source: "public_contact_form", inbox_email_threading: true },
       }),
       sendPlainEmail({
         to: staffAddress,

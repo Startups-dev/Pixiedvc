@@ -17,6 +17,9 @@ function makeClient() {
   const builder: any = {
     select: () => builder,
     eq: () => builder,
+    not: () => builder,
+    order: () => builder,
+    limit: () => builder,
     maybeSingle: async () => ({
       data: builder.table === "support_conversations"
         ? { id: "conversation-1", guest_email: state.guestEmail, guest_name: "Sample Visitor", twilio_conversation_sid: state.twilioSid, inbox_status: "needs_reply", handoff: null }

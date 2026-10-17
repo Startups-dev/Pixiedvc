@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getAdminInboxContext } from "@/lib/admin-inbox-auth";
 import { sendPlainEmail } from "@/lib/email";
 import { sendTwilioMessage } from "@/lib/twilio-conversations";
+import { randomUUID } from "node:crypto";
 
 type RouteContext = { params: Promise<{ conversationId: string }> };
 
@@ -38,6 +39,9 @@ export async function POST(request: Request, { params }: RouteContext) {
   }
 
   const isInternal = mode === "internal_note";
+  const idempotencyKey = typeof body?.idempotencyKey === "string" && /^[0-9a-f-]{36}$/i.test(body.idempotencyKey)
+    ? body.idempotencyKey
+    : randomUUID();
   let deliveryChannel: "twilio" | "email" | null = null;
   if (!isInternal) {
     if (conversation.twilio_conversation_sid) deliveryChannel = "twilio";
@@ -67,10 +71,22 @@ export async function POST(request: Request, { params }: RouteContext) {
       visibility: isInternal ? "internal" : "customer",
       delivery_status: deliveryStatus,
       metadata: { source: "admin_inbox", visibility: isInternal ? "internal" : "customer" },
+      inbox_idempotency_key: isInternal ? null : idempotencyKey,
       created_at: now,
     })
     .select("id")
     .single();
+  if (insertError && !isInternal) {
+    const duplicate = await auth.client.from("support_messages")
+      .select("id, delivery_status")
+      .eq("inbox_idempotency_key", idempotencyKey)
+      .maybeSingle();
+    if (duplicate.data) {
+      if (duplicate.data.delivery_status === "sent") return NextResponse.json({ ok: true, kind: "customer_reply", deliveryStatus: "sent", deduplicated: true, messageId: duplicate.data.id });
+      if (duplicate.data.delivery_status === "sending" || duplicate.data.delivery_status === "pending") return NextResponse.json({ ok: false, error: "DELIVERY_ALREADY_IN_PROGRESS", messageId: duplicate.data.id }, { status: 202 });
+      return NextResponse.json({ ok: false, error: "DELIVERY_ALREADY_FAILED", messageId: duplicate.data.id, deliveryStatus: duplicate.data.delivery_status }, { status: 409 });
+    }
+  }
   if (insertError || !message) {
     return NextResponse.json({ ok: false, error: "MESSAGE_PERSIST_FAILED" }, { status: 500 });
   }
@@ -78,6 +94,16 @@ export async function POST(request: Request, { params }: RouteContext) {
   if (isInternal) {
     await auth.client.from("support_conversations").update({ updated_at: now }).eq("id", conversationId);
     return NextResponse.json({ ok: true, kind: "internal_note", deliveryStatus: "not_applicable" });
+  }
+
+  const { data: claimedMessage } = await auth.client.from("support_messages")
+    .update({ delivery_status: "sending" })
+    .eq("id", message.id)
+    .eq("delivery_status", "pending")
+    .select("id")
+    .maybeSingle();
+  if (!claimedMessage) {
+    return NextResponse.json({ ok: false, error: "DELIVERY_ALREADY_IN_PROGRESS", messageId: message.id }, { status: 202 });
   }
 
   let sent = false;
@@ -92,6 +118,14 @@ export async function POST(request: Request, { params }: RouteContext) {
       });
       sent = true;
     } else if (deliveryChannel === "email" && conversation.guest_email) {
+      const { data: threadLinks } = await auth.client.from("support_email_message_links")
+        .select("rfc_message_id")
+        .eq("conversation_id", conversationId)
+        .not("rfc_message_id", "is", null)
+        .order("created_at", { ascending: true })
+        .limit(50);
+      const referenceIds = Array.from(new Set((threadLinks ?? []).map((link) => link.rfc_message_id).filter((value): value is string => Boolean(value))));
+      const latestReference = referenceIds.at(-1);
       const result = await sendPlainEmail({
         to: conversation.guest_email,
         subject: "HannaDVC support reply",
@@ -99,10 +133,16 @@ export async function POST(request: Request, { params }: RouteContext) {
         html: `<p>Hi${conversation.guest_name ? ` ${escapeHtml(conversation.guest_name)}` : ""},</p><p>${escapeHtml(content).replace(/\n/g, "<br>")}</p><p>HannaDVC Support</p>`,
         context: "admin inbox customer reply",
         templateKey: "admin_inbox_reply",
+        replyTo: "hello@hannadvc.com",
+        headers: latestReference ? {
+          "In-Reply-To": latestReference,
+          References: referenceIds.join(" "),
+        } : undefined,
+        idempotencyKey: `inbox-reply-${message.id}`,
         relatedEntityType: "support_conversation",
         relatedEntityId: conversationId,
         recipientUserId: null,
-        metadata: { conversation_id: conversationId, inbox_channel: "email" },
+        metadata: { conversation_id: conversationId, support_message_id: message.id, inbox_channel: "email", inbox_email_threading: true },
       });
       sent = result.status === "sent";
       if (!sent) failure = "email_provider_rejected";

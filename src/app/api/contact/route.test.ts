@@ -70,6 +70,7 @@ describe("public contact intake", () => {
     expect(state.insertedConversation).toMatchObject({ inbox_source: "contact_form", inbox_status: "needs_reply" });
     expect(state.insertedMessage).toMatchObject({ visibility: "customer", sender: "guest" });
     expect(state.sends).toHaveLength(2);
+    expect(state.sends[0]).toMatchObject({ replyTo: "hello@hannadvc.com", metadata: { inbox_email_threading: true } });
     expect(state.updates).toContainEqual({ contact_ack_status: "failed", contact_staff_alert_status: "failed", updated_at: expect.any(String) });
   });
 

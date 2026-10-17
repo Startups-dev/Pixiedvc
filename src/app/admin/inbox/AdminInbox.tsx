@@ -43,6 +43,14 @@ type ThreadDetail = {
   };
   messages: InboxMessage[];
 };
+type MailConnectionStatus = {
+  configured: boolean; connected: boolean; mailbox: string; dataCenter: string;
+  connectedAt: string | null; importStartedAt: string | null; lastWebhookAt: string | null;
+  lastReconciledAt: string | null; lastError: string | null; failedImportCount: number;
+  recentFailures: Array<{ provider: string; event_type: string; error_code: string | null; created_at: string }>;
+  resendWebhookConfigured: boolean;
+  webhookUrl: string | null;
+};
 
 const VIEW_OPTIONS: Array<{ id: InboxView; label: string }> = [
   { id: "needs_reply", label: "Needs reply" },
@@ -58,7 +66,7 @@ function dateTime(value?: string | null) {
 }
 
 function sourceName(source: string) {
-  return source === "contact_form" ? "Website contact" : "Support handoff";
+  return source === "contact_form" ? "Website contact" : source === "email" ? "Email" : "Support handoff";
 }
 
 function audienceName(row: Pick<InboxConversation, "guest_type" | "topic"> & { audience_label?: string }) {
@@ -84,6 +92,11 @@ export default function AdminInbox() {
   const [draft, setDraft] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [emailConnection, setEmailConnection] = useState<MailConnectionStatus | null>(null);
+  const [emailConnectionError, setEmailConnectionError] = useState<string | null>(null);
+  const [reconciling, setReconciling] = useState(false);
+  const [reconcileNotice, setReconcileNotice] = useState<string | null>(null);
+  const [emailIdempotencyKey, setEmailIdempotencyKey] = useState<string | null>(null);
 
   const selected = useMemo(() => rows.find((row) => row.id === selectedId) ?? detail?.conversation ?? null, [rows, selectedId, detail]);
 
@@ -131,6 +144,20 @@ export default function AdminInbox() {
 
   useEffect(() => { void loadList(); }, [loadList]);
 
+  const loadEmailConnection = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/inbox/zoho/status", { cache: "no-store" });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.ok) throw new Error(payload?.error ?? "Connection health unavailable.");
+      setEmailConnection(payload as MailConnectionStatus);
+      setEmailConnectionError(null);
+    } catch (error) {
+      setEmailConnectionError(error instanceof Error ? error.message : "Connection health unavailable.");
+    }
+  }, []);
+
+  useEffect(() => { void loadEmailConnection(); }, [loadEmailConnection]);
+
   async function updateConversation(action: string, status?: string) {
     if (!selectedId) return;
     const response = await fetch(`/api/admin/inbox/${encodeURIComponent(selectedId)}`, {
@@ -151,32 +178,58 @@ export default function AdminInbox() {
   async function submitMessage() {
     const content = draft.trim();
     if (!content || !selectedId || sending) return;
+    const requestIdempotencyKey = emailIdempotencyKey ?? crypto.randomUUID();
+    setEmailIdempotencyKey(requestIdempotencyKey);
     setSending(true);
     setNotice(null);
     try {
       const response = await fetch(`/api/admin/inbox/${encodeURIComponent(selectedId)}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, mode }),
+        body: JSON.stringify({ content, mode, idempotencyKey: requestIdempotencyKey }),
       });
       const payload = await response.json().catch(() => null);
+      if ((payload?.messageId && response.status !== 202) || response.ok) setEmailIdempotencyKey(null);
       if (!response.ok || !payload?.ok) {
         if (payload?.messageId) await openConversation(selectedId);
         setNotice(payload?.error === "NO_CUSTOMER_REPLY_CHANNEL"
           ? "No live or email reply channel is available. The message was not sent."
+          : payload?.error === "DELIVERY_ALREADY_IN_PROGRESS"
+            ? "This reply is already being processed. Check the thread before trying again."
+          : payload?.error === "DELIVERY_ALREADY_FAILED"
+            ? "This reply already failed and was not resent. Start a new reply to make an intentional retry."
           : payload?.error === "email_provider_rejected" || payload?.error === "email_delivery_failed" || payload?.error === "twilio_delivery_failed"
             ? `Delivery failed (${payload.error}). The saved message is marked failed; the customer has not been told it was sent.`
             : payload?.error ?? "Message could not be sent.");
         return;
       }
       setDraft("");
+      setEmailIdempotencyKey(null);
       setNotice(mode === "internal_note" ? "Internal note saved. It was not sent to the customer." : `Reply accepted by ${payload.channel === "twilio" ? "live chat" : "email"}.`);
       await openConversation(selectedId);
       await loadList();
     } catch {
+      setEmailIdempotencyKey(requestIdempotencyKey);
       setNotice("The request failed before delivery could be confirmed. Check the thread before retrying.");
     } finally {
       setSending(false);
+    }
+  }
+
+  async function reconcileEmail() {
+    setReconciling(true);
+    setReconcileNotice(null);
+    try {
+      const response = await fetch("/api/admin/inbox/zoho/reconcile", { method: "POST" });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.ok) throw new Error(payload?.error ?? "Mailbox reconciliation failed.");
+      setReconcileNotice(`Checked ${payload.scanned} recent messages; imported ${payload.imported}, duplicates ${payload.duplicates}.${payload.pageLimitReached ? " The safety cap was reached; run again to continue." : ""}`);
+      await Promise.all([loadEmailConnection(), loadList()]);
+    } catch (error) {
+      setReconcileNotice(error instanceof Error ? error.message : "Mailbox reconciliation failed.");
+      await loadEmailConnection();
+    } finally {
+      setReconciling(false);
     }
   }
 
@@ -195,6 +248,33 @@ export default function AdminInbox() {
             <p className="mt-1 text-sm text-[#aeb4c1]">Support handoffs and website inquiries in one workspace.</p>
           </div>
         </header>
+
+        <section aria-label="Mailbox connection" className="rounded-xl border border-[#343741] bg-[#20232a] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="font-semibold text-white">Email connection</h2>
+                <span className={`rounded-full px-2 py-0.5 text-xs ${emailConnection?.connected && emailConnection.configured ? "bg-emerald-950/60 text-emerald-200" : "bg-amber-950/50 text-amber-200"}`}>
+                  {emailConnectionError ? "Status unavailable" : emailConnection?.connected && emailConnection.configured ? "Zoho connected" : emailConnection?.connected ? "Configuration incomplete" : "Setup required"}
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-[#b8bdc7]">{emailConnection?.mailbox ?? "hello@hannadvc.com"} · Canadian Zoho Mail incoming · Resend remains the reply sender.</p>
+              <p className="mt-1 text-xs text-[#969ba8]">
+                {emailConnection?.lastWebhookAt ? `Last email event ${dateTime(emailConnection.lastWebhookAt)}.` : "No Zoho email event received yet."}
+                {emailConnection?.lastReconciledAt ? ` Last sync ${dateTime(emailConnection.lastReconciledAt)}.` : ""}
+              </p>
+              {emailConnectionError || emailConnection?.lastError ? <p role="status" className="mt-1 text-xs text-amber-200">{emailConnectionError ?? `Connection issue: ${emailConnection?.lastError}`}</p> : null}
+              {emailConnection?.failedImportCount ? <p className="mt-1 text-xs text-rose-200">{emailConnection.failedImportCount} email event(s) failed. Latest: {emailConnection.recentFailures[0]?.error_code ?? "see event details"}.</p> : null}
+              {!emailConnection?.resendWebhookConfigured ? <p className="mt-1 text-xs text-amber-200">Resend Message-ID webhook is not configured; incoming replies to Hanna’s email may not thread reliably.</p> : null}
+              {emailConnection?.webhookUrl ? <p className="mt-2 break-all text-xs text-[#d9c980]">Zoho webhook endpoint: <code>{emailConnection.webhookUrl}</code></p> : null}
+              {reconcileNotice ? <p role="status" className="mt-1 text-xs text-[#e8d28f]">{reconcileNotice}</p> : null}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {emailConnection?.connected ? <button type="button" onClick={() => void reconcileEmail()} disabled={reconciling} className="rounded-lg border border-[#494d58] px-3 py-2 text-sm hover:bg-[#2c3039] disabled:opacity-50">{reconciling ? "Checking…" : "Check recent mail"}</button> : null}
+              {!emailConnection?.connected ? <Link href="/api/admin/inbox/zoho/connect" className="rounded-lg bg-[#d8b65c] px-3 py-2 text-sm font-semibold text-[#1c1c1c]">Connect Zoho Mail</Link> : null}
+            </div>
+          </div>
+        </section>
 
         <nav aria-label="Inbox views" className="flex gap-2 overflow-x-auto pb-1">
           {VIEW_OPTIONS.map((option) => (

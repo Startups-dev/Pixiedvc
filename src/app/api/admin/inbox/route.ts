@@ -21,7 +21,7 @@ export async function GET(request: Request) {
       .limit(500),
     auth.client.from("support_conversations")
       .select(`${fields}, handoff:support_handoffs(status, assigned_agent_user_id)`)
-      .eq("inbox_source", "contact_form")
+      .in("inbox_source", ["contact_form", "email"])
       .order("updated_at", { ascending: false })
       .limit(500),
   ]);

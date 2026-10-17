@@ -109,6 +109,31 @@ export CRON_SECRET="..."
 pnpm deploy:production
 ```
 
+The Zoho Inbox uses server-side Secret Manager values only. The production deploy
+script binds these to the runtime variables consumed by the Zoho implementation:
+
+```text
+PRODUCTION_ZOHO_MAIL_CLIENT_ID
+PRODUCTION_ZOHO_MAIL_CLIENT_SECRET
+PRODUCTION_ZOHO_MAIL_ENCRYPTION_KEY
+PRODUCTION_ZOHO_MAIL_WEBHOOK_TOKEN
+```
+
+Install them with `python3 scripts/gcp/setup-zoho-production-secrets.py` in an
+interactive Terminal. It prompts for the OAuth client ID and secret with hidden
+input, generates the encryption and webhook-path keys using Python's secure
+random generator, adds Secret Manager versions, and grants the production
+runtime service account access to only those secrets. It does not update Cloud
+Run or create a revision. On reruns it preserves existing generated keys; it
+asks before adding a version for an existing OAuth credential.
+
+The `PRODUCTION_RESEND_WEBHOOK_SIGNING_SECRET` is separate from
+`PRODUCTION_RESEND_API_KEY` and is optional until the Resend webhook endpoint is
+deployed and configured. After Resend provides the signing secret, install it
+with `python3 scripts/gcp/setup-zoho-production-secrets.py --resend-webhook`.
+The deployment script will bind it as `RESEND_WEBHOOK_SIGNING_SECRET` when that
+Secret Manager secret exists.
+
 ### Secret Manager mode
 
 Secret Manager remains supported. Create these production-only secrets if you
@@ -128,7 +153,14 @@ PRODUCTION_OPENAI_API_KEY
 PRODUCTION_GEMINI_API_KEY
 PRODUCTION_ADMIN_EMAILS
 PRODUCTION_CRON_SECRET
+PRODUCTION_ZOHO_MAIL_CLIENT_ID
+PRODUCTION_ZOHO_MAIL_CLIENT_SECRET
+PRODUCTION_ZOHO_MAIL_ENCRYPTION_KEY
+PRODUCTION_ZOHO_MAIL_WEBHOOK_TOKEN
 ```
+
+`PRODUCTION_RESEND_WEBHOOK_SIGNING_SECRET` is optional until the Resend webhook
+has been created after its endpoint is deployed.
 
 Optional separate public secrets are also supported:
 
@@ -159,13 +191,19 @@ for secret in \
   PRODUCTION_RESEND_FROM_EMAIL PRODUCTION_STRIPE_SECRET_KEY \
   PRODUCTION_STRIPE_WEBHOOK_SECRET PRODUCTION_GOOGLE_PLACES_API_KEY \
   PRODUCTION_OPENAI_API_KEY PRODUCTION_GEMINI_API_KEY \
-  PRODUCTION_ADMIN_EMAILS PRODUCTION_CRON_SECRET; do
+  PRODUCTION_ADMIN_EMAILS PRODUCTION_CRON_SECRET \
+  PRODUCTION_ZOHO_MAIL_CLIENT_ID PRODUCTION_ZOHO_MAIL_CLIENT_SECRET \
+  PRODUCTION_ZOHO_MAIL_ENCRYPTION_KEY PRODUCTION_ZOHO_MAIL_WEBHOOK_TOKEN; do
   gcloud secrets add-iam-policy-binding "$secret" \
     --project="$PROJECT_ID" \
     --member="serviceAccount:${RUNTIME_SA}" \
     --role="roles/secretmanager.secretAccessor"
 done
 ```
+
+The Zoho setup helper applies the same secret-access role binding to the four
+Zoho secrets it installs. Do not grant the runtime service account project-wide
+Secret Manager access for this integration.
 
 To force Secret Manager mode:
 

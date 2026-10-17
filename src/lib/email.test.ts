@@ -311,6 +311,22 @@ describe('email outbound logging', () => {
     expect(payload.html).toBe('<p>HTML body</p>');
   });
 
+  it('preserves reply threading headers and idempotency on Resend support mail', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 're_threaded' }) }) as typeof fetch;
+    const { sendPlainEmail } = await import('@/lib/email');
+    await sendPlainEmail({
+      to: 'guest@example.com', subject: 'HannaDVC support reply', body: 'A reply',
+      context: 'threaded inbox reply', templateKey: 'admin_inbox_reply',
+      relatedEntityType: 'support_conversation', relatedEntityId: '11111111-1111-4111-8111-111111111111',
+      replyTo: 'hello@hannadvc.com', headers: { 'In-Reply-To': '<known@example.test>', References: '<known@example.test>' },
+      idempotencyKey: 'inbox-reply-22222222-2222-4222-8222-222222222222',
+    });
+    const request = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit;
+    const payload = JSON.parse(String(request.body)) as { reply_to: string; headers: Record<string, string> };
+    expect((request.headers as Record<string, string>)['Idempotency-Key']).toBe('inbox-reply-22222222-2222-4222-8222-222222222222');
+    expect(payload).toMatchObject({ reply_to: 'hello@hannadvc.com', headers: { 'In-Reply-To': '<known@example.test>', References: '<known@example.test>' } });
+  });
+
   it('sends branded owner contract agreement emails with html and logs the subject', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
