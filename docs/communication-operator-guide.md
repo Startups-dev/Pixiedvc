@@ -25,7 +25,7 @@ At the 2026-10-17 audit snapshot, `/contact` had no submit handler, incoming mai
 
 ## Phase 1: Unified Inbox (local implementation, 2026-10-18)
 
-**Deployment state:** the code and migration are in the repository but have not been deployed. The migration has been applied and exercised against the separate `pixiedvc-founders-e2e` local Supabase project (loopback port 64322); the default `pixiedvc-app` local database and production were not changed. The scratch database was not reset. No production feature behavior should be inferred from these local checks.
+**Deployment state:** the code and Inbox migration are in the repository but have not been deployed. The Inbox migration was previously exercised against `pixiedvc-founders-e2e`; the prerequisite and RLS fixes are separately tested against the restored production-schema scratch project `hanna-prod-restore-GJ3tCK`. The default `pixiedvc-app` database and production were not changed. No production feature behavior should be inferred from these local checks.
 
 ### What the local code now does
 
@@ -41,7 +41,7 @@ At the 2026-10-17 audit snapshot, `/contact` had no submit handler, incoming mai
 
 ### Transcript access finding
 
-The original audit flagged `/api/support/conversation` because it could be queried with a conversation ID without verifying the requester. The Phase 1 code now requires an admin/active support agent, the matching authenticated guest user, or a valid signed anonymous live-chat token. `includeClosed=1` is staff-only. Route tests pass; in the isolated local environment an unauthenticated Inbox transcript request returned 401, anonymous and authenticated database roles saw zero rows for the synthetic transcript, and a signed guest transcript omitted the internal note. This remains local validation only; production has not been checked or changed.
+The original audit flagged `/api/support/conversation` because it could be queried with a conversation ID without verifying the requester. The Phase 1 code now requires an admin/active support agent, the matching authenticated guest user, or a valid signed anonymous live-chat token. `includeClosed=1` is staff-only. Route tests pass. The restored-schema RLS test found a recursion in legacy policies; the forward-only fix and tests are recorded below. This remains local validation only; production has not been checked or changed.
 
 ### Local checks and known dependencies
 
@@ -67,9 +67,21 @@ Recommended setup sequence after the Phase 1 release:
 
 Zoho Mail's OAuth documentation has multiple server-based authorization flows; use the Canadian Accounts host rather than the default US examples in its Mail API guide. Confirm the exact consent URL/API domain shown for HannaDVC's Canada organization in the API Console before storing any credentials.
 
+### Inbox schema release order and RLS repair
+
+The restored production backup showed `support_messages.sender`, `content`, and `agent_user_id`, but lacked the newer `sender_type`, `message`, `sender_user_id`, and `sender_display_name` fields. The deployment schema check also found an existing `contact_submission_attempts` table without `ip_fingerprint`; the prerequisite adds that column as nullable so prior attempts remain intact and no historical fingerprint is invented. The earlier `20260403000100_support_history_fields.sql` is historical and must not be edited or replayed. Apply these forward-only steps in order:
+
+1. `supabase/migrations/20261018000001_support_message_inbox_compat.sql` adds the missing message fields and backfills them from the legacy columns.
+2. `supabase/migrations/20261018000002_unified_communication_inbox.sql` adds Inbox state, visibility, contact intake, and the customer-reply trigger.
+3. `supabase/migrations/20261018000003_fix_admin_rls_recursion.sql` hardens the existing zero-argument `public.is_admin()` helper to break the profiles-policy recursion.
+
+The recursion was `support_messages` policy → `support_handoffs` policy → `profiles` policy → invoker-rights `is_admin()` → `profiles` policy again. The fix preserves the existing admin criterion (`profiles.role = 'admin'`) and does not change table policies or staff assignment rules. The RPC-accessible no-argument helper is owned by `postgres`, uses an empty `search_path` and fully qualified objects, checks only `auth.uid()`, and returns a boolean without profile data. Its execution is granted to `anon`, `authenticated`, and `service_role`. The legacy `is_admin(uuid)` overload remains for owner-only use, but execution is revoked from `public`, `anon`, `authenticated`, and `service_role`, so callers cannot supply another user's ID. `current_user_is_admin()` is likewise pinned to an empty `search_path` and executable only by `authenticated` and `service_role`. Local restored-schema tests passed for anon, unrelated authenticated customers, customer-owned transcript/internal-note exclusion, admin and assigned-agent access, assignment changes, and profile self-access without recursion. Production remains unchanged and this is not a deployment claim.
+
+Before production application, verify the migration history and current schema again, take a fresh restorable backup, then apply the three SQL files in the listed order as separate reviewed steps. Do not run `supabase db push` wholesale or replay the historical support migration. Stop if any precondition differs from the restored schema or any step fails; do not continue to the next step after a failed migration.
+
 ### Consolidated setup checklist
 
-1. Review and apply only `supabase/migrations/20261018000002_unified_communication_inbox.sql` to an isolated local or staging database first; verify the new columns, indexes, trigger, and `contact_submission_attempts` table. Do not apply the migration to production as part of Phase 1 local development.
+1. Review and apply the prerequisite, Inbox, and RLS migrations in the order above to an isolated local or staging database first; verify message-field backfills, Inbox columns/indexes/trigger, and RLS behavior. Do not apply them to production as part of local development.
 2. Validate the database-backed contact/reopen/assignment paths against that isolated database, then deploy the corresponding app code and migration through HannaDVC's normal release process. Confirm admin and active SupportAgent roles can open `/admin/inbox`; unrelated authenticated users and anonymous users cannot access transcripts.
 3. Verify production Resend sender configuration and the intended staff alert recipient without exposing secrets. Use a dedicated non-customer test identity for a contact submission; inspect saved conversation/message, both notification statuses, and the Inbox view.
 4. Verify Twilio and email reply routes in a non-production environment. Confirm provider-accepted replies become `sent`/Waiting on customer; forced failures stay failed/Needs reply; internal notes never call either transport.
