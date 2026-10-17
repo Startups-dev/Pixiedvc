@@ -244,7 +244,7 @@ export default function AdminInbox() {
         <header className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-[#9da5b5]">HannaDVC Admin</p>
-            <h1 className="mt-1 text-2xl font-semibold text-white sm:text-3xl">Inbox</h1>
+            <h1 className="mt-1 text-2xl font-semibold sm:text-3xl" style={{ color: "#bfdbfe" }}>Inbox</h1>
             <p className="mt-1 text-sm text-[#aeb4c1]">Support handoffs and website inquiries in one workspace.</p>
           </div>
         </header>
@@ -253,7 +253,7 @@ export default function AdminInbox() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-semibold text-white">Email connection</h2>
+                <h2 className="font-semibold" style={{ color: "#bfdbfe" }}>Email connection</h2>
                 <span className={`rounded-full px-2 py-0.5 text-xs ${emailConnection?.connected && emailConnection.configured ? "bg-emerald-950/60 text-emerald-200" : "bg-amber-950/50 text-amber-200"}`}>
                   {emailConnectionError ? "Status unavailable" : emailConnection?.connected && emailConnection.configured ? "Zoho connected" : emailConnection?.connected ? "Configuration incomplete" : "Setup required"}
                 </span>
@@ -271,7 +271,7 @@ export default function AdminInbox() {
             </div>
             <div className="flex flex-wrap gap-2">
               {emailConnection?.connected ? <button type="button" onClick={() => void reconcileEmail()} disabled={reconciling} className="rounded-lg border border-[#494d58] px-3 py-2 text-sm hover:bg-[#2c3039] disabled:opacity-50">{reconciling ? "Checking…" : "Check recent mail"}</button> : null}
-              {!emailConnection?.connected ? <Link href="/api/admin/inbox/zoho/connect" className="rounded-lg bg-[#d8b65c] px-3 py-2 text-sm font-semibold text-[#1c1c1c]">Connect Zoho Mail</Link> : null}
+              {!emailConnection?.connected ? <Link href="/api/admin/inbox/zoho/connect" className="rounded-lg bg-[#d8b65c] px-3 py-2 text-sm font-semibold" style={{ color: "#000000" }}>Connect Zoho Mail</Link> : null}
             </div>
           </div>
         </section>
@@ -289,7 +289,7 @@ export default function AdminInbox() {
         <section className="grid min-h-[68vh] gap-3 lg:grid-cols-[290px_minmax(0,1fr)_275px]">
           <aside className={`${hasSelection ? "hidden lg:block" : "block"} overflow-hidden rounded-2xl border border-[#343741] bg-[#20232a]`} aria-label="Conversation list">
             <div className="border-b border-[#343741] px-4 py-3">
-              <h2 className="font-semibold">{VIEW_OPTIONS.find((item) => item.id === view)?.label}</h2>
+              <h2 className="font-semibold" style={{ color: "#bfdbfe" }}>{VIEW_OPTIONS.find((item) => item.id === view)?.label}</h2>
               <p className="mt-1 text-xs text-[#999fab]">{rows.length} conversations · most recent first</p>
             </div>
             <div className="max-h-[72vh] overflow-y-auto">
