@@ -54,23 +54,68 @@ export function verifyResendWebhook(rawBody: Buffer, headers: Headers, secret: s
 }
 
 export function parseInternetHeaders(raw: unknown) {
-  const headers: Record<string, string[]> = {};
-  const lines = (typeof raw === "string" ? raw : "").replace(/\r?\n[ \t]+/g, " ").split(/\r?\n/);
-  let current = "";
-  for (const line of lines) {
-    const separator = line.indexOf(":");
-    if (separator > 0) {
-      current = line.slice(0, separator).trim().toLowerCase();
-      (headers[current] ??= []).push(line.slice(separator + 1).trim());
-    } else if (current && line.trim()) {
-      headers[current][headers[current].length - 1] += ` ${line.trim()}`;
-    }
-  }
+  const headers = parseZohoHeaderFields(raw);
   const ids = (name: string) => (headers[name] ?? []).flatMap((value) => value.match(/<[^<>\s]+>/g) ?? []);
   return {
     messageId: ids("message-id")[0] ?? null,
     inReplyTo: ids("in-reply-to"),
     references: ids("references"),
+  };
+}
+
+export function parseZohoHeaderFields(raw: unknown): Record<string, string[]> {
+  const headers: Record<string, string[]> = {};
+  if (typeof raw === "string") {
+    const lines = raw.replace(/\r?\n[ \t]+/g, " ").split(/\r?\n/);
+    let current = "";
+    for (const line of lines) {
+      const separator = line.indexOf(":");
+      if (separator > 0) {
+        current = line.slice(0, separator).trim().toLowerCase();
+        (headers[current] ??= []).push(line.slice(separator + 1).trim());
+      } else if (current && line.trim()) {
+        headers[current][headers[current].length - 1] += ` ${line.trim()}`;
+      }
+    }
+    return headers;
+  }
+
+  // Zoho documents a raw string for raw=true and a keyed header map for
+  // raw=false. Accept both response shapes without logging header values.
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    for (const [name, value] of Object.entries(raw)) {
+      const values = Array.isArray(value) ? value : [value];
+      headers[name.toLowerCase()] = values.filter((item): item is string => typeof item === "string");
+    }
+  }
+  return headers;
+}
+
+function parseZohoAddress(value: unknown) {
+  if (typeof value !== "string") return null;
+  const match = value.match(/<([^<>\s]+)>/) ?? value.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+  return match?.[1] ?? match?.[0] ?? null;
+}
+
+function zohoMessageBody(data: Record<string, unknown>) {
+  const value = typeof data.content === "string" ? data.content : typeof data.mailContent === "string" ? data.mailContent : "";
+  return htmlToText(value).slice(0, 10000);
+}
+
+export function normalizeZohoMessageDetails(
+  headerContent: unknown,
+  contentData: Record<string, unknown>,
+  listData: { fromAddress?: string; subject?: string } = {},
+) {
+  const headerFields = parseZohoHeaderFields(headerContent);
+  const from = headerFields.from?.[0] ?? "";
+  const identifiers = parseInternetHeaders(headerContent);
+  return {
+    ...identifiers,
+    senderEmail: (parseZohoAddress(from) ?? parseZohoAddress(listData.fromAddress) ?? "").trim().toLowerCase(),
+    senderName: from.replace(/<[^<>]+>/g, "").replace(/^['"]|['"]$/g, "").trim(),
+    subject: (headerFields.subject?.[0] ?? listData.subject ?? "").trim().slice(0, 300),
+    body: zohoMessageBody(contentData),
   };
 }
 
@@ -247,7 +292,7 @@ export async function recordZohoEvent(input: { eventId: string; eventType: strin
   if (error) throw new Error("ZOHO_EVENT_LOG_FAILED");
 }
 
-export async function importZohoMessage(message: { messageId: string; folderId: string; threadId?: string; receivedTime?: number | string }) {
+export async function importZohoMessage(message: { messageId: string; folderId: string; threadId?: string; receivedTime?: number | string; fromAddress?: string; subject?: string }) {
   const db = createServiceClient();
   const connection = await getZohoConnection();
   if (!connection?.zoho_account_id || !connection.import_started_at) throw new Error("ZOHO_NOT_CONNECTED");
@@ -263,28 +308,20 @@ export async function importZohoMessage(message: { messageId: string; folderId: 
   const messageId = encodeURIComponent(message.messageId);
   const [headerData, contentData] = await Promise.all([
     zohoApi<{ headerContent?: unknown }>(`/accounts/${accountId}/folders/${folderId}/messages/${messageId}/header?raw=true`, token),
-    zohoApi<{ content?: unknown }>(`/accounts/${accountId}/folders/${folderId}/messages/${messageId}/content?includeBlockContent=false`, token),
+    zohoApi<Record<string, unknown>>(`/accounts/${accountId}/folders/${folderId}/messages/${messageId}/content?includeBlockContent=false`, token),
   ]);
-  const headers = parseInternetHeaders(headerData.headerContent);
-  const content = typeof contentData.content === "string" ? htmlToText(contentData.content).slice(0, 10000) : "";
-  const rawHeaders = typeof headerData.headerContent === "string" ? headerData.headerContent : "";
-  const getHeader = (name: string) => rawHeaders.match(new RegExp(`^${name}:\\s*(.+)$`, "im"))?.[1]?.trim() ?? "";
-  const from = getHeader("From");
-  const emailMatch = from.match(/<([^<>]+)>/) ?? from.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-  const senderEmail = (emailMatch?.[1] ?? emailMatch?.[0] ?? "").trim().toLowerCase();
-  if (!senderEmail || !content) throw new Error("ZOHO_MESSAGE_MISSING_SENDER_OR_BODY");
-  const senderName = from.replace(/<[^<>]+>/g, "").replace(/^["']|["']$/g, "").trim();
-  const subject = getHeader("Subject").replace(/^\s+/, "").slice(0, 300);
-  const references = [...headers.references, ...headers.inReplyTo].filter((value, index, all) => all.indexOf(value) === index);
+  const details = normalizeZohoMessageDetails(headerData.headerContent, contentData, message);
+  if (!details.senderEmail || !details.body) throw new Error("ZOHO_MESSAGE_MISSING_SENDER_OR_BODY");
+  const references = [...details.references, ...details.inReplyTo].filter((value, index, all) => all.indexOf(value) === index);
   const { data, error } = await db.rpc("import_zoho_support_email", {
     p_provider_message_id: message.messageId,
     p_provider_thread_id: message.threadId ?? null,
-    p_rfc_message_id: headers.messageId,
+    p_rfc_message_id: details.messageId,
     p_references: references,
-    p_sender_email: senderEmail,
-    p_sender_name: senderName,
-    p_subject: subject,
-    p_body: content,
+    p_sender_email: details.senderEmail,
+    p_sender_name: details.senderName,
+    p_subject: details.subject,
+    p_body: details.body,
     p_occurred_at: occurredAt,
   }).single();
   if (error || !data) throw new Error("ZOHO_MESSAGE_IMPORT_FAILED");

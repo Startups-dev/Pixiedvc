@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getAdminInboxContext } from "@/lib/admin-inbox-auth";
 import { finishZohoReconciliation, getZohoAccessToken, getZohoConnection, importZohoMessage, setConnectionErrorCode, zohoApi } from "@/lib/zoho-mail-inbox";
 
-type MailRow = { messageId?: string | number; folderId?: string | number; threadId?: string | number; receivedTime?: string | number };
+type MailRow = { messageId?: string | number; folderId?: string | number; threadId?: string | number; receivedTime?: string | number; fromAddress?: string; subject?: string };
 
 export async function POST() {
   const auth = await getAdminInboxContext();
@@ -43,6 +43,7 @@ export async function POST() {
         const result = await importZohoMessage({
           messageId: String(row.messageId), folderId: String(row.folderId),
           threadId: row.threadId ? String(row.threadId) : undefined, receivedTime: received,
+          fromAddress: row.fromAddress, subject: row.subject,
         });
         if (result.duplicate) duplicates.add(String(row.messageId));
         else if (!result.ignored) imported.add(String(row.messageId));

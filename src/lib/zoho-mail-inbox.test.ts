@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
-import { decryptSecret, encryptSecret, htmlToText, matchZohoMailboxAccount, parseInternetHeaders, summarizeZohoAccounts, verifyResendWebhook, verifyZohoWebhook } from "@/lib/zoho-mail-inbox";
+import { decryptSecret, encryptSecret, htmlToText, matchZohoMailboxAccount, normalizeZohoMessageDetails, parseInternetHeaders, summarizeZohoAccounts, verifyResendWebhook, verifyZohoWebhook } from "@/lib/zoho-mail-inbox";
 
 const oldKey = process.env.ZOHO_MAIL_ENCRYPTION_KEY;
 afterEach(() => {
@@ -49,6 +49,37 @@ describe("Zoho Mail inbox security and threading helpers", () => {
     ].join("\r\n"));
     expect(parsed).toEqual({ messageId: "<incoming@example.test>", inReplyTo: ["<reply@example.test>"], references: ["<ack@example.test>", "<reply@example.test>"] });
     expect(htmlToText('<p>Reply<br>Text</p><script>alert(1)</script>')).toBe("Reply\nText");
+  });
+
+  it("normalizes Zoho's documented header-map and content response shapes", () => {
+    const details = normalizeZohoMessageDetails({
+      From: ['Hanna Test <Sender@Example.test>'],
+      Subject: ["Re: Test"],
+      "Message-ID": ["<incoming@example.test>"],
+      "In-Reply-To": ["<outgoing@example.test>"],
+    }, { messageId: "synthetic-message", content: "<div>Hanna inbox test 2</div>" });
+
+    expect(details).toMatchObject({
+      senderEmail: "sender@example.test",
+      senderName: "Hanna Test",
+      subject: "Re: Test",
+      messageId: "<incoming@example.test>",
+      inReplyTo: ["<outgoing@example.test>"],
+      body: "Hanna inbox test 2",
+    });
+  });
+
+  it("uses Zoho's documented list sender when a usable From header is absent", () => {
+    const details = normalizeZohoMessageDetails(null, { mailContent: "Plain text message" }, {
+      fromAddress: "sender@example.test",
+      subject: "Synthetic subject",
+    });
+
+    expect(details).toMatchObject({
+      senderEmail: "sender@example.test",
+      subject: "Synthetic subject",
+      body: "Plain text message",
+    });
   });
 
   it("matches the requested Zoho mailbox in documented primary and alias response fields", () => {
