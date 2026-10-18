@@ -6,13 +6,11 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/header";
-import SiteFooterClient from "@/components/layout/SiteFooterClient";
+import SiteShell from "@/components/layout/SiteShell";
 import AffiliateTracker from "@/components/affiliate/AffiliateTracker";
 import VisitorTracker from "@/components/analytics/VisitorTracker";
 import ReferralCapture from "@/components/referral/ReferralCapture";
-import IntercomProvider from "@/components/chat/IntercomProvider";
 import RecoveryRedirect from "@/components/auth/RecoveryRedirect";
-import SupportWidget from "@/components/support/SupportWidget";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -74,11 +72,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${geistMono.variable} bg-surface text-ink antialiased`}
       >
-        <div className="flex min-h-screen flex-col">
-          <Header />
-          <main className="flex-1">{children}</main>
-          <SiteFooterClient />
-        </div>
+        <SiteShell header={<Header />}>{children}</SiteShell>
         <Suspense fallback={null}>
           <AffiliateTracker />
         </Suspense>
@@ -88,11 +82,9 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <ReferralCapture />
         </Suspense>
-        <IntercomProvider />
         <Suspense fallback={null}>
           <RecoveryRedirect />
         </Suspense>
-        <SupportWidget />
       </body>
     </html>
   );

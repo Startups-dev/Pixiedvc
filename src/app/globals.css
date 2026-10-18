@@ -188,6 +188,13 @@ body {
   overflow-x: hidden;
 }
 
+/* Admin pages fill the space below their shared navigation. */
+.admin-content > main,
+.admin-content > div {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 h1,
 h2,
 h3,
