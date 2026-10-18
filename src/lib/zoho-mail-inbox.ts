@@ -311,7 +311,7 @@ export async function importZohoMessage(message: { messageId: string; folderId: 
     zohoApi<Record<string, unknown>>(`/accounts/${accountId}/folders/${folderId}/messages/${messageId}/content?includeBlockContent=false`, token),
   ]);
   const details = normalizeZohoMessageDetails(headerData.headerContent, contentData, message);
-  if (!details.senderEmail || !details.body) throw new Error("ZOHO_MESSAGE_MISSING_SENDER_OR_BODY");
+  if (!details.senderEmail) throw new Error("ZOHO_MESSAGE_MISSING_SENDER");
   const references = [...details.references, ...details.inReplyTo].filter((value, index, all) => all.indexOf(value) === index);
   const { data, error } = await db.rpc("import_zoho_support_email", {
     p_provider_message_id: message.messageId,

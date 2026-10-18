@@ -82,6 +82,26 @@ describe("Zoho Mail inbox security and threading helpers", () => {
     });
   });
 
+  it("accepts a subject-only email when Zoho returns an HTML body that renders empty", () => {
+    const details = normalizeZohoMessageDetails(
+      [
+        "From: Hanna Test <sender@example.test>",
+        "Subject: Hanna inbox test 2",
+        "Message-ID: <subject-only@example.test>",
+      ].join("\r\n"),
+      { messageId: "synthetic-message", content: "<div></div>" },
+      { fromAddress: "sender@example.test", subject: "Hanna inbox test 2" },
+    );
+
+    expect(details).toMatchObject({
+      senderEmail: "sender@example.test",
+      subject: "Hanna inbox test 2",
+      messageId: "<subject-only@example.test>",
+      body: "",
+    });
+    expect(details.body).toHaveLength(0);
+  });
+
   it("matches the requested Zoho mailbox in documented primary and alias response fields", () => {
     const accounts = [
       {
