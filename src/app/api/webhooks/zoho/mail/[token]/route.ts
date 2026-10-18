@@ -21,12 +21,32 @@ export async function POST(request: Request, { params }: Params) {
   const db = createServiceClient();
   const { data: connection } = await db.from("support_email_connection").select("webhook_secret_ciphertext").eq("singleton", true).maybeSingle();
   let webhookSecret: string | null = null;
+  let savedSecret: string | null = null;
   try {
-    const savedSecret = connection?.webhook_secret_ciphertext ? decryptSecret(connection.webhook_secret_ciphertext) : null;
+    savedSecret = connection?.webhook_secret_ciphertext ? decryptSecret(connection.webhook_secret_ciphertext) : null;
     if (savedSecret && verifyZohoWebhook(rawBody, signature, savedSecret)) webhookSecret = savedSecret;
     else if (candidateSecret && verifyZohoWebhook(rawBody, signature, candidateSecret)) webhookSecret = candidateSecret;
   } catch { return NextResponse.json({ ok: false }, { status: 503 }); }
   if (!webhookSecret) {
+    // Zoho sends an initial POST while saving an outgoing webhook. Some setup
+    // probes are not signed email events; acknowledge only a non-event payload
+    // after the unguessable URL token has been verified above. Never import it.
+    let validationBody: Record<string, unknown> | null = null;
+    try {
+      const parsed: unknown = JSON.parse(rawBody.toString("utf8"));
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        validationBody = parsed as Record<string, unknown>;
+      }
+    } catch { /* Non-JSON probes are not valid setup requests. */ }
+    const hasMailIdentity = validationBody &&
+      (Object.hasOwn(validationBody, "messageId") || Object.hasOwn(validationBody, "folderId"));
+    const isValidationProbe = rawBody.length === 0 || (Boolean(validationBody) && !hasMailIdentity);
+    if (candidateSecret && isValidationProbe) {
+      try {
+        await saveZohoWebhookSecret(candidateSecret);
+        return NextResponse.json({ ok: true, validation: true });
+      } catch { return NextResponse.json({ ok: false }, { status: 503 }); }
+    }
     return NextResponse.json({ ok: false, error: "INVALID_SIGNATURE" }, { status: 401 });
   }
 
