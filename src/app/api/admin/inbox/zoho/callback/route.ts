@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getAdminInboxContext } from "@/lib/admin-inbox-auth";
-import { getZohoOAuthConfig, saveZohoTokens, zohoApi } from "@/lib/zoho-mail-inbox";
-import { getAppBaseUrl } from "@/lib/app-url";
+import { getZohoOAuthConfig, matchZohoMailboxAccount, saveZohoTokens, summarizeZohoAccounts, zohoApi } from "@/lib/zoho-mail-inbox";
+import { getZohoPublicAppOrigin } from "@/lib/app-url";
 
 type ZohoRow = Record<string, unknown>;
 function rows(data: unknown): ZohoRow[] {
@@ -17,11 +17,12 @@ export async function GET(request: Request) {
   const auth = await getAdminInboxContext();
   if (!auth.ok) return auth.response;
   const url = new URL(request.url);
+  const publicOrigin = getZohoPublicAppOrigin() ?? "https://hannadvc.com";
   const jar = await cookies();
   const state = url.searchParams.get("state");
   const savedState = jar.get("zoho_mail_oauth_state")?.value;
   const redirect = (code: string) => {
-    const response = NextResponse.redirect(new URL(`/admin/inbox?zoho_error=${encodeURIComponent(code)}`, request.url));
+    const response = NextResponse.redirect(new URL(`/admin/inbox?zoho_error=${encodeURIComponent(code)}`, publicOrigin));
     response.cookies.delete("zoho_mail_oauth_state");
     return response;
   };
@@ -31,9 +32,7 @@ export async function GET(request: Request) {
 
   try {
     const { clientId, clientSecret, accountsApi, mailbox } = getZohoOAuthConfig();
-    const baseUrl = getAppBaseUrl();
-    if (!process.env.ZOHO_MAIL_REDIRECT_URI && !baseUrl) return redirect("APP_BASE_URL_NOT_CONFIGURED");
-    const redirectUri = process.env.ZOHO_MAIL_REDIRECT_URI || `${baseUrl}/api/admin/inbox/zoho/callback`;
+    const redirectUri = `${publicOrigin}/api/admin/inbox/zoho/callback`;
     const tokenResponse = await fetch(`${accountsApi}/token`, {
       method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ grant_type: "authorization_code", code, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri }),
@@ -43,7 +42,10 @@ export async function GET(request: Request) {
     if (!tokenResponse.ok || typeof token?.access_token !== "string" || typeof token?.refresh_token !== "string") return redirect("ZOHO_OAUTH_TOKEN_EXCHANGE_FAILED");
 
     const accounts = rows(await zohoApi<unknown>("/accounts", token.access_token));
-    const account = accounts.find((item) => String(item.emailAddress ?? item.primaryEmailAddress ?? item.email ?? "").toLowerCase() === mailbox);
+    const accountMatch = matchZohoMailboxAccount(accounts, mailbox);
+    const accountSummary = summarizeZohoAccounts(accounts, mailbox);
+    console.info("[zoho-oauth] Canadian account discovery", JSON.stringify({ endpoint: "mail.zohocloud.ca/api/accounts", ...accountSummary }));
+    const account = accountMatch?.account;
     const accountId = account?.accountId ?? account?.accountid ?? account?.id;
     if (!accountId) return redirect("ZOHO_TARGET_MAILBOX_NOT_FOUND");
     const folders = rows(await zohoApi<unknown>(`/accounts/${encodeURIComponent(String(accountId))}/folders`, token.access_token));
@@ -55,7 +57,7 @@ export async function GET(request: Request) {
       accessToken: token.access_token, refreshToken: token.refresh_token,
       expiresIn: Number(token.expires_in ?? 3600), accountId: String(accountId), inboxFolderId: String(inboxFolderId),
     });
-    const response = NextResponse.redirect(new URL("/admin/inbox?zoho_connected=1", baseUrl ?? new URL(request.url).origin));
+    const response = NextResponse.redirect(new URL("/admin/inbox?zoho_connected=1", publicOrigin));
     response.cookies.delete("zoho_mail_oauth_state");
     return response;
   } catch {

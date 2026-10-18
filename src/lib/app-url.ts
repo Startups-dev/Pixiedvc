@@ -1,5 +1,6 @@
 const LOCALHOST_URL_RE = /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?/i;
 const UNSAFE_DOCKER_HOST_RE = /https?:\/\/0\.0\.0\.0(?::\d+)?/i;
+const ZOHO_PRODUCTION_APP_ORIGIN = "https://hannadvc.com";
 
 function normalizeBaseUrl(raw: string, options?: { rewriteUnsafeDockerHost?: boolean }) {
   const trimmed = raw.trim();
@@ -47,6 +48,12 @@ export function getAppBaseUrl() {
 
   console.warn("[app-url] Missing valid APP_BASE_URL/NEXT_PUBLIC_SITE_URL/NEXT_PUBLIC_APP_URL in production.");
   return null;
+}
+
+export function getZohoPublicAppOrigin() {
+  if (process.env.NODE_ENV === "production") return ZOHO_PRODUCTION_APP_ORIGIN;
+  const baseUrl = getAppBaseUrl();
+  return baseUrl ? new URL(baseUrl).origin : null;
 }
 
 export function warnIfUnsafeEmailUrl(url: string | null | undefined, context: string) {

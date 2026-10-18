@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
-import { decryptSecret, encryptSecret, htmlToText, parseInternetHeaders, verifyResendWebhook, verifyZohoWebhook } from "@/lib/zoho-mail-inbox";
+import { decryptSecret, encryptSecret, htmlToText, matchZohoMailboxAccount, parseInternetHeaders, summarizeZohoAccounts, verifyResendWebhook, verifyZohoWebhook } from "@/lib/zoho-mail-inbox";
 
 const oldKey = process.env.ZOHO_MAIL_ENCRYPTION_KEY;
 afterEach(() => {
@@ -49,5 +49,35 @@ describe("Zoho Mail inbox security and threading helpers", () => {
     ].join("\r\n"));
     expect(parsed).toEqual({ messageId: "<incoming@example.test>", inReplyTo: ["<reply@example.test>"], references: ["<ack@example.test>", "<reply@example.test>"] });
     expect(htmlToText('<p>Reply<br>Text</p><script>alert(1)</script>')).toBe("Reply\nText");
+  });
+
+  it("matches the requested Zoho mailbox in documented primary and alias response fields", () => {
+    const accounts = [
+      {
+        accountId: "synthetic-account-1",
+        primaryEmailAddress: "primary@example.test",
+        mailboxAddress: "primary@example.test",
+        emailAddress: [
+          { mailId: "primary@example.test", isAlias: false, isPrimary: true },
+          { mailId: "hello@hannadvc.com", isAlias: true, isPrimary: false },
+        ],
+      },
+      { accountId: "synthetic-account-2", primaryEmailAddress: "other@example.test", emailAddress: [{ mailId: "other@example.test", isPrimary: true }] },
+    ];
+
+    const match = matchZohoMailboxAccount(accounts, "hello@hannadvc.com");
+    expect(match?.account.accountId).toBe("synthetic-account-1");
+    expect(match?.matchedFields).toContain("emailAddress.alias");
+    expect(matchZohoMailboxAccount(accounts, "primary@example.test")?.matchedFields).toContain("primaryEmailAddress");
+    expect(matchZohoMailboxAccount(accounts, "unlisted@hannadvc.com")).toBeNull();
+    expect(summarizeZohoAccounts(accounts, "hello@hannadvc.com")).toMatchObject({
+      accountCount: 2,
+      emailAddressArrayRows: 2,
+      emailAddressEntryCount: 3,
+      aliasEntryCount: 1,
+      primaryEntryCount: 2,
+      targetMailboxMatched: true,
+    });
+    expect(JSON.stringify(summarizeZohoAccounts(accounts, "hello@hannadvc.com"))).not.toContain("hello@hannadvc.com");
   });
 });

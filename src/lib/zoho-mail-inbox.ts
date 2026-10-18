@@ -151,6 +151,62 @@ export function getZohoOAuthConfig() {
   return { clientId, clientSecret, accountsApi: ACCOUNTS_API, mailbox: MAILBOX };
 }
 
+function addressValue(value: unknown) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+export function matchZohoMailboxAccount(accounts: Array<Record<string, unknown>>, mailbox: string) {
+  const target = mailbox.trim().toLowerCase();
+  for (const account of accounts) {
+    const matches: string[] = [];
+    for (const key of ["primaryEmailAddress", "mailboxAddress", "incomingUserName", "email"]) {
+      if (addressValue(account[key]) === target) matches.push(key);
+    }
+
+    const emailAddress = account.emailAddress;
+    if (typeof emailAddress === "string" && addressValue(emailAddress) === target) matches.push("emailAddress");
+    const addressEntries = Array.isArray(emailAddress) ? emailAddress : emailAddress && typeof emailAddress === "object" ? [emailAddress] : [];
+    for (const entry of addressEntries) {
+      if (!entry || typeof entry !== "object") continue;
+      const address = (entry as Record<string, unknown>).mailId ?? (entry as Record<string, unknown>).emailAddress ?? (entry as Record<string, unknown>).address;
+      if (addressValue(address) === target) matches.push(Boolean((entry as Record<string, unknown>).isAlias) ? "emailAddress.alias" : "emailAddress.mailId");
+    }
+    if (matches.length) return { account, matchedFields: Array.from(new Set(matches)) };
+  }
+  return null;
+}
+
+export function summarizeZohoAccounts(accounts: Array<Record<string, unknown>>, mailbox: string) {
+  let emailAddressArrayRows = 0;
+  let emailAddressEntryCount = 0;
+  let aliasEntryCount = 0;
+  let primaryEntryCount = 0;
+  let primaryEmailAddressFieldRows = 0;
+  for (const account of accounts) {
+    if (typeof account.primaryEmailAddress === "string") primaryEmailAddressFieldRows++;
+    if (!Array.isArray(account.emailAddress)) continue;
+    emailAddressArrayRows++;
+    for (const entry of account.emailAddress) {
+      if (!entry || typeof entry !== "object") continue;
+      emailAddressEntryCount++;
+      const value = entry as Record<string, unknown>;
+      if (value.isAlias === true) aliasEntryCount++;
+      if (value.isPrimary === true) primaryEntryCount++;
+    }
+  }
+  const match = matchZohoMailboxAccount(accounts, mailbox);
+  return {
+    accountCount: accounts.length,
+    emailAddressArrayRows,
+    emailAddressEntryCount,
+    aliasEntryCount,
+    primaryEntryCount,
+    primaryEmailAddressFieldRows,
+    targetMailboxMatched: Boolean(match),
+    matchedFieldNames: match?.matchedFields ?? [],
+  };
+}
+
 export async function saveZohoTokens(input: { accessToken: string; refreshToken: string; expiresIn: number; accountId: string; inboxFolderId: string }) {
   const current = await getZohoConnection().catch(() => null);
   const now = new Date().toISOString();

@@ -1,12 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const originalNodeEnv = process.env.NODE_ENV;
+const originalAppBaseUrl = process.env.APP_BASE_URL;
 const originalPublicSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 const originalPublicAppUrl = process.env.NEXT_PUBLIC_APP_URL;
 
 describe("client app URL resolution", () => {
   afterEach(() => {
     process.env.NODE_ENV = originalNodeEnv;
+    process.env.APP_BASE_URL = originalAppBaseUrl;
     process.env.NEXT_PUBLIC_SITE_URL = originalPublicSiteUrl;
     process.env.NEXT_PUBLIC_APP_URL = originalPublicAppUrl;
     vi.unstubAllGlobals();
@@ -39,5 +41,15 @@ describe("client app URL resolution", () => {
 
     const { getClientAppUrl } = await import("@/lib/app-url");
     expect(getClientAppUrl("/auth/callback")).toBe("http://localhost:8080/auth/callback");
+  });
+
+  it("pins Zoho production redirects to the validated HannaDVC public origin", async () => {
+    process.env.NODE_ENV = "production";
+    process.env.APP_BASE_URL = "http://0.0.0.0:8080";
+    process.env.NEXT_PUBLIC_SITE_URL = "https://hannadvc.com";
+    process.env.NEXT_PUBLIC_APP_URL = "";
+
+    const { getZohoPublicAppOrigin } = await import("@/lib/app-url");
+    expect(getZohoPublicAppOrigin()).toBe("https://hannadvc.com");
   });
 });

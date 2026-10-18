@@ -164,9 +164,16 @@ export default function AdminInbox() {
     const error = params.get("zoho_error");
     if (!error) return;
 
-    setZohoConnectError(error === "ZOHO_OAUTH_NOT_CONFIGURED"
-      ? "Zoho connection could not start because its server credentials are unavailable. Contact an administrator."
-      : "Zoho authorization could not be started. Please try again or contact an administrator.");
+    const messages: Record<string, string> = {
+      ZOHO_OAUTH_NOT_CONFIGURED: "Zoho connection could not start because its server credentials are unavailable. Contact an administrator.",
+      ZOHO_TARGET_MAILBOX_NOT_FOUND: "Zoho returned successfully, but the authorized account did not list hello@hannadvc.com as a primary or alias address. Connect with the Zoho account that owns this mailbox.",
+      ZOHO_INBOX_FOLDER_NOT_FOUND: "Zoho connected, but its Inbox folder was not returned. Contact an administrator before retrying.",
+      ZOHO_OAUTH_TOKEN_EXCHANGE_FAILED: "Zoho authorization could not be completed. Please try connecting again.",
+      ZOHO_OAUTH_STATE_INVALID: "The Zoho authorization session expired or could not be verified. Please try connecting again.",
+      ZOHO_OAUTH_AUTHORIZATION_FAILED: "Zoho did not complete authorization. Please try connecting again.",
+      ZOHO_CONNECTION_SETUP_FAILED: "Zoho could not finish the connection setup. Contact an administrator.",
+    };
+    setZohoConnectError(messages[error] ?? "Zoho authorization could not be started. Please try again or contact an administrator.");
     params.delete("zoho_error");
     const query = params.toString();
     window.history.replaceState(window.history.state, "", `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`);
