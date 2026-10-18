@@ -57,6 +57,8 @@ steps:
       - "${_REGION}"
       - "--platform"
       - "managed"
+      - "--update-secrets"
+      - "ZOHO_MAIL_CLIENT_ID=PRODUCTION_ZOHO_MAIL_CLIENT_ID:latest,ZOHO_MAIL_CLIENT_SECRET=PRODUCTION_ZOHO_MAIL_CLIENT_SECRET:latest,ZOHO_MAIL_ENCRYPTION_KEY=PRODUCTION_ZOHO_MAIL_ENCRYPTION_KEY:latest,ZOHO_MAIL_WEBHOOK_TOKEN=PRODUCTION_ZOHO_MAIL_WEBHOOK_TOKEN:latest"
       - "--quiet"
 
 images:

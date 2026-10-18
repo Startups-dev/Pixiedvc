@@ -94,6 +94,7 @@ export default function AdminInbox() {
   const [sending, setSending] = useState(false);
   const [emailConnection, setEmailConnection] = useState<MailConnectionStatus | null>(null);
   const [emailConnectionError, setEmailConnectionError] = useState<string | null>(null);
+  const [zohoConnectError, setZohoConnectError] = useState<string | null>(null);
   const [reconciling, setReconciling] = useState(false);
   const [reconcileNotice, setReconcileNotice] = useState<string | null>(null);
   const [emailIdempotencyKey, setEmailIdempotencyKey] = useState<string | null>(null);
@@ -157,6 +158,19 @@ export default function AdminInbox() {
   }, []);
 
   useEffect(() => { void loadEmailConnection(); }, [loadEmailConnection]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get("zoho_error");
+    if (!error) return;
+
+    setZohoConnectError(error === "ZOHO_OAUTH_NOT_CONFIGURED"
+      ? "Zoho connection could not start because its server credentials are unavailable. Contact an administrator."
+      : "Zoho authorization could not be started. Please try again or contact an administrator.");
+    params.delete("zoho_error");
+    const query = params.toString();
+    window.history.replaceState(window.history.state, "", `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`);
+  }, []);
 
   async function updateConversation(action: string, status?: string) {
     if (!selectedId) return;
@@ -259,6 +273,7 @@ export default function AdminInbox() {
                 </span>
               </div>
               <p className="mt-1 text-sm text-[#b8bdc7]">{emailConnection?.mailbox ?? "hello@hannadvc.com"} · Canadian Zoho Mail incoming · Resend remains the reply sender.</p>
+              {zohoConnectError ? <p role="alert" className="mt-2 text-sm text-rose-200">{zohoConnectError}</p> : null}
               <p className="mt-1 text-xs text-[#969ba8]">
                 {emailConnection?.lastWebhookAt ? `Last email event ${dateTime(emailConnection.lastWebhookAt)}.` : "No Zoho email event received yet."}
                 {emailConnection?.lastReconciledAt ? ` Last sync ${dateTime(emailConnection.lastReconciledAt)}.` : ""}
