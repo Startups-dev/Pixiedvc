@@ -22,10 +22,14 @@ export async function POST(request: Request, { params }: Params) {
   const { data: connection } = await db.from("support_email_connection").select("webhook_secret_ciphertext").eq("singleton", true).maybeSingle();
   let webhookSecret: string | null = null;
   let savedSecret: string | null = null;
+  let savedSignatureValid = false;
+  let candidateSignatureValid = false;
   try {
     savedSecret = connection?.webhook_secret_ciphertext ? decryptSecret(connection.webhook_secret_ciphertext) : null;
-    if (savedSecret && verifyZohoWebhook(rawBody, signature, savedSecret)) webhookSecret = savedSecret;
-    else if (candidateSecret && verifyZohoWebhook(rawBody, signature, candidateSecret)) webhookSecret = candidateSecret;
+    savedSignatureValid = Boolean(savedSecret && verifyZohoWebhook(rawBody, signature, savedSecret));
+    candidateSignatureValid = Boolean(candidateSecret && verifyZohoWebhook(rawBody, signature, candidateSecret));
+    if (savedSignatureValid) webhookSecret = savedSecret;
+    else if (candidateSignatureValid) webhookSecret = candidateSecret;
   } catch { return NextResponse.json({ ok: false }, { status: 503 }); }
   if (!webhookSecret) {
     // Zoho sends an initial POST while saving an outgoing webhook. Some setup
@@ -47,6 +51,29 @@ export async function POST(request: Request, { params }: Params) {
         return NextResponse.json({ ok: true, validation: true });
       } catch { return NextResponse.json({ ok: false }, { status: 503 }); }
     }
+    let bodyIsJson = false;
+    let hasMessageIdField = false;
+    let hasFolderIdField = false;
+    try {
+      const parsed: unknown = JSON.parse(rawBody.toString("utf8"));
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        bodyIsJson = true;
+        hasMessageIdField = Object.hasOwn(parsed, "messageId");
+        hasFolderIdField = Object.hasOwn(parsed, "folderId");
+      }
+    } catch { /* Log metadata only for non-JSON requests. */ }
+    console.warn("Zoho webhook signature rejected", {
+      signaturePresent: Boolean(signature),
+      candidateSecretPresent: Boolean(candidateSecret),
+      savedSecretPresent: Boolean(savedSecret),
+      savedSignatureValid,
+      candidateSignatureValid,
+      bodyByteLength: rawBody.length,
+      bodyIsJson,
+      hasMessageIdField,
+      hasFolderIdField,
+      contentType: request.headers.get("content-type"),
+    });
     return NextResponse.json({ ok: false, error: "INVALID_SIGNATURE" }, { status: 401 });
   }
 

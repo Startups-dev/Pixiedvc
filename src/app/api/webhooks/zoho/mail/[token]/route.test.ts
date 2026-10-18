@@ -58,12 +58,25 @@ describe("Zoho Mail webhook setup validation", () => {
   });
 
   it("does not acknowledge or persist an unsigned payload with mail identifiers", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const body = JSON.stringify({ messageId: "mail-1", folderId: "inbox" });
     const response = await post(body, { "x-hook-secret": "untrusted-secret" });
 
     expect(response.status).toBe(401);
     expect(state.savedSecrets).toHaveLength(0);
     expect(state.imported).toHaveLength(0);
+    expect(warn).toHaveBeenCalledWith("Zoho webhook signature rejected", expect.objectContaining({
+      signaturePresent: false,
+      candidateSecretPresent: true,
+      savedSecretPresent: false,
+      savedSignatureValid: false,
+      candidateSignatureValid: false,
+      bodyIsJson: true,
+      hasMessageIdField: true,
+      hasFolderIdField: true,
+    }));
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("untrusted-secret");
+    warn.mockRestore();
   });
 
   it("requires the path token even for setup probes", async () => {
