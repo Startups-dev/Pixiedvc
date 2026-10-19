@@ -45,7 +45,11 @@ export async function POST(request: Request, { params }: Params) {
     const hasMailIdentity = validationBody &&
       (Object.hasOwn(validationBody, "messageId") || Object.hasOwn(validationBody, "folderId"));
     const isValidationProbe = rawBody.length === 0 || (Boolean(validationBody) && !hasMailIdentity);
-    if (candidateSecret && isValidationProbe) {
+    // Zoho's first save request can contain a real mail payload and the new
+    // X-Hook-Secret, but no X-Hook-Signature. Treat it as a handshake only:
+    // store the secret and require signed requests before importing mail.
+    const isInitialUnsignedMail = !savedSecret && !signature && Boolean(validationBody && hasMailIdentity);
+    if (candidateSecret && (isValidationProbe || isInitialUnsignedMail)) {
       try {
         await saveZohoWebhookSecret(candidateSecret);
         return NextResponse.json({ ok: true, validation: true });

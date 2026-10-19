@@ -57,10 +57,21 @@ describe("Zoho Mail webhook setup validation", () => {
     expect(state.recorded).toHaveLength(0);
   });
 
-  it("does not acknowledge or persist an unsigned payload with mail identifiers", async () => {
+  it("acknowledges the first unsigned mail payload as a handshake without importing it", async () => {
+    const body = JSON.stringify({ messageId: "mail-1", folderId: "inbox" });
+    const response = await post(body, { "x-hook-secret": "first-hook-secret" });
+
+    expect(response.status).toBe(200);
+    expect(state.savedSecrets).toEqual(["first-hook-secret"]);
+    expect(state.imported).toHaveLength(0);
+    expect(state.recorded).toHaveLength(0);
+  });
+
+  it("rejects subsequent unsigned mail events after the handshake", async () => {
+    state.savedSecret = "stored-event-secret";
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const body = JSON.stringify({ messageId: "mail-1", folderId: "inbox" });
-    const response = await post(body, { "x-hook-secret": "untrusted-secret" });
+    const response = await post(body, { "x-hook-secret": "stored-event-secret" });
 
     expect(response.status).toBe(401);
     expect(state.savedSecrets).toHaveLength(0);
@@ -68,14 +79,27 @@ describe("Zoho Mail webhook setup validation", () => {
     expect(warn).toHaveBeenCalledWith("Zoho webhook signature rejected", expect.objectContaining({
       signaturePresent: false,
       candidateSecretPresent: true,
-      savedSecretPresent: false,
+      savedSecretPresent: true,
       savedSignatureValid: false,
       candidateSignatureValid: false,
       bodyIsJson: true,
       hasMessageIdField: true,
       hasFolderIdField: true,
     }));
-    expect(JSON.stringify(warn.mock.calls)).not.toContain("untrusted-secret");
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("stored-event-secret");
+    warn.mockRestore();
+  });
+
+  it("rejects an invalid signature on the first mail payload", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const response = await post(JSON.stringify({ messageId: "mail-1", folderId: "inbox" }), {
+      "x-hook-secret": "first-hook-secret",
+      "x-hook-signature": "invalid",
+    });
+
+    expect(response.status).toBe(401);
+    expect(state.savedSecrets).toHaveLength(0);
+    expect(state.imported).toHaveLength(0);
     warn.mockRestore();
   });
 
