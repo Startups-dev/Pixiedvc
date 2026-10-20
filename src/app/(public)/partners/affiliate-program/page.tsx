@@ -239,7 +239,7 @@ export default function AffiliateProgramPage() {
     });
 
     const data = (await response.json().catch(() => null)) as
-      | { error?: string; message?: string; referralLink?: string }
+      | { error?: string; message?: string; referralLink?: string; notifications?: { applicantAcknowledgment?: string; staffAlert?: string } }
       | null;
 
     if (!response.ok) {
@@ -249,7 +249,9 @@ export default function AffiliateProgramPage() {
     }
 
     setStatus("success");
-    setMessage(data?.message ?? null);
+    setMessage(data?.notifications?.applicantAcknowledgment === "accepted"
+      ? "Application submitted. A confirmation email was accepted for sending."
+      : "Application saved, but we couldn’t accept the confirmation email. Please contact hello@hannadvc.com if you need help.");
     setReferralLink(data?.referralLink ?? null);
     const normalizedEmail = form.email.trim().toLowerCase();
     setSubmittedEmail(normalizedEmail);

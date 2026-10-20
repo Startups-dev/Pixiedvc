@@ -16,6 +16,13 @@ import {
   sendReadyStayRejectedEmail,
 } from "@/lib/email";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import {
+  sendAffiliateApplicationAcknowledgment,
+  sendAffiliateApplicationStaffAlert,
+  sendAffiliatePayoutPaid,
+  sendAffiliateRejection,
+  sendAffiliateWelcome,
+} from "@/lib/affiliate-emails";
 
 const RETRY_COOLDOWN_MS = 15_000;
 const MAX_RETRY_COUNT = 5;
@@ -714,6 +721,137 @@ async function retryConciergeNotification(row: OutboundEmailRow) {
   });
 }
 
+async function retryAffiliateApplicationAcknowledgment(row: OutboundEmailRow) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) throw new Error("service_role_missing");
+  const metadata = coerceMetadata(row);
+  const applicationId = readString(metadata.affiliate_application_id);
+  if (!applicationId) throw new Error("missing_affiliate_application_id");
+  const { data: application } = await admin.from("affiliate_applications")
+    .select("id, display_name")
+    .eq("id", applicationId)
+    .maybeSingle();
+  if (!application) throw new Error("affiliate_application_not_found");
+  const { data: thread } = await admin.from("support_conversations")
+    .select("id")
+    .eq("affiliate_application_id", applicationId)
+    .maybeSingle();
+  await sendAffiliateApplicationAcknowledgment({
+    to: row.recipient_email,
+    name: application.display_name || "Applicant",
+    applicationId,
+    conversationId: thread?.id ?? row.related_entity_id,
+    outboundEmailLogId: row.id,
+  });
+}
+
+async function retryAffiliateApplicationStaffAlert(row: OutboundEmailRow) {
+  const admin = getSupabaseAdminClient();
+  if (!admin || !row.related_entity_id) throw new Error("missing_affiliate_application_id");
+  const { data: application } = await admin.from("affiliate_applications")
+    .select("id, display_name")
+    .eq("id", row.related_entity_id)
+    .maybeSingle();
+  if (!application) throw new Error("affiliate_application_not_found");
+  await sendAffiliateApplicationStaffAlert({
+    to: row.recipient_email,
+    applicantName: application.display_name || "Applicant",
+    applicationId: application.id,
+    outboundEmailLogId: row.id,
+  });
+}
+
+async function retryAffiliateApprovalWelcome(row: OutboundEmailRow) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) throw new Error("service_role_missing");
+  const metadata = coerceMetadata(row);
+  const applicationId = readString(metadata.affiliate_application_id);
+  const affiliateId = readString(metadata.affiliate_id);
+  if (!applicationId || !affiliateId) throw new Error("affiliate_welcome_context_missing");
+  const [{ data: application }, { data: affiliate }, { data: thread }] = await Promise.all([
+    admin.from("affiliate_applications").select("id, display_name, status").eq("id", applicationId).maybeSingle(),
+    admin.from("affiliates").select("id, auth_user_id").eq("id", affiliateId).maybeSingle(),
+    admin.from("support_conversations").select("id").eq("affiliate_application_id", applicationId).maybeSingle(),
+  ]);
+  if (!application || application.status !== "approved" || !affiliate) throw new Error("affiliate_welcome_not_recoverable");
+  const siteOrigin = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+  const redirectTo = siteOrigin
+    ? `${siteOrigin}/auth/callback?next=${encodeURIComponent("/affiliate/dashboard")}`
+    : undefined;
+  const recoveryLink = await admin.auth.admin.generateLink({
+    type: "recovery",
+    email: row.recipient_email,
+    options: { redirectTo },
+  });
+  await sendAffiliateWelcome({
+    to: row.recipient_email,
+    name: application.display_name || "Affiliate",
+    applicationId,
+    affiliateId,
+    conversationId: thread?.id ?? row.related_entity_id,
+    recipientUserId: affiliate.auth_user_id,
+    outboundEmailLogId: row.id,
+    accessUrl: recoveryLink.error ? null : recoveryLink.data.properties?.action_link ?? null,
+  });
+}
+
+async function retryAffiliateRejection(row: OutboundEmailRow) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) throw new Error("service_role_missing");
+  const applicationId = readString(coerceMetadata(row).affiliate_application_id);
+  if (!applicationId) throw new Error("missing_affiliate_application_id");
+  const { data: application } = await admin.from("affiliate_applications")
+    .select("id, display_name, status")
+    .eq("id", applicationId)
+    .maybeSingle();
+  if (!application || application.status !== "rejected") throw new Error("affiliate_rejection_not_recoverable");
+  const { data: thread } = await admin.from("support_conversations")
+    .select("id")
+    .eq("affiliate_application_id", application.id)
+    .maybeSingle();
+  await sendAffiliateRejection({
+    to: row.recipient_email,
+    name: application.display_name || "Applicant",
+    applicationId: application.id,
+    conversationId: thread?.id ?? row.related_entity_id,
+    outboundEmailLogId: row.id,
+  });
+}
+
+async function retryAffiliatePayoutPaid(row: OutboundEmailRow) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) throw new Error("service_role_missing");
+  const metadata = coerceMetadata(row);
+  const payoutItemId = readString(metadata.payout_item_id);
+  if (!payoutItemId) throw new Error("missing_affiliate_payout_item_id");
+  const { data: item } = await admin.from("affiliate_payout_items")
+    .select("id, status, amount_usd, affiliate_id")
+    .eq("id", payoutItemId)
+    .maybeSingle();
+  if (!item || item.status !== "paid") throw new Error("affiliate_payout_not_paid");
+  const { data: affiliate } = await admin.from("affiliates")
+    .select("id, auth_user_id, display_name")
+    .eq("id", item.affiliate_id)
+    .maybeSingle();
+  if (!affiliate) throw new Error("affiliate_not_found");
+  const { data: thread } = await admin.from("support_conversations")
+    .select("id")
+    .eq("affiliate_id", affiliate.id)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  await sendAffiliatePayoutPaid({
+    to: row.recipient_email,
+    name: affiliate.display_name || "Affiliate",
+    amountUsd: Number(item.amount_usd ?? 0),
+    payoutItemId: item.id,
+    affiliateId: affiliate.id,
+    conversationId: thread?.id ?? row.related_entity_id,
+    recipientUserId: affiliate.auth_user_id,
+    outboundEmailLogId: row.id,
+  });
+}
+
 async function dispatchRetry(row: OutboundEmailRow) {
   switch (row.template_key) {
     case "abandoned_guest_booking_request":
@@ -745,6 +883,16 @@ async function dispatchRetry(row: OutboundEmailRow) {
     case "concierge_handoff":
     case "support_escalation":
       return retryConciergeNotification(row);
+    case "affiliate_application_acknowledgment":
+      return retryAffiliateApplicationAcknowledgment(row);
+    case "affiliate_application_staff_alert":
+      return retryAffiliateApplicationStaffAlert(row);
+    case "affiliate_approval_welcome":
+      return retryAffiliateApprovalWelcome(row);
+    case "affiliate_application_rejection":
+      return retryAffiliateRejection(row);
+    case "affiliate_payout_paid":
+      return retryAffiliatePayoutPaid(row);
     default:
       throw new Error(`unsupported_template:${row.template_key}`);
   }

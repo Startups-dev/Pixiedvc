@@ -5,6 +5,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { requireAdminEmail } from "@/lib/require-admin";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { normalizeAffiliateSlug } from "@/lib/affiliate-referrals";
+import { sendAffiliateRejection, sendAffiliateWelcome } from "@/lib/affiliate-emails";
 
 function normalizeSlug(value: string) {
   return normalizeAffiliateSlug(value);
@@ -52,27 +53,34 @@ async function findAuthUserByEmail(client: SupabaseClient, email: string) {
 async function ensureAffiliateAuthUser(client: SupabaseClient, email: string, displayName: string) {
   const existing = await findAuthUserByEmail(client, email);
   if (existing?.id) {
-    return existing.id;
+    return { id: existing.id, invited: false, actionLink: null as string | null };
   }
 
   const siteOrigin = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
   const redirectTo = siteOrigin
     ? `${siteOrigin}/auth/callback?next=${encodeURIComponent("/affiliate/dashboard")}`
     : undefined;
-  const invite = await client.auth.admin.inviteUserByEmail(email, {
-    redirectTo,
-    data: { display_name: displayName },
+  // Generate Supabase's invite action link, then deliver it in the logged,
+  // thread-aware Resend welcome below. This avoids a second Auth email.
+  const invite = await client.auth.admin.generateLink({
+    type: "invite",
+    email,
+    options: { redirectTo, data: { display_name: displayName } },
   });
 
   if (invite.error) {
     const maybeNowExisting = await findAuthUserByEmail(client, email);
     if (maybeNowExisting?.id) {
-      return maybeNowExisting.id;
+      return { id: maybeNowExisting.id, invited: false, actionLink: null as string | null };
     }
     throw invite.error;
   }
 
-  return invite.data.user?.id ?? null;
+  return {
+    id: invite.data.user?.id ?? null,
+    invited: Boolean(invite.data.user?.id),
+    actionLink: invite.data.properties?.action_link ?? null,
+  };
 }
 
 export async function PATCH(request: Request) {
@@ -136,7 +144,18 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: rejectError.message }, { status: 400 });
     }
 
-    return NextResponse.json({ ok: true });
+    const { data: thread } = await client.from("support_conversations")
+      .select("id")
+      .eq("affiliate_application_id", id)
+      .maybeSingle();
+    const emailResult = await sendAffiliateRejection({
+      to: application.email,
+      name: application.display_name?.trim() || application.email.split("@")[0] || "Applicant",
+      applicationId: id,
+      conversationId: thread?.id ?? null,
+    });
+
+    return NextResponse.json({ ok: true, notification: emailResult.status === "sent" ? "accepted" : "failed" });
   }
 
   if (application.status !== "pending") {
@@ -155,8 +174,20 @@ export async function PATCH(request: Request) {
     .maybeSingle();
 
   let authUserId = existingAffiliate?.auth_user_id ?? null;
+  let invitedNewUser = false;
+  let invitationActionLink: string | null = null;
   if (!authUserId) {
-    authUserId = await ensureAffiliateAuthUser(client, application.email, displayName);
+    let authUser: Awaited<ReturnType<typeof ensureAffiliateAuthUser>>;
+    try {
+      authUser = await ensureAffiliateAuthUser(client, application.email, displayName);
+    } catch {
+      return NextResponse.json({
+        error: "We couldn’t prepare account access. The application is still pending; please try approval again.",
+      }, { status: 502 });
+    }
+    authUserId = authUser?.id ?? null;
+    invitedNewUser = authUser?.invited ?? false;
+    invitationActionLink = authUser?.actionLink ?? null;
   }
 
   if (!authUserId) {
@@ -241,6 +272,7 @@ export async function PATCH(request: Request) {
       admin_notes: adminNotes || null,
       approved_at: new Date().toISOString(),
       rejected_at: null,
+      auth_user_id: authUserId,
     })
     .eq("id", id);
 
@@ -248,5 +280,38 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: approveError.message }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true });
+  const { data: thread } = await client.from("support_conversations")
+    .select("id, context")
+    .eq("affiliate_application_id", id)
+    .maybeSingle();
+  let inboxLinkUpdated = true;
+  if (thread?.id) {
+    const existingContext = thread.context && typeof thread.context === "object" ? thread.context as Record<string, unknown> : {};
+    const { error: linkError } = await client.from("support_conversations").update({
+      affiliate_id: existingAffiliate?.id ?? (await client.from("affiliates").select("id").eq("auth_user_id", authUserId).maybeSingle()).data?.id ?? null,
+      guest_user_id: authUserId,
+      guest_email: application.email,
+      guest_type: "authenticated",
+      context: { ...existingContext, audience: "affiliate", affiliate_application_id: id, application_status: "approved" },
+      updated_at: new Date().toISOString(),
+    }).eq("id", thread.id);
+    inboxLinkUpdated = !linkError;
+  }
+
+  const { data: affiliateForNotice } = await client.from("affiliates")
+    .select("id, auth_user_id")
+    .eq("auth_user_id", authUserId)
+    .maybeSingle();
+  const emailResult = affiliateForNotice?.id ? await sendAffiliateWelcome({
+    to: application.email,
+    name: displayName,
+    applicationId: id,
+    affiliateId: affiliateForNotice.id,
+    conversationId: thread?.id ?? null,
+    recipientUserId: authUserId,
+    accessUrl: invitedNewUser ? invitationActionLink : null,
+  }) : null;
+  const notification = emailResult?.status === "sent" ? "accepted" : "failed";
+
+  return NextResponse.json({ ok: true, notification, inboxLinkUpdated });
 }

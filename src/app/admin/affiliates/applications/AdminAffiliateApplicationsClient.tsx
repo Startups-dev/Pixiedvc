@@ -36,11 +36,13 @@ function formatDate(value: string | null | undefined) {
 
 export default function AdminAffiliateApplicationsClient({
   applications,
+  initialApplicationId,
 }: {
   applications: AffiliateApplicationRow[];
+  initialApplicationId?: string | null;
 }) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("pending");
-  const [selectedId, setSelectedId] = useState<string | null>(applications[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialApplicationId ?? applications[0]?.id ?? null);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState<ActionType | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -95,8 +97,15 @@ export default function AdminAffiliateApplicationsClient({
       return;
     }
 
-    setMessage("Application updated.");
-    window.location.reload();
+    const notification = payload?.notification;
+    setMessage(notification === "failed"
+      ? `${action === "reject" ? "Application rejected" : "Affiliate approved"}. The email failed; retry it from Admin → Emails.`
+      : notification === "accepted"
+        ? `${action === "reject" ? "Decision email" : "Welcome email"} accepted for sending; delivery is not yet confirmed.`
+        : notification === "auth_invite_requested"
+          ? "Affiliate approved. Supabase Auth accepted the access invite request; delivery is not confirmed here."
+          : "Application updated.");
+    window.setTimeout(() => window.location.reload(), 2000);
   }
 
   return (

@@ -235,9 +235,17 @@ export default function AdminAffiliatePayoutsClient({
       }),
     });
 
+    const payload = await response.json().catch(() => ({}));
     if (response.ok) {
       setPaidModal(null);
-      window.location.reload();
+      setMessage(payload.payoutNotification === "failed"
+        ? "Payout marked paid. The confirmation email failed; retry it from Admin → Emails."
+        : payload.payoutNotification === "accepted"
+          ? "Payout marked paid. The confirmation email was accepted for sending; delivery is not yet confirmed."
+          : "Payout marked paid.");
+      window.setTimeout(() => window.location.reload(), 2500);
+    } else {
+      setMessage(payload?.error ?? "Unable to mark this payout paid.");
     }
   };
 
@@ -318,7 +326,7 @@ export default function AdminAffiliatePayoutsClient({
         >
           {saving ? "Generating…" : "Generate totals"}
         </button>
-        {message ? <p className="text-xs text-emerald-700">{message}</p> : null}
+        {message ? <p role="status" className={`text-xs ${message.toLowerCase().includes("failed") ? "text-rose-700" : "text-emerald-700"}`}>{message}</p> : null}
       </form>
 
       <div className="space-y-6">

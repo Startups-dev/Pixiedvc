@@ -80,4 +80,12 @@ describe("Resend Message-ID webhook", () => {
     expect(response.status).toBe(503);
     expect(state.links).toHaveLength(0);
   });
+
+  it("records confirmed recipient delivery separately from provider acceptance", async () => {
+    const body = JSON.stringify({ type: "email.delivered", data: { email_id: "re_delivered" } });
+    const response = await POST(signedRequest(body, "evt_delivered"));
+    expect(response.status).toBe(200);
+    expect(state.updates).toContainEqual({ provider_delivery_status: "delivered" });
+    expect(state.links).toHaveLength(0);
+  });
 });

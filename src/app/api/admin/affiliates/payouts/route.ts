@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { requireAdminEmail } from "@/lib/require-admin";
+import { sendAffiliatePayoutPaid } from "@/lib/affiliate-emails";
 
 function startOfDay(date: Date) {
   const copy = new Date(date);
@@ -261,7 +262,7 @@ export async function PATCH(request: Request) {
 
     const { data: item, error: itemLookupError } = await client
       .from("affiliate_payout_items")
-      .select("id, status, conversion_id")
+      .select("id, status, conversion_id, affiliate_id, amount_usd")
       .eq("id", item_id)
       .maybeSingle();
 
@@ -271,6 +272,9 @@ export async function PATCH(request: Request) {
 
     if (item.status === "void") {
       return NextResponse.json({ error: "Voided payout items cannot be marked paid." }, { status: 400 });
+    }
+    if (item.status === "paid") {
+      return NextResponse.json({ ok: true, deduplicated: true, notification: "already_processed" });
     }
 
     const paymentMethod = cleanText(payload?.payment_method) ?? "manual";
@@ -302,6 +306,30 @@ export async function PATCH(request: Request) {
         .eq("id", item.conversion_id);
     }
 
+    const { data: affiliate } = await client.from("affiliates")
+      .select("id, auth_user_id, display_name, email")
+      .eq("id", item.affiliate_id)
+      .maybeSingle();
+    let payoutNotification: string = "not_sent";
+    if (affiliate?.email) {
+      const { data: thread } = await client.from("support_conversations")
+        .select("id")
+        .eq("affiliate_id", affiliate.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const emailResult = await sendAffiliatePayoutPaid({
+        to: affiliate.email,
+        name: affiliate.display_name || "Affiliate",
+        amountUsd: Number(item.amount_usd ?? 0),
+        payoutItemId: item.id,
+        affiliateId: affiliate.id,
+        conversationId: thread?.id ?? null,
+        recipientUserId: affiliate.auth_user_id ?? null,
+      });
+      payoutNotification = emailResult.status === "sent" ? "accepted" : "failed";
+    }
+
     console.info("[affiliate-payout-audit]", {
       action: "mark_item_paid",
       payout_item_id: item_id,
@@ -309,7 +337,7 @@ export async function PATCH(request: Request) {
       result: "ok",
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, payoutNotification });
   }
 
   if (action === "void_item") {

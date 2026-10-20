@@ -9,8 +9,13 @@ import AdminAffiliateApplicationsClient, {
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminAffiliateApplicationsPage() {
+export default async function AdminAffiliateApplicationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ application?: string }>;
+}) {
   await requireAdminUser("/admin/affiliates/applications");
+  const { application: applicationId } = await searchParams;
   const supabase = getSupabaseAdminClient();
 
   if (!supabase) {
@@ -56,7 +61,10 @@ export default async function AdminAffiliateApplicationsPage() {
         </header>
 
         <Card surface="dark" className="border border-[#3a3a3a] bg-[#2f2f2f]">
-          <AdminAffiliateApplicationsClient applications={(data ?? []) as AffiliateApplicationRow[]} />
+          <AdminAffiliateApplicationsClient
+            applications={(data ?? []) as AffiliateApplicationRow[]}
+            initialApplicationId={applicationId ?? null}
+          />
         </Card>
       </div>
     </main>

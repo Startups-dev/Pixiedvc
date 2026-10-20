@@ -18,7 +18,17 @@ export async function POST(request: Request) {
     provider_message_id: event.data?.email_id ?? null,
   }, { onConflict: "provider,event_id", ignoreDuplicates: true });
   if (eventError) return NextResponse.json({ ok: false }, { status: 503 });
-  if (event.type !== "email.sent" || !event.data?.email_id || !event.data?.message_id) {
+  const deliveryStatuses: Record<string, string> = {
+    "email.sent": "accepted",
+    "email.delivered": "delivered",
+    "email.delivery_delayed": "delayed",
+    "email.bounced": "bounced",
+    "email.complained": "complained",
+    "email.failed": "failed",
+    "email.suppressed": "suppressed",
+  };
+  const deliveryStatus = event.type ? deliveryStatuses[event.type] : undefined;
+  if (!deliveryStatus || !event.data?.email_id) {
     await db.from("support_email_webhook_events").update({ status: "ignored", processed_at: new Date().toISOString() }).eq("provider", "resend").eq("event_id", id);
     return NextResponse.json({ ok: true });
   }
@@ -28,8 +38,27 @@ export async function POST(request: Request) {
     .eq("provider", "resend").eq("provider_message_id", event.data.email_id).maybeSingle();
   if (error) return NextResponse.json({ ok: false }, { status: 503 });
   if (!outbound) {
-    await db.from("support_email_webhook_events").update({ status: "failed", error_code: "OUTBOUND_LOG_PENDING" }).eq("provider", "resend").eq("event_id", id);
-    return NextResponse.json({ ok: false, error: "OUTBOUND_LOG_PENDING" }, { status: 503 });
+    if (event.type === "email.sent") {
+      await db.from("support_email_webhook_events").update({ status: "failed", error_code: "OUTBOUND_LOG_PENDING" }).eq("provider", "resend").eq("event_id", id);
+      return NextResponse.json({ ok: false, error: "OUTBOUND_LOG_PENDING" }, { status: 503 });
+    }
+    await db.from("support_email_webhook_events").update({ status: "ignored", processed_at: new Date().toISOString() }).eq("provider", "resend").eq("event_id", id);
+    return NextResponse.json({ ok: true });
+  }
+
+  const { error: deliveryUpdateError } = await db.from("outbound_emails")
+    .update({ provider_delivery_status: deliveryStatus })
+    .eq("provider", "resend")
+    .eq("provider_message_id", event.data.email_id);
+  if (deliveryUpdateError) return NextResponse.json({ ok: false }, { status: 503 });
+
+  if (event.type !== "email.sent") {
+    await db.from("support_email_webhook_events").update({ status: "processed", processed_at: new Date().toISOString() }).eq("provider", "resend").eq("event_id", id);
+    return NextResponse.json({ ok: true });
+  }
+  if (!event.data.message_id) {
+    await db.from("support_email_webhook_events").update({ status: "processed", processed_at: new Date().toISOString() }).eq("provider", "resend").eq("event_id", id);
+    return NextResponse.json({ ok: true });
   }
   const metadata = outbound.metadata as Record<string, unknown> | null;
   if (metadata?.inbox_email_threading !== true) {

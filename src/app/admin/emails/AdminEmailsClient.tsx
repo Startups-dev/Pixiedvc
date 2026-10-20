@@ -13,6 +13,7 @@ type OutboundEmailRow = {
   subject: string;
   status: "pending" | "sent" | "failed";
   provider: string;
+  provider_delivery_status: string;
   provider_message_id: string | null;
   error_message: string | null;
   metadata: Record<string, unknown> | null;
@@ -138,7 +139,7 @@ export default function AdminEmailsClient({
           ...current,
           [row.id]: {
             type: "success",
-            message: "Email resend completed.",
+            message: "Provider accepted the email; recipient delivery is not yet confirmed.",
           },
         }));
         router.refresh();
@@ -215,6 +216,7 @@ export default function AdminEmailsClient({
                   <th className="px-5 py-4 font-semibold">Recipient</th>
                   <th className="px-5 py-4 font-semibold">Subject</th>
                   <th className="px-5 py-4 font-semibold">Status</th>
+                  <th className="px-5 py-4 font-semibold">Delivery</th>
                   <th className="px-5 py-4 font-semibold">Provider</th>
                   <th className="px-5 py-4 font-semibold">Retries</th>
                   <th className="px-5 py-4 font-semibold">Sent</th>
@@ -232,6 +234,13 @@ export default function AdminEmailsClient({
                     <td className="px-5 py-4 text-[#bfc4cf]">{row.subject}</td>
                     <td className="px-5 py-4">
                       <StatusBadge status={row.status} />
+                    </td>
+                    <td className="px-5 py-4 text-xs text-[#b4b4b4]">
+                      {row.provider_delivery_status === "accepted"
+                        ? "Accepted · delivery unconfirmed"
+                        : row.provider_delivery_status === "delivered"
+                          ? "Delivered"
+                          : row.provider_delivery_status ?? "Unknown"}
                     </td>
                     <td className="px-5 py-4 text-[#b4b4b4]">{row.provider}</td>
                     <td className="px-5 py-4 text-[#b4b4b4]">
@@ -274,6 +283,10 @@ export default function AdminEmailsClient({
                               <br />
                               Last retry: {formatDateTime(row.last_retry_at)}
                             </p>
+                          </div>
+                          <div>
+                            <p className="mb-1 font-semibold uppercase tracking-[0.18em] text-[#8e8ea0]">Provider delivery status</p>
+                            <p>{row.provider_delivery_status ?? "Unknown"}</p>
                           </div>
                           <div>
                             <p className="mb-1 font-semibold uppercase tracking-[0.18em] text-[#8e8ea0]">Provider message ID</p>

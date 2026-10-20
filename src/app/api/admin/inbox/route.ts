@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "INVALID_VIEW" }, { status: 400 });
   }
 
-  const fields = "id, guest_name, guest_email, guest_type, guest_user_id, twilio_conversation_sid, topic, intake_message, page_url, source_page, context, inbox_source, inbox_status, unread_for_staff, contact_ack_status, contact_staff_alert_status, created_at, updated_at";
+  const fields = "id, guest_name, guest_email, guest_type, guest_user_id, affiliate_id, affiliate_application_id, twilio_conversation_sid, topic, intake_message, page_url, source_page, context, inbox_source, inbox_status, unread_for_staff, contact_ack_status, contact_staff_alert_status, created_at, updated_at";
   const [handoffResult, contactResult] = await Promise.all([
     auth.client.from("support_conversations")
       .select(`${fields}, handoff:support_handoffs!inner(status, assigned_agent_user_id)`)
@@ -51,6 +51,7 @@ export async function GET(request: Request) {
   }
   const roles = new Map((profileResult.data ?? []).map((profile) => [profile.id, profile.role]));
   const audienceLabel = (row: (typeof rows)[number]) => {
+    if (row.affiliate_id || row.affiliate_application_id) return "Affiliate";
     const role = row.guest_user_id ? roles.get(row.guest_user_id) : null;
     if (role === "owner") return "Owner";
     if (role === "affiliate") return "Affiliate / partner";

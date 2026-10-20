@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import AffiliatePayoutEmailForm from "@/components/affiliate/PayoutEmailForm";
+import AffiliateContactForm from "@/components/affiliate/AffiliateContactForm";
 import CopyReferralLinkButton from "@/components/affiliate/CopyReferralLinkButton";
 import {
   ensureAffiliateForApplicationUser,
@@ -276,6 +277,7 @@ export default async function AffiliateDashboardPage() {
             <SidebarLink href="/affiliate/guides" icon={<BookOpen className="h-4 w-4" aria-hidden="true" />} label="Resources" />
             <SidebarLink href="#settings" icon={<Settings className="h-4 w-4" aria-hidden="true" />} label="Settings" />
             <SidebarLink href="/affiliate/guides#affiliate-faq" icon={<CircleHelp className="h-4 w-4" aria-hidden="true" />} label="Help & Support" />
+            <SidebarLink href="#contact-hanna" icon={<CircleHelp className="h-4 w-4" aria-hidden="true" />} label="Contact Hanna" />
           </nav>
 
           <div className="mt-auto rounded-[12px] border border-[#C7A64E]/35 bg-[#10224A] p-4">
@@ -664,6 +666,17 @@ export default async function AffiliateDashboardPage() {
                 </table>
               </div>
             )}
+          </div>
+        </section>
+
+        <section id="contact-hanna" className={dashboardCard}>
+          <div className="max-w-3xl">
+            <p className={dashboardSmallText}>Affiliate support</p>
+            <h2 className={`mt-2 ${dashboardSectionHeading}`}>Contact Hanna</h2>
+            <p className={`mt-3 ${dashboardBodyText}`}>
+              Send a message from your affiliate account. Your profile and application context will be included for our team, and we’ll reply to your account email.
+            </p>
+            <AffiliateContactForm />
           </div>
         </section>
           </div>

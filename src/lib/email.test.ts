@@ -4,6 +4,9 @@ const emailTestState = vi.hoisted(() => ({
   insertRecords: [] as Record<string, unknown>[],
   updateRecords: [] as Array<{ id: string; payload: Record<string, unknown> }>,
   nextLogId: 1,
+  duplicateLogOnInsert: false,
+  failLogCreate: false,
+  existingIdempotencyLog: null as { id: string; status: string } | null,
   getSupabaseAdminClient: vi.fn(() => ({
     from: (table: string) => {
       if (table !== 'outbound_emails') {
@@ -11,8 +14,16 @@ const emailTestState = vi.hoisted(() => ({
       }
 
       return {
+        select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: emailTestState.existingIdempotencyLog, error: null }) }) }),
+        maybeSingle: async () => ({ data: emailTestState.existingIdempotencyLog, error: null }),
         insert: (payload: Record<string, unknown>) => {
           emailTestState.insertRecords.push(payload);
+          if (emailTestState.failLogCreate) {
+            return { select: () => ({ maybeSingle: async () => ({ data: null, error: { code: "XX000", message: "synthetic log failure" } }) }) };
+          }
+          if (emailTestState.duplicateLogOnInsert) {
+            return { select: () => ({ maybeSingle: async () => ({ data: null, error: { code: "23505", message: "duplicate key" } }) }) };
+          }
           const id = `log-${emailTestState.nextLogId++}`;
           return {
             select: () => ({
@@ -23,6 +34,9 @@ const emailTestState = vi.hoisted(() => ({
         update: (payload: Record<string, unknown>) => ({
           eq: async (_column: string, id: string) => {
             emailTestState.updateRecords.push({ id, payload });
+            if (payload.status === "sent" && emailTestState.insertRecords.at(-1)?.idempotency_key) {
+              emailTestState.existingIdempotencyLog = { id, status: "sent" };
+            }
             return { error: null };
           },
         }),
@@ -57,6 +71,9 @@ describe('email outbound logging', () => {
     emailTestState.insertRecords.length = 0;
     emailTestState.updateRecords.length = 0;
     emailTestState.nextLogId = 1;
+    emailTestState.duplicateLogOnInsert = false;
+    emailTestState.failLogCreate = false;
+    emailTestState.existingIdempotencyLog = null;
     emailTestState.getSupabaseAdminClient.mockClear();
     vi.restoreAllMocks();
     process.env.RESEND_API_KEY = 'test-api-key';
@@ -325,6 +342,35 @@ describe('email outbound logging', () => {
     const payload = JSON.parse(String(request.body)) as { reply_to: string; headers: Record<string, string> };
     expect((request.headers as Record<string, string>)['Idempotency-Key']).toBe('inbox-reply-22222222-2222-4222-8222-222222222222');
     expect(payload).toMatchObject({ reply_to: 'hello@hannadvc.com', headers: { 'In-Reply-To': '<known@example.test>', References: '<known@example.test>' } });
+  });
+
+  it('persists and deduplicates notification intent before sending', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 're_affiliate' }) }) as typeof fetch;
+    const { sendPlainEmail } = await import('@/lib/email');
+    const args = {
+      to: 'affiliate@example.test', subject: 'Application received', body: 'Thanks', context: 'affiliate notice',
+      templateKey: 'affiliate_application_acknowledgment', idempotencyKey: 'affiliate-app-ack-app-1',
+      metadata: { notification_key: 'affiliate-app-ack-app-1' },
+    };
+    const first = await sendPlainEmail(args);
+    emailTestState.duplicateLogOnInsert = true;
+    const second = await sendPlainEmail(args);
+    expect(first.status).toBe('sent');
+    expect(second).toMatchObject({ status: 'sent', deduplicated: true });
+    expect(emailTestState.insertRecords[0]).toMatchObject({ idempotency_key: 'affiliate-app-ack-app-1', status: 'pending' });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not send an idempotent notification when its intent cannot be logged', async () => {
+    emailTestState.failLogCreate = true;
+    global.fetch = vi.fn() as typeof fetch;
+    const { sendPlainEmail } = await import('@/lib/email');
+    const result = await sendPlainEmail({
+      to: 'affiliate@example.test', subject: 'Application received', body: 'Thanks', context: 'affiliate notice',
+      templateKey: 'affiliate_application_acknowledgment', idempotencyKey: 'affiliate-app-ack-app-2',
+    });
+    expect(result).toMatchObject({ status: 'failed', error: 'notification_intent_persist_failed' });
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('sends branded owner contract agreement emails with html and logs the subject', async () => {

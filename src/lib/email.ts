@@ -193,6 +193,7 @@ async function insertOutboundEmailLog({
   relatedEntityId,
   subject,
   metadata,
+  idempotencyKey,
 }: {
   templateKey: string;
   to: string;
@@ -201,9 +202,10 @@ async function insertOutboundEmailLog({
   relatedEntityId?: string | null;
   subject: string;
   metadata?: EmailLogMetadata | null;
+  idempotencyKey?: string;
 }) {
   const admin = getSupabaseAdminClient();
-  if (!admin) return null;
+  if (!admin) return { id: null as string | null, duplicate: false, status: null as string | null };
 
   const { data, error } = await admin
     .from('outbound_emails')
@@ -217,9 +219,20 @@ async function insertOutboundEmailLog({
       status: 'pending',
       provider: 'resend',
       metadata: sanitizeMetadata(metadata),
+      idempotency_key: idempotencyKey ?? null,
+      provider_delivery_status: 'unknown',
     })
     .select('id')
     .maybeSingle();
+
+  if (error?.code === '23505' && idempotencyKey) {
+    const { data: existing } = await admin
+      .from('outbound_emails')
+      .select('id, status')
+      .eq('idempotency_key', idempotencyKey)
+      .maybeSingle();
+    if (existing?.id) return { id: existing.id as string, duplicate: true, status: String(existing.status ?? 'pending') };
+  }
 
   if (error) {
     console.warn('[email] Failed to create outbound email log', {
@@ -227,10 +240,10 @@ async function insertOutboundEmailLog({
       to,
       error: error.message,
     });
-    return null;
+    return { id: null as string | null, duplicate: false, status: null as string | null };
   }
 
-  return data?.id ?? null;
+  return { id: data?.id ?? null, duplicate: false, status: null as string | null };
 }
 
 async function updateOutboundEmailLog(
@@ -254,11 +267,13 @@ async function updateOutboundEmailLog(
           sent_at: nowIso,
           provider_message_id: updates.providerMessageId ?? null,
           error_message: null,
+          provider_delivery_status: 'accepted',
         }
       : {
           status: 'failed',
           failed_at: nowIso,
           error_message: updates.errorMessage ?? 'Unknown email delivery error',
+          provider_delivery_status: 'failed',
         };
 
   const { error } = await admin.from('outbound_emails').update(payload).eq('id', id);
@@ -302,9 +317,9 @@ async function sendResendEmail({
   headers?: Record<string, string>;
   idempotencyKey?: string;
 }) {
-  const logId =
-    outboundEmailLogId ??
-    (await insertOutboundEmailLog({
+  const logResult = outboundEmailLogId
+    ? { id: outboundEmailLogId, duplicate: false, status: null }
+    : await insertOutboundEmailLog({
       templateKey,
       to,
       recipientUserId,
@@ -312,7 +327,21 @@ async function sendResendEmail({
       relatedEntityId,
       subject,
       metadata,
-    }));
+      idempotencyKey,
+    });
+  const logId = logResult.id;
+
+  if (logResult.duplicate) {
+    if (logResult.status === 'sent') {
+      return { status: 'sent' as const, outboundEmailLogId: logId, deduplicated: true as const };
+    }
+    return { status: 'failed' as const, outboundEmailLogId: logId, deduplicated: true as const, error: `notification_already_${logResult.status ?? 'pending'}` };
+  }
+
+  // Idempotent notifications must have a durable log row before contacting Resend.
+  if (idempotencyKey && !logId) {
+    return { status: 'failed' as const, outboundEmailLogId: null, error: 'notification_intent_persist_failed' };
+  }
 
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {

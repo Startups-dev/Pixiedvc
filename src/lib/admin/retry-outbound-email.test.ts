@@ -7,16 +7,16 @@ const retryState = vi.hoisted(() => {
     recipient_email: "guest@example.com",
     recipient_user_id: "11111111-1111-1111-1111-111111111111",
     related_entity_type: "booking_request",
-    related_entity_id: "22222222-2222-2222-2222-222222222222",
+    related_entity_id: "22222222-2222-2222-2222-222222222222" as string | null,
     subject: "We received your PixieDVC stay request",
     status: "failed" as "pending" | "sent" | "failed",
     provider: "resend",
-    provider_message_id: null,
-    error_message: "provider rejected request",
-    metadata: { bookingId: "22222222-2222-2222-2222-222222222222" },
+    provider_message_id: null as string | null,
+    error_message: "provider rejected request" as string | null,
+    metadata: { bookingId: "22222222-2222-2222-2222-222222222222" } as Record<string, unknown>,
     created_at: new Date().toISOString(),
-    sent_at: null,
-    failed_at: new Date().toISOString(),
+    sent_at: null as string | null,
+    failed_at: new Date().toISOString() as string | null,
     retry_count: 0,
     last_retry_at: null as string | null,
   };
@@ -77,7 +77,24 @@ const retryState = vi.hoisted(() => {
       retryState.lastPayload = payload;
     }),
     lastPayload: null as Record<string, unknown> | null,
+    affiliateAcknowledgment: vi.fn(async (payload: Record<string, unknown>) => {
+      retryState.row.status = "sent";
+      retryState.row.sent_at = new Date().toISOString();
+      retryState.row.failed_at = null;
+      retryState.row.error_message = null;
+      retryState.row.provider_message_id = "re_affiliate_retry";
+      retryState.lastPayload = payload;
+    }),
+    affiliateWelcome: vi.fn(async (payload: Record<string, unknown>) => {
+      retryState.row.status = "sent";
+      retryState.row.sent_at = new Date().toISOString();
+      retryState.row.failed_at = null;
+      retryState.row.error_message = null;
+      retryState.row.provider_message_id = "re_affiliate_welcome_retry";
+      retryState.lastPayload = payload;
+    }),
     getSupabaseAdminClient: vi.fn(() => ({
+      auth: { admin: { generateLink: vi.fn(async () => ({ data: { properties: { action_link: "https://auth.example.test/recovery?token=synthetic" } }, error: null })) } },
       from: (table: string) => {
         if (table === "outbound_emails") {
           return {
@@ -185,6 +202,30 @@ const retryState = vi.hoisted(() => {
           };
         }
 
+        if (table === "affiliate_applications") {
+          return {
+            select: () => ({
+              eq: () => ({ maybeSingle: async () => ({ data: { id: "application-1", display_name: "Synthetic Affiliate", status: retryState.row.template_key === "affiliate_approval_welcome" ? "approved" : "pending" }, error: null }) }),
+            }),
+          };
+        }
+
+        if (table === "affiliates") {
+          return {
+            select: () => ({
+              eq: () => ({ maybeSingle: async () => ({ data: { id: "affiliate-1", auth_user_id: "affiliate-user" }, error: null }) }),
+            }),
+          };
+        }
+
+        if (table === "support_conversations") {
+          return {
+            select: () => ({
+              eq: () => ({ maybeSingle: async () => ({ data: { id: "conversation-1" }, error: null }) }),
+            }),
+          };
+        }
+
         throw new Error(`Unexpected table: ${table}`);
       },
     })),
@@ -212,6 +253,13 @@ vi.mock("@/lib/email", () => ({
   sendReadyStayBookingPackageToOwner: vi.fn(),
   sendReadyStayRejectedEmail: vi.fn(),
 }));
+vi.mock("@/lib/affiliate-emails", () => ({
+  sendAffiliateApplicationAcknowledgment: retryState.affiliateAcknowledgment,
+  sendAffiliateApplicationStaffAlert: vi.fn(),
+  sendAffiliatePayoutPaid: vi.fn(),
+  sendAffiliateRejection: vi.fn(),
+  sendAffiliateWelcome: retryState.affiliateWelcome,
+}));
 
 import { retryOutboundEmail } from "@/lib/admin/retry-outbound-email";
 
@@ -235,6 +283,8 @@ describe("retryOutboundEmail", () => {
     retryState.sendOwnerMatchReminderEmail.mockClear();
     retryState.sendContractOwnerAgreementReminderEmail.mockClear();
     retryState.sendContractGuestAgreementReminderEmail.mockClear();
+    retryState.affiliateAcknowledgment.mockClear();
+    retryState.affiliateWelcome.mockClear();
     retryState.getSupabaseAdminClient.mockClear();
     retryState.lastPayload = null;
   });
@@ -361,5 +411,40 @@ describe("retryOutboundEmail", () => {
       templateKey: "contract_guest_agreement_reminder",
       outboundEmailLogId: retryState.row.id,
     });
+  });
+
+  it("retries a failed affiliate acknowledgment through the durable outbound log", async () => {
+    retryState.row.template_key = "affiliate_application_acknowledgment";
+    retryState.row.related_entity_type = "support_conversation";
+    retryState.row.related_entity_id = "conversation-1";
+    retryState.row.subject = "We received your HannaDVC affiliate application";
+    retryState.row.metadata = { affiliate_application_id: "application-1" };
+
+    const result = await retryOutboundEmail(retryState.row.id);
+
+    expect(result.ok).toBe(true);
+    expect(retryState.affiliateAcknowledgment).toHaveBeenCalledWith(expect.objectContaining({
+      to: "guest@example.com",
+      applicationId: "application-1",
+      conversationId: "conversation-1",
+      outboundEmailLogId: retryState.row.id,
+    }));
+    expect(retryState.row.status).toBe("sent");
+  });
+
+  it("generates a fresh recovery link when retrying a failed affiliate welcome", async () => {
+    retryState.row.template_key = "affiliate_approval_welcome";
+    retryState.row.related_entity_type = "support_conversation";
+    retryState.row.related_entity_id = "conversation-1";
+    retryState.row.subject = "Welcome to the HannaDVC Affiliate Program";
+    retryState.row.metadata = { affiliate_application_id: "application-1", affiliate_id: "affiliate-1" };
+
+    const result = await retryOutboundEmail(retryState.row.id);
+
+    expect(result.ok).toBe(true);
+    expect(retryState.affiliateWelcome).toHaveBeenCalledWith(expect.objectContaining({
+      accessUrl: "https://auth.example.test/recovery?token=synthetic",
+      outboundEmailLogId: retryState.row.id,
+    }));
   });
 });

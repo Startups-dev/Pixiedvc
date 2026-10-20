@@ -12,6 +12,8 @@ type InboxConversation = {
   guest_type: string | null;
   audience_label?: string;
   guest_user_id: string | null;
+  affiliate_id?: string | null;
+  affiliate_application_id?: string | null;
   twilio_conversation_sid?: string | null;
   topic: string | null;
   page_url: string | null;
@@ -40,6 +42,15 @@ type ThreadDetail = {
     handoff_mode?: string | null;
     twilio_conversation_sid?: string | null;
     customerLinks: Array<{ label: string; href: string }>;
+    affiliateApplication?: {
+      id: string;
+      status: string;
+      display_name: string | null;
+      website: string | null;
+      traffic_estimate: string | null;
+      promotion_description: string | null;
+      created_at: string;
+    } | null;
   };
   messages: InboxMessage[];
 };
@@ -419,6 +430,18 @@ export default function AdminInbox() {
                   {!detailConversation?.customerLinks?.length ? <li className="text-xs text-[#9298a5]">No linked account or booking records verified.</li> : null}
                 </ul>
               </div>
+              {detailConversation?.affiliateApplication ? (
+                <div className="mt-5 border-t border-[#343741] pt-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-[#aeb4c1]">Affiliate application context</h3>
+                  <dl className="mt-2 space-y-2 text-sm">
+                    <div><dt className="text-xs text-[#969ca9]">Status</dt><dd className="mt-0.5 capitalize">{detailConversation.affiliateApplication.status}</dd></div>
+                    <div><dt className="text-xs text-[#969ca9]">Submitted</dt><dd className="mt-0.5">{dateTime(detailConversation.affiliateApplication.created_at)}</dd></div>
+                    {detailConversation.affiliateApplication.website ? <div><dt className="text-xs text-[#969ca9]">Website</dt><dd className="mt-0.5 break-all text-xs text-[#c3c8d2]">{detailConversation.affiliateApplication.website}</dd></div> : null}
+                    {detailConversation.affiliateApplication.traffic_estimate ? <div><dt className="text-xs text-[#969ca9]">Audience estimate</dt><dd className="mt-0.5">{detailConversation.affiliateApplication.traffic_estimate}</dd></div> : null}
+                    {detailConversation.affiliateApplication.promotion_description ? <div><dt className="text-xs text-[#969ca9]">Promotion plan</dt><dd className="mt-0.5 max-h-32 overflow-auto whitespace-pre-wrap text-xs text-[#c3c8d2]">{detailConversation.affiliateApplication.promotion_description}</dd></div> : null}
+                  </dl>
+                </div>
+              ) : null}
             </> : <div className="hidden text-sm text-[#9298a5] lg:block">Select a conversation to see customer context.</div>}
           </aside>
         </section>
