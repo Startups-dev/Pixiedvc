@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import AdminSubnav from "@/app/admin/AdminSubnav";
 
@@ -89,7 +89,7 @@ function audienceName(row: Pick<InboxConversation, "guest_type" | "topic"> & { a
   return row.guest_type === "authenticated" ? "Account holder" : "Visitor";
 }
 
-export default function AdminInbox() {
+export default function AdminInbox({ initialConversationId = null }: { initialConversationId?: string | null }) {
   const [view, setView] = useState<InboxView>("needs_reply");
   const [rows, setRows] = useState<InboxConversation[]>([]);
   const [counts, setCounts] = useState<Record<InboxView, number>>({ needs_reply: 0, assigned_to_me: 0, waiting_customer: 0, closed: 0 });
@@ -109,6 +109,7 @@ export default function AdminInbox() {
   const [reconciling, setReconciling] = useState(false);
   const [reconcileNotice, setReconcileNotice] = useState<string | null>(null);
   const [emailIdempotencyKey, setEmailIdempotencyKey] = useState<string | null>(null);
+  const initialConversationOpened = useRef(false);
 
   const selected = useMemo(() => rows.find((row) => row.id === selectedId) ?? detail?.conversation ?? null, [rows, selectedId, detail]);
 
@@ -155,6 +156,12 @@ export default function AdminInbox() {
   }, [loadList]);
 
   useEffect(() => { void loadList(); }, [loadList]);
+
+  useEffect(() => {
+    if (!initialConversationId || initialConversationOpened.current) return;
+    initialConversationOpened.current = true;
+    void openConversation(initialConversationId);
+  }, [initialConversationId, openConversation]);
 
   const loadEmailConnection = useCallback(async () => {
     try {

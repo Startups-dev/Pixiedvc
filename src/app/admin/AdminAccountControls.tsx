@@ -11,6 +11,7 @@ export default function AdminAccountControls({ label }: { label: string }) {
   async function signOut() {
     setSigningOut(true);
     try {
+      window.dispatchEvent(new Event("hanna-admin-signout"));
       await createClient().auth.signOut();
       router.push("/login");
       router.refresh();
