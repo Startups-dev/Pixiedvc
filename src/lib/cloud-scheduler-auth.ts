@@ -73,7 +73,7 @@ export async function verifyGoogleServiceAccountToken(
   if (!jwk) return false;
 
   try {
-    const publicKey = createPublicKey({ key: jwk, format: "jwk" });
+    const publicKey = createPublicKey({ key: jwk as unknown as import("node:crypto").JsonWebKey, format: "jwk" });
     const signature = Buffer.from(parts[2], "base64url");
     return verify("RSA-SHA256", Buffer.from(`${parts[0]}.${parts[1]}`), publicKey, signature);
   } catch {
