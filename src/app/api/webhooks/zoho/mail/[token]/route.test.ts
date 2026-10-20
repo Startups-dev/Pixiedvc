@@ -5,6 +5,7 @@ const state = vi.hoisted(() => ({
   savedSecrets: [] as string[],
   imported: [] as Array<Record<string, unknown>>,
   recorded: [] as Array<Record<string, unknown>>,
+  importFailure: null as string | null,
 }));
 
 vi.mock("@/lib/supabase-service-client", () => ({
@@ -19,7 +20,11 @@ vi.mock("@/lib/supabase-service-client", () => ({
 
 vi.mock("@/lib/zoho-mail-inbox", () => ({
   decryptSecret: () => state.savedSecret,
-  importZohoMessage: async (message: Record<string, unknown>) => { state.imported.push(message); return { ignored: false }; },
+  importZohoMessage: async (message: Record<string, unknown>) => {
+    state.imported.push(message);
+    if (state.importFailure) throw new Error(state.importFailure);
+    return { ignored: false };
+  },
   recordZohoEvent: async (event: Record<string, unknown>) => { state.recorded.push(event); },
   saveZohoWebhookSecret: async (secret: string) => { state.savedSecret = secret; state.savedSecrets.push(secret); },
   setZohoConnectionError: async () => undefined,
@@ -45,6 +50,7 @@ describe("Zoho Mail webhook setup validation", () => {
     state.savedSecrets.length = 0;
     state.imported.length = 0;
     state.recorded.length = 0;
+    state.importFailure = null;
   });
 
   it("acknowledges a token-protected setup probe, saves its first secret, and never imports it", async () => {
@@ -120,5 +126,19 @@ describe("Zoho Mail webhook setup validation", () => {
     expect(state.imported).toEqual([{ messageId: "mail-2", folderId: "inbox", receivedTime: 1000 }]);
     expect(state.recorded).toHaveLength(1);
     expect(state.savedSecrets).toHaveLength(0);
+  });
+
+  it("records a safe provider failure code and leaves the failed import retryable", async () => {
+    state.savedSecret = "stored-event-secret";
+    state.importFailure = "ZOHO_API_HTTP_429";
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const body = JSON.stringify({ messageId: "mail-retry", folderId: "inbox", receivedTime: 1000 });
+    const response = await post(body, { "x-hook-signature": `valid:stored-event-secret:${body}` });
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ ok: false, error: "ZOHO_API_HTTP_429" });
+    expect(state.recorded.at(-1)).toMatchObject({ status: "failed", errorCode: "ZOHO_API_HTTP_429" });
+    expect(errorLog).toHaveBeenCalledWith("Zoho webhook import failed", { failureCode: "ZOHO_API_HTTP_429" });
+    expect(JSON.stringify(errorLog.mock.calls)).not.toContain("mail-retry");
+    errorLog.mockRestore();
   });
 });

@@ -165,6 +165,7 @@ export async function getZohoAccessToken() {
       client_id: clientId, client_secret: clientSecret,
     }),
     cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
   });
   const result = await response.json().catch(() => null);
   if (!response.ok || typeof result?.access_token !== "string") throw new Error("ZOHO_TOKEN_REFRESH_FAILED");
@@ -181,6 +182,7 @@ export async function zohoApi<T>(path: string, accessToken: string): Promise<T> 
   const response = await fetch(`${MAIL_API}${path}`, {
     headers: { Authorization: `Zoho-oauthtoken ${accessToken}`, Accept: "application/json" },
     cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) throw new Error(`ZOHO_API_HTTP_${response.status}`);
   const result = await response.json() as { status?: { code?: number; description?: string }; data?: T };
@@ -324,7 +326,11 @@ export async function importZohoMessage(message: { messageId: string; folderId: 
     p_body: details.body,
     p_occurred_at: occurredAt,
   }).single();
-  if (error || !data) throw new Error("ZOHO_MESSAGE_IMPORT_FAILED");
+  if (error) {
+    const providerCode = typeof error.code === "string" && /^[A-Z0-9]{5}$/.test(error.code) ? error.code : "UNKNOWN";
+    throw new Error(`ZOHO_MESSAGE_IMPORT_FAILED_${providerCode}`);
+  }
+  if (!data) throw new Error("ZOHO_MESSAGE_IMPORT_FAILED_NO_RESULT");
   return { duplicate: !(data as { inserted: boolean }).inserted, conversationId: (data as { conversation_id: string }).conversation_id };
 }
 

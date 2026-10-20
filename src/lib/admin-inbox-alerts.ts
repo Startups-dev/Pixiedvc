@@ -19,6 +19,7 @@ export const DEFAULT_INBOX_ALERT_PREFERENCES: InboxAlertPreferences = {
 };
 
 const MAX_SEEN_IDS = 500;
+export const INBOX_CUSTOMER_MESSAGE_EVENT = "hanna-inbox-customer-message";
 
 export function parseInboxAlertPreferences(value: string | null): InboxAlertPreferences {
   if (!value) return { ...DEFAULT_INBOX_ALERT_PREFERENCES };

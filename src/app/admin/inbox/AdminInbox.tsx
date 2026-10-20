@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import AdminSubnav from "@/app/admin/AdminSubnav";
+import { INBOX_CUSTOMER_MESSAGE_EVENT } from "@/lib/admin-inbox-alerts";
 
 type InboxView = "needs_reply" | "assigned_to_me" | "waiting_customer" | "closed";
 type InboxConversation = {
@@ -158,6 +159,22 @@ export default function AdminInbox({ initialConversationId = null }: { initialCo
   useEffect(() => { void loadList(); }, [loadList]);
 
   useEffect(() => {
+    const onCustomerMessage = (event: Event) => {
+      const conversationId = (event as CustomEvent<{ conversationId?: string }>).detail?.conversationId;
+      if (!conversationId) return;
+      void loadList();
+      if (conversationId === selectedId) {
+        void fetch(`/api/admin/inbox/${encodeURIComponent(conversationId)}`, { cache: "no-store" })
+          .then((response) => response.json())
+          .then((payload) => { if (payload?.ok) setDetail(payload); })
+          .catch(() => undefined);
+      }
+    };
+    window.addEventListener(INBOX_CUSTOMER_MESSAGE_EVENT, onCustomerMessage);
+    return () => window.removeEventListener(INBOX_CUSTOMER_MESSAGE_EVENT, onCustomerMessage);
+  }, [loadList, selectedId]);
+
+  useEffect(() => {
     if (!initialConversationId || initialConversationOpened.current) return;
     initialConversationOpened.current = true;
     void openConversation(initialConversationId);
@@ -262,6 +279,10 @@ export default function AdminInbox({ initialConversationId = null }: { initialCo
       const response = await fetch("/api/admin/inbox/zoho/reconcile", { method: "POST" });
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.ok) throw new Error(payload?.error ?? "Mailbox reconciliation failed.");
+      if (payload.skipped === "already_running") {
+        setReconcileNotice("A mailbox check is already running. New mail will appear automatically when it finishes.");
+        return;
+      }
       setReconcileNotice(`Checked ${payload.scanned} recent messages; imported ${payload.imported}, duplicates ${payload.duplicates}.${payload.pageLimitReached ? " The safety cap was reached; run again to continue." : ""}`);
       await Promise.all([loadEmailConnection(), loadList()]);
     } catch (error) {

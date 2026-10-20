@@ -8,6 +8,7 @@ import {
   claimInboxAlertLeader,
   DEFAULT_INBOX_ALERT_PREFERENCES,
   getInboxAlertPanelPosition,
+  INBOX_CUSTOMER_MESSAGE_EVENT,
   isSoundEnabled,
   parseInboxAlertPreferences,
   readSeenInboxAlertIds,
@@ -127,6 +128,7 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
 
   const displayAlert = useCallback((event: InboxAlertEvent) => {
     setAlerts((current) => current.some((item) => item.id === event.id) ? current : [...current, event].slice(-3));
+    window.dispatchEvent(new CustomEvent(INBOX_CUSTOMER_MESSAGE_EVENT, { detail: event }));
   }, []);
 
   const updateSettingsPosition = useCallback(() => {

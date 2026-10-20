@@ -105,9 +105,13 @@ export async function POST(request: Request, { params }: Params) {
     await recordZohoEvent({ eventId, eventType: "incoming_email", providerMessageId: messageId, status: result.ignored ? "ignored" : "processed" });
     await setZohoConnectionError(null, true, false);
     return response({ ok: true });
-  } catch {
-    await recordZohoEvent({ eventId: eventId || `zoho:unknown:${Date.now()}`, eventType: "incoming_email", providerMessageId: messageId || null, status: "failed", errorCode: "IMPORT_FAILED" }).catch(() => undefined);
-    await setZohoConnectionError("zoho_import_failed", true, false).catch(() => undefined);
-    return response({ ok: false, error: "IMPORT_FAILED" }, 503);
+  } catch (error) {
+    const failureCode = error instanceof Error && /^ZOHO_[A-Z0-9_]+$/.test(error.message)
+      ? error.message
+      : "ZOHO_IMPORT_FAILED";
+    console.error("Zoho webhook import failed", { failureCode });
+    await recordZohoEvent({ eventId: eventId || `zoho:unknown:${Date.now()}`, eventType: "incoming_email", providerMessageId: messageId || null, status: "failed", errorCode: failureCode }).catch(() => undefined);
+    await setZohoConnectionError(failureCode.toLowerCase(), true, false).catch(() => undefined);
+    return response({ ok: false, error: failureCode }, 503);
   }
 }
