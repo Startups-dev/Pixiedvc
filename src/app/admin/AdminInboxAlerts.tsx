@@ -7,6 +7,7 @@ import {
   buildInboxConversationUrl,
   claimInboxAlertLeader,
   DEFAULT_INBOX_ALERT_PREFERENCES,
+  getInboxAlertPanelPosition,
   isSoundEnabled,
   parseInboxAlertPreferences,
   readSeenInboxAlertIds,
@@ -53,6 +54,8 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
   const [unreadCount, setUnreadCount] = useState(0);
   const [alerts, setAlerts] = useState<InboxAlertEvent[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsPosition, setSettingsPosition] = useState<{ left: number; top: number } | null>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement | null>(null);
   const [soundStatus, setSoundStatus] = useState("");
   const [notificationStatus, setNotificationStatus] = useState("");
   const [coordinationStatus, setCoordinationStatus] = useState("");
@@ -125,6 +128,24 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
   const displayAlert = useCallback((event: InboxAlertEvent) => {
     setAlerts((current) => current.some((item) => item.id === event.id) ? current : [...current, event].slice(-3));
   }, []);
+
+  const updateSettingsPosition = useCallback(() => {
+    const button = settingsButtonRef.current;
+    if (!button) return;
+    const rect = button.getBoundingClientRect();
+    setSettingsPosition(getInboxAlertPanelPosition(rect, window.innerWidth));
+  }, []);
+
+  useEffect(() => {
+    if (!settingsOpen) return;
+    updateSettingsPosition();
+    window.addEventListener("resize", updateSettingsPosition);
+    window.addEventListener("scroll", updateSettingsPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateSettingsPosition);
+      window.removeEventListener("scroll", updateSettingsPosition, true);
+    };
+  }, [settingsOpen, updateSettingsPosition]);
 
   useEffect(() => {
     const storage = getBrowserStorage();
@@ -370,17 +391,21 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
         {unreadCount > 0 ? <span aria-label={`${unreadCount} unread conversations`} className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#d8b65c] px-1.5 py-0.5 text-[11px] font-bold text-[#15171d]">{unreadCount > 99 ? "99+" : unreadCount}</span> : null}
       </Link>
       <button
+        ref={settingsButtonRef}
         type="button"
         aria-expanded={settingsOpen}
         aria-controls="admin-inbox-alert-settings"
-        onClick={() => setSettingsOpen((open) => !open)}
+        onClick={() => {
+          if (!settingsOpen) updateSettingsPosition();
+          setSettingsOpen((open) => !open);
+        }}
         className="rounded-md border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-700"
       >
         Alerts
       </button>
 
       {settingsOpen ? (
-        <section id="admin-inbox-alert-settings" aria-label="Inbox alert settings" className="absolute right-0 top-full z-50 mt-3 w-[min(24rem,calc(100vw-1.5rem))] rounded-xl border border-slate-600 bg-[#20232a] p-4 text-sm text-slate-100 shadow-2xl">
+        <section id="admin-inbox-alert-settings" aria-label="Inbox alert settings" style={settingsPosition ?? undefined} className="fixed z-50 max-h-[calc(100dvh-7rem)] w-[min(24rem,calc(100vw-1.5rem))] overflow-y-auto rounded-xl border border-slate-600 bg-[#20232a] p-4 text-sm text-slate-100 shadow-2xl">
           <h2 className="font-semibold text-white">Inbox alerts</h2>
           <p className="mt-1 text-xs leading-5 text-slate-300">Keep an admin tab open for alerts. Browser or computer sleep and notification settings can pause them. Alerts do not work when the browser is closed.</p>
           <div className="mt-4 space-y-4">

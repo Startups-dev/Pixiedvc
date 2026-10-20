@@ -114,6 +114,19 @@ export function buildInboxConversationUrl(conversationId: string) {
   return `/admin/inbox?conversation=${encodeURIComponent(conversationId)}`;
 }
 
+export function getInboxAlertPanelPosition(
+  button: { right: number; bottom: number },
+  viewportWidth: number,
+  panelWidth = 384,
+  gutter = 12,
+) {
+  const width = Math.max(0, Math.min(panelWidth, viewportWidth - gutter * 2));
+  return {
+    left: Math.max(gutter, Math.min(button.right - width, viewportWidth - width - gutter)),
+    top: button.bottom + 8,
+  };
+}
+
 export function isSoundEnabled(preferences: InboxAlertPreferences) {
   return preferences.soundEnabled && !preferences.muted && preferences.volume > 0;
 }

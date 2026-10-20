@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   claimInboxAlertLeader,
   DEFAULT_INBOX_ALERT_PREFERENCES,
+  getInboxAlertPanelPosition,
   isAlertableCustomerMessage,
   isSoundEnabled,
   parseInboxAlertPreferences,
@@ -41,6 +42,11 @@ describe("admin Inbox alert behavior", () => {
     expect(rememberSeenInboxAlertId(storage, "seen", "message-1")).toBe(true);
     expect(rememberSeenInboxAlertId(storage, "seen", "message-1")).toBe(false);
     expect(readSeenInboxAlertIds(storage, "seen")).toEqual(["message-1"]);
+  });
+
+  it("keeps the alert settings panel inside narrow and desktop viewports", () => {
+    expect(getInboxAlertPanelPosition({ right: 362, bottom: 80 }, 390)).toEqual({ left: 12, top: 88 });
+    expect(getInboxAlertPanelPosition({ right: 520, bottom: 80 }, 1440)).toEqual({ left: 136, top: 88 });
   });
 
   it("allows only inbound customer messages and excludes notes, staff replies, and historical imports", () => {
