@@ -24,6 +24,14 @@ export async function POST(request: Request) {
 
   try {
     const result = await runZohoReconciliation();
+    console.info("Zoho scheduled reconciliation completed", {
+      skipped: result.skipped ?? null,
+      notConnected: result.notConnected ?? false,
+      scanned: result.scanned ?? 0,
+      imported: result.imported ?? 0,
+      duplicates: result.duplicates ?? 0,
+      pageLimitReached: result.pageLimitReached ?? false,
+    });
     return NextResponse.json({ ok: true, ...result }, { status: result.skipped ? 202 : 200 });
   } catch (error) {
     const code = await recordZohoReconciliationError(error);

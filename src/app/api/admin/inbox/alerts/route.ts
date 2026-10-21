@@ -82,6 +82,10 @@ export async function GET(request: Request) {
     }
   }
 
+  if (events.size > 0) {
+    console.info("Admin Inbox customer messages available for alert", { eventCount: events.size });
+  }
+
   const now = new Date().toISOString();
   return NextResponse.json({
     ok: true,

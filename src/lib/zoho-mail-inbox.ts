@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase-service-client";
+import { parseZohoJson } from "@/lib/zoho-json";
 
 const MAIL_API = "https://mail.zohocloud.ca/api";
 const ACCOUNTS_API = "https://accounts.zohocloud.ca/oauth/v2";
@@ -185,7 +186,7 @@ export async function zohoApi<T>(path: string, accessToken: string): Promise<T> 
     signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) throw new Error(`ZOHO_API_HTTP_${response.status}`);
-  const result = await response.json() as { status?: { code?: number; description?: string }; data?: T };
+  const result = parseZohoJson(await response.text()) as { status?: { code?: number; description?: string }; data?: T };
   if (result.status?.code && result.status.code >= 400) throw new Error("ZOHO_API_REJECTED");
   if (result.data === undefined) throw new Error("ZOHO_API_EMPTY_RESPONSE");
   return result.data;

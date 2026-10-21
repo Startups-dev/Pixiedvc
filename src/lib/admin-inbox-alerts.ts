@@ -134,12 +134,10 @@ export function isSoundEnabled(preferences: InboxAlertPreferences) {
 
 export function shouldUseInboxAlertBaseline(input: {
   cursor?: string;
-  checkedAt?: number;
-  networkFailed: boolean;
-  now: number;
-  activeWindowMs: number;
 }) {
-  return input.networkFailed || !input.cursor || !input.checkedAt || input.now - input.checkedAt > input.activeWindowMs;
+  // Baseline only once, before this browser has a cursor. A sleep or network
+  // outage must resume from the prior cursor so customer messages are not lost.
+  return !input.cursor || !Number.isFinite(Date.parse(input.cursor));
 }
 
 export async function requestInboxNotificationPermission(api: {

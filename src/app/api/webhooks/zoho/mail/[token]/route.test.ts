@@ -128,6 +128,20 @@ describe("Zoho Mail webhook setup validation", () => {
     expect(state.savedSecrets).toHaveLength(0);
   });
 
+  it("preserves Zoho's large numeric webhook identifiers before calling the importer", async () => {
+    state.savedSecret = "stored-event-secret";
+    const body = '{"messageId":1560840837125110000,"folderId":3881227000000013000,"threadId":9007199254740993123,"receivedTime":1792534702178}';
+    const response = await post(body, { "x-hook-signature": `valid:stored-event-secret:${body}` });
+
+    expect(response.status).toBe(200);
+    expect(state.imported).toEqual([{
+      messageId: "1560840837125110000",
+      folderId: "3881227000000013000",
+      threadId: "9007199254740993123",
+      receivedTime: 1792534702178,
+    }]);
+  });
+
   it("records a safe provider failure code and leaves the failed import retryable", async () => {
     state.savedSecret = "stored-event-secret";
     state.importFailure = "ZOHO_API_HTTP_429";

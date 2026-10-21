@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase-service-client";
 import { decryptSecret, importZohoMessage, recordZohoEvent, saveZohoWebhookSecret, setZohoConnectionError, verifyZohoWebhook, webhookPathToken } from "@/lib/zoho-mail-inbox";
+import { parseZohoJson } from "@/lib/zoho-json";
 import { timingSafeEqual } from "node:crypto";
 
 type Params = { params: Promise<{ token: string }> };
@@ -37,7 +38,7 @@ export async function POST(request: Request, { params }: Params) {
     // after the unguessable URL token has been verified above. Never import it.
     let validationBody: Record<string, unknown> | null = null;
     try {
-      const parsed: unknown = JSON.parse(rawBody.toString("utf8"));
+      const parsed: unknown = parseZohoJson(rawBody.toString("utf8"));
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
         validationBody = parsed as Record<string, unknown>;
       }
@@ -88,7 +89,7 @@ export async function POST(request: Request, { params }: Params) {
 
   const response = (payload: Record<string, unknown>, status = 200) => NextResponse.json(payload, { status });
   let body: Record<string, unknown>;
-  try { body = JSON.parse(rawBody.toString("utf8")) as Record<string, unknown>; }
+  try { body = parseZohoJson(rawBody.toString("utf8")) as Record<string, unknown>; }
   catch { return response({ ok: false, error: "INVALID_JSON" }, 400); }
   const messageId = String(body.messageId ?? "");
   const eventId = `zoho:${messageId}:${String(body.receivedTime ?? "")}`;

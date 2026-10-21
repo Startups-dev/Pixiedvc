@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
 import { decryptSecret, encryptSecret, htmlToText, matchZohoMailboxAccount, normalizeZohoMessageDetails, parseInternetHeaders, summarizeZohoAccounts, verifyResendWebhook, verifyZohoWebhook } from "@/lib/zoho-mail-inbox";
+import { parseZohoJson } from "@/lib/zoho-json";
 
 const oldKey = process.env.ZOHO_MAIL_ENCRYPTION_KEY;
 afterEach(() => {
@@ -9,6 +10,20 @@ afterEach(() => {
 });
 
 describe("Zoho Mail inbox security and threading helpers", () => {
+  it("preserves large numeric Zoho message, folder, thread, and account identifiers exactly", () => {
+    const parsed = parseZohoJson<{ data: Array<Record<string, unknown>> }>(
+      '{"data":[{"messageId":1560840837125110000,"folderId":3881227000000013000,"threadId":9007199254740993123,"accountId":9876543210987654321,"receivedTime":1792534702178,"subject":"Message body says \\\"messageId\\\": 123"}]}',
+    );
+    expect(parsed.data[0]).toMatchObject({
+      messageId: "1560840837125110000",
+      folderId: "3881227000000013000",
+      threadId: "9007199254740993123",
+      accountId: "9876543210987654321",
+      receivedTime: 1792534702178,
+    });
+    expect(parsed.data[0].subject).toBe('Message body says "messageId": 123');
+  });
+
   it("encrypts refresh tokens using authenticated encryption", () => {
     process.env.ZOHO_MAIL_ENCRYPTION_KEY = "test-only-key-with-adequate-length-000000000000";
     const encrypted = encryptSecret("refresh-token-value");

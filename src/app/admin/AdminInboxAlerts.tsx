@@ -33,9 +33,9 @@ type AlertsPayload = {
   events?: InboxAlertEvent[];
 };
 
-const POLL_INTERVAL_MS = 12_000;
-const LEASE_INTERVAL_MS = 4_000;
-const ACTIVE_WINDOW_MS = 90_000;
+const POLL_INTERVAL_MS = 5_000;
+const LEASE_INTERVAL_MS = 1_000;
+const LEADER_LEASE_MS = 5_000;
 
 function safeRead(storage: Storage, key: string) {
   try { return storage.getItem(key); } catch { return null; }
@@ -171,7 +171,6 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
     let active = true;
     let leader = false;
     let pollInFlight = false;
-    let networkFailed = false;
     let lastPollAt = 0;
     let channel: BroadcastChannel | null = null;
     let unsubscribeAuth = () => {};
@@ -238,9 +237,6 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
         try { savedCursor = saved ? JSON.parse(saved) as typeof savedCursor : {}; } catch { savedCursor = {}; }
         const baseline = shouldUseInboxAlertBaseline({
           ...savedCursor,
-          networkFailed,
-          now: Date.now(),
-          activeWindowMs: ACTIVE_WINDOW_MS,
         });
         const query = baseline ? "?baseline=1" : `?after=${encodeURIComponent(savedCursor.cursor!)}`;
         const response = await fetch(`/api/admin/inbox/alerts${query}`, { cache: "no-store", credentials: "same-origin" });
@@ -267,11 +263,9 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
           }
         }
         safeWrite(storage, keys.cursor, JSON.stringify({ cursor: payload.cursor, checkedAt }));
-        networkFailed = false;
         lastPollAt = checkedAt;
         setCoordinationStatus("");
       } catch {
-        networkFailed = true;
         setCoordinationStatus("Inbox alerts will reconnect automatically.");
       } finally {
         pollInFlight = false;
@@ -280,7 +274,7 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
 
     const coordinate = () => {
       if (!active) return;
-      const ownsLease = claimInboxAlertLeader(storage, keys.leader, tabId, Date.now());
+      const ownsLease = claimInboxAlertLeader(storage, keys.leader, tabId, Date.now(), LEADER_LEASE_MS);
       if (ownsLease) {
         if (!leader) {
           leader = true;
@@ -291,12 +285,21 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
         leader = false;
       }
     };
+    const refreshWhenVisible = () => {
+      if (!active || !leader || document.visibilityState !== "visible") return;
+      lastPollAt = 0;
+      void poll();
+    };
     const timer = window.setInterval(coordinate, LEASE_INTERVAL_MS);
     coordinate();
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
 
     const stop = () => {
       active = false;
       window.clearInterval(timer);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
       releaseInboxAlertLeader(storage, keys.leader, tabId);
       channel?.close();
       if (audioContext.current) void audioContext.current.close().catch(() => undefined);

@@ -23,11 +23,10 @@ function storageMock() {
 }
 
 describe("admin Inbox alert behavior", () => {
-  it("suppresses the initial baseline and baselines after an offline or sleeping gap", () => {
-    expect(shouldUseInboxAlertBaseline({ now: 100_000, activeWindowMs: 90_000, networkFailed: false })).toBe(true);
-    expect(shouldUseInboxAlertBaseline({ cursor: "cursor", checkedAt: 1_000, now: 10_000, activeWindowMs: 90_000, networkFailed: false })).toBe(false);
-    expect(shouldUseInboxAlertBaseline({ cursor: "cursor", checkedAt: 1_000, now: 100_001, activeWindowMs: 90_000, networkFailed: false })).toBe(true);
-    expect(shouldUseInboxAlertBaseline({ cursor: "cursor", checkedAt: 99_000, now: 100_000, activeWindowMs: 90_000, networkFailed: true })).toBe(true);
+  it("suppresses only the initial baseline and resumes from its cursor after outages or sleep", () => {
+    expect(shouldUseInboxAlertBaseline({})).toBe(true);
+    expect(shouldUseInboxAlertBaseline({ cursor: "not-a-date" })).toBe(true);
+    expect(shouldUseInboxAlertBaseline({ cursor: "2026-10-20T10:00:00.000Z" })).toBe(false);
   });
 
   it("elects one tab as leader and lets another take over after the lease expires", () => {
