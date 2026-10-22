@@ -4,9 +4,16 @@
 
 This release adds optional staff SMS escalation for unresolved Admin Inbox conversations. It is off by default. It does not alter the existing Twilio Conversations/live-chat path, Resend, Zoho, or any customer-facing messaging flow. SMS contains only a short alert and a link to the authenticated Inbox; customer name, email, and message text are never included.
 
-Production was inspected read-only. The serving Cloud Run service currently has no SMS-specific Twilio sender, Messaging Service, or encryption-key references. The Twilio credentials previously available in local development belong to a trial account, not a verified production sending setup. No production SMS settings were changed and no SMS was sent. A paid Twilio account, an SMS-capable production sender attached to a Messaging Service, and the corresponding server-side secrets are prerequisites.
+Production setup status as of October 22, 2026:
 
-The verified production schema includes the Inbox fields used by the migration: `support_conversations.inbox_source`, `inbox_status`, `unread_for_staff`, `updated_at`, and `closed_at`; `support_handoffs.assigned_agent_user_id`; and `support_messages.sender`, `sender_type`, `sender_user_id`, `agent_user_id`, `visibility`, `delivery_status`, `metadata`, and `created_at`. The migration references the existing `cron_locks(name, locked_until)` table. Its SQL was applied twice to a separate synthetic scratch schema to verify safe repeatability. It has **not** been applied to production.
+- The owner confirmed the SMS migration was applied in Supabase SQL Editor. Do not rerun it.
+- All four SMS Secret Manager versions are installed, and the Cloud Run runtime service account has Secret Accessor permission. The serving revision at the start of this activation did not yet reference them; the committed deployment script binds them on a normal release when all four are present.
+- A read-only Twilio API check confirmed an active paid account, the SMS-capable sender attached to the HannaDVC Staff Alerts Messaging Service, and the staff destination listed as a verified recipient. The Messaging Service delivery callback is configured to the callback URL below.
+- Twilio does not expose Messaging Geo Permissions through its API. An account admin must confirm Canada is enabled in Console under **Messaging → Settings → Geo Permissions**. Canadian carriers may filter A2P traffic; Twilio recommends verified toll-free or short-code senders for optimal delivery.
+- The OIDC-authenticated Scheduler job `hannadvc-admin-inbox-sms-escalation` is enabled every minute in `us-central1`. Its first scheduled request returned HTTP 200; the worker scanned zero queued alerts and accepted zero messages.
+- Staff SMS preferences remain off by default. No verification or test SMS has been sent. The empty activation commit alone did not produce a build, so this content-bearing documentation push is intended to trigger the existing Cloud Build pipeline and bind the installed secrets. Do not manually update Cloud Run.
+
+The verified production schema includes the Inbox fields used by the migration: `support_conversations.inbox_source`, `inbox_status`, `unread_for_staff`, `updated_at`, and `closed_at`; `support_handoffs.assigned_agent_user_id`; and `support_messages.sender`, `sender_type`, `sender_user_id`, `agent_user_id`, `visibility`, `delivery_status`, `metadata`, and `created_at`. The migration references the existing `cron_locks(name, locked_until)` table. Its SQL was applied twice to a separate synthetic scratch schema to verify safe repeatability, and its production application was confirmed by the owner. Do not rerun it.
 
 ## Behavior
 
@@ -18,34 +25,16 @@ The verified production schema includes the Inbox fields used by the migration: 
 - Cloud Scheduler calls a locked worker. A persistent queue and conditional claim prevent overlapping dispatch. A failed provider response is recorded as failed; an ambiguous response becomes `unknown` and is never blindly resent. Twilio callbacks are signature-checked using the Twilio SDK and idempotently update accepted/delivered/failed state. A stored callback is reconciled if it arrives before the API response has been associated with the event.
 - Per recipient, a database advisory lock enforces at most one attempt per minute, three per hour, and ten per day. Test texts are sent only by the signed-in, opted-in, enabled user through the explicit “Send test SMS” button.
 
-## Production rollout prerequisites
+## Production setup and staff activation
 
-1. Apply the single forward-only migration in [`admin-inbox-sms-escalation-production.sql`](admin-inbox-sms-escalation-production.sql) in Supabase SQL Editor as one transaction. It creates only SMS queue/preferences/verification/callback tables and triggers; it does not alter or backfill existing conversation or message rows. The copy records only migration version `20261021000001` in Supabase history, with a conflict-safe insert. Do not use `supabase db push` for this change.
-2. Reply `success` after the SQL Editor transaction completes. Dependent application code must not be pushed before that confirmation.
-3. Prepare a paid Twilio production account, an SMS-capable sender, and a Messaging Service containing that sender. Canada supports long-code and toll-free outbound messaging, but Canadian carriers apply filtering to application-to-person traffic. Twilio recommends toll-free verification or short codes for stronger delivery; toll-free messaging to Canada requires approved verification. The project’s deployment helper uses a Messaging Service SID.
-4. Run `python3 scripts/gcp/setup-admin-inbox-sms-secrets.py` from a trusted Mac Terminal after the production SMS setup is ready. It prompts with hidden input for the Twilio Account SID, Auth Token, and Messaging Service SID, generates the phone-encryption key, and installs Secret Manager versions with runtime access. It does not create a Cloud Run revision. Do not place values in shell arguments, chat, or source control.
-5. The existing deployment configuration binds the four SMS secrets on the next normal push-triggered release. The SMS feature remains inactive until those secrets are bound and a staff member verifies, opts in, and enables it.
-6. Create one Cloud Scheduler job after the code is deployed. It uses the existing verified Zoho reconciliation service account and the same Google-signed OIDC check, but calls the SMS endpoint with its exact URL as audience:
-
-   ```sh
-   gcloud scheduler jobs create http hannadvc-admin-inbox-sms-escalation \
-     --project=pixiedvc-production \
-     --location=us-central1 \
-     --schedule='* * * * *' \
-     --time-zone=Etc/UTC \
-     --uri='https://hannadvc.com/api/cron/admin-inbox-sms' \
-     --http-method=POST \
-     --oidc-service-account='hanna-zoho-reconcile@pixiedvc-production.iam.gserviceaccount.com' \
-     --oidc-token-audience='https://hannadvc.com/api/cron/admin-inbox-sms' \
-     --attempt-deadline=180s \
-     --max-retry-attempts=0
-   ```
-
-   The worker has its own queue/locking/idempotency safeguards; Scheduler retries are disabled to avoid unnecessary duplicate invocations. Failed/unknown sends are retained for inspection and are not resent automatically.
+1. The migration, paid Twilio account, sender, Messaging Service, Secret Manager versions, Scheduler job, and delivery callback are configured. Before relying on Canadian delivery, confirm Canada is enabled in Twilio **Messaging → Settings → Geo Permissions**. This setting cannot be inspected or changed through Twilio's API.
+2. The deployment pipeline binds the four SMS secrets to Cloud Run on a normal content-bearing release. Do not create a separate revision manually. Verify the serving revision lists `ADMIN_INBOX_SMS_ENCRYPTION_KEY`, `TWILIO_SMS_ACCOUNT_SID`, `TWILIO_SMS_AUTH_TOKEN`, and `TWILIO_SMS_MESSAGING_SERVICE_SID` as Secret Manager references, without reading or printing secret values.
+3. The existing Scheduler job uses the Zoho reconciliation service account and the exact OIDC audience `https://hannadvc.com/api/cron/admin-inbox-sms`. It runs every minute with retries disabled; its database queue, lock, and idempotency safeguards prevent duplicate dispatch. Failed or unknown sends are retained and never resent automatically.
+4. Staff preferences remain disabled until a staff member verifies their number, explicitly opts in, and enables SMS in the Admin Inbox.
 
 ## Twilio callback
 
-Configure the Messaging Service status callback to:
+The Messaging Service status callback is configured to:
 
 `https://hannadvc.com/api/webhooks/twilio/sms-status`
 
@@ -67,7 +56,7 @@ After migration, deployment, secret binding, and Scheduler setup:
 - Forward migration applied twice against the isolated `hanna_sms_validation_20261021` scratch database, preserving pre-existing synthetic backlog; no existing database was reset.
 - Synthetic SQL checks verified no historical events were backfilled, new contact inquiries queue at the configured delay, repeated customer messages coalesce, only the assignee is selected for assigned replies, staff claim/reply/close cancel pending work, and internal notes do not create events.
 - Unit tests cover eligibility and cancellation, assigned replies, encrypted phone/verification digest, quiet hours, signed callback validation/status mapping, no automatic retry on ambiguous sends, scheduler OIDC rejection, and settings authorization.
-- No real SMS was sent. Production migration, Cloud Run bindings, Scheduler job, callback setup, delivery, and user-facing browser settings have not been verified in production.
+- No real SMS was sent. Production SQL application is based on the owner's confirmation. At the start of activation, the serving revision lacked the SMS secret references. The Scheduler's first production request returned HTTP 200 with no queued alerts. Twilio's API confirmed the callback, but Canada Geo Permission remains a Console-only check. Phone verification and user-facing SMS delivery remain untested.
 
 ## Cost and Canada requirements
 
