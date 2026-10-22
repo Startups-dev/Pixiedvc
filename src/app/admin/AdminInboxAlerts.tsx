@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase";
+import AdminInboxSmsSettings from "./AdminInboxSmsSettings";
 import {
   buildInboxConversationUrl,
   claimInboxAlertLeader,
@@ -433,6 +434,7 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
               </div>
               {notificationStatus ? <p role="status" className="mt-2 text-xs text-slate-300">{notificationStatus}</p> : null}
             </div>
+            <AdminInboxSmsSettings />
             {coordinationStatus ? <p role="status" className="border-t border-slate-700 pt-3 text-xs text-amber-200">{coordinationStatus}</p> : null}
           </div>
         </section>
