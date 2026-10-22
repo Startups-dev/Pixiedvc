@@ -46,6 +46,11 @@ const ERROR_COPY: Record<string, string> = {
   VERIFY_PHONE_FIRST: "Verify your phone before enabling SMS alerts.",
 };
 
+function normalizePhoneForSubmission(value: string) {
+  const compact = value.trim().replace(/[\s().-]/g, "");
+  return /^\+[1-9]\d{7,14}$/.test(compact) ? compact : null;
+}
+
 async function requestJson(path: string, init?: RequestInit) {
   const response = await fetch(path, { ...init, credentials: "same-origin", cache: "no-store", headers: { "Content-Type": "application/json", ...init?.headers } });
   const payload = await response.json().catch(() => null) as SettingsResponse | null;
@@ -63,6 +68,8 @@ export default function AdminInboxSmsSettings() {
   const [code, setCode] = useState("");
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [status, setStatus] = useState("");
+  const [verificationStatus, setVerificationStatus] = useState("");
+  const [verificationBusy, setVerificationBusy] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -92,35 +99,48 @@ export default function AdminInboxSmsSettings() {
   }
 
   async function startVerification() {
-    setSaving(true);
+    const normalizedPhone = normalizePhoneForSubmission(phone);
+    if (!normalizedPhone) {
+      setVerificationStatus(ERROR_COPY.PHONE_MUST_BE_E164);
+      return;
+    }
+    setVerificationBusy(true);
+    setVerificationStatus("Sending verification code…");
     setStatus("");
     try {
-      const result = await requestJson("/api/admin/inbox/sms/verify/start", { method: "POST", body: JSON.stringify({ phone }) });
+      const result = await requestJson("/api/admin/inbox/sms/verify/start", { method: "POST", body: JSON.stringify({ phone: normalizedPhone }) });
       setChallengeId(result.challengeId ?? null);
       setCode("");
-      setStatus(result.deliveryStatus === "unknown"
+      const message = result.deliveryStatus === "unknown"
         ? "Twilio’s response was unclear. We did not retry. If the code arrives, enter it here; otherwise wait for it to expire before trying again."
-        : "Twilio accepted the verification text. It expires in 10 minutes.");
+        : "Twilio accepted the verification text. It expires in 10 minutes.";
+      setVerificationStatus(message);
     } catch (error) {
       const reason = error instanceof Error ? error.message : "SMS_SETTINGS_FAILED";
-      setStatus(ERROR_COPY[reason] ?? "We could not send a verification code. Check your phone number and try again.");
-    } finally { setSaving(false); }
+      const message = ERROR_COPY[reason] ?? "We could not send a verification code. Check your phone number and try again.";
+      setVerificationStatus(message);
+    } finally { setVerificationBusy(false); }
   }
 
   async function confirmVerification() {
     if (!challengeId) return;
     setSaving(true);
+    setVerificationStatus("Checking verification code…");
     setStatus("");
     try {
       const result = await requestJson("/api/admin/inbox/sms/verify/confirm", { method: "POST", body: JSON.stringify({ challengeId, code }) });
-      setSettings((current) => ({ ...current, phoneLast4: result.phoneLast4 ?? null, phoneVerified: true, optedIn: false, enabled: false }));
+      // Keep a consent choice made while entering the number. It is persisted
+      // only when the user saves after the phone has been verified.
+      setSettings((current) => ({ ...current, phoneLast4: result.phoneLast4 ?? null, phoneVerified: true, enabled: false }));
       setChallengeId(null);
       setPhone("");
       setCode("");
-      setStatus("Phone verified. SMS alerts remain off until you opt in and enable them.");
+      const message = "Phone verified. Save your consent, then enable SMS alerts when you are ready.";
+      setVerificationStatus(message);
     } catch (error) {
       const reason = error instanceof Error ? error.message : "SMS_SETTINGS_FAILED";
-      setStatus(ERROR_COPY[reason] ?? "That code could not be verified. Try again or request a new code.");
+      const message = ERROR_COPY[reason] ?? "That code could not be verified. Try again or request a new code.";
+      setVerificationStatus(message);
     } finally { setSaving(false); }
   }
 
@@ -152,25 +172,29 @@ export default function AdminInboxSmsSettings() {
           ) : (
             <div className="space-y-2">
               <label className="block">Your mobile number
-                <input inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+1 416 555 0100" className="mt-1 w-full rounded-md border border-slate-600 bg-[#17191f] px-3 py-2 text-sm text-white placeholder:text-slate-500" />
+                <input inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => { setPhone(event.target.value); setVerificationStatus(""); }} placeholder="+1 416 555 0100" className="mt-1 w-full rounded-md border border-slate-600 bg-[#17191f] px-3 py-2 text-sm text-white placeholder:text-slate-500" />
               </label>
-              {!challengeId ? <button disabled={saving || !configurationReady || phone.length < 8} type="button" onClick={() => void startVerification()} className="rounded-md bg-[#d8b65c] px-3 py-2 font-semibold text-[#15171d] disabled:opacity-50">Send verification code</button> : (
+              {!challengeId ? <button disabled={verificationBusy || saving || !configurationReady || !phone.trim()} type="button" onClick={() => void startVerification()} className="rounded-md bg-[#d8b65c] px-3 py-2 font-semibold text-[#15171d] disabled:opacity-50">{verificationBusy ? "Sending code…" : "Send verification code"}</button> : (
                 <div className="space-y-2">
                   <label className="block">6-digit code
                     <input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} className="mt-1 w-full rounded-md border border-slate-600 bg-[#17191f] px-3 py-2 text-sm text-white" />
                   </label>
-                  <button disabled={saving || code.length !== 6} type="button" onClick={() => void confirmVerification()} className="rounded-md bg-[#d8b65c] px-3 py-2 font-semibold text-[#15171d] disabled:opacity-50">Verify phone</button>
+                  <button disabled={saving || code.length !== 6} type="button" onClick={() => void confirmVerification()} className="rounded-md bg-[#d8b65c] px-3 py-2 font-semibold text-[#15171d] disabled:opacity-50">{saving ? "Verifying…" : "Verify phone"}</button>
                 </div>
               )}
+              {!verificationStatus && !normalizePhoneForSubmission(phone) ? <p className="text-slate-400">Enter a country code and phone number. Spaces, parentheses, and hyphens are okay.</p> : null}
             </div>
           )}
+          {verificationStatus ? <p role="status" aria-live="polite" className="rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100">{verificationStatus}</p> : null}
 
-          <label className="flex items-start gap-2"><input type="checkbox" checked={settings.optedIn} disabled={!settings.phoneVerified || !configurationReady} onChange={(event) => setSettings((value) => ({ ...value, optedIn: event.target.checked, enabled: event.target.checked && value.enabled }))} />
+          <label className="flex items-start gap-2"><input type="checkbox" checked={settings.optedIn} disabled={!configurationReady} onChange={(event) => setSettings((value) => ({ ...value, optedIn: event.target.checked, enabled: event.target.checked && value.enabled }))} />
             <span>I agree to receive operational Inbox escalation texts.</span>
           </label>
+          {!settings.phoneVerified && settings.optedIn ? <p className="-mt-2 pl-6 text-slate-400">Your consent choice will be saved after your phone is verified.</p> : null}
           <label className="flex items-start gap-2"><input type="checkbox" checked={settings.enabled} disabled={!settings.phoneVerified || !settings.optedIn || !configurationReady} onChange={(event) => setSettings((value) => ({ ...value, enabled: event.target.checked }))} />
             <span>Enable SMS escalation alerts</span>
           </label>
+          {!settings.phoneVerified ? <p className="-mt-2 pl-6 text-slate-400">Verify your phone before enabling alerts.</p> : null}
           <fieldset disabled={!settings.enabled} className="space-y-3 rounded-md border border-slate-700 p-3 disabled:opacity-60">
             <label className="flex items-center justify-between gap-3">Escalate after
               <select value={settings.escalationDelayMinutes} onChange={(event) => setSettings((value) => ({ ...value, escalationDelayMinutes: Number(event.target.value) }))} className="rounded-md border border-slate-600 bg-[#17191f] px-2 py-1 text-white">
