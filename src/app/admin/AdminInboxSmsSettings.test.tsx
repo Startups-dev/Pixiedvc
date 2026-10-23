@@ -25,6 +25,26 @@ function settingsResponseWithMissingConfig() {
 }
 
 describe("Admin Inbox SMS settings", () => {
+  it("normalizes a 10-digit Canadian phone number to E.164 before requesting verification", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input) === "/api/admin/inbox/sms/settings") return settingsResponse();
+      if (String(input) === "/api/admin/inbox/sms/verify/start") return Response.json({ ok: true, challengeId: "synthetic-challenge", deliveryStatus: "accepted" });
+      throw new Error("Unexpected request");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<AdminInboxSmsSettings />);
+    fireEvent.click(screen.getByRole("button", { name: "SMS escalation" }));
+    fireEvent.change(await screen.findByLabelText("Your mobile number"), { target: { value: "13657671900" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send verification code" }));
+
+    await screen.findByLabelText("6-digit code");
+    const verificationRequest = fetchMock.mock.calls.find(([input]) => String(input) === "/api/admin/inbox/sms/verify/start");
+    expect(verificationRequest).toBeTruthy();
+    const requestInit = verificationRequest?.[1] as RequestInit;
+    expect(JSON.parse(String(requestInit.body))).toEqual({ phone: "+13657671900" });
+  });
+
   it("shows an inline verification failure, sends normalized input, and keeps consent available while explaining prerequisites", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       if (String(input) === "/api/admin/inbox/sms/settings" && init?.method === "PATCH") return Response.json({ ok: false, error: "VERIFY_PHONE_FIRST" }, { status: 409 });

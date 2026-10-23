@@ -48,7 +48,16 @@ const ERROR_COPY: Record<string, string> = {
 
 function normalizePhoneForSubmission(value: string) {
   const compact = value.trim().replace(/[\s().-]/g, "");
-  return /^\+[1-9]\d{7,14}$/.test(compact) ? compact : null;
+  // The admin panel is primarily used for Canadian staff phones. Accept a
+  // locally entered 10-digit number (or 11 digits beginning with 1) and
+  // normalize it to E.164 before sending it to the verification API.
+  const digits = compact.replace(/^\+/, "");
+  const e164 = /^\d{10}$/.test(digits)
+    ? `+1${digits}`
+    : /^1\d{10}$/.test(digits)
+      ? `+${digits}`
+      : compact;
+  return /^\+[1-9]\d{7,14}$/.test(e164) ? e164 : null;
 }
 
 async function requestJson(path: string, init?: RequestInit) {
