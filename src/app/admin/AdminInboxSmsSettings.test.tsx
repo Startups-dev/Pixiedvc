@@ -19,9 +19,15 @@ function settingsResponse() {
   });
 }
 
+function settingsResponseWithMissingConfig() {
+  const response = settingsResponse();
+  return response.json().then((payload) => Response.json({ ...payload, configuration: { ready: false, missing: ["TWILIO_SMS_AUTH_TOKEN"] } }));
+}
+
 describe("Admin Inbox SMS settings", () => {
   it("shows an inline verification failure, sends normalized input, and keeps consent available while explaining prerequisites", async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input) === "/api/admin/inbox/sms/settings" && init?.method === "PATCH") return Response.json({ ok: false, error: "VERIFY_PHONE_FIRST" }, { status: 409 });
       if (String(input) === "/api/admin/inbox/sms/settings") return settingsResponse();
       if (String(input) === "/api/admin/inbox/sms/verify/start") return Response.json({ ok: false, error: "PHONE_MUST_BE_E164" }, { status: 400 });
       throw new Error("Unexpected request");
@@ -40,9 +46,12 @@ describe("Admin Inbox SMS settings", () => {
     fireEvent.click(consent);
     expect(consent).toBeChecked();
     expect(screen.getByText("Your consent choice will be saved after your phone is verified.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save SMS settings" }));
+    expect(await screen.findByText("Verify your phone before saving consent or enabling SMS alerts.")).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([input, init]) => String(input) === "/api/admin/inbox/sms/settings" && init?.method === "PATCH")).toBe(false);
 
     fireEvent.click(screen.getByRole("button", { name: "Send verification code" }));
-    expect(await screen.findByRole("status")).toHaveTextContent("Enter a valid phone number with country code");
+    expect((await screen.findAllByRole("status")).some((status) => status.textContent?.includes("Enter a valid phone number with country code"))).toBe(true);
     const verificationRequest = fetchMock.mock.calls.find(([input]) => String(input) === "/api/admin/inbox/sms/verify/start");
     expect(verificationRequest).toBeTruthy();
     const requestInit = verificationRequest?.[1] as RequestInit;
@@ -78,5 +87,24 @@ describe("Admin Inbox SMS settings", () => {
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Phone verified"));
     expect(screen.getByRole("checkbox", { name: /I agree to receive operational Inbox escalation texts/ })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: /Enable SMS escalation alerts/ })).toBeEnabled();
+  });
+
+  it("does not silently disable verification when configuration is unavailable; it shows the route error without exposing a code field", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input) === "/api/admin/inbox/sms/settings") return settingsResponseWithMissingConfig();
+      if (String(input) === "/api/admin/inbox/sms/verify/start") return Response.json({ ok: false, error: "SMS_PROVIDER_NOT_CONFIGURED" }, { status: 503 });
+      throw new Error("Unexpected request");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<AdminInboxSmsSettings />);
+    fireEvent.click(screen.getByRole("button", { name: "SMS escalation" }));
+    fireEvent.change(await screen.findByLabelText("Your mobile number"), { target: { value: "+13657671900" } });
+    expect(await screen.findByText(/SMS sending is not configured yet/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Send verification code" }));
+
+    expect((await screen.findAllByRole("status")).some((status) => status.textContent?.includes("SMS is not ready yet"))).toBe(true);
+    expect(fetchMock.mock.calls.some(([input]) => String(input) === "/api/admin/inbox/sms/verify/start")).toBe(true);
+    expect(screen.queryByLabelText("6-digit code")).not.toBeInTheDocument();
   });
 });

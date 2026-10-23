@@ -86,6 +86,10 @@ export default function AdminInboxSmsSettings() {
   }, [open]);
 
   async function saveSettings(next = settings) {
+    if ((next.optedIn || next.enabled) && !settings.phoneVerified) {
+      setStatus("Verify your phone before saving consent or enabling SMS alerts.");
+      return;
+    }
     setSaving(true);
     setStatus("");
     try {
@@ -174,7 +178,7 @@ export default function AdminInboxSmsSettings() {
               <label className="block">Your mobile number
                 <input inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => { setPhone(event.target.value); setVerificationStatus(""); }} placeholder="+1 416 555 0100" className="mt-1 w-full rounded-md border border-slate-600 bg-[#17191f] px-3 py-2 text-sm text-white placeholder:text-slate-500" />
               </label>
-              {!challengeId ? <button disabled={verificationBusy || saving || !configurationReady || !phone.trim()} type="button" onClick={() => void startVerification()} className="rounded-md bg-[#d8b65c] px-3 py-2 font-semibold text-[#15171d] disabled:opacity-50">{verificationBusy ? "Sending code…" : "Send verification code"}</button> : (
+              {!challengeId ? <button disabled={verificationBusy || saving} type="button" onClick={() => void startVerification()} className="rounded-md bg-[#d8b65c] px-3 py-2 font-semibold text-[#15171d] disabled:opacity-50">{verificationBusy ? "Sending code…" : "Send verification code"}</button> : (
                 <div className="space-y-2">
                   <label className="block">6-digit code
                     <input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} className="mt-1 w-full rounded-md border border-slate-600 bg-[#17191f] px-3 py-2 text-sm text-white" />
@@ -187,7 +191,7 @@ export default function AdminInboxSmsSettings() {
           )}
           {verificationStatus ? <p role="status" aria-live="polite" className="rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-slate-100">{verificationStatus}</p> : null}
 
-          <label className="flex items-start gap-2"><input type="checkbox" checked={settings.optedIn} disabled={!configurationReady} onChange={(event) => setSettings((value) => ({ ...value, optedIn: event.target.checked, enabled: event.target.checked && value.enabled }))} />
+          <label className="flex items-start gap-2"><input type="checkbox" checked={settings.optedIn} onChange={(event) => { setSettings((value) => ({ ...value, optedIn: event.target.checked, enabled: event.target.checked && value.enabled })); setStatus(""); }} />
             <span>I agree to receive operational Inbox escalation texts.</span>
           </label>
           {!settings.phoneVerified && settings.optedIn ? <p className="-mt-2 pl-6 text-slate-400">Your consent choice will be saved after your phone is verified.</p> : null}
@@ -212,11 +216,11 @@ export default function AdminInboxSmsSettings() {
               </select></label>
             </div> : null}
           </fieldset>
+          {status ? <p role="status" aria-live="polite" className="rounded-md bg-slate-800 px-3 py-2 text-slate-100">{status}</p> : null}
           <div className="flex flex-wrap gap-2">
-            <button disabled={saving || !configurationReady} type="button" onClick={() => void saveSettings()} className="rounded-md bg-[#d8b65c] px-3 py-2 font-semibold text-[#15171d] disabled:opacity-50">Save SMS settings</button>
+            <button disabled={saving} type="button" onClick={() => void saveSettings()} className="rounded-md bg-[#d8b65c] px-3 py-2 font-semibold text-[#15171d] disabled:opacity-50">Save SMS settings</button>
             <button disabled={saving || !configurationReady || !settings.enabled || !settings.optedIn} type="button" onClick={() => void sendTest()} className="rounded-md border border-slate-500 px-3 py-2 hover:bg-slate-700 disabled:opacity-50">Send test SMS</button>
           </div>
-          {status ? <p role="status" className="rounded-md bg-slate-800 px-3 py-2 text-slate-100">{status}</p> : null}
           <p className="text-[11px] leading-4 text-slate-400">Up to 1 text per minute, 3 per hour, and 10 per day per staff phone. Quiet hours use local time. Preferences and your phone number are private to staff services.</p>
         </div>
       ) : null}
