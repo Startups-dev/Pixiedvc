@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Menu, X } from "lucide-react";
 
 import OwnerNavigation from "@/components/owner/shell/OwnerNavigation";
@@ -50,6 +51,15 @@ export default function OwnerMobileNav() {
     };
   }, [open]);
 
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = () => {
+      if (desktop.matches) setOpen(false);
+    };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, []);
+
   const close = () => setOpen(false);
 
   return (
@@ -65,8 +75,8 @@ export default function OwnerMobileNav() {
         <Menu className="h-[18px] w-[18px]" aria-hidden="true" />
       </button>
 
-      {open ? (
-        <div className="fixed inset-0 z-[160] lg:hidden" role="dialog" aria-modal="true" aria-label="Owner navigation">
+      {open ? createPortal(
+        <div className="fixed inset-0 z-[160] flex h-[100dvh] lg:hidden" role="dialog" aria-modal="true" aria-label="Owner navigation">
           <button
             type="button"
             className="absolute inset-0 cursor-default bg-[#081327]/45"
@@ -97,7 +107,7 @@ export default function OwnerMobileNav() {
               </button>
             </div>
 
-            <div className="mt-8 space-y-7 overflow-y-auto pb-6">
+            <div className="mt-8 min-h-0 flex-1 space-y-7 overflow-y-auto overscroll-contain pb-6">
               <div>
                 <p className="mb-3 px-3 text-[11px] uppercase tracking-[0.24em] text-white/38">
                   Workspace
@@ -115,7 +125,8 @@ export default function OwnerMobileNav() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   );

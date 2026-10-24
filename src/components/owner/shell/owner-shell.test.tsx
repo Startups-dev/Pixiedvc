@@ -168,6 +168,43 @@ describe("owner mobile navigation", () => {
     });
     expect(trigger).toHaveFocus();
   });
+
+  it("portals the drawer outside the filtered top bar and closes through each touch target", async () => {
+    const { container } = render(
+      <header className="backdrop-blur">
+        <OwnerMobileNav />
+      </header>,
+    );
+    const trigger = screen.getByRole("button", { name: /open owner navigation/i });
+
+    fireEvent.click(trigger);
+    let dialog = screen.getByRole("dialog", { name: /owner navigation/i });
+    expect(dialog.parentElement).toBe(document.body);
+    expect(container).not.toContainElement(dialog);
+    expect(dialog).toHaveClass("fixed", "inset-0", "z-[160]");
+    expect(dialog.firstElementChild).toHaveClass("absolute", "inset-0");
+    expect(dialog.lastElementChild).toHaveClass("relative", "flex");
+    expect(dialog.querySelector(".overflow-y-auto")).toHaveClass("min-h-0", "flex-1");
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(screen.getByRole("link", { name: /matches/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole("button", { name: /close owner navigation/i })[1]);
+    expect(screen.queryByRole("dialog", { name: /owner navigation/i })).not.toBeInTheDocument();
+    expect(document.body.style.overflow).toBe("");
+
+    fireEvent.click(trigger);
+    dialog = screen.getByRole("dialog", { name: /owner navigation/i });
+    fireEvent.click(screen.getAllByRole("button", { name: /close owner navigation/i })[0]);
+    expect(dialog).not.toBeInTheDocument();
+
+    fireEvent.click(trigger);
+    const matches = screen.getByRole("link", { name: /matches/i });
+    matches.addEventListener("click", (event) => event.preventDefault(), { once: true });
+    fireEvent.click(matches);
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: /owner navigation/i })).not.toBeInTheDocument();
+    });
+  });
 });
 
 describe("owner public chrome exclusions", () => {
