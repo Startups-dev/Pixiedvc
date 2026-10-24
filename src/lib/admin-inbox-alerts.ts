@@ -111,6 +111,33 @@ export function rememberSeenInboxAlertId(storage: Pick<Storage, "getItem" | "set
   }
 }
 
+function forgetSeenInboxAlertId(storage: Pick<Storage, "getItem" | "setItem">, key: string, id: string) {
+  try {
+    const remaining = readSeenInboxAlertIds(storage, key).filter((seenId) => seenId !== id);
+    storage.setItem(key, JSON.stringify(remaining));
+  } catch {
+    // If storage is unavailable, the caller can still offer the user a retry.
+  }
+}
+
+export async function playInboxAlertSoundOnce(
+  storage: Pick<Storage, "getItem" | "setItem">,
+  key: string,
+  id: string,
+  play: () => Promise<void>,
+): Promise<"played" | "duplicate" | "blocked"> {
+  if (!rememberSeenInboxAlertId(storage, key, id)) return "duplicate";
+  try {
+    await play();
+    return "played";
+  } catch {
+    // A blocked autoplay attempt is not a completed alert. Release its
+    // deduplication marker so an explicit user gesture can retry the chime.
+    forgetSeenInboxAlertId(storage, key, id);
+    return "blocked";
+  }
+}
+
 export function buildInboxConversationUrl(conversationId: string) {
   return `/admin/inbox?conversation=${encodeURIComponent(conversationId)}`;
 }

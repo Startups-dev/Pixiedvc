@@ -12,6 +12,7 @@ import {
   INBOX_CUSTOMER_MESSAGE_EVENT,
   isSoundEnabled,
   parseInboxAlertPreferences,
+  playInboxAlertSoundOnce,
   readSeenInboxAlertIds,
   releaseInboxAlertLeader,
   rememberSeenInboxAlertId,
@@ -59,10 +60,14 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
   const [settingsPosition, setSettingsPosition] = useState<{ left: number; top: number } | null>(null);
   const settingsButtonRef = useRef<HTMLButtonElement | null>(null);
   const [soundStatus, setSoundStatus] = useState("");
+  const [soundRecoveryEvent, setSoundRecoveryEvent] = useState<InboxAlertEvent | null>(null);
   const [notificationStatus, setNotificationStatus] = useState("");
   const [coordinationStatus, setCoordinationStatus] = useState("");
   const audioContext = useRef<AudioContext | null>(null);
   const audioUnlocked = useRef(false);
+  const soundRecoveryEventRef = useRef<InboxAlertEvent | null>(null);
+
+  useEffect(() => { soundRecoveryEventRef.current = soundRecoveryEvent; }, [soundRecoveryEvent]);
 
   const keys = {
     preferences: `hannadvc:admin-inbox-alerts:${staffUserId}:preferences`,
@@ -176,15 +181,24 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
     let channel: BroadcastChannel | null = null;
     let unsubscribeAuth = () => {};
 
-    const tryPlayAlertSound = (id: string) => {
+    const tryPlayAlertSound = (event: InboxAlertEvent) => {
       if (!isSoundEnabled(preferencesRef.current)) return;
+      const soundSeenKey = `${keys.seen}:sound`;
+      if (readSeenInboxAlertIds(storage, soundSeenKey).includes(event.id)) return;
       if (!audioUnlocked.current) {
         setSoundStatus("Click Enable sound in an open admin tab to activate audio for this browser.");
+        setSoundRecoveryEvent(event);
         return;
       }
-      if (!rememberSeenInboxAlertId(storage, `${keys.seen}:sound`, id)) return;
-      void playChime().then(() => setSoundStatus("Sound is playing.")).catch(() => {
+      void playInboxAlertSoundOnce(storage, soundSeenKey, event.id, playChime).then((result) => {
+        if (result === "played") {
+          setSoundStatus("Sound is playing.");
+          setSoundRecoveryEvent((pending) => pending?.id === event.id ? null : pending);
+          return;
+        }
+        if (result === "duplicate") return;
         setSoundStatus("Sound playback was blocked. Click Enable sound again, then Test sound.");
+        setSoundRecoveryEvent(event);
       });
     };
 
@@ -195,7 +209,7 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
         if (!localDisplayed.has(message.event.id)) {
           localDisplayed.add(message.event.id);
           displayAlert(message.event);
-          tryPlayAlertSound(message.event.id);
+          tryPlayAlertSound(message.event);
         }
       }
     };
@@ -258,7 +272,7 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
             if (!rememberSeenInboxAlertId(storage, keys.seen, incoming.id)) continue;
             localDisplayed.add(incoming.id);
             displayAlert(incoming);
-            tryPlayAlertSound(incoming.id);
+            tryPlayAlertSound(incoming);
             broadcast({ type: "alert", event: incoming, nonce: `${checkedAt}-${incoming.id}` });
             openDesktopNotification(incoming);
           }
@@ -339,6 +353,27 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
     }
   }
 
+  async function recoverBlockedSound() {
+    const event = soundRecoveryEventRef.current;
+    const storage = getBrowserStorage();
+    if (!event || !storage) {
+      setSoundStatus("Sound recovery is unavailable in this browser. Try Enable sound, then Test sound.");
+      return;
+    }
+    const result = await playInboxAlertSoundOnce(storage, `${keys.seen}:sound`, event.id, playChime);
+    if (result === "played") {
+      audioUnlocked.current = true;
+      updatePreferences({ soundEnabled: true });
+      setSoundRecoveryEvent(null);
+      setSoundStatus("Sound is enabled, and the missed Inbox chime played.");
+    } else if (result === "duplicate") {
+      setSoundRecoveryEvent(null);
+      setSoundStatus("This Inbox message already chimed in another tab.");
+    } else {
+      setSoundStatus("Sound playback is still blocked. Check browser audio settings, then try again.");
+    }
+  }
+
   async function enableDesktopNotifications() {
     if (!("Notification" in window)) {
       setNotificationStatus("This browser does not support desktop notifications.");
@@ -392,6 +427,16 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
 
   return (
     <div className="relative flex items-center gap-2">
+      {soundRecoveryEvent ? (
+        <div role="alert" className="fixed bottom-4 right-4 z-[60] w-[min(28rem,calc(100vw-2rem))] rounded-xl border border-amber-300/70 bg-[#20232a] p-4 text-sm text-white shadow-2xl">
+          <p className="font-semibold">The Inbox chime could not play.</p>
+          <p className="mt-1 text-xs leading-5 text-slate-300">Your browser may need another sound gesture. Recover the missed chime here.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" onClick={() => void recoverBlockedSound()} className="rounded-md bg-[#d8b65c] px-3 py-2 text-xs font-semibold text-[#15171d]">Enable sound &amp; play missed chime</button>
+            <button type="button" onClick={() => setSoundRecoveryEvent(null)} className="rounded-md border border-slate-500 px-3 py-2 text-xs text-slate-100">Dismiss</button>
+          </div>
+        </div>
+      ) : null}
       <Link href="/admin/inbox" className="inline-flex items-center gap-2 text-slate-300 hover:text-white">
         Inbox
         {unreadCount > 0 ? <span aria-label={`${unreadCount} unread conversations`} className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#d8b65c] px-1.5 py-0.5 text-[11px] font-bold text-[#15171d]">{unreadCount > 99 ? "99+" : unreadCount}</span> : null}

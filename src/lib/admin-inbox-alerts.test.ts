@@ -6,6 +6,7 @@ import {
   isAlertableCustomerMessage,
   isSoundEnabled,
   parseInboxAlertPreferences,
+  playInboxAlertSoundOnce,
   readSeenInboxAlertIds,
   rememberSeenInboxAlertId,
   requestInboxNotificationPermission,
@@ -41,6 +42,20 @@ describe("admin Inbox alert behavior", () => {
     expect(rememberSeenInboxAlertId(storage, "seen", "message-1")).toBe(true);
     expect(rememberSeenInboxAlertId(storage, "seen", "message-1")).toBe(false);
     expect(readSeenInboxAlertIds(storage, "seen")).toEqual(["message-1"]);
+  });
+
+  it("releases a blocked automatic chime for a user-gesture retry, then deduplicates successful playback", async () => {
+    const storage = storageMock();
+    const blocked = await playInboxAlertSoundOnce(storage, "sounds", "message-1", async () => {
+      throw new Error("autoplay blocked");
+    });
+    expect(blocked).toBe("blocked");
+    expect(readSeenInboxAlertIds(storage, "sounds")).toEqual([]);
+
+    const play = vi.fn(async () => undefined);
+    expect(await playInboxAlertSoundOnce(storage, "sounds", "message-1", play)).toBe("played");
+    expect(await playInboxAlertSoundOnce(storage, "sounds", "message-1", play)).toBe("duplicate");
+    expect(play).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the alert settings panel inside narrow and desktop viewports", () => {
