@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase-service-client";
 import { applyStoredTwilioSmsCallbacks } from "@/lib/admin-inbox-sms-delivery";
 import {
   buildInboxEscalationSms,
+  buildReservationRequestSms,
   decryptSmsPhone,
   getQuietHoursEnd,
   sendAdminInboxSms,
@@ -33,7 +34,7 @@ async function releaseLock(lockedUntil: string) {
     .eq("name", LOCK_NAME).eq("locked_until", lockedUntil);
 }
 
-async function isAuthorizedStaff(userId: string) {
+async function isAuthorizedStaff(userId: string, requireAdmin = false) {
   const db = createServiceClient();
   const [{ data: profile }, { data: supportAgent }, authUser] = await Promise.all([
     db.from("profiles").select("role, email").eq("id", userId).maybeSingle(),
@@ -48,14 +49,15 @@ async function isAuthorizedStaff(userId: string) {
     email: user.email ?? profile?.email ?? null,
   });
   const activeAgent = Boolean(supportAgent?.active && ["admin", "agent"].includes(supportAgent.role ?? ""));
-  return admin || activeAgent;
+  return admin || (!requireAdmin && activeAgent);
 }
 
 type SmsEvent = {
   id: string;
-  event_type: "new_inquiry" | "assigned_reply";
+  event_type: "new_inquiry" | "assigned_reply" | "reservation_request";
   conversation_id: string | null;
   source_message_id: string | null;
+  reservation_alert_id: string | null;
   recipient_user_id: string;
   due_at: string;
 };
@@ -86,6 +88,43 @@ export function evaluateSmsEscalation(input: {
   return null;
 }
 
+export function evaluateReservationSms(input: {
+  authorizedAdmin: boolean;
+  reservationOptedIn: boolean;
+  reservationEnabled: boolean;
+  phoneVerified: boolean;
+  alertExists: boolean;
+  alertRead: boolean;
+}) {
+  if (!input.reservationOptedIn || !input.reservationEnabled || !input.phoneVerified) return "preferences_disabled";
+  if (!input.authorizedAdmin) return "staff_no_longer_authorized";
+  if (!input.alertExists) return "reservation_alert_missing";
+  if (input.alertRead) return "reservation_already_reviewed";
+  return null;
+}
+
+async function validateReservationEvent(event: SmsEvent, preferences: SmsPreferences) {
+  const db = createServiceClient();
+  const authorizedAdmin = await isAuthorizedStaff(event.recipient_user_id, true);
+  const { data: alert } = event.reservation_alert_id
+    ? await db.from("admin_reservation_request_alerts")
+      .select("booking_request_id, renter_request_id, read_at")
+      .eq("id", event.reservation_alert_id).maybeSingle()
+    : { data: null };
+  return {
+    reason: evaluateReservationSms({
+      authorizedAdmin,
+      reservationOptedIn: preferences.reservation_opted_in,
+      reservationEnabled: preferences.reservation_enabled,
+      phoneVerified: Boolean(preferences.phone_verified_at && preferences.phone_ciphertext),
+      alertExists: Boolean(alert?.booking_request_id || alert?.renter_request_id != null),
+      alertRead: Boolean(alert?.read_at),
+    }),
+    source: alert?.renter_request_id != null ? "renter" as const : "booking" as const,
+    requestId: alert?.renter_request_id == null ? alert?.booking_request_id ?? null : String(alert.renter_request_id),
+  };
+}
+
 async function validateEvent(event: SmsEvent, preferences: SmsPreferences) {
   const db = createServiceClient();
   if (!event.conversation_id || !event.source_message_id) return "conversation_missing";
@@ -110,7 +149,7 @@ async function validateEvent(event: SmsEvent, preferences: SmsPreferences) {
     (message.sender_type ?? message.sender) === "agent" && (message.visibility ?? "customer") === "customer" && message.delivery_status === "sent",
   );
   return evaluateSmsEscalation({
-    eventType: event.event_type,
+    eventType: event.event_type === "assigned_reply" ? "assigned_reply" : "new_inquiry",
     recipientUserId: event.recipient_user_id,
     authorizedStaff: true,
     preferencesEnabled: Boolean(preferences.opted_in && preferences.enabled),
@@ -150,14 +189,19 @@ export async function runAdminInboxSmsEscalations(now = new Date()): Promise<Sms
       .eq("status", "sending").lt("updated_at", new Date(now.getTime() - 15 * 60_000).toISOString());
     if (staleSending.error) throw new Error("SMS_STALE_SEND_RECOVERY_FAILED");
 
-    const { data: queued, error } = await db.from("admin_inbox_sms_events")
-      .select("id, event_type, conversation_id, source_message_id, recipient_user_id, due_at")
-      .in("event_type", ["new_inquiry", "assigned_reply"])
+    const eventColumns = "id, event_type, conversation_id, source_message_id, reservation_alert_id, recipient_user_id, due_at";
+    const { data: urgent, error: urgentError } = await db.from("admin_inbox_sms_events")
+      .select(eventColumns).eq("event_type", "reservation_request")
       .eq("status", "queued").lte("due_at", now.toISOString())
       .order("due_at", { ascending: true }).limit(BATCH_SIZE);
-    if (error) throw new Error("SMS_QUEUE_READ_FAILED");
+    if (urgentError) throw new Error("SMS_QUEUE_READ_FAILED");
+    const { data: inboxQueued, error: inboxError } = await db.from("admin_inbox_sms_events")
+      .select(eventColumns).in("event_type", ["new_inquiry", "assigned_reply"])
+      .eq("status", "queued").lte("due_at", now.toISOString())
+      .order("due_at", { ascending: true }).limit(Math.max(0, BATCH_SIZE - (urgent?.length ?? 0)));
+    if (inboxError) throw new Error("SMS_QUEUE_READ_FAILED");
 
-    for (const row of (queued ?? []) as SmsEvent[]) {
+    for (const row of ([...(urgent ?? []), ...(inboxQueued ?? [])]) as SmsEvent[]) {
       result.queuedScanned += 1;
       const { data: claimed } = await db.from("admin_inbox_sms_events")
         .update({ status: "sending", attempted_at: now.toISOString(), updated_at: now.toISOString() })
@@ -171,14 +215,17 @@ export async function runAdminInboxSmsEscalations(now = new Date()): Promise<Sms
         continue;
       }
 
-      const invalidReason = await validateEvent(row, preferences as SmsPreferences);
+      const reservation = row.event_type === "reservation_request"
+        ? await validateReservationEvent(row, preferences as SmsPreferences)
+        : null;
+      const invalidReason = reservation ? reservation.reason : await validateEvent(row, preferences as SmsPreferences);
       if (invalidReason) {
         await updateEvent(db, row.id, { status: "cancelled", error_code: invalidReason });
         continue;
       }
 
       const configuredDue = Date.parse(row.due_at);
-      const preferredDue = row.source_message_id
+      const preferredDue = row.event_type === "reservation_request" ? new Date(configuredDue) : row.source_message_id
         ? new Date(Math.max(Date.parse(row.due_at), Date.parse((await db.from("support_messages").select("created_at").eq("id", row.source_message_id).maybeSingle()).data?.created_at ?? row.due_at) + preferences.escalation_delay_minutes * 60_000))
         : new Date(configuredDue);
       if (now.getTime() < preferredDue.getTime()) {
@@ -218,7 +265,10 @@ export async function runAdminInboxSmsEscalations(now = new Date()): Promise<Sms
         continue;
       }
 
-      const outcome = await sendAdminInboxSms(phone, buildInboxEscalationSms(row.conversation_id!));
+      const body = reservation?.requestId
+        ? buildReservationRequestSms(reservation.source, reservation.requestId)
+        : buildInboxEscalationSms(row.conversation_id!);
+      const outcome = await sendAdminInboxSms(phone, body);
       if (outcome.status === "accepted" || outcome.status === "delivered") {
         await updateEvent(db, row.id, {
           status: outcome.status,

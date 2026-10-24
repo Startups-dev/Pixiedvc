@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { getAdminInboxContext } from "@/lib/admin-inbox-auth";
 import { getSmsConfiguration, type SmsPreferences } from "@/lib/admin-inbox-sms";
+import { getCurrentUserAdminState } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
-const SETTINGS_FIELDS = "phone_last4, phone_verified_at, opted_in, enabled, new_inquiry_enabled, assigned_reply_enabled, escalation_delay_minutes, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, time_zone";
-const EDIT_FIELDS = "phone_last4, phone_verified_at, phone_ciphertext, opted_in, enabled, new_inquiry_enabled, assigned_reply_enabled, escalation_delay_minutes, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, time_zone";
+const SETTINGS_FIELDS = "phone_last4, phone_verified_at, opted_in, enabled, reservation_opted_in, reservation_enabled, new_inquiry_enabled, assigned_reply_enabled, escalation_delay_minutes, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, time_zone";
+const EDIT_FIELDS = "phone_last4, phone_verified_at, phone_ciphertext, opted_in, enabled, reservation_opted_in, reservation_enabled, new_inquiry_enabled, assigned_reply_enabled, escalation_delay_minutes, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, time_zone";
 
 function validTimeZone(value: unknown): value is string {
   if (typeof value !== "string" || value.length > 64) return false;
@@ -30,6 +31,8 @@ export async function GET() {
       phoneVerified: Boolean(data.phone_verified_at),
       optedIn: Boolean(data.opted_in),
       enabled: Boolean(data.enabled),
+      reservationOptedIn: Boolean(data.reservation_opted_in),
+      reservationEnabled: Boolean(data.reservation_enabled),
       newInquiryEnabled: Boolean(data.new_inquiry_enabled),
       assignedReplyEnabled: Boolean(data.assigned_reply_enabled),
       escalationDelayMinutes: data.escalation_delay_minutes,
@@ -38,7 +41,7 @@ export async function GET() {
       quietHoursEnd: data.quiet_hours_end?.slice(0, 5) ?? "08:00",
       timeZone: data.time_zone,
     } : {
-      phoneLast4: null, phoneVerified: false, optedIn: false, enabled: false,
+      phoneLast4: null, phoneVerified: false, optedIn: false, enabled: false, reservationOptedIn: false, reservationEnabled: false,
       newInquiryEnabled: true, assignedReplyEnabled: true, escalationDelayMinutes: 5,
       quietHoursEnabled: false, quietHoursStart: "22:00", quietHoursEnd: "08:00", timeZone: "America/Toronto",
     },
@@ -65,10 +68,15 @@ export async function PATCH(request: Request) {
   const existing = existingResult.data as (SmsPreferences & { phone_last4: string | null; quiet_hours_start: string | null; quiet_hours_end: string | null }) | null;
   const optedIn = body.optedIn === true;
   const enabled = body.enabled === true;
-  if ((optedIn || enabled) && (!existing?.phone_verified_at || !existing.phone_ciphertext)) {
+  const reservationOptedIn = body.reservationOptedIn === undefined ? existing?.reservation_opted_in === true : body.reservationOptedIn === true;
+  const reservationEnabled = body.reservationEnabled === undefined ? existing?.reservation_enabled === true : body.reservationEnabled === true;
+  if ((reservationOptedIn || reservationEnabled) && !(await getCurrentUserAdminState()).isAdmin) {
+    return NextResponse.json({ ok: false, error: "FORBIDDEN" }, { status: 403 });
+  }
+  if ((optedIn || enabled || reservationOptedIn || reservationEnabled) && (!existing?.phone_verified_at || !existing.phone_ciphertext)) {
     return NextResponse.json({ ok: false, error: "VERIFY_PHONE_FIRST" }, { status: 409 });
   }
-  if ((optedIn || enabled) && !getSmsConfiguration().ready) {
+  if ((optedIn || enabled || reservationOptedIn || reservationEnabled) && !getSmsConfiguration().ready) {
     return NextResponse.json({ ok: false, error: "SMS_PROVIDER_NOT_CONFIGURED" }, { status: 503 });
   }
 
@@ -76,6 +84,8 @@ export async function PATCH(request: Request) {
     user_id: auth.user.id,
     opted_in: optedIn,
     enabled: optedIn && enabled,
+    reservation_opted_in: reservationOptedIn,
+    reservation_enabled: reservationOptedIn && reservationEnabled,
     new_inquiry_enabled: body.newInquiryEnabled !== false,
     assigned_reply_enabled: body.assignedReplyEnabled !== false,
     escalation_delay_minutes: delay,
@@ -101,6 +111,10 @@ export async function PATCH(request: Request) {
         due_at: new Date(Date.parse(message.created_at) + delay * 60_000).toISOString(), updated_at: new Date().toISOString(),
       }).eq("id", event.id).eq("status", "queued");
     }
+  }
+  if (!values.reservation_opted_in || !values.reservation_enabled) {
+    await auth.client.from("admin_inbox_sms_events").update({ status: "cancelled", error_code: "reservation_alerts_disabled", updated_at: new Date().toISOString() })
+      .eq("recipient_user_id", auth.user.id).eq("status", "queued").eq("event_type", "reservation_request");
   }
   return NextResponse.json({ ok: true });
 }

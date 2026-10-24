@@ -192,7 +192,7 @@ export default function RequestWorkstationClient({ request }: { request: Request
           </div>
         </div>
 
-        <div className="rounded-3xl border border-[#23293a] bg-[#151922] p-6 text-[#e6e8ec]">
+        <div id="availability-review" className="scroll-mt-20 rounded-3xl border border-[#23293a] bg-[#151922] p-6 text-[#e6e8ec]">
           <p className="text-xs uppercase tracking-[0.3em] text-[#9aa3b2]">Availability</p>
           <p
             className={`mt-1 text-sm ${

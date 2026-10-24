@@ -52,6 +52,8 @@ export async function POST(request: Request) {
     phone_verified_at: verifiedAt,
     opted_in: false,
     enabled: false,
+    reservation_opted_in: false,
+    reservation_enabled: false,
     updated_at: verifiedAt,
   }, { onConflict: "user_id" });
   if (preferencesError) {

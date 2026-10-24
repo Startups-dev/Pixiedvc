@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { getAdminInboxContext } from "@/lib/admin-inbox-auth";
 import { applyStoredTwilioSmsCallbacks } from "@/lib/admin-inbox-sms-delivery";
 import { decryptSmsPhone, getSmsConfiguration, sendAdminInboxSms } from "@/lib/admin-inbox-sms";
+import { getCurrentUserAdminState } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -10,10 +11,15 @@ export async function POST() {
   const auth = await getAdminInboxContext();
   if (!auth.ok) return auth.response;
   const db = auth.client;
-  const { data: settings, error } = await db.from("admin_inbox_sms_preferences").select("phone_ciphertext, phone_verified_at, opted_in, enabled")
+  const { data: settings, error } = await db.from("admin_inbox_sms_preferences").select("phone_ciphertext, phone_verified_at, opted_in, enabled, reservation_opted_in, reservation_enabled")
     .eq("user_id", auth.user.id).maybeSingle();
   if (error) return NextResponse.json({ ok: false, error: "SMS_SETTINGS_UNAVAILABLE" }, { status: 503 });
-  if (!settings?.phone_ciphertext || !settings.phone_verified_at || !settings.opted_in || !settings.enabled) {
+  const inboxEnabled = Boolean(settings?.opted_in && settings?.enabled);
+  const reservationEnabled = Boolean(settings?.reservation_opted_in && settings?.reservation_enabled);
+  if (reservationEnabled && !inboxEnabled && !(await getCurrentUserAdminState()).isAdmin) {
+    return NextResponse.json({ ok: false, error: "FORBIDDEN" }, { status: 403 });
+  }
+  if (!settings?.phone_ciphertext || !settings.phone_verified_at || (!inboxEnabled && !reservationEnabled)) {
     return NextResponse.json({ ok: false, error: "SMS_NOT_ENABLED_FOR_THIS_ACCOUNT" }, { status: 409 });
   }
   if (!getSmsConfiguration().ready) return NextResponse.json({ ok: false, error: "SMS_PROVIDER_NOT_CONFIGURED" }, { status: 503 });
@@ -43,7 +49,7 @@ export async function POST() {
     await db.from("admin_inbox_sms_events").update({ status: "failed", error_code: "sms_phone_decryption_failed" }).eq("id", event.id);
     return NextResponse.json({ ok: false, error: "SMS_TEST_UNAVAILABLE" }, { status: 503 });
   }
-  const outcome = await sendAdminInboxSms(phone, "HannaDVC Inbox SMS test. Your alert settings are connected.");
+  const outcome = await sendAdminInboxSms(phone, "HannaDVC admin SMS test. Your alert settings are connected.");
   const update = outcome.status === "accepted" || outcome.status === "delivered"
     ? { status: outcome.status, provider_message_sid: outcome.messageSid, provider_status: outcome.providerStatus, accepted_at: now.toISOString(), delivered_at: outcome.status === "delivered" ? now.toISOString() : null }
     : { status: outcome.status, error_code: outcome.errorCode };

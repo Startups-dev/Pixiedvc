@@ -17,6 +17,8 @@ export type SmsPreferences = {
   enabled: boolean;
   new_inquiry_enabled: boolean;
   assigned_reply_enabled: boolean;
+  reservation_opted_in: boolean;
+  reservation_enabled: boolean;
   escalation_delay_minutes: number;
   quiet_hours_enabled: boolean;
   quiet_hours_start: string | null;
@@ -96,6 +98,13 @@ export function buildInboxEscalationSms(conversationId: string) {
   if (!origin) throw new Error("PUBLIC_APP_ORIGIN_NOT_CONFIGURED");
   const link = `${origin}/admin/inbox?conversation=${encodeURIComponent(conversationId)}`;
   return `HannaDVC Inbox: a conversation needs attention. ${link}`;
+}
+
+export function buildReservationRequestSms(source: "booking" | "renter", requestId: string) {
+  const origin = getZohoPublicAppOrigin();
+  if (!origin) throw new Error("PUBLIC_APP_ORIGIN_NOT_CONFIGURED");
+  const path = source === "renter" ? "/admin/requests/renter/" : "/admin/requests/";
+  return `HannaDVC: New reservation request — availability review needed. ${origin}${path}${encodeURIComponent(requestId)}#availability-review`;
 }
 
 export function parseQuietClock(value: string | null | undefined) {

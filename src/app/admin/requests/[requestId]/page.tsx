@@ -1,6 +1,7 @@
 import RequestWorkstationClient, { type ActivityEntry, type RequestDetailRecord } from './RequestWorkstationClient';
 import { requireAdminUser } from '@/lib/admin';
 import { getSupabaseAdminClient } from '@/lib/supabase-admin';
+import AdminReservationAlertRead from '../AdminReservationAlertRead';
 
 export const dynamic = 'force-dynamic';
 
@@ -192,7 +193,7 @@ export default async function AdminRequestWorkstation({ params }: { params: Prom
     },
   };
 
-  return <RequestWorkstationClient request={request} />;
+  return <><AdminReservationAlertRead requestId={requestId} source="booking" /><RequestWorkstationClient request={request} /></>;
 }
 
 function partyLabel(adults: number | null, youths: number | null) {

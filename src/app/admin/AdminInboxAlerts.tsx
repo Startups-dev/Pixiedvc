@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase";
+import { buildReservationReviewUrl, RESERVATION_ALERT_COPY, type ReservationAlertEvent } from "@/lib/admin-reservation-alerts";
 import AdminInboxSmsSettings from "./AdminInboxSmsSettings";
 import {
   buildInboxConversationUrl,
@@ -23,9 +24,11 @@ import {
   type InboxAlertPreferences,
 } from "@/lib/admin-inbox-alerts";
 
+type AdminAlertEvent = InboxAlertEvent | ReservationAlertEvent;
 type CrossTabMessage =
-  | { type: "alert"; event: InboxAlertEvent; nonce: string }
-  | { type: "badge"; count: number; nonce: string };
+  | { type: "alert"; event: AdminAlertEvent; nonce: string }
+  | { type: "badge"; count: number; nonce: string }
+  | { type: "reservation_badge"; count: number; latest: ReservationAlertEvent | null; nonce: string };
 
 type AlertsPayload = {
   ok?: boolean;
@@ -34,6 +37,23 @@ type AlertsPayload = {
   unreadCount?: number;
   events?: InboxAlertEvent[];
 };
+
+type ReservationAlertsPayload = Omit<AlertsPayload, "events"> & {
+  latestUnread?: ReservationAlertEvent | null;
+  events?: ReservationAlertEvent[];
+};
+
+function isReservationAlert(event: AdminAlertEvent): event is ReservationAlertEvent {
+  return "kind" in event && event.kind === "reservation";
+}
+
+function alertKey(event: AdminAlertEvent) {
+  return isReservationAlert(event) ? `reservation:${event.id}` : event.id;
+}
+
+function alertUrl(event: AdminAlertEvent) {
+  return isReservationAlert(event) ? buildReservationReviewUrl(event) : buildInboxConversationUrl(event.conversationId);
+}
 
 const POLL_INTERVAL_MS = 5_000;
 const LEASE_INTERVAL_MS = 1_000;
@@ -55,17 +75,19 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
   const [preferences, setPreferences] = useState<InboxAlertPreferences>({ ...DEFAULT_INBOX_ALERT_PREFERENCES });
   const preferencesRef = useRef(preferences);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [alerts, setAlerts] = useState<InboxAlertEvent[]>([]);
+  const [reservationUnreadCount, setReservationUnreadCount] = useState(0);
+  const [latestReservationUnread, setLatestReservationUnread] = useState<ReservationAlertEvent | null>(null);
+  const [alerts, setAlerts] = useState<AdminAlertEvent[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsPosition, setSettingsPosition] = useState<{ left: number; top: number } | null>(null);
   const settingsButtonRef = useRef<HTMLButtonElement | null>(null);
   const [soundStatus, setSoundStatus] = useState("");
-  const [soundRecoveryEvent, setSoundRecoveryEvent] = useState<InboxAlertEvent | null>(null);
+  const [soundRecoveryEvent, setSoundRecoveryEvent] = useState<AdminAlertEvent | null>(null);
   const [notificationStatus, setNotificationStatus] = useState("");
   const [coordinationStatus, setCoordinationStatus] = useState("");
   const audioContext = useRef<AudioContext | null>(null);
   const audioUnlocked = useRef(false);
-  const soundRecoveryEventRef = useRef<InboxAlertEvent | null>(null);
+  const soundRecoveryEventRef = useRef<AdminAlertEvent | null>(null);
 
   useEffect(() => { soundRecoveryEventRef.current = soundRecoveryEvent; }, [soundRecoveryEvent]);
 
@@ -73,6 +95,7 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
     preferences: `hannadvc:admin-inbox-alerts:${staffUserId}:preferences`,
     leader: `hannadvc:admin-inbox-alerts:${staffUserId}:leader`,
     cursor: `hannadvc:admin-inbox-alerts:${staffUserId}:cursor`,
+    reservationCursor: `hannadvc:admin-inbox-alerts:${staffUserId}:reservation-cursor`,
     seen: `hannadvc:admin-inbox-alerts:${staffUserId}:seen`,
     events: `hannadvc:admin-inbox-alerts:${staffUserId}:events`,
     channel: `hannadvc-admin-inbox-alerts-${staffUserId}`,
@@ -88,14 +111,14 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
     });
   }, [keys.preferences]);
 
-  const playChime = useCallback(async () => {
+  const playChime = useCallback(async (kind: "inbox" | "reservation" = "inbox") => {
     const AudioContextConstructor = window.AudioContext;
     if (!AudioContextConstructor) throw new Error("A sound-capable browser is not available.");
     const context = audioContext.current ?? new AudioContextConstructor();
     audioContext.current = context;
     await resumeInboxAudio(context);
     const volume = Math.min(1, Math.max(0, preferencesRef.current.volume));
-    const notes = [659.25, 783.99, 987.77];
+    const notes = kind === "reservation" ? [523.25, 783.99, 1046.5, 783.99] : [659.25, 783.99, 987.77];
     notes.forEach((frequency, index) => {
       const start = context.currentTime + index * 0.105;
       const oscillator = context.createOscillator();
@@ -112,19 +135,18 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
     });
   }, []);
 
-  const openDesktopNotification = useCallback((event: InboxAlertEvent) => {
+  const openDesktopNotification = useCallback((event: AdminAlertEvent) => {
     if (!preferencesRef.current.desktopNotificationsEnabled || !("Notification" in window)) return;
     if (Notification.permission !== "granted") return;
     try {
-      const notification = new Notification("HannaDVC Inbox", {
-        body: "A customer message needs your attention.",
+      const notification = new Notification(isReservationAlert(event) ? "HannaDVC reservation request" : "HannaDVC Inbox", {
+        body: isReservationAlert(event) ? RESERVATION_ALERT_COPY : "A customer message needs your attention.",
         icon: "/favicon.ico",
-        tag: `hanna-inbox-${event.id}`,
-        data: { conversationId: event.conversationId },
+        tag: `hanna-${alertKey(event)}`,
       });
       notification.onclick = () => {
         window.focus();
-        window.location.assign(buildInboxConversationUrl(event.conversationId));
+        window.location.assign(alertUrl(event));
         notification.close();
       };
     } catch {
@@ -132,9 +154,9 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
     }
   }, []);
 
-  const displayAlert = useCallback((event: InboxAlertEvent) => {
-    setAlerts((current) => current.some((item) => item.id === event.id) ? current : [...current, event].slice(-3));
-    window.dispatchEvent(new CustomEvent(INBOX_CUSTOMER_MESSAGE_EVENT, { detail: event }));
+  const displayAlert = useCallback((event: AdminAlertEvent) => {
+    setAlerts((current) => current.some((item) => alertKey(item) === alertKey(event)) ? current : [...current, event].slice(-3));
+    if (!isReservationAlert(event)) window.dispatchEvent(new CustomEvent(INBOX_CUSTOMER_MESSAGE_EVENT, { detail: event }));
   }, []);
 
   const updateSettingsPosition = useCallback(() => {
@@ -177,20 +199,22 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
     let active = true;
     let leader = false;
     let pollInFlight = false;
+    let reservationAuthorized = true;
     let lastPollAt = 0;
     let channel: BroadcastChannel | null = null;
     let unsubscribeAuth = () => {};
 
-    const tryPlayAlertSound = (event: InboxAlertEvent) => {
+    const tryPlayAlertSound = (event: AdminAlertEvent) => {
       if (!isSoundEnabled(preferencesRef.current)) return;
       const soundSeenKey = `${keys.seen}:sound`;
-      if (readSeenInboxAlertIds(storage, soundSeenKey).includes(event.id)) return;
+      const key = alertKey(event);
+      if (readSeenInboxAlertIds(storage, soundSeenKey).includes(key)) return;
       if (!audioUnlocked.current) {
         setSoundStatus("Click Enable sound in an open admin tab to activate audio for this browser.");
         setSoundRecoveryEvent(event);
         return;
       }
-      void playInboxAlertSoundOnce(storage, soundSeenKey, event.id, playChime).then((result) => {
+      void playInboxAlertSoundOnce(storage, soundSeenKey, key, () => playChime(isReservationAlert(event) ? "reservation" : "inbox")).then((result) => {
         if (result === "played") {
           setSoundStatus("Sound is playing.");
           setSoundRecoveryEvent((pending) => pending?.id === event.id ? null : pending);
@@ -205,9 +229,14 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
     const receive = (message: CrossTabMessage) => {
       if (!message || typeof message !== "object") return;
       if (message.type === "badge" && Number.isFinite(message.count)) setUnreadCount(Math.max(0, message.count));
-      if (message.type === "alert" && message.event?.id && message.event.conversationId) {
-        if (!localDisplayed.has(message.event.id)) {
-          localDisplayed.add(message.event.id);
+      if (message.type === "reservation_badge" && Number.isFinite(message.count)) {
+        setReservationUnreadCount(Math.max(0, message.count));
+        setLatestReservationUnread(message.latest);
+      }
+      if (message.type === "alert" && message.event?.id && alertUrl(message.event)) {
+        const key = alertKey(message.event);
+        if (!localDisplayed.has(key)) {
+          localDisplayed.add(key);
           displayAlert(message.event);
           tryPlayAlertSound(message.event);
         }
@@ -243,10 +272,19 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
       broadcast({ type: "badge", count, nonce: `${Date.now()}-${tabId}` });
     };
 
+    const announceReservationBadge = (count: number, latest: ReservationAlertEvent | null) => {
+      setReservationUnreadCount(count);
+      setLatestReservationUnread(latest);
+      broadcast({ type: "reservation_badge", count, latest, nonce: `${Date.now()}-${tabId}` });
+    };
+
     const poll = async () => {
       if (!active || pollInFlight) return;
       pollInFlight = true;
+      let inboxUnavailable = false;
+      let reservationUnavailable = false;
       try {
+        try {
         const saved = safeRead(window.localStorage, keys.cursor);
         let savedCursor: { cursor?: string; checkedAt?: number } = {};
         try { savedCursor = saved ? JSON.parse(saved) as typeof savedCursor : {}; } catch { savedCursor = {}; }
@@ -278,11 +316,49 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
           }
         }
         safeWrite(storage, keys.cursor, JSON.stringify({ cursor: payload.cursor, checkedAt }));
-        lastPollAt = checkedAt;
-        setCoordinationStatus("");
+        } catch {
+          inboxUnavailable = true;
+        }
+        if (reservationAuthorized) try {
+        const savedReservation = safeRead(storage, keys.reservationCursor);
+        let reservationCursor: { cursor?: string } = {};
+        try { reservationCursor = savedReservation ? JSON.parse(savedReservation) as typeof reservationCursor : {}; } catch { reservationCursor = {}; }
+        // New installs and expired browser storage still recover recent alerts.
+        const reservationAfter = reservationCursor.cursor && Number.isFinite(Date.parse(reservationCursor.cursor))
+          ? reservationCursor.cursor
+          : new Date(Date.now() - 24 * 60 * 60_000).toISOString();
+        const reservationQuery = `?after=${encodeURIComponent(reservationAfter)}`;
+        const reservationResponse = await fetch(`/api/admin/reservations/alerts${reservationQuery}`, { cache: "no-store", credentials: "same-origin" });
+        if (reservationResponse.status === 401 || reservationResponse.status === 403) {
+          reservationAuthorized = false;
+          announceReservationBadge(0, null);
+        } else {
+          const reservationPayload = await reservationResponse.json().catch(() => null) as ReservationAlertsPayload | null;
+          if (!reservationResponse.ok || !reservationPayload?.ok || !reservationPayload.cursor) throw new Error(reservationPayload?.error ?? "Reservation alerts are unavailable.");
+          announceReservationBadge(reservationPayload.unreadCount ?? 0, reservationPayload.latestUnread ?? null);
+          const checkedAt = Date.now();
+          for (const incoming of reservationPayload.events ?? []) {
+              if (!incoming?.id || !incoming.requestId || !["booking", "renter"].includes(incoming.source)) continue;
+              const key = alertKey(incoming);
+              if (seen.has(key)) continue;
+              seen.add(key);
+              if (!rememberSeenInboxAlertId(storage, keys.seen, key)) continue;
+              localDisplayed.add(key);
+              displayAlert(incoming);
+              tryPlayAlertSound(incoming);
+              broadcast({ type: "alert", event: incoming, nonce: `${checkedAt}-${key}` });
+              openDesktopNotification(incoming);
+          }
+          safeWrite(storage, keys.reservationCursor, JSON.stringify({ cursor: reservationPayload.cursor, checkedAt }));
+        }
+        } catch {
+          reservationUnavailable = true;
+        }
       } catch {
-        setCoordinationStatus("Inbox alerts will reconnect automatically.");
+        inboxUnavailable = true;
       } finally {
+        lastPollAt = Date.now();
+        setCoordinationStatus(inboxUnavailable || reservationUnavailable ? "Admin alerts will reconnect automatically." : "");
         pollInFlight = false;
       }
     };
@@ -336,7 +412,7 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("hanna-admin-signout", onSignedOut);
     };
-  }, [displayAlert, keys.channel, keys.cursor, keys.events, keys.leader, keys.preferences, keys.seen, openDesktopNotification, playChime]);
+  }, [displayAlert, keys.channel, keys.cursor, keys.events, keys.leader, keys.preferences, keys.reservationCursor, keys.seen, openDesktopNotification, playChime]);
 
   async function enableSound() {
     try {
@@ -360,15 +436,15 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
       setSoundStatus("Sound recovery is unavailable in this browser. Try Enable sound, then Test sound.");
       return;
     }
-    const result = await playInboxAlertSoundOnce(storage, `${keys.seen}:sound`, event.id, playChime);
+    const result = await playInboxAlertSoundOnce(storage, `${keys.seen}:sound`, alertKey(event), () => playChime(isReservationAlert(event) ? "reservation" : "inbox"));
     if (result === "played") {
       audioUnlocked.current = true;
       updatePreferences({ soundEnabled: true });
       setSoundRecoveryEvent(null);
-      setSoundStatus("Sound is enabled, and the missed Inbox chime played.");
+      setSoundStatus(isReservationAlert(event) ? "Sound is enabled, and the missed reservation alert played." : "Sound is enabled, and the missed Inbox chime played.");
     } else if (result === "duplicate") {
       setSoundRecoveryEvent(null);
-      setSoundStatus("This Inbox message already chimed in another tab.");
+      setSoundStatus("This alert already chimed in another tab.");
     } else {
       setSoundStatus("Sound playback is still blocked. Check browser audio settings, then try again.");
     }
@@ -411,15 +487,15 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
     }
   }
 
-  async function testSound() {
+  async function testSound(kind: "inbox" | "reservation" = "inbox") {
     if (!preferences.soundEnabled) {
       setSoundStatus("Click Enable sound before testing it.");
       return;
     }
     try {
       audioUnlocked.current = true;
-      await playChime();
-      setSoundStatus("Test sound played.");
+      await playChime(kind);
+      setSoundStatus(kind === "reservation" ? "Reservation sound played." : "Test sound played.");
     } catch {
       setSoundStatus("Sound playback was blocked. Click Enable sound again, then Test sound.");
     }
@@ -429,7 +505,7 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
     <div className="relative flex items-center gap-2">
       {soundRecoveryEvent ? (
         <div role="alert" className="fixed bottom-4 right-4 z-[60] w-[min(28rem,calc(100vw-2rem))] rounded-xl border border-amber-300/70 bg-[#20232a] p-4 text-sm text-white shadow-2xl">
-          <p className="font-semibold">The Inbox chime could not play.</p>
+          <p className="font-semibold">{soundRecoveryEvent && isReservationAlert(soundRecoveryEvent) ? "The reservation sound could not play." : "The Inbox chime could not play."}</p>
           <p className="mt-1 text-xs leading-5 text-slate-300">Your browser may need another sound gesture. Recover the missed chime here.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" onClick={() => void recoverBlockedSound()} className="rounded-md bg-[#d8b65c] px-3 py-2 text-xs font-semibold text-[#15171d]">Enable sound &amp; play missed chime</button>
@@ -440,6 +516,10 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
       <Link href="/admin/inbox" className="inline-flex items-center gap-2 text-slate-300 hover:text-white">
         Inbox
         {unreadCount > 0 ? <span aria-label={`${unreadCount} unread conversations`} className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#d8b65c] px-1.5 py-0.5 text-[11px] font-bold text-[#15171d]">{unreadCount > 99 ? "99+" : unreadCount}</span> : null}
+      </Link>
+      <Link href={latestReservationUnread ? buildReservationReviewUrl(latestReservationUnread) : "/admin/requests"} className="inline-flex items-center gap-2 text-slate-300 hover:text-white">
+        Requests
+        {reservationUnreadCount > 0 ? <span aria-label={`${reservationUnreadCount} unread reservation requests`} className="inline-flex min-w-5 items-center justify-center rounded-full bg-amber-400 px-1.5 py-0.5 text-[11px] font-bold text-[#15171d]">{reservationUnreadCount > 99 ? "99+" : reservationUnreadCount}</span> : null}
       </Link>
       <button
         ref={settingsButtonRef}
@@ -457,13 +537,14 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
 
       {settingsOpen ? (
         <section id="admin-inbox-alert-settings" aria-label="Inbox alert settings" style={settingsPosition ?? undefined} className="fixed z-50 max-h-[calc(100dvh-7rem)] w-[min(24rem,calc(100vw-1.5rem))] overflow-y-auto rounded-xl border border-slate-600 bg-[#20232a] p-4 text-sm text-slate-100 shadow-2xl">
-          <h2 className="font-semibold text-white">Inbox alerts</h2>
-          <p className="mt-1 text-xs leading-5 text-slate-300">Keep an admin tab open for alerts. Browser or computer sleep and notification settings can pause them. Alerts do not work when the browser is closed.</p>
+          <h2 className="font-semibold text-white">Admin alerts</h2>
+          <p className="mt-1 text-xs leading-5 text-slate-300">Keep an admin tab open for Inbox and reservation sounds and desktop notifications. Browser or computer sleep can pause them. Persistent request badges remain when you return.</p>
           <div className="mt-4 space-y-4">
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <button type="button" onClick={() => void enableSound()} className="rounded-md bg-[#d8b65c] px-3 py-1.5 text-xs font-semibold text-[#15171d]">Enable sound</button>
                 <button type="button" onClick={() => void testSound()} className="rounded-md border border-slate-500 px-3 py-1.5 text-xs hover:bg-slate-700">Test sound</button>
+                <button type="button" onClick={() => void testSound("reservation")} className="rounded-md border border-slate-500 px-3 py-1.5 text-xs hover:bg-slate-700">Test reservation sound</button>
                 <label className="ml-auto inline-flex items-center gap-2 text-xs"><input type="checkbox" checked={preferences.muted} onChange={(event) => updatePreferences({ muted: event.target.checked })} /> Mute</label>
               </div>
               <label className="mt-3 flex items-center gap-3 text-xs text-slate-300">Volume
@@ -485,13 +566,13 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
         </section>
       ) : null}
 
-      <div aria-live="polite" aria-label="New Inbox messages" className="fixed right-4 top-20 z-[100] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2">
+      <div aria-live="polite" aria-label="Admin alerts" className="fixed right-4 top-20 z-[100] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2">
         {alerts.map((alert) => (
-          <div key={alert.id} className="rounded-xl border border-[#d8b65c]/60 bg-[#20232a] p-4 text-sm text-white shadow-2xl">
-            <p className="font-semibold">New customer message</p>
+          <div key={alertKey(alert)} className="rounded-xl border border-[#d8b65c]/60 bg-[#20232a] p-4 text-sm text-white shadow-2xl">
+            <p className="font-semibold">{isReservationAlert(alert) ? RESERVATION_ALERT_COPY : "New customer message"}</p>
             <div className="mt-3 flex items-center justify-between gap-3">
-              <Link href={buildInboxConversationUrl(alert.conversationId)} onClick={() => setAlerts((current) => current.filter((item) => item.id !== alert.id))} className="rounded-md bg-[#d8b65c] px-3 py-1.5 text-xs font-semibold text-[#15171d]">Open conversation</Link>
-              <button type="button" onClick={() => setAlerts((current) => current.filter((item) => item.id !== alert.id))} aria-label="Dismiss new message alert" className="text-xs text-slate-300 underline">Dismiss</button>
+              <Link href={alertUrl(alert)} onClick={() => setAlerts((current) => current.filter((item) => alertKey(item) !== alertKey(alert)))} className="rounded-md bg-[#d8b65c] px-3 py-1.5 text-xs font-semibold text-[#15171d]">{isReservationAlert(alert) ? "Review dates" : "Open conversation"}</Link>
+              <button type="button" onClick={() => setAlerts((current) => current.filter((item) => alertKey(item) !== alertKey(alert)))} aria-label={isReservationAlert(alert) ? "Dismiss reservation alert" : "Dismiss new message alert"} className="text-xs text-slate-300 underline">Dismiss</button>
             </div>
           </div>
         ))}

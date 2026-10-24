@@ -7,6 +7,8 @@ type Settings = {
   phoneVerified: boolean;
   optedIn: boolean;
   enabled: boolean;
+  reservationOptedIn: boolean;
+  reservationEnabled: boolean;
   newInquiryEnabled: boolean;
   assignedReplyEnabled: boolean;
   escalationDelayMinutes: number;
@@ -27,7 +29,7 @@ type SettingsResponse = {
 };
 
 const DEFAULT_SETTINGS: Settings = {
-  phoneLast4: null, phoneVerified: false, optedIn: false, enabled: false,
+  phoneLast4: null, phoneVerified: false, optedIn: false, enabled: false, reservationOptedIn: false, reservationEnabled: false,
   newInquiryEnabled: true, assignedReplyEnabled: true, escalationDelayMinutes: 5,
   quietHoursEnabled: false, quietHoursStart: "22:00", quietHoursEnd: "08:00", timeZone: "America/Toronto",
 };
@@ -86,7 +88,7 @@ export default function AdminInboxSmsSettings() {
     setLoading(true);
     void requestJson("/api/admin/inbox/sms/settings").then((payload) => {
       if (!active) return;
-      setSettings(payload.settings ?? DEFAULT_SETTINGS);
+      setSettings({ ...DEFAULT_SETTINGS, ...payload.settings });
       setConfigurationReady(payload.configuration?.ready === true);
     }).catch(() => {
       if (active) setStatus("SMS settings could not be loaded. Try again.");
@@ -95,7 +97,7 @@ export default function AdminInboxSmsSettings() {
   }, [open]);
 
   async function saveSettings(next = settings) {
-    if ((next.optedIn || next.enabled) && !settings.phoneVerified) {
+    if ((next.optedIn || next.enabled || next.reservationOptedIn || next.reservationEnabled) && !settings.phoneVerified) {
       setStatus("Verify your phone before saving consent or enabling SMS alerts.");
       return;
     }
@@ -144,7 +146,7 @@ export default function AdminInboxSmsSettings() {
       const result = await requestJson("/api/admin/inbox/sms/verify/confirm", { method: "POST", body: JSON.stringify({ challengeId, code }) });
       // Keep a consent choice made while entering the number. It is persisted
       // only when the user saves after the phone has been verified.
-      setSettings((current) => ({ ...current, phoneLast4: result.phoneLast4 ?? null, phoneVerified: true, enabled: false }));
+      setSettings((current) => ({ ...current, phoneLast4: result.phoneLast4 ?? null, phoneVerified: true, enabled: false, reservationEnabled: false, reservationOptedIn: false }));
       setChallengeId(null);
       setPhone("");
       setCode("");
@@ -177,7 +179,7 @@ export default function AdminInboxSmsSettings() {
       {!open ? <p className="mt-1 text-xs text-slate-400">Optional staff alerts by text. Off by default.</p> : null}
       {open ? (
         <div className="mt-3 space-y-3 text-xs text-slate-200">
-          <p className="leading-5 text-slate-300">SMS is sent only if an inquiry stays unanswered after the delay. Messages include a private Admin Inbox link, never customer details. Alerts require a running server scheduler.</p>
+          <p className="leading-5 text-slate-300">Inbox texts wait for unanswered messages. Reservation request texts use a separate immediate opt-in and are queued without the Inbox delay. Text previews contain a private admin link, never customer details. The scheduler sends queued texts.</p>
           {!configurationReady ? <p role="status" className="rounded-md border border-amber-400/40 bg-amber-950/30 p-2 text-amber-100">SMS sending is not configured yet. A production Twilio sender and secure credentials are required.</p> : null}
           {loading ? <p className="text-slate-400">Loading SMS settings…</p> : null}
           {settings.phoneVerified ? (
@@ -216,7 +218,18 @@ export default function AdminInboxSmsSettings() {
             </label>
             <label className="flex items-center gap-2"><input type="checkbox" checked={settings.newInquiryEnabled} onChange={(event) => setSettings((value) => ({ ...value, newInquiryEnabled: event.target.checked }))} /> New inquiries not yet claimed</label>
             <label className="flex items-center gap-2"><input type="checkbox" checked={settings.assignedReplyEnabled} onChange={(event) => setSettings((value) => ({ ...value, assignedReplyEnabled: event.target.checked }))} /> Customer replies on conversations assigned to me</label>
+          </fieldset>
+          <div className="space-y-2 rounded-md border border-amber-500/40 p-3">
+            <p className="font-semibold text-amber-100">Reservation request SMS</p>
+            <p className="leading-5 text-slate-300">Sent for a newly submitted request at the next worker run, usually within one minute. This setting is independent of Inbox escalation. No old requests are texted when you enable it.</p>
+            <label className="flex items-start gap-2"><input type="checkbox" checked={settings.reservationOptedIn} onChange={(event) => setSettings((value) => ({ ...value, reservationOptedIn: event.target.checked, reservationEnabled: event.target.checked && value.reservationEnabled }))} /> I agree to receive immediate operational reservation request texts.</label>
+            <label className="flex items-start gap-2"><input type="checkbox" checked={settings.reservationEnabled} disabled={!settings.phoneVerified || !settings.reservationOptedIn || !configurationReady} onChange={(event) => setSettings((value) => ({ ...value, reservationEnabled: event.target.checked }))} /> Enable reservation request SMS</label>
+            {!settings.phoneVerified ? <p className="pl-6 text-slate-400">Verify your phone first.</p> : null}
+          </div>
+          <fieldset disabled={!settings.enabled && !settings.reservationEnabled} className="space-y-3 rounded-md border border-slate-700 p-3 disabled:opacity-60">
+            <legend className="px-1 font-semibold">Quiet hours for both SMS alert types</legend>
             <label className="flex items-center gap-2"><input type="checkbox" checked={settings.quietHoursEnabled} onChange={(event) => setSettings((value) => ({ ...value, quietHoursEnabled: event.target.checked }))} /> Use quiet hours</label>
+            <p className="text-slate-400">During quiet hours, even immediate reservation texts wait until the configured end time. The worker checks consent and authorization again before sending.</p>
             {settings.quietHoursEnabled ? <div className="grid grid-cols-2 gap-2">
               <label>From <input type="time" value={settings.quietHoursStart} onChange={(event) => setSettings((value) => ({ ...value, quietHoursStart: event.target.value }))} className="mt-1 w-full rounded border border-slate-600 bg-[#17191f] px-2 py-1 text-white" /></label>
               <label>Until <input type="time" value={settings.quietHoursEnd} onChange={(event) => setSettings((value) => ({ ...value, quietHoursEnd: event.target.value }))} className="mt-1 w-full rounded border border-slate-600 bg-[#17191f] px-2 py-1 text-white" /></label>
@@ -228,7 +241,7 @@ export default function AdminInboxSmsSettings() {
           {status ? <p role="status" aria-live="polite" className="rounded-md bg-slate-800 px-3 py-2 text-slate-100">{status}</p> : null}
           <div className="flex flex-wrap gap-2">
             <button disabled={saving} type="button" onClick={() => void saveSettings()} className="rounded-md bg-[#d8b65c] px-3 py-2 font-semibold text-[#15171d] disabled:opacity-50">Save SMS settings</button>
-            <button disabled={saving || !configurationReady || !settings.enabled || !settings.optedIn} type="button" onClick={() => void sendTest()} className="rounded-md border border-slate-500 px-3 py-2 hover:bg-slate-700 disabled:opacity-50">Send test SMS</button>
+            <button disabled={saving || !configurationReady || !(settings.enabled && settings.optedIn) && !(settings.reservationEnabled && settings.reservationOptedIn)} type="button" onClick={() => void sendTest()} className="rounded-md border border-slate-500 px-3 py-2 hover:bg-slate-700 disabled:opacity-50">Send test SMS</button>
           </div>
           <p className="text-[11px] leading-4 text-slate-400">Up to 1 text per minute, 3 per hour, and 10 per day per staff phone. Quiet hours use local time. Preferences and your phone number are private to staff services.</p>
         </div>

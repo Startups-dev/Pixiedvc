@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { createHash } from "node:crypto";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
@@ -28,11 +29,21 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
   }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(parsed.data.check_in) || !/^\d{4}-\d{2}-\d{2}$/.test(parsed.data.check_out)
+    || parsed.data.check_out <= parsed.data.check_in) {
+    return NextResponse.json({ error: "Check-out must be after check-in." }, { status: 400 });
+  }
 
   const admin = getSupabaseAdminClient();
   if (!admin) {
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
+
+  const submissionKey = createHash("sha256").update(JSON.stringify([
+    user.id, parsed.data.resort_id ?? null, parsed.data.room_type,
+    parsed.data.check_in, parsed.data.check_out, parsed.data.adults,
+    parsed.data.children, parsed.data.max_price_per_point ?? null,
+  ])).digest("hex");
 
   const { data, error } = await admin
     .from("renter_requests")
@@ -46,11 +57,18 @@ export async function POST(request: Request) {
       children: parsed.data.children,
       max_price_per_point: parsed.data.max_price_per_point ?? null,
       status: "submitted",
+      submission_key: submissionKey,
     })
     .select("id, renter_id, resort_id, room_type, check_in, check_out, adults, children, max_price_per_point, status")
     .single();
 
   if (error) {
+    if (error.code === "23505") {
+      const { data: existing } = await admin.from("renter_requests")
+        .select("id, renter_id, resort_id, room_type, check_in, check_out, adults, children, max_price_per_point, status")
+        .eq("submission_key", submissionKey).eq("renter_id", user.id).eq("status", "submitted").maybeSingle();
+      if (existing) return NextResponse.json({ ok: true, request: existing });
+    }
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
