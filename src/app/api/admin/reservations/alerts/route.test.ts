@@ -6,10 +6,8 @@ const state = vi.hoisted(() => ({
   update: vi.fn(),
 }));
 
-vi.mock("@/lib/admin-reservation-alerts", async (load) => {
-  const actual = await load<typeof import("@/lib/admin-reservation-alerts")>();
+vi.mock("@/lib/admin-reservation-alerts-server", () => {
   return {
-    ...actual,
     getAdminReservationAlertContext: async () => state.authorized
       ? { ok: true, userId: "admin-1", client: {
         from: () => ({

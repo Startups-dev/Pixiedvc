@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { getAdminReservationAlertContext, toReservationAlertEvent } from "@/lib/admin-reservation-alerts";
+import { toReservationAlertEvent } from "@/lib/admin-reservation-alerts";
+import { getAdminReservationAlertContext } from "@/lib/admin-reservation-alerts-server";
 
 export const dynamic = "force-dynamic";
 

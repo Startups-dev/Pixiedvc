@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { getAdminReservationAlertContext, validRenterRequestId } from "@/lib/admin-reservation-alerts";
+import { validRenterRequestId } from "@/lib/admin-reservation-alerts";
+import { getAdminReservationAlertContext } from "@/lib/admin-reservation-alerts-server";
 
 const VALID_STATUSES = new Set(["available", "unavailable", "needs_clarification"]);
 
