@@ -6,6 +6,9 @@ const insertBookingMock = vi.fn();
 const attachBookingAttributionMock = vi.fn();
 let capturedBookingInsert: Record<string, unknown> | null = null;
 let queryOps: Array<{ op: string; column: string; value?: unknown }> = [];
+let adminClientMock: typeof authClientMock | null = null;
+let testSwitchEnabled = true;
+let activeSignatureRows: Array<Record<string, unknown>> = [];
 
 let authClientMock: {
   auth: { getUser: ReturnType<typeof vi.fn> };
@@ -17,14 +20,14 @@ vi.mock("@/lib/supabase-server", () => ({
 }));
 
 vi.mock("@/lib/supabase-admin", () => ({
-  getSupabaseAdminClient: vi.fn(() => null),
+  getSupabaseAdminClient: vi.fn(() => adminClientMock),
 }));
 
 vi.mock("@/lib/booking-attribution", () => ({
   attachBookingAttribution: (...args: unknown[]) => attachBookingAttributionMock(...args),
 }));
 
-function bookingRequest(trip: Record<string, unknown>) {
+function bookingRequest(trip: Record<string, unknown>, testBooking = false) {
   return new Request("http://localhost/api/booking/create", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -47,7 +50,10 @@ function bookingRequest(trip: Record<string, unknown>) {
         acceptTerms: true,
         authorizeDeposit: true,
         signedName: "Fernanda Reis",
+        gateway: testBooking ? "stripe" : undefined,
       },
+      depositAmount: testBooking ? 99 : undefined,
+      testBooking,
     }),
   });
 }
@@ -84,6 +90,9 @@ describe("POST /api/booking/create DVC accommodation identity", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     capturedBookingInsert = null;
+    adminClientMock = null;
+    testSwitchEnabled = true;
+    activeSignatureRows = [];
     queryOps = [];
     insertBookingMock.mockImplementation((payload: Record<string, unknown>) => {
       capturedBookingInsert = payload;
@@ -102,6 +111,9 @@ describe("POST /api/booking/create DVC accommodation identity", () => {
         }),
       },
       from: vi.fn((table: string) => {
+        if (table === "app_settings") {
+          return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { value: { enabled: testSwitchEnabled, auth_user_id: "4de38521-9534-4b81-b54e-81e6b7c58539" } }, error: null }) }) }) };
+        }
         if (table === "resorts") {
           return makeSelectMaybeSingle({
             id: "resort-blt",
@@ -111,7 +123,11 @@ describe("POST /api/booking/create DVC accommodation identity", () => {
         }
         if (table === "booking_requests") {
           return {
-            select: vi.fn(() => makeThenableQuery()),
+            select: vi.fn((columns: string) => makeThenableQuery(
+              columns.includes("is_test_booking")
+                ? { data: activeSignatureRows, error: null }
+                : { data: [], error: null },
+            )),
             insert: insertBookingMock,
           };
         }
@@ -147,6 +163,58 @@ describe("POST /api/booking/create DVC accommodation identity", () => {
       }),
     );
     expect(queryOps).toContainEqual({ op: "eq", column: "primary_view", value: "L" });
+  });
+
+  test("allowlisted guest creates a TEST draft with zero paid and no attribution", async () => {
+    const allowed = "4de38521-9534-4b81-b54e-81e6b7c58539";
+    authClientMock.auth.getUser.mockResolvedValue({ data: { user: { id: allowed } }, error: null });
+    adminClientMock = authClientMock;
+    const response = await POST(bookingRequest({
+      resortId: "BLT", villaType: "STUDIO", viewType: "L",
+      checkIn: "2026-09-01", checkOut: "2026-09-03", points: 32, estCash: 704,
+    }, true));
+    expect(response.status).toBe(200);
+    expect(capturedBookingInsert).toEqual(expect.objectContaining({
+      status: "draft", is_test_booking: true, deposit_status: "test_pending",
+      deposit_due: 99, deposit_paid: 0, accepted_terms: false, accepted_insurance: false,
+    }));
+    expect(attachBookingAttributionMock).not.toHaveBeenCalled();
+  });
+
+  test("other guests cannot create a TEST booking", async () => {
+    const response = await POST(bookingRequest({
+      resortId: "BLT", villaType: "STUDIO", viewType: "L",
+      checkIn: "2026-09-01", checkOut: "2026-09-03", points: 32, estCash: 704,
+    }, true));
+    expect(response.status).toBe(403);
+    expect(insertBookingMock).not.toHaveBeenCalled();
+  });
+
+  test("TEST itinerary is rejected before insert when an existing non-TEST draft has the active signature", async () => {
+    const allowed = "4de38521-9534-4b81-b54e-81e6b7c58539";
+    authClientMock.auth.getUser.mockResolvedValue({ data: { user: { id: allowed } }, error: null });
+    adminClientMock = authClientMock;
+    activeSignatureRows = [{ id: "existing-real-draft", is_test_booking: false, primary_view: "S", building_preference: "none" }];
+    const response = await POST(bookingRequest({
+      resortId: "BLT", villaType: "STUDIO", viewType: "L",
+      checkIn: "2026-09-01", checkOut: "2026-09-03", points: 32, estCash: 704,
+    }, true));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: "TEST_ITINERARY_ALREADY_ACTIVE" });
+    expect(insertBookingMock).not.toHaveBeenCalled();
+  });
+
+  test("the designated guest cannot bypass when the live switch is off", async () => {
+    const allowed = "4de38521-9534-4b81-b54e-81e6b7c58539";
+    authClientMock.auth.getUser.mockResolvedValue({ data: { user: { id: allowed } }, error: null });
+    adminClientMock = authClientMock;
+    testSwitchEnabled = false;
+    const response = await POST(bookingRequest({
+      resortId: "BLT", villaType: "STUDIO", viewType: "L",
+      checkIn: "2026-09-01", checkOut: "2026-09-03", points: 32, estCash: 704,
+    }, true));
+    expect(response.status).toBe(403);
+    expect(insertBookingMock).not.toHaveBeenCalled();
   });
 
   test("rejects invalid exact room/view combination", async () => {

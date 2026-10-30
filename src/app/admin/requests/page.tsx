@@ -9,6 +9,7 @@ type RequestRow = {
   request_number: number | null;
   renter_id: string | null;
   status: string | null;
+  is_test_booking: boolean;
   created_at: string;
   updated_at: string | null;
   check_in: string | null;
@@ -36,7 +37,7 @@ export default async function AdminRequestsPage() {
   const { data: requestRows, error } = await supabase
     .from('booking_requests')
     .select(
-      'id, request_number, renter_id, status, created_at, updated_at, check_in, check_out, primary_room, adults, youths, max_price_per_point, lead_guest_name, lead_guest_email, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)'
+      'id, request_number, renter_id, status, is_test_booking, created_at, updated_at, check_in, check_out, primary_room, adults, youths, max_price_per_point, lead_guest_name, lead_guest_email, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)'
     )
     .order('updated_at', { ascending: false })
     .order('created_at', { ascending: false })
@@ -71,12 +72,13 @@ export default async function AdminRequestsPage() {
     }
   }
 
-  const records: RequestInboxRecord[] = (requestRows ?? []).map((row: RequestRow) => {
+  const records: RequestInboxRecord[] = ((requestRows ?? []) as unknown as RequestRow[]).map((row) => {
     const renter = row.renter_id ? profileMap.get(row.renter_id) : null;
     return {
       id: row.id,
       requestNumber: row.request_number ?? null,
       status: row.status ?? 'submitted',
+      isTestBooking: row.is_test_booking,
       createdAt: row.created_at,
       updatedAt: row.updated_at ?? row.created_at,
       checkIn: row.check_in,

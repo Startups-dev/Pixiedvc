@@ -516,6 +516,7 @@ async function loadDataset(range: AffiliateAnalyticsDateRange, affiliateId?: str
           "id, affiliate_id, affiliate_click_id, visitor_session_row_id, visitor_session_id, visitor_id, referral_code, attribution_source, referral_utm_source, referral_utm_medium, referral_utm_campaign, created_at, status, check_in, check_out, primary_room, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)",
         )
         .not("affiliate_id", "is", null)
+        .eq("is_test_booking", false)
         .gte("created_at", startIso)
         .lte("created_at", endIso)
         .order("created_at", { ascending: false })

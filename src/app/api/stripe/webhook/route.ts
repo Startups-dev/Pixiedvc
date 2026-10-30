@@ -99,6 +99,11 @@ export async function POST(request: Request) {
     if (shouldProcess && bookingId) {
       const supabase = getSupabaseAdminClient();
       if (supabase) {
+        const { data: booking, error: bookingLookupError } = await supabase
+          .from("booking_requests").select("is_test_booking").eq("id", bookingId).maybeSingle();
+        if (bookingLookupError || booking?.is_test_booking) {
+          return NextResponse.json({ received: true, ignored: "test_or_unverified_booking" });
+        }
         let data: unknown = null;
         let error: unknown = null;
 

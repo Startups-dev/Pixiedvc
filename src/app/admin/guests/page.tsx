@@ -77,6 +77,7 @@ export default async function AdminGuestsPage() {
       'id, renter_id, status, created_at, updated_at, check_in, check_out, primary_room, secondary_resort_id, tertiary_resort_id, adults, youths, total_points, max_price_per_point, availability_status, availability_checked_at, lead_guest_name, lead_guest_email, affiliate_id, affiliate_click_id, visitor_session_row_id, visitor_session_id, visitor_id, attribution_source, referral_code, referral_utm_source, referral_utm_medium, referral_utm_campaign, referral_utm_term, referral_utm_content, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name), affiliate:affiliates!booking_requests_affiliate_id_fkey(id, display_name, email, slug, status, tier)',
     )
     .order('created_at', { ascending: false })
+    .eq('is_test_booking', false)
     .limit(75);
 
   if (error) {
@@ -115,7 +116,7 @@ export default async function AdminGuestsPage() {
       return 0;
     }
     try {
-      let query = metricsClient.from('booking_requests').select('id', { count: 'exact', head: true });
+      let query = metricsClient.from('booking_requests').select('id', { count: 'exact', head: true }).eq('is_test_booking', false);
       if (applyFilter) {
         query = applyFilter(query);
       }
@@ -136,7 +137,7 @@ export default async function AdminGuestsPage() {
     }
   }
 
-  const statusPromise = (metricsClient ?? supabase).from('booking_requests').select('status');
+  const statusPromise = (metricsClient ?? supabase).from('booking_requests').select('status').eq('is_test_booking', false);
 
   const metricsPromise = metricsClient
     ? Promise.all([

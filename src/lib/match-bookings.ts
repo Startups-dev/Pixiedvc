@@ -26,6 +26,7 @@ function computeUseYearEnd(useYearStart: string) {
 
 type BookingRow = {
   id: string;
+  is_test_booking: boolean;
   primary_resort_id: string | null;
   total_points: number | null;
   status: string | null;
@@ -238,6 +239,7 @@ export async function evaluateMatchBookings(options: {
     .select(
       `
         id,
+        is_test_booking,
         primary_resort_id,
         total_points,
         status,
@@ -255,6 +257,7 @@ export async function evaluateMatchBookings(options: {
       `,
     )
     .order('created_at', { ascending: false })
+    .eq('is_test_booking', false)
     .limit(limit);
 
   if (bookingId) {
@@ -298,6 +301,7 @@ export async function evaluateMatchBookings(options: {
     const candidateRejectionCounts: Record<string, number> = {};
     const depositOk = computeDepositOk(booking);
 
+    if (booking.is_test_booking) skipReasons.push('test_booking');
     if (!matchableStatuses.has(booking.status)) {
       skipReasons.push('booking_status_not_pending_match');
     }
@@ -315,6 +319,7 @@ export async function evaluateMatchBookings(options: {
     }
 
     const baseIneligibleReasons = new Set([
+      'test_booking',
       'booking_status_not_pending_match',
       'missing_primary_resort_id',
       'missing_total_points',

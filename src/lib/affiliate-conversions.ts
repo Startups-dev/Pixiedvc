@@ -358,6 +358,7 @@ export async function ensureAffiliateConversionForBooking({
     .select(
       [
         'id',
+        'is_test_booking',
         'affiliate_id',
         'affiliate_click_id',
         'visitor_session_row_id',
@@ -386,6 +387,9 @@ export async function ensureAffiliateConversionForBooking({
       reason: bookingError ? 'booking_lookup_failed' : 'booking_not_found',
     });
     return { created: false, eligible: false, reason: bookingError ? 'booking_lookup_failed' : 'booking_not_found' };
+  }
+  if ((bookingData as { is_test_booking?: boolean }).is_test_booking) {
+    return { created: false, eligible: false, reason: 'test_booking' };
   }
 
   const booking = bookingData as unknown as BookingRow;

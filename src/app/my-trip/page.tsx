@@ -112,6 +112,7 @@ export default async function MyTripIndexPage() {
     `
     )
     .eq("renter_id", user.id)
+    .eq("is_test_booking", false)
     .order("created_at", { ascending: false });
 
   const trips: TripRow[] = (data as TripRow[]) ?? [];
@@ -143,6 +144,7 @@ export default async function MyTripIndexPage() {
         `
         )
         .in("id", contractTripIds)
+        .eq("is_test_booking", false)
         .order("created_at", { ascending: false });
 
       if (fallbackTrips?.length) {

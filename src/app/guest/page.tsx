@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 type GuestRequest = {
   id: string;
   status: string;
+  is_test_booking: boolean;
   created_at: string;
   check_in: string | null;
   check_out: string | null;
@@ -47,12 +48,12 @@ export default async function GuestDashboard() {
 
   const { data } = await supabase
     .from("booking_requests")
-    .select("id, status, created_at, check_in, check_out, room_type:primary_room, adults, youths, total_points, resort:resorts!booking_requests_primary_resort_id_fkey(name)")
+    .select("id, status, is_test_booking, created_at, check_in, check_out, room_type:primary_room, adults, youths, total_points, resort:resorts!booking_requests_primary_resort_id_fkey(name)")
     .eq("renter_id", user.id)
     .in("status", ["submitted", "pending_match", "pending_owner", "matched", "confirmed", "cancelled"])
     .order("created_at", { ascending: false });
 
-  const requests = (data ?? []) as GuestRequest[];
+  const requests = (data ?? []) as unknown as GuestRequest[];
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-6 py-12">
@@ -93,6 +94,7 @@ export default async function GuestDashboard() {
                 <div className="grid gap-4 px-2 md:grid-cols-[2fr_1.4fr_1fr] md:items-center">
                   <div className="space-y-1">
                     <p className="text-base font-semibold text-slate-900">{request.resort?.name ?? "Any resort"}</p>
+                    {request.is_test_booking ? <p className="text-xs font-bold text-amber-800">TEST · No deposit paid · No reservation confirmed</p> : null}
                     <p className="text-xs text-slate-500">
                       {request.room_type ?? "Room type TBD"} · {adultsLabel(request)}
                     </p>

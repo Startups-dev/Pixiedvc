@@ -9,6 +9,7 @@ import type { AgreementInput } from "../schemas";
 type AgreementProps = {
   onBack: () => void;
   onSubmit: () => void;
+  onTestSubmit?: () => void;
   estimatedDeposit: number;
   showCaptchaField?: boolean;
 };
@@ -26,6 +27,7 @@ const stripeMethod: { id: AgreementInput["gateway"]; label: string; description:
 export function AgreementAndPayment({
   onBack,
   onSubmit,
+  onTestSubmit,
   estimatedDeposit,
   showCaptchaField = false,
 }: AgreementProps) {
@@ -38,6 +40,7 @@ export function AgreementAndPayment({
 
   const selectedGateway = watch("agreement.gateway") ?? "stripe";
   const [isSubmitting, setSubmitting] = useState(false);
+  const [testAcknowledged, setTestAcknowledged] = useState(false);
 
   useEffect(() => {
     if (selectedGateway !== "stripe") {
@@ -54,15 +57,20 @@ export function AgreementAndPayment({
     }
   };
 
+  const handleTestSubmit = async () => {
+    if (!onTestSubmit || !testAcknowledged) return;
+    setSubmitting(true);
+    try { await onTestSubmit(); } finally { setSubmitting(false); }
+  };
+
   return (
     <div className="mx-auto max-w-4xl">
       <Card className="border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
         <div className="space-y-2 border-b border-slate-200 pb-6">
           <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Agreement</p>
-          <h3 className="font-display text-3xl text-ink">Review and place your refundable deposit</h3>
+          <h3 className="font-display text-3xl text-ink">{onTestSubmit ? "Complete your TEST request" : "Review and place your refundable deposit"}</h3>
           <p className="text-sm text-slate-500">
-            Deposits are fully refundable if PixieDVC cannot match you with a qualifying owner inside the
-            service window.
+            {onTestSubmit ? "This test path does not charge a deposit or create a real reservation." : "Deposits are fully refundable if PixieDVC cannot match you with a qualifying owner inside the service window."}
           </p>
           {showCaptchaField ? (
             <div>
@@ -77,7 +85,7 @@ export function AgreementAndPayment({
           ) : null}
         </div>
 
-        <div className="mt-6 space-y-6">
+        {!onTestSubmit ? <div className="mt-6 space-y-6">
           <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-6 shadow-sm">
             <h4 className="font-display text-2xl text-ink">Reservation Summary</h4>
             <p className="mt-2 text-sm text-slate-500">
@@ -117,9 +125,9 @@ export function AgreementAndPayment({
             </div>
           </div>
 
-        </div>
+        </div> : null}
 
-        {errors.agreement && !errors.agreement?.signedName ? (
+        {!onTestSubmit && errors.agreement && !errors.agreement?.signedName ? (
           <HelperText>Accept the terms and complete card payment to continue.</HelperText>
         ) : null}
 
@@ -127,10 +135,23 @@ export function AgreementAndPayment({
           <Button onClick={onBack} variant="ghost">
             Back
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
+          {!onTestSubmit ? <Button onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? "Processing..." : "Submit & Place Deposit"}
-          </Button>
+          </Button> : null}
         </div>
+        {onTestSubmit ? (
+          <div className="mt-5 rounded-2xl border border-amber-400 bg-amber-50 p-4 text-sm text-slate-800">
+            <p className="font-semibold">TEST booking option</p>
+            <p className="mt-1">This submits a test request without a charge, paid deposit, owner match, or confirmed booking.</p>
+            <label className="mt-3 flex items-start gap-2">
+              <input type="checkbox" checked={testAcknowledged} onChange={(event) => setTestAcknowledged(event.target.checked)} />
+              I understand this is a test request and no reservation is confirmed.
+            </label>
+            <Button onClick={handleTestSubmit} disabled={isSubmitting || !testAcknowledged}>
+              Complete Test Booking — No Charge
+            </Button>
+          </div>
+        ) : null}
       </Card>
     </div>
   );

@@ -140,6 +140,18 @@ export function BookingFlow({
   const didRestoreDraftRef = useRef(false);
   const { ref } = useReferral();
   const isReadyStaysFlow = flowLabel === READY_STAYS_FLOW_LABEL;
+  const currentStep = stepOrder[stepIndex] ?? stepOrder[0];
+  const [testGuestEligible, setTestGuestEligible] = useState(false);
+
+  useEffect(() => {
+    if (isReadyStaysFlow || currentStep !== "agreement") return;
+    let active = true;
+    void fetch("/api/booking/test-eligibility", { credentials: "same-origin", cache: "no-store" })
+      .then(async (response) => response.ok ? response.json() as Promise<{ eligible?: boolean }> : null)
+      .then((result) => { if (active) setTestGuestEligible(result?.eligible === true); })
+      .catch(() => { if (active) setTestGuestEligible(false); });
+    return () => { active = false; };
+  }, [isReadyStaysFlow, currentStep]);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -301,7 +313,6 @@ export function BookingFlow({
     window.localStorage.setItem(GUEST_BOOKING_DRAFT_KEY, JSON.stringify(draft));
   };
 
-  const currentStep = stepOrder[stepIndex] ?? stepOrder[0];
   const displayedStep = stepIndex + 1 + stepDisplayOffset;
   const displayedTotalSteps = totalStepsOverride ?? 3;
 
@@ -387,10 +398,10 @@ export function BookingFlow({
     return true;
   };
 
-  const handleComplete = form.handleSubmit(async (values) => {
+  const handleComplete = (mode: "stripe" | "test") => form.handleSubmit(async (values) => {
     setError(null);
     try {
-      if (!(await validateStep("agreement"))) {
+      if (mode === "stripe" && !(await validateStep("agreement"))) {
         return;
       }
       const maxOccupancy = getMaxOccupancyForSelection({
@@ -404,7 +415,9 @@ export function BookingFlow({
         setError("Please choose a guest count that fits the villa’s maximum occupancy.");
         return;
       }
-      const parsed = bookingFlowSchema.parse(values);
+      const parsed = mode === "test"
+        ? { trip: tripDetailsSchema.parse(values.trip), guest: guestInfoSchema.parse(values.guest), agreement: values.agreement }
+        : bookingFlowSchema.parse(values);
 
       if (!isReadyStaysFlow) {
         const supabase = supabaseBrowser();
@@ -507,6 +520,7 @@ export function BookingFlow({
           },
           depositAmount,
           referral_code: ref ?? null,
+          testBooking: mode === "test",
         }),
       });
 
@@ -530,6 +544,20 @@ export function BookingFlow({
 
       if (process.env.NODE_ENV !== "production") {
         console.info("[book] booking created id", { booking_request_id: json.bookingId });
+      }
+
+      if (mode === "test") {
+        const completion = await fetch("/api/booking/test-complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ bookingId: json.bookingId }),
+        });
+        const result = await completion.json().catch(() => null) as { ok?: boolean; error?: string } | null;
+        if (!completion.ok || !result?.ok) throw new Error(result?.error ?? "Unable to complete test booking.");
+        clearGuestDraft();
+        onComplete(json.bookingId);
+        return;
       }
 
       if (parsed.agreement.gateway === "stripe") {
@@ -851,7 +879,8 @@ export function BookingFlow({
                 ) : (
                   <AgreementAndPayment
                     onBack={prevStep}
-                    onSubmit={handleComplete}
+                    onSubmit={() => handleComplete("stripe")()}
+                    onTestSubmit={testGuestEligible && depositAmount === 99 ? () => handleComplete("test")() : undefined}
                     estimatedDeposit={depositAmount}
                     showCaptchaField={isReadyStaysFlow}
                   />

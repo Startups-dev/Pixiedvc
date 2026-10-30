@@ -15,9 +15,10 @@ function createQueryResult(data: unknown, error: unknown = null) {
   });
 }
 
-function makeClient(ownerLifecycleStatus: "active" | "suspended" | "deactivated") {
+function makeClient(ownerLifecycleStatus: "active" | "suspended" | "deactivated", testBooking = false) {
   const booking = {
     id: "booking-1",
+    is_test_booking: testBooking,
     primary_resort_id: "resort-1",
     total_points: 100,
     status: "pending_match",
@@ -86,6 +87,14 @@ function makeClient(ownerLifecycleStatus: "active" | "suspended" | "deactivated"
 }
 
 describe("owner lifecycle matching safety", () => {
+  it("never offers a TEST booking to a real owner even with a matchable status and deposit", async () => {
+    const result = await runMatchBookings({
+      client: makeClient("active", true), dryRun: true, bookingId: "booking-1", sendEmails: false,
+      now: new Date("2026-01-01T00:00:00.000Z"),
+    });
+    expect(result.matchesCreated).toBe(0);
+    expect(result.evaluatedBookings[0]?.skipReasons).toContain("test_booking");
+  });
   it("keeps active owners matchable", async () => {
     const result = await runMatchBookings({
       client: makeClient("active"),

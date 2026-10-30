@@ -203,7 +203,8 @@ export default async function TripDetailsPage({
       confirmed_resort:resorts!booking_requests_confirmed_resort_id_fkey(name, slug, calculator_code)
     `,
     )
-    .eq("id", tripId);
+    .eq("id", tripId)
+    .eq("is_test_booking", false);
 
   if (!isAdmin) {
     bookingQuery = bookingQuery.eq("renter_id", user.id);
@@ -238,6 +239,7 @@ export default async function TripDetailsPage({
     `,
     )
     .eq("renter_id", user.id)
+    .eq("is_test_booking", false)
     .order("created_at", { ascending: false });
 
   const { data: contract } = await relationClient

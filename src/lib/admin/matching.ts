@@ -472,7 +472,8 @@ async function fetchUnmatchedGuests(options: {
     .from('booking_requests')
     .select(
       'id, status, check_in, check_out, total_points, primary_resort_id, lead_guest_email, lead_guest_name, created_at',
-    );
+    )
+    .eq('is_test_booking', false);
 
   if (filters.bookingStatus) {
     bookingQuery = bookingQuery.eq('status', filters.bookingStatus);

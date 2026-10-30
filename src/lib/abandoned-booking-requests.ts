@@ -115,6 +115,7 @@ export async function runAbandonedBookingRequestRecovery(params?: {
       'id, renter_id, status, created_at, updated_at, lead_guest_name, lead_guest_email, lead_guest_phone, address_line1, city, state, postal_code, country, comments, check_in, check_out, primary_resort_id, adults, youths, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)',
     )
     .eq('status', 'draft')
+    .eq('is_test_booking', false)
     .lte('updated_at', cutoffIso)
     .order('updated_at', { ascending: true })
     .limit(MAX_CANDIDATES_PER_RUN);

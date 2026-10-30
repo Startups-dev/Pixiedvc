@@ -41,6 +41,13 @@ export async function GET(request: Request) {
   if (session.payment_status === "paid" && bookingId && amountPaid) {
     const supabase = getSupabaseAdminClient();
     if (supabase) {
+      const { data: booking, error: lookupError } = await supabase
+        .from("booking_requests").select("is_test_booking").eq("id", bookingId).maybeSingle();
+      if (lookupError || !booking || booking.is_test_booking) {
+        return wantsJson
+          ? NextResponse.json({ confirmed: false, error: "Booking cannot use Stripe confirmation." }, { status: 409 })
+          : NextResponse.redirect(new URL("/book?deposit=failed", url.origin));
+      }
       const { error: bookingError } = await supabase
         .from("booking_requests")
         .update({

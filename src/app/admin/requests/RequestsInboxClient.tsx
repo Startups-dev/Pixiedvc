@@ -7,6 +7,7 @@ export type RequestInboxRecord = {
   id: string;
   requestNumber: number | null;
   status: string;
+  isTestBooking: boolean;
   createdAt: string;
   updatedAt: string;
   checkIn: string | null;
@@ -125,6 +126,7 @@ export default function RequestsInboxClient({
                     </span>
                     <p className="mt-2 text-sm font-semibold text-[#e6e8ec]">
                       {request.renterName ?? request.renterEmail ?? 'Unknown guest'}
+                      {request.isTestBooking ? <span className="ml-2 rounded bg-amber-300 px-2 py-0.5 text-xs font-bold text-black">TEST</span> : null}
                     </p>
                     <p className="text-xs text-[#9aa3b2]">{request.renterEmail ?? 'No email'}</p>
                     <p className="mt-1 text-xs text-[#6b7280] md:hidden">{formatDates(request.checkIn, request.checkOut)}</p>

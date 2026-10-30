@@ -78,16 +78,19 @@ const recoveryState = vi.hoisted(() => ({
   getSupabaseAdminClient: vi.fn(() => ({
     from: (table: string) => {
       if (table === 'booking_requests') {
-        return {
-          select: () => ({
-            eq: () => ({
-              lte: () => ({
-                order: () => ({
-                  limit: async () => ({ data: recoveryState.bookings, error: null }),
-                }),
-              }),
-            }),
+        const filters: Array<[string, unknown]> = [];
+        const query = {
+          eq: (column: string, value: unknown) => { filters.push([column, value]); return query; },
+          lte: () => query,
+          order: () => query,
+          limit: async () => ({
+            data: recoveryState.bookings.filter((booking) => filters.every(([column, value]) =>
+              (booking as Record<string, unknown>)[column] === value || (column === 'is_test_booking' && !('is_test_booking' in booking) && value === false))),
+            error: null,
           }),
+        };
+        return {
+          select: () => query,
         };
       }
 
@@ -164,5 +167,19 @@ describe('abandoned booking request recovery', () => {
     expect(result.sent).toBe(0);
     expect(result.skipped).toContainEqual({ bookingId: 'draft-1', reason: 'already_reminded' });
     expect(recoveryState.sendAbandonedGuestBookingRequestEmail).not.toHaveBeenCalled();
+  });
+
+  it('does not email an abandoned TEST draft', async () => {
+    const testDraft = { ...recoveryState.bookings[0], id: 'test-draft', is_test_booking: true };
+    recoveryState.bookings.push(testDraft as typeof recoveryState.bookings[number]);
+    try {
+      const result = await runAbandonedBookingRequestRecovery({ now: new Date('2026-01-01T11:00:00.000Z') });
+      expect(result.candidates).toBe(1);
+      expect(recoveryState.sendAbandonedGuestBookingRequestEmail).not.toHaveBeenCalledWith(
+        expect.objectContaining({ relatedEntityId: 'test-draft' }),
+      );
+    } finally {
+      recoveryState.bookings.pop();
+    }
   });
 });

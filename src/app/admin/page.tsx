@@ -549,7 +549,7 @@ async function countBookingRequests(
   applyFilter?: (query: FilterableAdminQuery) => FilterableAdminQuery,
 ) {
   try {
-    let query = supabase.from('booking_requests').select('id', { count: 'exact', head: true });
+    let query = supabase.from('booking_requests').select('id', { count: 'exact', head: true }).eq('is_test_booking', false);
     if (applyFilter) {
       query = applyFilter(query);
     }
@@ -597,7 +597,7 @@ async function fetchOwnerSummary(supabase: AdminClient) {
 
 async function fetchLatestBookingRequests(supabase: AdminClient, filters: BookingRequestFilters): Promise<PaginatedResult<ReturnType<typeof mapBookingRow>>> {
   const pageSize = PAGE_SIZE;
-  const countQuery = applyBookingFilters(supabase.from('booking_requests').select('id', { count: 'exact', head: true }), filters);
+  const countQuery = applyBookingFilters(supabase.from('booking_requests').select('id', { count: 'exact', head: true }).eq('is_test_booking', false), filters);
   const { count: total = 0, error: countError } = await countQuery;
   if (countError) {
     console.warn('Failed to count booking requests', {
@@ -618,7 +618,8 @@ async function fetchLatestBookingRequests(supabase: AdminClient, filters: Bookin
       .select(
         'id, lead_guest_name, lead_guest_email, check_in, check_out, status, created_at, primary_room, total_points, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name)',
       )
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .eq('is_test_booking', false),
     filters,
   ).range(offset, offset + pageSize - 1);
 

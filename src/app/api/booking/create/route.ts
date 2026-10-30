@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { attachBookingAttribution } from "@/lib/booking-attribution";
+import { isDesignatedTestGuest, isTestBookingEnabled } from "@/lib/test-guest-booking";
 import { resolveCalculatorCode } from "@/lib/resort-calculator";
 import {
   getDvcAccommodationOptions,
@@ -74,6 +75,7 @@ type BookingPayload = {
   agreement?: AgreementPayload;
   depositAmount?: number;
   referral_code?: string | null;
+  testBooking?: boolean;
 };
 
 function asString(value: unknown) {
@@ -200,7 +202,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "AUTH_REQUIRED" }, { status: 401 });
     }
 
+    const testBooking = payload.testBooking === true;
+    if (testBooking && (!isDesignatedTestGuest(user.id) || !(await isTestBookingEnabled()))) {
+      return NextResponse.json({ error: "TEST_BOOKING_FORBIDDEN" }, { status: 403 });
+    }
+    if (testBooking && (payload.depositAmount !== 99 || agreement.gateway !== "stripe")) {
+      return NextResponse.json({ error: "INVALID_TEST_DEPOSIT" }, { status: 400 });
+    }
+
     const adminClient = getSupabaseAdminClient();
+    if (testBooking && !adminClient) {
+      return NextResponse.json({ error: "TEST_BOOKING_UNAVAILABLE" }, { status: 503 });
+    }
     const supabase = adminClient ?? authClient;
 
     const resortIdRaw = asString(trip.resortId);
@@ -320,11 +333,11 @@ export async function POST(request: Request) {
     if (!asString(guest.region)) fieldErrors["guest.region"] = "State / Province is required.";
     if (!asString(guest.postalCode)) fieldErrors["guest.postalCode"] = "Postal code is required.";
     if (!asString(guest.country)) fieldErrors["guest.country"] = "Country is required.";
-    if (!agreement.acceptTerms) fieldErrors["agreement.acceptTerms"] = "You must accept the terms.";
-    if (!agreement.authorizeDeposit) {
+    if (!testBooking && !agreement.acceptTerms) fieldErrors["agreement.acceptTerms"] = "You must accept the terms.";
+    if (!testBooking && !agreement.authorizeDeposit) {
       fieldErrors["agreement.authorizeDeposit"] = "You must authorize the refundable deposit.";
     }
-    if (!asString(agreement.signedName)) {
+    if (!testBooking && !asString(agreement.signedName)) {
       fieldErrors["agreement.signedName"] = "Please type your full name.";
     }
 
@@ -344,7 +357,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const bookingStatus = agreement.gateway === "stripe" ? "draft" : "submitted";
+    const bookingStatus = testBooking || agreement.gateway === "stripe" ? "draft" : "submitted";
 
     const signature = {
       renter_id: user.id,
@@ -365,11 +378,37 @@ export async function POST(request: Request) {
 
     if (signatureComplete) {
       const activeStatuses = ["draft", "submitted", "pending_match", "pending_owner"];
+      if (testBooking) {
+        // Match the production unique index exactly. View and building are not in that index.
+        const { data: activeSignatureRows, error: activeSignatureError } = await supabase
+          .from("booking_requests")
+          .select("id, is_test_booking, primary_view, building_preference")
+          .eq("renter_id", user.id)
+          .eq("primary_resort_id", resortId)
+          .eq("check_in", checkIn)
+          .eq("check_out", checkOut)
+          .eq("total_points", totalPoints)
+          .eq("primary_room", primaryRoom)
+          .in("status", activeStatuses)
+          .limit(1);
+        if (activeSignatureError) {
+          return NextResponse.json({ error: "TEST_ITINERARY_CHECK_UNAVAILABLE" }, { status: 503 });
+        }
+        const activeSignature = activeSignatureRows?.[0];
+        if (activeSignature && (
+          !activeSignature.is_test_booking ||
+          activeSignature.primary_view !== primaryView ||
+          activeSignature.building_preference !== persistedBuildingPreference
+        )) {
+          return NextResponse.json({ error: "TEST_ITINERARY_ALREADY_ACTIVE" }, { status: 409 });
+        }
+      }
       const findExisting = async (includeBuildingPreference: boolean) => {
         let query = supabase
           .from("booking_requests")
           .select("id, status, updated_at")
           .eq("renter_id", user.id)
+          .eq("is_test_booking", testBooking)
           .in("status", activeStatuses)
           .order("updated_at", { ascending: false })
           .limit(1);
@@ -405,7 +444,7 @@ export async function POST(request: Request) {
             signature,
           });
         }
-        await attachBookingAttribution(existing.id, {
+        if (!testBooking) await attachBookingAttribution(existing.id, {
           source: "booking_api",
           referralCode: payload.referral_code,
           client: supabase,
@@ -416,6 +455,8 @@ export async function POST(request: Request) {
     const bookingInsertBase = {
       renter_id: user.id,
       status: bookingStatus,
+      is_test_booking: testBooking,
+      deposit_status: testBooking ? "test_pending" : null,
       check_in: checkIn,
       check_out: checkOut,
       nights,
@@ -449,10 +490,10 @@ export async function POST(request: Request) {
       deposit_due: asNumber(payload.depositAmount) ?? null,
       deposit_paid: 0,
       deposit_currency: "USD",
-      accepted_terms: Boolean(agreement.acceptTerms),
-      accepted_insurance: Boolean(agreement.authorizeDeposit),
+      accepted_terms: !testBooking && Boolean(agreement.acceptTerms),
+      accepted_insurance: !testBooking && Boolean(agreement.authorizeDeposit),
       guest_profile_complete_at: hasGuestProfile ? nowIso : null,
-      guest_agreement_accepted_at: agreementAccepted ? nowIso : null,
+      guest_agreement_accepted_at: !testBooking && agreementAccepted ? nowIso : null,
       updated_at: nowIso,
     };
 
@@ -482,6 +523,7 @@ export async function POST(request: Request) {
           .from("booking_requests")
           .select("id, status, updated_at")
           .eq("renter_id", user.id)
+          .eq("is_test_booking", testBooking)
           .in("status", activeStatuses)
           .order("updated_at", { ascending: false })
           .limit(1);
@@ -509,7 +551,7 @@ export async function POST(request: Request) {
               signature,
             });
           }
-          await attachBookingAttribution(retryExisting.id, {
+          if (!testBooking) await attachBookingAttribution(retryExisting.id, {
             source: "booking_api",
             referralCode: payload.referral_code,
             client: supabase,
@@ -534,7 +576,7 @@ export async function POST(request: Request) {
       });
     }
 
-    await attachBookingAttribution(booking.id, {
+    if (!testBooking) await attachBookingAttribution(booking.id, {
       source: "booking_api",
       referralCode: payload.referral_code,
       client: supabase,

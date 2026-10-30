@@ -17,6 +17,8 @@ type BookingRequestRow = {
   id: string;
   renter_id: string | null;
   status: string | null;
+  is_test_booking: boolean;
+  deposit_status: string | null;
   created_at: string | null;
   updated_at: string | null;
   check_in: string | null;
@@ -82,7 +84,7 @@ export default async function GuestRequestPage({
   const { data, error } = await supabase
     .from("booking_requests")
     .select(
-      "id, renter_id, status, created_at, updated_at, check_in, check_out, primary_room, primary_view, adults, youths, total_points, max_price_per_point, est_cash, guest_total_cents, guest_rate_per_point_cents, requires_accessibility, comments, lead_guest_name, lead_guest_email, lead_guest_phone, address_line1, address_line2, city, state, postal_code, country, deposit_due, deposit_paid, deposit_currency, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name,slug)",
+      "id, renter_id, status, is_test_booking, deposit_status, created_at, updated_at, check_in, check_out, primary_room, primary_view, adults, youths, total_points, max_price_per_point, est_cash, guest_total_cents, guest_rate_per_point_cents, requires_accessibility, comments, lead_guest_name, lead_guest_email, lead_guest_phone, address_line1, address_line2, city, state, postal_code, country, deposit_due, deposit_paid, deposit_currency, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name,slug)",
     )
     .eq("id", params.requestId)
     .eq("renter_id", user.id)
@@ -165,15 +167,16 @@ export default async function GuestRequestPage({
               >
                 ← Back to reservations
               </Link>
-              <Link
+              {!request.is_test_booking ? <Link
                 href={`/my-trip/${request.id}`}
                 className="text-[#4457c7] hover:text-[#263891]"
               >
                 Open My Vacation
-              </Link>
+              </Link> : null}
             </div>
             <div className="mt-5 space-y-4">
               <div className="flex flex-wrap items-center gap-3">
+                {request.is_test_booking ? <span className="rounded-full bg-amber-200 px-3 py-1.5 text-sm font-bold text-amber-950">TEST · No charge · No reservation confirmed</span> : null}
                 <span className="inline-flex rounded-full bg-[#eef2ff] px-3 py-1.5 text-sm font-medium text-[#4457c7] shadow-[0_8px_18px_rgba(68,87,199,0.12)]">
                   {formatStatus(request.status)}
                 </span>

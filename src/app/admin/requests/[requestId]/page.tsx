@@ -8,6 +8,8 @@ export const dynamic = 'force-dynamic';
 type RequestRow = {
   id: string;
   status: string | null;
+  is_test_booking: boolean;
+  deposit_status: string | null;
   availability_status: string | null;
   availability_checked_at: string | null;
   check_in: string | null;
@@ -86,7 +88,7 @@ export default async function AdminRequestWorkstation({ params }: { params: Prom
   const { data: requestRow } = await supabase
     .from('booking_requests')
     .select(
-      'id, status, availability_status, availability_checked_at, check_in, check_out, primary_room, max_price_per_point, adults, youths, lead_guest_name, lead_guest_email, lead_guest_phone, phone, address_line1, address_line2, city, state, postal_code, country, requires_accessibility, comments, affiliate_id, affiliate_click_id, visitor_session_row_id, visitor_session_id, visitor_id, attribution_source, referral_code, referral_utm_source, referral_utm_medium, referral_utm_campaign, referral_utm_term, referral_utm_content, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name), affiliate:affiliates!booking_requests_affiliate_id_fkey(id, display_name, email, slug, status, tier)',
+      'id, status, is_test_booking, deposit_status, availability_status, availability_checked_at, check_in, check_out, primary_room, max_price_per_point, adults, youths, lead_guest_name, lead_guest_email, lead_guest_phone, phone, address_line1, address_line2, city, state, postal_code, country, requires_accessibility, comments, affiliate_id, affiliate_click_id, visitor_session_row_id, visitor_session_id, visitor_id, attribution_source, referral_code, referral_utm_source, referral_utm_medium, referral_utm_campaign, referral_utm_term, referral_utm_content, primary_resort:resorts!booking_requests_primary_resort_id_fkey(name), affiliate:affiliates!booking_requests_affiliate_id_fkey(id, display_name, email, slug, status, tier)',
     )
     .eq('id', requestId)
     .maybeSingle();
@@ -143,6 +145,8 @@ export default async function AdminRequestWorkstation({ params }: { params: Prom
 
   const request: RequestDetailRecord = {
     id: row.id,
+    isTestBooking: row.is_test_booking,
+    depositStatus: row.deposit_status,
     status: row.status,
     availabilityStatus: row.availability_status ?? null,
     availabilityCheckedAt: row.availability_checked_at ?? null,

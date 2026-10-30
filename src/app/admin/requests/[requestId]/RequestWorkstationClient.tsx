@@ -28,6 +28,8 @@ export type ActivityEntry = {
 };
 
 export type RequestDetailRecord = {
+  isTestBooking: boolean;
+  depositStatus: string | null;
   id: string;
   status: string | null;
   availabilityStatus: string | null;
@@ -169,7 +171,8 @@ export default function RequestWorkstationClient({ request }: { request: Request
           <p className="text-sm text-[#9aa3b2]">{request.renterEmail ?? 'No email on file'}</p>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <SummaryStat label="Status" value={STATUS_LABELS[request.status ?? ''] ?? request.status ?? '—'} />
+            <SummaryStat label="Status" value={`${request.isTestBooking ? 'TEST · ' : ''}${STATUS_LABELS[request.status ?? ''] ?? request.status ?? '—'}`} />
+            {request.isTestBooking ? <SummaryStat label="Deposit" value={request.depositStatus === 'test_bypassed' ? 'TEST bypass · $0 paid' : 'TEST pending · $0 paid'} /> : null}
             <SummaryStat
               label="Availability"
               value={

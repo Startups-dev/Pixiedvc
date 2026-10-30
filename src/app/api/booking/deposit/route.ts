@@ -41,19 +41,19 @@ async function createStripeCheckoutSession(request: Request, payload: DepositReq
   }
 
   const supabase = getSupabaseAdminClient();
-  if (supabase) {
-    const { data: bookingRow } = await supabase
-      .from("booking_requests")
-      .select("id")
-      .eq("id", bookingId)
-      .maybeSingle();
-    if (!bookingRow) {
-      if (process.env.NODE_ENV !== "production") {
-        console.info("[booking/deposit] booking id not found", { booking_request_id: bookingId });
-      }
-      return { error: "Booking not found." };
+  if (!supabase) return { error: "Booking verification unavailable." };
+  const { data: bookingRow } = await supabase
+    .from("booking_requests")
+    .select("id, is_test_booking")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!bookingRow) {
+    if (process.env.NODE_ENV !== "production") {
+      console.info("[booking/deposit] booking id not found", { booking_request_id: bookingId });
     }
+    return { error: "Booking not found." };
   }
+  if (bookingRow.is_test_booking) return { error: "Test bookings cannot use Stripe." };
 
   const amountCents = Math.round(amount * 100);
   const origin = getOrigin(request);
@@ -164,6 +164,11 @@ export async function GET(request: Request) {
   if (session.payment_status === "paid" && bookingId && amountPaid) {
     const supabase = getSupabaseAdminClient();
     if (supabase) {
+      const { data: booking, error: lookupError } = await supabase
+        .from("booking_requests").select("is_test_booking").eq("id", bookingId).maybeSingle();
+      if (lookupError || !booking || booking.is_test_booking) {
+        return NextResponse.redirect(new URL("/book?deposit=failed", url.origin));
+      }
       await supabase
         .from("booking_requests")
         .update({

@@ -35,12 +35,15 @@ export async function POST(request: Request) {
 
   const { data: existing, error: existingError } = await supabase
     .from('booking_requests')
-    .select('status')
+    .select('status, is_test_booking')
     .eq('id', requestId)
     .maybeSingle();
 
   if (existingError || !existing) {
     return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+  }
+  if (existing.is_test_booking) {
+    return NextResponse.json({ error: 'TEST booking status is restricted' }, { status: 409 });
   }
 
   const { error: updateError } = await supabase

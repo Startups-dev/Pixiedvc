@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
   const { data: existing, error: existingError } = await adminClient
     .from('booking_requests')
-    .select('id, status, availability_status')
+    .select('id, status, availability_status, is_test_booking')
     .eq('id', requestId)
     .maybeSingle();
 
@@ -41,6 +41,9 @@ export async function POST(request: Request) {
       });
     }
     return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+  }
+  if (existing.is_test_booking) {
+    return NextResponse.json({ error: 'TEST bookings cannot enter real matching' }, { status: 409 });
   }
 
   const nowIso = new Date().toISOString();
