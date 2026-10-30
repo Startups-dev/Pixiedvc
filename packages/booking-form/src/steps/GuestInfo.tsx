@@ -15,6 +15,7 @@ import {
 import type { GuestInfoInput, TripDetailsInput } from "../schemas";
 import { getMaxOccupancyForSelection, suggestNextVillaType } from "@/lib/occupancy";
 import { usePlacesAutocomplete } from "@/hooks/usePlacesAutocomplete";
+import { CountrySelect } from "./CountrySelect";
 
 type GuestInfoProps = {
   onNext: () => void | Promise<void>;
@@ -419,18 +420,21 @@ export function GuestInfo({
                     </div>
                     <div className="sm:col-span-2">
                       <FieldLabel htmlFor="guest.country">Country</FieldLabel>
-                      <select
-                        id="guest.country"
-                        {...register("guest.country")}
-                        className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                      >
-                        <option value="United States">United States</option>
-                        <option value="Canada">Canada</option>
-                        <option value="United Kingdom">United Kingdom</option>
-                        <option value="Mexico">Mexico</option>
-                        <option value="Brazil">Brazil</option>
-                        <option value="Australia">Australia</option>
-                      </select>
+                      <Controller
+                        name="guest.country"
+                        control={control}
+                        render={({ field }) => (
+                          <CountrySelect
+                            id="guest.country"
+                            value={field.value ?? ""}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            inputRef={field.ref}
+                            invalid={Boolean(errors.guest?.country)}
+                          />
+                        )}
+                      />
+                      {errors.guest?.country ? <div id="guest.country-error"><HelperText>{errors.guest.country.message}</HelperText></div> : null}
                     </div>
                     <div className="sm:col-span-2">
                       <FieldLabel htmlFor="guest.address">Address</FieldLabel>
