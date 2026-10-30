@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { ensureAffiliateConversionForBooking } from "@/lib/affiliate-conversions";
+import { getAppBaseUrl } from "@/lib/app-url";
+
+function redirectToApp(path: string) {
+  const baseUrl = getAppBaseUrl();
+  if (!baseUrl) return NextResponse.json({ error: "Application URL unavailable." }, { status: 503 });
+  return NextResponse.redirect(new URL(path, `${baseUrl}/`));
+}
 
 export async function GET(request: Request) {
   const secretKey = process.env.STRIPE_SECRET_KEY ?? "";
@@ -13,7 +20,7 @@ export async function GET(request: Request) {
     if (wantsJson) {
       return NextResponse.json({ confirmed: false, error: "Missing secret or session id." }, { status: 400 });
     }
-    return NextResponse.redirect(new URL("/book?deposit=failed", url.origin));
+    return redirectToApp("/book?deposit=failed");
   }
 
   const response = await fetch(`https://api.stripe.com/v1/checkout/sessions/${sessionId}`, {
@@ -46,7 +53,7 @@ export async function GET(request: Request) {
       if (lookupError || !booking || booking.is_test_booking) {
         return wantsJson
           ? NextResponse.json({ confirmed: false, error: "Booking cannot use Stripe confirmation." }, { status: 409 })
-          : NextResponse.redirect(new URL("/book?deposit=failed", url.origin));
+          : redirectToApp("/book?deposit=failed");
       }
       const { error: bookingError } = await supabase
         .from("booking_requests")
@@ -96,7 +103,7 @@ export async function GET(request: Request) {
       });
     }
 
-    return NextResponse.redirect(new URL(`/guest?booking=${encodeURIComponent(bookingId)}`, url.origin));
+    return redirectToApp(`/guest?booking=${encodeURIComponent(bookingId)}`);
   }
 
   if (wantsJson) {
@@ -109,5 +116,5 @@ export async function GET(request: Request) {
     });
   }
 
-  return NextResponse.redirect(new URL("/book?deposit=failed", url.origin));
+  return redirectToApp("/book?deposit=failed");
 }

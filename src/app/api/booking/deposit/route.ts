@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { ensureAffiliateConversionForBooking } from "@/lib/affiliate-conversions";
+import { getAppBaseUrl } from "@/lib/app-url";
 
 type DepositRequest = {
   bookingId?: string;
@@ -21,11 +22,13 @@ function asNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-function getOrigin(request: Request) {
-  return request.headers.get("origin") ?? "http://localhost:3005";
+function redirectToApp(path: string) {
+  const baseUrl = getAppBaseUrl();
+  if (!baseUrl) return NextResponse.json({ error: "Application URL unavailable." }, { status: 503 });
+  return NextResponse.redirect(new URL(path, `${baseUrl}/`));
 }
 
-async function createStripeCheckoutSession(request: Request, payload: DepositRequest) {
+async function createStripeCheckoutSession(payload: DepositRequest) {
   const secretKey = process.env.STRIPE_SECRET_KEY ?? "";
   if (!secretKey) {
     return { error: "Stripe secret key is missing." };
@@ -56,9 +59,10 @@ async function createStripeCheckoutSession(request: Request, payload: DepositReq
   if (bookingRow.is_test_booking) return { error: "Test bookings cannot use Stripe." };
 
   const amountCents = Math.round(amount * 100);
-  const origin = getOrigin(request);
-  const successUrl = `${origin}/pay/deposit/success?booking_request_id=${encodeURIComponent(bookingId)}&session_id={CHECKOUT_SESSION_ID}`;
-  const cancelUrl = `${origin}/book?deposit=cancelled`;
+  const baseUrl = getAppBaseUrl();
+  if (!baseUrl) return { error: "Application URL unavailable." };
+  const successUrl = `${baseUrl}/pay/deposit/success?booking_request_id=${encodeURIComponent(bookingId)}&session_id={CHECKOUT_SESSION_ID}`;
+  const cancelUrl = `${baseUrl}/book?deposit=cancelled`;
 
   const params = new URLSearchParams();
   params.set("mode", "payment");
@@ -120,7 +124,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unsupported gateway." }, { status: 400 });
     }
 
-    const result = await createStripeCheckoutSession(request, payload);
+    const result = await createStripeCheckoutSession(payload);
     if ("error" in result) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
@@ -142,7 +146,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const sessionId = url.searchParams.get("session_id") ?? "";
   if (!secretKey || !sessionId) {
-    return NextResponse.redirect(new URL("/book?deposit=failed", url.origin));
+    return redirectToApp("/book?deposit=failed");
   }
 
   const response = await fetch(`https://api.stripe.com/v1/checkout/sessions/${sessionId}`, {
@@ -167,7 +171,7 @@ export async function GET(request: Request) {
       const { data: booking, error: lookupError } = await supabase
         .from("booking_requests").select("is_test_booking").eq("id", bookingId).maybeSingle();
       if (lookupError || !booking || booking.is_test_booking) {
-        return NextResponse.redirect(new URL("/book?deposit=failed", url.origin));
+        return redirectToApp("/book?deposit=failed");
       }
       await supabase
         .from("booking_requests")
@@ -194,8 +198,8 @@ export async function GET(request: Request) {
       });
     }
 
-    return NextResponse.redirect(new URL(`/guest?booking=${encodeURIComponent(bookingId)}`, url.origin));
+    return redirectToApp(`/guest?booking=${encodeURIComponent(bookingId)}`);
   }
 
-  return NextResponse.redirect(new URL("/book?deposit=failed", url.origin));
+  return redirectToApp("/book?deposit=failed");
 }
