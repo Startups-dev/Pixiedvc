@@ -372,7 +372,8 @@ export function BookingFlow({
     const onlyMiddleInitialErrors =
       Object.keys(fieldErrors).length > 0 &&
       Object.keys(fieldErrors).every((path) => path.endsWith("MiddleInitial") || path.endsWith(".middleInitial"));
-    setError(onlyMiddleInitialErrors ? null : `Please complete required fields in ${getStepLabel(resolvedStep)}.`);
+    const accommodationError = fieldErrors["trip.viewType"] ?? fieldErrors["trip.villaType"];
+    setError(onlyMiddleInitialErrors ? null : accommodationError ?? `Please complete required fields in ${getStepLabel(resolvedStep)}.`);
     focusAndScrollToInvalid();
   };
 
@@ -503,6 +504,12 @@ export function BookingFlow({
       ]
         .filter(Boolean)
         .join("\n\n");
+      // Keep display labels in the form, but submit the quote's exact identity.
+      // Edited/restored selections must instead be resolved by the server.
+      const matchesQuotedAccommodation =
+        parsed.trip.resortId === prefill.resortId &&
+        parsed.trip.villaType === prefill.villaType &&
+        parsed.trip.viewType === prefill.viewType;
       const response = await fetch("/api/booking/create", {
         method: "POST",
         headers: {
@@ -510,6 +517,12 @@ export function BookingFlow({
         },
         body: JSON.stringify({
           ...parsed,
+          trip: {
+            ...parsed.trip,
+            ...(matchesQuotedAccommodation && prefill.roomCode && prefill.viewCode
+              ? { villaType: prefill.roomCode, viewType: prefill.viewCode }
+              : {}),
+          },
           guest: {
             ...parsed.guest,
             leadGuest: leadGuestName,

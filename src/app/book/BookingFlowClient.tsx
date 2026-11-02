@@ -81,6 +81,8 @@ export default function BookingFlowClient({
           resortName?: string;
           villaType?: string;
           viewType?: string;
+          room?: string;
+          view?: string;
           pricingTier?: string;
           checkIn?: string;
           checkOut?: string;
@@ -106,6 +108,8 @@ export default function BookingFlowClient({
         resortName: resolvedResort?.name ?? quote.resortName ?? prefill.resortName,
         villaType: quote.villaType ?? prefill.villaType,
         viewType: quote.viewType ?? prefill.viewType,
+        roomCode: quote.room,
+        viewCode: quote.view,
         pricingTier: quote.pricingTier ?? prefill.pricingTier,
         checkIn: quote.checkIn ?? prefill.checkIn,
         checkOut: quote.checkOut ?? prefill.checkOut,

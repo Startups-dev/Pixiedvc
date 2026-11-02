@@ -3,6 +3,8 @@ export type Prefill = {
   resortName: string;
   villaType: string;
   viewType?: string;
+  roomCode?: string;
+  viewCode?: string;
   pricingTier?: string;
   checkIn: string;
   checkOut: string;

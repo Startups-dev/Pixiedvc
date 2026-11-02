@@ -4,11 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { attachBookingAttribution } from "@/lib/booking-attribution";
 import { isDesignatedTestGuest, isTestBookingEnabled } from "@/lib/test-guest-booking";
 import { resolveCalculatorCode } from "@/lib/resort-calculator";
-import {
-  getDvcAccommodationOptions,
-  isValidDvcAccommodationIdentity,
-} from "../../../../../packages/pixiedvc-calculator/src/engine/accommodations";
-import type { RoomCode, ViewCode } from "../../../../../packages/pixiedvc-calculator/src/engine/types";
+import { getDvcAccommodationOptions } from "../../../../../packages/pixiedvc-calculator/src/engine/accommodations";
 
 type TripPayload = {
   resortId?: string;
@@ -133,45 +129,40 @@ function resolveBookingAccommodationIdentity(params: {
   viewInput: string | null;
 }) {
   const resortCode = params.resortCode?.trim().toUpperCase() ?? "";
-  const roomCode = normalizeAccommodationCode(params.roomInput);
-  const viewCode = normalizeAccommodationCode(params.viewInput);
+  const roomInput = params.roomInput?.trim().toUpperCase() ?? "";
+  const roomLabel = normalizeAccommodationCode(params.roomInput);
+  const viewLabel = normalizeAccommodationCode(params.viewInput);
 
-  if (!resortCode || !roomCode) {
+  if (!resortCode || !roomLabel) {
     return { primaryRoom: params.roomInput, primaryView: params.viewInput };
   }
 
   const resortOptions = getDvcAccommodationOptions(resortCode);
-  const knownRoomCodes = new Set(resortOptions.map((option) => option.roomCode));
-  const knownViewCodes = new Set(resortOptions.map((option) => option.viewCode));
-
-  if (viewCode) {
-    if (
-      isValidDvcAccommodationIdentity({
-        resortCode,
-        roomCode: roomCode as RoomCode,
-        viewCode: viewCode as ViewCode,
-      })
-    ) {
-      return { primaryRoom: roomCode, primaryView: viewCode };
-    }
-    if (knownRoomCodes.has(roomCode as RoomCode) || knownViewCodes.has(viewCode as ViewCode)) {
-      return { error: "invalid_accommodation" as const };
-    }
+  if (resortOptions.length === 0) {
+    // Preserve the existing handling of resorts outside calculator metadata.
     return { primaryRoom: params.roomInput, primaryView: params.viewInput };
   }
 
-  const matchingRoomOptions = resortOptions.filter((option) => option.roomCode === roomCode);
+  // Exact codes take precedence; display labels can be shared by room types.
+  const exactRoomOptions = resortOptions.filter((option) => option.roomCode === roomInput);
+  const matchingRoomOptions = exactRoomOptions.length > 0
+    ? exactRoomOptions
+    : resortOptions.filter((option) => normalizeAccommodationCode(option.roomLabel) === roomLabel);
+  const matchingOptions = viewLabel
+    ? matchingRoomOptions.filter((option) =>
+      option.viewCode === viewLabel || normalizeAccommodationCode(option.categoryLabel) === viewLabel)
+    : matchingRoomOptions;
 
-  if (matchingRoomOptions.length === 1) {
-    const [option] = matchingRoomOptions;
+  if (matchingOptions.length === 1) {
+    const [option] = matchingOptions;
     return { primaryRoom: option.roomCode, primaryView: option.viewCode };
   }
 
-  if (matchingRoomOptions.length > 1) {
+  if (matchingOptions.length > 1) {
     return { error: "ambiguous_accommodation" as const };
   }
 
-  return { primaryRoom: params.roomInput, primaryView: null };
+  return { error: "invalid_accommodation" as const };
 }
 
 export async function POST(request: Request) {
@@ -320,8 +311,8 @@ export async function POST(request: Request) {
     if ("error" in resolvedAccommodation) {
       fieldErrors["trip.viewType"] =
         resolvedAccommodation.error === "ambiguous_accommodation"
-          ? "Select a room category."
-          : "Select a valid room category.";
+          ? "This room selection matches more than one category. Return to the calculator and select the exact room and view."
+          : "The selected room and view are not a valid combination for this resort. Return to the calculator and choose an available room category.";
     }
     if (!totalPoints || totalPoints <= 0) fieldErrors["trip.points"] = "Points are required.";
     if (!asString(guest.leadFirstName)) fieldErrors["guest.leadFirstName"] = "First name is required.";
@@ -349,7 +340,7 @@ export async function POST(request: Request) {
           : "trip";
       return NextResponse.json(
         {
-          error: "Please complete the missing required fields.",
+          error: fieldErrors["trip.viewType"] ?? "Please complete the missing required fields.",
           step,
           fieldErrors,
         },
@@ -374,32 +365,46 @@ export async function POST(request: Request) {
       typeof totalPoints === "number" &&
       totalPoints > 0;
 
+    // Older drafts stored display labels. Keep them in duplicate/reuse checks
+    // without guessing when more than one accommodation shares those labels.
+    const resortOptions = getDvcAccommodationOptions(resolvedCalculatorCode ?? "");
+    const selectedOption = resortOptions.find((option) =>
+      option.roomCode === primaryRoom && option.viewCode === primaryView);
+    const hasUniqueLegacyLabels = selectedOption && resortOptions.filter((option) =>
+      option.roomLabel === selectedOption.roomLabel && option.categoryLabel === selectedOption.categoryLabel).length === 1;
+    const roomAliases = [...new Set([
+      primaryRoom, requestedPrimaryRoom, hasUniqueLegacyLabels ? selectedOption.roomLabel : null,
+    ].filter((value): value is string => Boolean(value)))];
+    const viewAliases = [...new Set([
+      primaryView, requestedPrimaryView, hasUniqueLegacyLabels ? selectedOption.categoryLabel : null,
+    ].filter((value): value is string => Boolean(value)))];
+
     let supportsBuildingPreference = true;
 
     if (signatureComplete) {
       const activeStatuses = ["draft", "submitted", "pending_match", "pending_owner"];
       if (testBooking) {
-        // Match the production unique index exactly. View and building are not in that index.
+        // Also protect legacy label-based drafts; never convert a real draft.
+        const conflictRoomAliases = [...new Set([...roomAliases, ...(selectedOption ? [selectedOption.roomLabel] : [])])];
         const { data: activeSignatureRows, error: activeSignatureError } = await supabase
           .from("booking_requests")
-          .select("id, is_test_booking, primary_view, building_preference")
+          .select("id, is_test_booking, primary_room, primary_view, building_preference")
           .eq("renter_id", user.id)
           .eq("primary_resort_id", resortId)
           .eq("check_in", checkIn)
           .eq("check_out", checkOut)
           .eq("total_points", totalPoints)
-          .eq("primary_room", primaryRoom)
-          .in("status", activeStatuses)
-          .limit(1);
+          .in("primary_room", conflictRoomAliases)
+          .in("status", activeStatuses);
         if (activeSignatureError) {
           return NextResponse.json({ error: "TEST_ITINERARY_CHECK_UNAVAILABLE" }, { status: 503 });
         }
-        const activeSignature = activeSignatureRows?.[0];
-        if (activeSignature && (
+        if (activeSignatureRows?.some((activeSignature) => (
           !activeSignature.is_test_booking ||
-          activeSignature.primary_view !== primaryView ||
+          !roomAliases.includes(activeSignature.primary_room) ||
+          !(primaryView ? viewAliases.includes(activeSignature.primary_view) : activeSignature.primary_view === null) ||
           activeSignature.building_preference !== persistedBuildingPreference
-        )) {
+        ))) {
           return NextResponse.json({ error: "TEST_ITINERARY_ALREADY_ACTIVE" }, { status: 409 });
         }
       }
@@ -417,8 +422,8 @@ export async function POST(request: Request) {
         query = query.eq("check_out", checkOut);
         query = query.eq("primary_resort_id", resortId);
         query = query.eq("total_points", totalPoints);
-        query = query.eq("primary_room", primaryRoom);
-        query = primaryView ? query.eq("primary_view", primaryView) : query.is("primary_view", null);
+        query = query.in("primary_room", roomAliases);
+        query = primaryView ? query.in("primary_view", viewAliases) : query.is("primary_view", null);
         if (includeBuildingPreference) {
           query = query.eq("building_preference", persistedBuildingPreference);
         }
