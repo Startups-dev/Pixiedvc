@@ -3,6 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import LoginPage from './page';
+import { getPostLoginDestination } from './actions';
+
+vi.mock('./actions', () => ({ getPostLoginDestination: vi.fn().mockResolvedValue('/admin') }));
 
 type SearchParams = URLSearchParams;
 
@@ -44,6 +47,7 @@ describe('LoginPage', () => {
     routerMock.replace.mockClear();
     routerMock.push.mockClear();
     routerMock.refresh.mockClear();
+    vi.mocked(getPostLoginDestination).mockReset().mockResolvedValue('/admin');
     Object.values(authMock).forEach((fn) => {
       if (typeof fn === 'function' && 'mockClear' in fn) {
         fn.mockClear();
@@ -54,7 +58,7 @@ describe('LoginPage', () => {
   test('renders login view by default', () => {
     render(<LoginPage />);
 
-    expect(screen.getByRole('heading', { name: /sign in to pixiedvc/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /sign in to hannadvc/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
   });
 
@@ -103,6 +107,27 @@ describe('LoginPage', () => {
     });
   });
 
+  test.each([null, '/admin/owners', '//example.com', '/owner/dashboard'])('uses only the server-resolved destination for return %s', async (requested) => {
+    if (requested) currentParams.set('next', requested);
+    render(<LoginPage />);
+    await userEvent.type(screen.getByPlaceholderText(/you@example.com/i), 'admin@example.com');
+    await userEvent.type(screen.getByPlaceholderText(/your password/i), 'StrongPass9!');
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
+    await waitFor(() => expect(routerMock.replace).toHaveBeenCalledWith('/admin'));
+    expect(getPostLoginDestination).toHaveBeenCalledWith(requested);
+  });
+
+  test('keeps navigation errors visible instead of using an unchecked return URL', async () => {
+    currentParams.set('redirect', '//example.com');
+    vi.mocked(getPostLoginDestination).mockRejectedValueOnce(new Error('Read failed'));
+    render(<LoginPage />);
+    await userEvent.type(screen.getByPlaceholderText(/you@example.com/i), 'admin@example.com');
+    await userEvent.type(screen.getByPlaceholderText(/your password/i), 'StrongPass9!');
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
+    expect(await screen.findByText('Signed in, but unable to load your dashboard. Please try again.')).toBeInTheDocument();
+    expect(routerMock.replace).not.toHaveBeenCalled();
+  });
+
   test('uses a safe callback URL for Google OAuth', async () => {
     process.env.NEXT_PUBLIC_SITE_URL = 'https://pixiedvc-web-staging-776171407864.us-central1.run.app';
     render(<LoginPage />);
@@ -116,6 +141,24 @@ describe('LoginPage', () => {
           redirectTo: 'https://pixiedvc-web-staging-776171407864.us-central1.run.app/auth/callback',
         },
       });
+    });
+  });
+
+  test('preserves internal OAuth returns for server authorization and drops external returns', async () => {
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://hannadvc.test';
+    currentParams.set('next', '/admin/owners?filter=active');
+    const first = render(<LoginPage />);
+    await userEvent.click(screen.getByRole('button', { name: /continue with google/i }));
+    expect(authMock.signInWithOAuth).toHaveBeenLastCalledWith({
+      provider: 'google',
+      options: { redirectTo: 'https://hannadvc.test/auth/callback?next=%2Fadmin%2Fowners%3Ffilter%3Dactive' },
+    });
+    first.unmount();
+    currentParams.set('next', '//example.com');
+    render(<LoginPage />);
+    await userEvent.click(screen.getByRole('button', { name: /continue with google/i }));
+    expect(authMock.signInWithOAuth).toHaveBeenLastCalledWith({
+      provider: 'google', options: { redirectTo: 'https://hannadvc.test/auth/callback' },
     });
   });
 });

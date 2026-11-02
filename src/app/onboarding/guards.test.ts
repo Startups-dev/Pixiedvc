@@ -73,14 +73,9 @@ describe('onboarding guards', () => {
       user: { id: 'owner-1' },
     });
     mockedSupabaseServer.mockReturnValue(stub);
-    const cookieStore = { set: vi.fn(), delete: vi.fn() } as any;
 
-    await expect(requireOnboardingInProgress(cookieStore)).rejects.toThrow('redirect');
+    await expect(requireOnboardingInProgress()).rejects.toThrow('redirect');
     expect(mockedRedirect).toHaveBeenCalledWith(getHomeForRole('owner'));
-    expect(cookieStore.set).toHaveBeenCalledWith('onboarding_completed_message', '1', {
-      path: '/',
-      maxAge: 60,
-    });
   });
 
   test('requireOnboardingInProgress redirects to guest home when completed', async () => {
@@ -91,9 +86,8 @@ describe('onboarding guards', () => {
       user: { id: 'guest-1' },
     });
     mockedSupabaseServer.mockReturnValue(stub);
-    const cookieStore = { set: vi.fn(), delete: vi.fn() } as any;
 
-    await expect(requireOnboardingInProgress(cookieStore)).rejects.toThrow('redirect');
+    await expect(requireOnboardingInProgress()).rejects.toThrow('redirect');
     expect(mockedRedirect).toHaveBeenCalledWith(getHomeForRole('guest'));
   });
 
@@ -105,9 +99,8 @@ describe('onboarding guards', () => {
       user: { id: 'user-1' },
     });
     mockedSupabaseServer.mockReturnValue(stub);
-    const cookieStore = { set: vi.fn(), delete: vi.fn() } as any;
 
-    await expect(requireOnboardingInProgress(cookieStore)).rejects.toThrow('redirect');
+    await expect(requireOnboardingInProgress()).rejects.toThrow('redirect');
     expect(mockedRedirect).toHaveBeenCalledWith(getHomeForRole(null));
   });
 
@@ -119,9 +112,8 @@ describe('onboarding guards', () => {
       user: { id: 'owner-1' },
     });
     mockedSupabaseServer.mockReturnValue(stub);
-    const cookieStore = { set: vi.fn(), delete: vi.fn() } as any;
 
-    await expect(requireOnboardingInProgress(cookieStore)).resolves.toEqual({ id: 'owner-1' });
+    await expect(requireOnboardingInProgress()).resolves.toEqual({ id: 'owner-1' });
     expect(mockedRedirect).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAppBaseUrl } from "@/lib/app-url";
-import { getHomeForRole } from "@/lib/routes/home";
+import { getLoginDestination, getSafeReturnPath, isPathWithin } from "@/lib/routes/home";
+import { resolveAccountNavigation } from "@/lib/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export const dynamic = "force-dynamic";
@@ -37,51 +38,22 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
   const resolvedUser = user ?? callbackUser;
 
-  if (next) {
-    const safeNext = next.startsWith("/") ? next : "/affiliate/dashboard";
-    if (!resolvedUser && safeNext.startsWith("/affiliate")) {
+  const safeNext = getSafeReturnPath(next);
+  if (safeNext) {
+    const nextPathname = decodeURIComponent(new URL(safeNext, safeOrigin).pathname);
+    if (!resolvedUser && isPathWithin(nextPathname, "/affiliate")) {
       const affiliateLoginUrl = new URL("/affiliate/login", safeOrigin);
       affiliateLoginUrl.searchParams.set("redirect", safeNext);
       affiliateLoginUrl.searchParams.set("error", "session");
       return NextResponse.redirect(affiliateLoginUrl);
     }
-    if (resolvedUser && safeNext.startsWith("/affiliate/login")) {
+    if (resolvedUser && nextPathname === "/affiliate/login") {
       const affiliateLoginUrl = new URL(safeNext, safeOrigin);
       affiliateLoginUrl.searchParams.set("confirmed", "1");
       return NextResponse.redirect(affiliateLoginUrl);
     }
-    return NextResponse.redirect(new URL(safeNext, safeOrigin));
   }
 
-  const metaRole = (resolvedUser?.user_metadata?.role as
-    | "owner"
-    | "guest"
-    | "affiliate"
-    | "admin"
-    | "staff"
-    | undefined) ?? null;
-  let role: "owner" | "guest" | "affiliate" | "admin" | null =
-    metaRole === "owner" || metaRole === "guest" || metaRole === "affiliate" || metaRole === "admin"
-      ? metaRole
-      : null;
-
-  if (resolvedUser?.id && !role) {
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", resolvedUser.id).maybeSingle();
-    const profileRole = (profile?.role as
-      | "owner"
-      | "guest"
-      | "affiliate"
-      | "admin"
-      | "staff"
-      | undefined) ?? null;
-    role =
-      profileRole === "owner" ||
-      profileRole === "guest" ||
-      profileRole === "affiliate" ||
-      profileRole === "admin"
-        ? profileRole
-        : null;
-  }
-
-  return NextResponse.redirect(new URL(getHomeForRole(role), safeOrigin));
+  const navigation = await resolveAccountNavigation(supabase);
+  return NextResponse.redirect(new URL(getLoginDestination(navigation, safeNext), safeOrigin));
 }

@@ -2,10 +2,12 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import type { Provider } from '@supabase/supabase-js';
 
 import { getClientAppUrl } from '@/lib/app-url';
 import { supabaseBrowser } from '@/lib/supabase-browser';
-import { getHomeForRole } from '@/lib/routes/home';
+import { getPostLoginDestination } from './actions';
+import { getSafeReturnPath } from '@/lib/routes/home';
 
 const googleIcon = (
   <svg viewBox="0 0 20 20" aria-hidden="true" className="h-5 w-5">
@@ -28,7 +30,7 @@ const facebookIcon = (
 const oauthProviders = [
   { id: 'google', label: 'Continue with Google', icon: googleIcon },
   { id: 'facebook', label: 'Continue with Facebook', icon: facebookIcon },
-];
+] as const;
 
 type Mode = 'login' | 'signup' | 'update';
 
@@ -216,9 +218,9 @@ export default function LoginClient() {
           });
 
     const { error } = await action;
-    setLoading(false);
 
     if (error) {
+      setLoading(false);
       const isRateLimited =
         error.status === 429 ||
         error.status === 0 ||
@@ -236,27 +238,15 @@ export default function LoginClient() {
       if (mode === 'login') {
         setLoginErrorState(null);
       }
-      const redirectPath = searchParams.get('next') ?? searchParams.get('redirect');
-      if (redirectPath) {
-        await router.replace(redirectPath);
+      try {
+        const destination = await getPostLoginDestination(searchParams.get('next') ?? searchParams.get('redirect'));
+        router.replace(destination);
         router.refresh();
-        return;
+      } catch {
+        setErrorMessage('Signed in, but unable to load your dashboard. Please try again.');
+      } finally {
+        setLoading(false);
       }
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const metaRole = (user?.user_metadata?.role as string | undefined) ?? null;
-      let role = metaRole === 'owner' || metaRole === 'guest' ? metaRole : null;
-
-      if (user?.id && !role) {
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
-        const profileRole = (profile?.role as string | undefined) ?? null;
-        role = profileRole === 'owner' || profileRole === 'guest' ? profileRole : null;
-      }
-
-      await router.replace(getHomeForRole(role));
-      router.refresh();
     }
   }
 
@@ -280,15 +270,18 @@ export default function LoginClient() {
     setLoading(false);
   }
 
-  async function handleOauth(provider: string) {
+  async function handleOauth(provider: Provider) {
     setMessage(null);
     setErrorMessage(null);
     setLoading(true);
-    const oauthRedirect = getClientAppUrl('/auth/callback') ?? undefined;
+    const callbackUrl = getClientAppUrl('/auth/callback');
+    const requested = getSafeReturnPath(searchParams.get('next') ?? searchParams.get('redirect'));
+    const oauthRedirect = callbackUrl ? new URL(callbackUrl) : null;
+    if (requested) oauthRedirect?.searchParams.set('next', requested);
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: oauthRedirect,
+        redirectTo: oauthRedirect?.toString(),
       },
     });
 

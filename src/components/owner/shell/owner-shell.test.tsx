@@ -217,10 +217,8 @@ describe("owner public chrome exclusions", () => {
     const { container } = render(
       <HeaderClient
         userLabel="Owner"
-        userRole="owner"
         isAdmin={false}
         isAuthenticated
-        hasAffiliateAccess={false}
       />,
     );
 
@@ -239,10 +237,8 @@ describe("owner public chrome exclusions", () => {
     const header = render(
       <HeaderClient
         userLabel="Guest"
-        userRole="guest"
         isAdmin={false}
         isAuthenticated
-        hasAffiliateAccess={false}
       />,
     );
     expect(header.container).toBeEmptyDOMElement();
@@ -271,10 +267,8 @@ describe("owner public chrome exclusions", () => {
     const header = render(
       <HeaderClient
         userLabel={null}
-        userRole={null}
         isAdmin={false}
         isAuthenticated={false}
-        hasAffiliateAccess={false}
       />,
     );
     expect(header.container).not.toBeEmptyDOMElement();

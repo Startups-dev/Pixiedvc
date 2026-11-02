@@ -22,6 +22,8 @@ export default defineConfig({
     },
   },
   test: {
+    // Match Next's React server condition for its server-only import marker.
+    alias: { 'server-only': path.resolve(rootDir, 'node_modules/next/dist/compiled/server-only/empty.js') },
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     globals: true,

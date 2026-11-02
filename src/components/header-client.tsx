@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 import UserMenu from "@/components/user-menu";
-import { createClient } from "@/lib/supabase";
+import type { DashboardDestination } from "@/lib/routes/home";
 import AffiliatePortalHeader from "@/components/layout/AffiliatePortalHeader";
 import { openIntercom } from "@/lib/intercom";
 import PixieLogo from "@/components/PixieLogo";
@@ -27,10 +27,9 @@ const NAV_LINKS = [
 
 type HeaderClientProps = {
   userLabel: string | null;
-  userRole: string | null;
   isAdmin: boolean;
   isAuthenticated: boolean;
-  hasAffiliateAccess: boolean;
+  dashboards?: DashboardDestination[];
 };
 
 type DropdownItem = {
@@ -156,10 +155,9 @@ const DROPDOWNS: Record<string, DropdownConfig> = {
 
 export default function HeaderClient({
   userLabel,
-  userRole,
   isAdmin,
   isAuthenticated,
-  hasAffiliateAccess,
+  dashboards = [],
 }: HeaderClientProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -221,13 +219,6 @@ export default function HeaderClient({
   useEffect(() => {
     setOpenDropdown(null);
   }, [pathname]);
-
-  const handleLogout = useCallback(async () => {
-    await createClient().auth.signOut();
-    closeMobile();
-    router.push("/login");
-    router.refresh();
-  }, [closeMobile, router]);
 
   const toggleMobileSection = useCallback((section: string) => {
     setMobileSection((prev) => (prev === section ? null : section));
@@ -476,9 +467,7 @@ export default function HeaderClient({
               {isAuthenticated ? (
                 <UserMenu
                   label={userLabel ?? "Signed in"}
-                  isAdmin={isAdmin}
-                  userRole={userRole}
-                  hasAffiliateAccess={hasAffiliateAccess}
+                  dashboards={dashboards}
                 />
               ) : (
                 <div className="flex items-center gap-3">
@@ -682,40 +671,12 @@ export default function HeaderClient({
                   {isAuthenticated ? "Account" : "Member Sign In"}
                 </p>
                 {isAuthenticated ? (
-                  <div className="mt-3 grid gap-2 text-sm text-white/85">
-                    <Link
-                      href="/profile"
-                      onClick={closeMobile}
-                      className="rounded-xl px-3 py-2 transition hover:bg-white/10 hover:text-white"
-                    >
-                      Profile
-                    </Link>
-                    {hasAffiliateAccess ? (
-                      <Link
-                        href="/affiliate/dashboard"
-                        onClick={closeMobile}
-                        className="rounded-xl px-3 py-2 transition hover:bg-white/10 hover:text-white"
-                      >
-                        Affiliate Portal
-                      </Link>
-                    ) : null}
-                    {isAdmin ? (
-                      <Link
-                        href="/admin"
-                        onClick={closeMobile}
-                        className="rounded-xl px-3 py-2 transition hover:bg-white/10 hover:text-white"
-                      >
-                        Admin
-                      </Link>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="rounded-xl px-3 py-2 text-left text-white/85 transition hover:bg-red-500/20 hover:text-white"
-                    >
-                      Logout
-                    </button>
-                  </div>
+                  <UserMenu
+                    label={userLabel ?? "Signed in"}
+                    dashboards={dashboards}
+                    variant="inline"
+                    onNavigate={closeMobile}
+                  />
                 ) : (
                   <div className="mt-3 grid gap-2">
                     <Link
