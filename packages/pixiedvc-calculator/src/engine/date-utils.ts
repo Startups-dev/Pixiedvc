@@ -16,12 +16,12 @@ export function formatISO(date: Date, options?: { representation?: 'date' | 'com
 
 export function addDays(date: Date, amount: number): Date {
   const next = new Date(date);
-  next.setDate(next.getDate() + amount);
+  next.setUTCDate(next.getUTCDate() + amount);
   return next;
 }
 
 export function differenceInMonths(later: Date, earlier: Date): number {
-  return (later.getFullYear() - earlier.getFullYear()) * 12 + (later.getMonth() - earlier.getMonth());
+  return (later.getUTCFullYear() - earlier.getUTCFullYear()) * 12 + (later.getUTCMonth() - earlier.getUTCMonth());
 }
 
 export function isWithinInterval(date: Date, interval: { start: Date; end: Date }): boolean {

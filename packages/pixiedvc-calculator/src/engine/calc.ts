@@ -49,7 +49,7 @@ function pointsForNight(period: TravelPeriod, room: RoomCode, view: ViewCode, is
   if (!period) return 0;
   const rate = period.points?.[room]?.[view];
   if (!rate) return 0;
-  const dow = parseISO(iso).getDay(); // 0 Sun .. 6 Sat
+  const dow = parseISO(iso).getUTCDay(); // 0 Sun .. 6 Sat; chart dates are UTC calendar dates
   const isFriSat = dow === 5 || dow === 6;
   return isFriSat ? rate.friSat : rate.sunThu;
 }

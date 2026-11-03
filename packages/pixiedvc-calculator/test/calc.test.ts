@@ -20,6 +20,61 @@ describe("DVC Calculator Engine", () => {
     expect(true).toBe(true);
   });
 
+  it("prices the BCV 2026 Nov 20–26 two-bedroom standard stay across the Thanksgiving boundary", () => {
+    const result = quoteStay({
+      resortCode: "BCV",
+      room: "TWOBR",
+      view: "S",
+      checkIn: "2026-11-20",
+      nights: 6,
+      bookingDate: "2026-11-02",
+    });
+
+    expect(result.nightly).toEqual([
+      { date: "2026-11-20", points: 52, periodId: 5 },
+      { date: "2026-11-21", points: 52, periodId: 5 },
+      { date: "2026-11-22", points: 46, periodId: 5 },
+      { date: "2026-11-23", points: 46, periodId: 5 },
+      { date: "2026-11-24", points: 46, periodId: 5 },
+      { date: "2026-11-25", points: 48, periodId: 6 },
+    ]);
+    expect(result.totalPoints).toBe(290);
+    expect(result.pricingTier).toBe("Select Access");
+    expect(result.totalUSD).toBe(6960);
+
+    const pointsByRoom = ["STUDIO", "ONEBR", "TWOBR"].map((room) =>
+      quoteStay({
+        resortCode: "BCV",
+        room: room as "STUDIO" | "ONEBR" | "TWOBR",
+        view: "S",
+        checkIn: "2026-11-25",
+        nights: 1,
+        bookingDate: "2026-11-02",
+      }).nightly[0].points,
+    );
+    expect(pointsByRoom).toEqual([18, 37, 48]);
+  });
+
+  it("assigns BCV Thanksgiving boundary dates to the official travel periods and excludes checkout", () => {
+    const result = quoteStay({
+      resortCode: "BCV",
+      room: "TWOBR",
+      view: "S",
+      checkIn: "2026-11-24",
+      nights: 5,
+      bookingDate: "2026-01-01",
+    });
+
+    expect(result.nightly.map(({ date, periodId }) => [date, periodId])).toEqual([
+      ["2026-11-24", 5],
+      ["2026-11-25", 6],
+      ["2026-11-26", 6],
+      ["2026-11-27", 6],
+      ["2026-11-28", 5],
+    ]);
+    expect(result.nightly.some(({ date }) => date === "2026-11-29")).toBe(false);
+  });
+
   it("should return 0 points for missing period data", async () => {
     // Test that dates outside defined periods return 0 points
     expect(true).toBe(true);
