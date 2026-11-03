@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
   authorized: true,
-  rows: [{ id: "alert-1", booking_request_id: "booking-1", renter_request_id: null, created_at: "2026-10-24T10:00:00Z" }],
+  rows: [{ id: "alert-1", booking_request_id: "booking-1", renter_request_id: null, is_test_booking: false, created_at: "2026-10-24T10:00:00Z" }],
   update: vi.fn(),
 }));
 
@@ -35,14 +35,26 @@ import { POST as reviewAvailability } from "../availability/route";
 const uuid = "11111111-1111-4111-8111-111111111111";
 
 describe("admin reservation alerts", () => {
-  beforeEach(() => { state.authorized = true; state.update.mockClear(); });
+  beforeEach(() => {
+    state.authorized = true;
+    state.rows = [{ id: "alert-1", booking_request_id: "booking-1", renter_request_id: null, is_test_booking: false, created_at: "2026-10-24T10:00:00Z" }];
+    state.update.mockClear();
+  });
 
   it("returns unread count and private review destination metadata", async () => {
     const response = await GET(new Request("http://localhost/api/admin/reservations/alerts?after=2026-10-24T09:00:00Z"));
     const body = await response.json();
     expect(body.unreadCount).toBe(1);
-    expect(body.events).toMatchObject([{ kind: "reservation", requestId: "booking-1", source: "booking" }]);
+    expect(body.events).toMatchObject([{ kind: "reservation", requestId: "booking-1", source: "booking", isTestBooking: false }]);
     expect(JSON.stringify(body)).not.toMatch(/guest|phone|email|check.in/i);
+  });
+
+  it("returns test reservation markers through the same reservation alert endpoint", async () => {
+    state.rows = [{ id: "test-alert", booking_request_id: "test-booking", renter_request_id: null, is_test_booking: true, created_at: "2026-11-02T10:00:00Z" }];
+    const response = await GET(new Request("http://localhost/api/admin/reservations/alerts?after=2026-11-02T09:00:00Z"));
+    const body = await response.json();
+    expect(body.unreadCount).toBe(1);
+    expect(body.events).toMatchObject([{ kind: "reservation", requestId: "test-booking", source: "booking", isTestBooking: true }]);
   });
 
   it("rejects non-admin staff and invalid read requests", async () => {

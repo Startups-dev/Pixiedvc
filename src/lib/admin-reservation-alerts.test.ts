@@ -1,5 +1,6 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
-import { buildReservationReviewUrl, RESERVATION_ALERT_COPY, toReservationAlertEvent, validRenterRequestId } from "@/lib/admin-reservation-alerts";
+import { buildReservationReviewUrl, RESERVATION_ALERT_COPY, reservationAlertCopy, TEST_RESERVATION_ALERT_COPY, toReservationAlertEvent, validRenterRequestId } from "@/lib/admin-reservation-alerts";
 import { buildReservationRequestSms, getQuietHoursEnd } from "@/lib/admin-inbox-sms";
 import { evaluateReservationSms } from "@/lib/admin-inbox-sms-dispatch";
 import { playInboxAlertSoundOnce, rememberSeenInboxAlertId } from "@/lib/admin-inbox-alerts";
@@ -8,16 +9,38 @@ describe("reservation staff alerts", () => {
   const event = toReservationAlertEvent({ id: "alert-1", booking_request_id: "booking-1", renter_request_id: null, created_at: "2026-10-24T10:00:00Z" });
 
   it("links directly to availability review without putting customer details in previews", () => {
-    expect(event).toMatchObject({ source: "booking", requestId: "booking-1" });
+    expect(event).toMatchObject({ source: "booking", requestId: "booking-1", isTestBooking: false });
     expect(buildReservationReviewUrl(event!)).toBe("/admin/requests/booking-1#availability-review");
     const renterEvent = toReservationAlertEvent({ id: "alert-2", booking_request_id: null, renter_request_id: 42, created_at: "2026-10-24T10:00:00Z" });
     expect(renterEvent).toMatchObject({ source: "renter", requestId: "42" });
     expect(buildReservationReviewUrl(renterEvent!)).toBe("/admin/requests/renter/42#availability-review");
     expect(RESERVATION_ALERT_COPY).toBe("New reservation request — availability review needed.");
+    expect(reservationAlertCopy(false)).toBe(RESERVATION_ALERT_COPY);
+    expect(reservationAlertCopy(true)).toBe(TEST_RESERVATION_ALERT_COPY);
     const sms = buildReservationRequestSms("booking", "booking-1");
     expect(sms).toContain(RESERVATION_ALERT_COPY);
     expect(sms).toContain("/admin/requests/booking-1#availability-review");
     expect(sms).not.toMatch(/guest|check.in|resort|phone/i);
+    expect(buildReservationRequestSms("booking", "test-booking", true)).toContain("TEST RESERVATION — Test request; no reservation is confirmed.");
+  });
+
+  it("maps test booking metadata into a clearly labeled Admin alert", () => {
+    const testAlert = toReservationAlertEvent({
+      id: "test-alert", booking_request_id: "test-booking", renter_request_id: null,
+      is_test_booking: true, created_at: "2026-11-02T10:00:00Z",
+    });
+    expect(testAlert).toMatchObject({ isTestBooking: true, source: "booking" });
+    expect(reservationAlertCopy(testAlert!.isTestBooking)).toMatch(/^TEST RESERVATION/);
+    const renterAlert = toReservationAlertEvent({ id: "renter-alert", booking_request_id: null, renter_request_id: 42, is_test_booking: true, created_at: "2026-11-02T10:00:00Z" });
+    expect(renterAlert?.isTestBooking).toBe(false);
+  });
+
+  it("uses the same idempotent submission trigger for real and test bookings", () => {
+    const migration = readFileSync("supabase/migrations/20261102000001_admin_test_reservation_alerts.sql", "utf8");
+    expect(migration).toMatch(/new\.status::text\s*=\s*'submitted'\s+and\s+\(new\.is_test_booking\s+or\s+new\.accepted_terms\s+is\s+true\)/i);
+    expect(migration).toContain("values (new.id, new.is_test_booking)");
+    expect(migration.match(/on conflict \(booking_request_id\) do nothing/gi)).toHaveLength(2);
+    expect(migration).toContain("old.status::text is distinct from 'submitted'");
   });
 
   it("accepts production bigint renter IDs as decimal strings and rejects UUIDs", () => {

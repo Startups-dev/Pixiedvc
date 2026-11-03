@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase";
-import { buildReservationReviewUrl, RESERVATION_ALERT_COPY, type ReservationAlertEvent } from "@/lib/admin-reservation-alerts";
+import { buildReservationReviewUrl, reservationAlertCopy, type ReservationAlertEvent } from "@/lib/admin-reservation-alerts";
 import AdminInboxSmsSettings from "./AdminInboxSmsSettings";
 import {
   buildInboxConversationUrl,
@@ -88,6 +88,7 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
   const audioContext = useRef<AudioContext | null>(null);
   const audioUnlocked = useRef(false);
   const soundRecoveryEventRef = useRef<AdminAlertEvent | null>(null);
+  const soundIsOn = isSoundEnabled(preferences) && audioUnlocked.current;
 
   useEffect(() => { soundRecoveryEventRef.current = soundRecoveryEvent; }, [soundRecoveryEvent]);
 
@@ -140,7 +141,7 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
     if (Notification.permission !== "granted") return;
     try {
       const notification = new Notification(isReservationAlert(event) ? "HannaDVC reservation request" : "HannaDVC Inbox", {
-        body: isReservationAlert(event) ? RESERVATION_ALERT_COPY : "A customer message needs your attention.",
+        body: isReservationAlert(event) ? reservationAlertCopy(event.isTestBooking) : "A customer message needs your attention.",
         icon: "/favicon.ico",
         tag: `hanna-${alertKey(event)}`,
       });
@@ -211,12 +212,14 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
       if (readSeenInboxAlertIds(storage, soundSeenKey).includes(key)) return;
       if (!audioUnlocked.current) {
         setSoundStatus("Click Enable sound in an open admin tab to activate audio for this browser.");
+        soundRecoveryEventRef.current = event;
         setSoundRecoveryEvent(event);
         return;
       }
       void playInboxAlertSoundOnce(storage, soundSeenKey, key, () => playChime(isReservationAlert(event) ? "reservation" : "inbox")).then((result) => {
         if (result === "played") {
           setSoundStatus("Sound is playing.");
+          if (soundRecoveryEventRef.current?.id === event.id) soundRecoveryEventRef.current = null;
           setSoundRecoveryEvent((pending) => pending?.id === event.id ? null : pending);
           return;
         }
@@ -422,7 +425,7 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
       audioContext.current = context;
       await resumeInboxAudio(context);
       audioUnlocked.current = true;
-      updatePreferences({ soundEnabled: true });
+      updatePreferences({ soundEnabled: true, muted: false, volume: preferencesRef.current.volume > 0 ? preferencesRef.current.volume : DEFAULT_INBOX_ALERT_PREFERENCES.volume });
       setSoundStatus("Sound is enabled. Use Test sound to check your volume.");
     } catch {
       setSoundStatus("Sound playback was blocked. Check browser audio settings, then try Enable sound again.");
@@ -440,9 +443,11 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
     if (result === "played") {
       audioUnlocked.current = true;
       updatePreferences({ soundEnabled: true });
+      soundRecoveryEventRef.current = null;
       setSoundRecoveryEvent(null);
       setSoundStatus(isReservationAlert(event) ? "Sound is enabled, and the missed reservation alert played." : "Sound is enabled, and the missed Inbox chime played.");
     } else if (result === "duplicate") {
+      soundRecoveryEventRef.current = null;
       setSoundRecoveryEvent(null);
       setSoundStatus("This alert already chimed in another tab.");
     } else {
@@ -522,6 +527,21 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
         {reservationUnreadCount > 0 ? <span aria-label={`${reservationUnreadCount} unread reservation requests`} className="inline-flex min-w-5 items-center justify-center rounded-full bg-amber-400 px-1.5 py-0.5 text-[11px] font-bold text-[#15171d]">{reservationUnreadCount > 99 ? "99+" : reservationUnreadCount}</span> : null}
       </Link>
       <button
+        type="button"
+        onClick={() => {
+          if (soundIsOn) {
+            updatePreferences({ soundEnabled: false });
+            setSoundStatus("Sound is off.");
+          } else {
+            void enableSound();
+          }
+        }}
+        aria-label={`Sound ${soundIsOn ? "ON" : "OFF"}. ${soundIsOn ? "Turn sound off" : "Enable sound"}`}
+        className={`rounded-md border px-2 py-1 text-xs font-semibold ${soundIsOn ? "border-emerald-500 text-emerald-200" : "border-amber-500 text-amber-200"}`}
+      >
+        Sound {soundIsOn ? "ON" : "OFF"}
+      </button>
+      <button
         ref={settingsButtonRef}
         type="button"
         aria-expanded={settingsOpen}
@@ -569,7 +589,7 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
       <div aria-live="polite" aria-label="Admin alerts" className="fixed right-4 top-20 z-[100] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2">
         {alerts.map((alert) => (
           <div key={alertKey(alert)} className="rounded-xl border border-[#d8b65c]/60 bg-[#20232a] p-4 text-sm text-white shadow-2xl">
-            <p className="font-semibold">{isReservationAlert(alert) ? RESERVATION_ALERT_COPY : "New customer message"}</p>
+            <p className="font-semibold">{isReservationAlert(alert) ? reservationAlertCopy(alert.isTestBooking) : "New customer message"}</p>
             <div className="mt-3 flex items-center justify-between gap-3">
               <Link href={alertUrl(alert)} onClick={() => setAlerts((current) => current.filter((item) => alertKey(item) !== alertKey(alert)))} className="rounded-md bg-[#d8b65c] px-3 py-1.5 text-xs font-semibold text-[#15171d]">{isReservationAlert(alert) ? "Review dates" : "Open conversation"}</Link>
               <button type="button" onClick={() => setAlerts((current) => current.filter((item) => alertKey(item) !== alertKey(alert)))} aria-label={isReservationAlert(alert) ? "Dismiss reservation alert" : "Dismiss new message alert"} className="text-xs text-slate-300 underline">Dismiss</button>

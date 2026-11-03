@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "INVALID_CURSOR" }, { status: 400 });
   }
   const since = after ? new Date(Date.parse(after) - OVERLAP_MS).toISOString() : null;
-  const columns = "id, booking_request_id, renter_request_id, created_at";
+  const columns = "id, booking_request_id, renter_request_id, is_test_booking, created_at";
   const [unread, recent] = await Promise.all([
     auth.client.from("admin_reservation_request_alerts")
       .select(columns, { count: "exact" }).is("read_at", null)

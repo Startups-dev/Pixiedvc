@@ -100,11 +100,12 @@ export function buildInboxEscalationSms(conversationId: string) {
   return `HannaDVC Inbox: a conversation needs attention. ${link}`;
 }
 
-export function buildReservationRequestSms(source: "booking" | "renter", requestId: string) {
+export function buildReservationRequestSms(source: "booking" | "renter", requestId: string, isTestBooking = false) {
   const origin = getZohoPublicAppOrigin();
   if (!origin) throw new Error("PUBLIC_APP_ORIGIN_NOT_CONFIGURED");
   const path = source === "renter" ? "/admin/requests/renter/" : "/admin/requests/";
-  return `HannaDVC: New reservation request — availability review needed. ${origin}${path}${encodeURIComponent(requestId)}#availability-review`;
+  const label = isTestBooking ? "TEST RESERVATION — Test request; no reservation is confirmed." : "New reservation request — availability review needed.";
+  return `HannaDVC: ${label} ${origin}${path}${encodeURIComponent(requestId)}#availability-review`;
 }
 
 export function parseQuietClock(value: string | null | undefined) {

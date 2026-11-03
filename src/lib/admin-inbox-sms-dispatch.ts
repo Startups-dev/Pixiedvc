@@ -108,7 +108,7 @@ async function validateReservationEvent(event: SmsEvent, preferences: SmsPrefere
   const authorizedAdmin = await isAuthorizedStaff(event.recipient_user_id, true);
   const { data: alert } = event.reservation_alert_id
     ? await db.from("admin_reservation_request_alerts")
-      .select("booking_request_id, renter_request_id, read_at")
+      .select("booking_request_id, renter_request_id, is_test_booking, read_at")
       .eq("id", event.reservation_alert_id).maybeSingle()
     : { data: null };
   return {
@@ -122,6 +122,7 @@ async function validateReservationEvent(event: SmsEvent, preferences: SmsPrefere
     }),
     source: alert?.renter_request_id != null ? "renter" as const : "booking" as const,
     requestId: alert?.renter_request_id == null ? alert?.booking_request_id ?? null : String(alert.renter_request_id),
+    isTestBooking: Boolean(alert?.is_test_booking),
   };
 }
 
@@ -266,7 +267,7 @@ export async function runAdminInboxSmsEscalations(now = new Date()): Promise<Sms
       }
 
       const body = reservation?.requestId
-        ? buildReservationRequestSms(reservation.source, reservation.requestId)
+        ? buildReservationRequestSms(reservation.source, reservation.requestId, reservation.isTestBooking)
         : buildInboxEscalationSms(row.conversation_id!);
       const outcome = await sendAdminInboxSms(phone, body);
       if (outcome.status === "accepted" || outcome.status === "delivered") {
