@@ -46,14 +46,17 @@ export default async function GuestDashboard() {
     redirect("/login?redirect=/guest");
   }
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("booking_requests")
     .select("id, status, is_test_booking, created_at, check_in, check_out, room_type:primary_room, adults, youths, total_points, resort:resorts!booking_requests_primary_resort_id_fkey(name)")
     .eq("renter_id", user.id)
     .in("status", ["submitted", "pending_match", "pending_owner", "matched", "confirmed", "cancelled"])
     .order("created_at", { ascending: false });
 
-  const requests = (data ?? []) as unknown as GuestRequest[];
+  if (error) {
+    console.error("[guest] failed to load requests", { code: error.code });
+  }
+  const requests = (error ? [] : data ?? []) as unknown as GuestRequest[];
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-6 py-12">
@@ -74,12 +77,16 @@ export default async function GuestDashboard() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold text-slate-900">Requests</h2>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+            {!error ? <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
               {requests.length}
-            </span>
+            </span> : null}
           </div>
         </div>
-        {requests.length === 0 ? (
+        {error ? (
+          <div role="alert" className="mt-6 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900">
+            We couldn’t load your requests. Please refresh the page to try again.
+          </div>
+        ) : requests.length === 0 ? (
           <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
             No requests yet. Use the Trip Builder to send your first concierge plan.
           </div>
