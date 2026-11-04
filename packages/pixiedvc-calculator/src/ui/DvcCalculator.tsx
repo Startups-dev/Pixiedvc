@@ -322,13 +322,14 @@ export function DvcCalculator() {
     }
 
     let nextCheckOut = isValidYMD(rawCheckOut) ? rawCheckOut! : addDays(nextCheckIn, 7);
+    let checkoutWasAutoAdjusted = false;
     if (nextCheckOut <= nextCheckIn) {
       nextCheckOut = addDays(nextCheckIn, 7);
-      message = INVALID_RANGE_MESSAGE;
+      checkoutWasAutoAdjusted = true;
     }
     if (nextCheckOut > MAX_PRICING_DATE) {
       nextCheckOut = MAX_PRICING_DATE;
-      message = MAX_PRICING_MESSAGE;
+      if (!checkoutWasAutoAdjusted) message = MAX_PRICING_MESSAGE;
     }
     if (nextCheckOut <= nextCheckIn) {
       nextCheckIn = clampYMD(nextCheckIn, fallbackCheckIn, LATEST_CHECK_IN_DATE);
@@ -534,6 +535,11 @@ export function DvcCalculator() {
   const changeResortHref = changeResortQuery ? `/plan/resorts?${changeResortQuery}` : "/plan/resorts";
 
   function handleCheckInChange(nextCheckIn: string) {
+    if (!isValidYMD(nextCheckIn) || !isValidYMD(checkOut)) {
+      setCheckIn(nextCheckIn);
+      setDateError(null);
+      return;
+    }
     const sanitized = sanitizeStayDates(nextCheckIn, checkOut);
     setCheckIn(sanitized.checkIn);
     setCheckOut(sanitized.checkOut);
@@ -541,6 +547,11 @@ export function DvcCalculator() {
   }
 
   function handleCheckOutChange(nextCheckOut: string) {
+    if (!isValidYMD(nextCheckOut) || !isValidYMD(checkIn)) {
+      setCheckOut(nextCheckOut);
+      setDateError(null);
+      return;
+    }
     const sanitized = sanitizeStayDates(checkIn, nextCheckOut);
     setCheckIn(sanitized.checkIn);
     setCheckOut(sanitized.checkOut);
