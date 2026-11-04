@@ -46,8 +46,9 @@ var resortsData = [
     code: "AUL",
     name: "Aulani, Ko Olina, Hawai'i",
     category: "PRIORITY_ACCESS",
-    roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
+    roomTypes: ["HOTELROOM", "STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     viewsByRoom: {
+      HOTELROOM: ["S"],
       STUDIO: ["S", "I", "P", "O"],
       ONEBR: ["S", "I", "P", "O"],
       TWOBR: ["S", "I", "P", "O"],
@@ -60,6 +61,7 @@ var resortsData = [
       O: "Ocean View"
     },
     occupancy: {
+      HOTELROOM: 4,
       STUDIO: 4,
       ONEBR: 5,
       TWOBR: 9,
@@ -197,7 +199,7 @@ var resortsData = [
     category: "PREMIER_ACCESS",
     roomTypes: ["STUDIO", "DUOSTUDIO", "DELUXESTUDIO", "ONEBR", "TWOBR", "TWOBRBUNGALOW", "PENTHOUSE"],
     viewsByRoom: {
-      STUDIO: ["R"],
+      STUDIO: ["R", "P"],
       DUOSTUDIO: ["R", "P", "PM"],
       DELUXESTUDIO: ["R", "P", "TP"],
       ONEBR: ["R", "P", "TP"],
@@ -317,6 +319,21 @@ var resortsData = [
     }
   },
   {
+    code: "CFW",
+    name: "The Cabins at Disney's Fort Wilderness Resort",
+    category: "SELECT_ACCESS",
+    roomTypes: ["CABIN"],
+    viewsByRoom: {
+      CABIN: ["S"]
+    },
+    viewNames: {
+      S: "Standard"
+    },
+    occupancy: {
+      CABIN: 6
+    }
+  },
+  {
     code: "VDH",
     name: "The Villas at Disneyland Hotel",
     category: "PRIORITY_ACCESS",
@@ -326,9 +343,9 @@ var resortsData = [
       DELUXESTUDIO: ["S", "P"],
       GARDENDUOSTUDIO: ["S"],
       GARDENDELUXESTUDIO: ["S"],
-      ONEBR: ["S", "P"],
-      TWOBR: ["S", "P"],
-      GRANDVILLA: ["S", "P"]
+      ONEBR: ["P"],
+      TWOBR: ["P"],
+      GRANDVILLA: ["P"]
     },
     viewNames: {
       S: "Standard View",
@@ -633,12 +650,15 @@ var AUL_default = {
       id: 1,
       name: "Travel Period 1",
       ranges: [
-        { start: "2025-01-05", end: "2025-02-25" },
+        { start: "2025-01-05", end: "2025-02-22" },
         { start: "2025-08-31", end: "2025-10-11" },
         { start: "2025-11-11", end: "2025-11-24" },
         { start: "2025-11-30", end: "2025-12-18" }
       ],
       points: {
+        HOTELROOM: {
+          S: { sunThu: 16, friSat: 16 }
+        },
         STUDIO: {
           S: { sunThu: 17, friSat: 17 },
           I: { sunThu: 19, friSat: 19 },
@@ -672,6 +692,9 @@ var AUL_default = {
         { start: "2025-10-12", end: "2025-11-10" }
       ],
       points: {
+        HOTELROOM: {
+          S: { sunThu: 17, friSat: 17 }
+        },
         STUDIO: {
           S: { sunThu: 19, friSat: 19 },
           I: { sunThu: 21, friSat: 21 },
@@ -705,6 +728,9 @@ var AUL_default = {
         { start: "2025-11-25", end: "2025-11-29" }
       ],
       points: {
+        HOTELROOM: {
+          S: { sunThu: 18, friSat: 18 }
+        },
         STUDIO: {
           S: { sunThu: 22, friSat: 22 },
           I: { sunThu: 25, friSat: 25 },
@@ -740,6 +766,9 @@ var AUL_default = {
         { start: "2025-12-19", end: "2025-12-31" }
       ],
       points: {
+        HOTELROOM: {
+          S: { sunThu: 21, friSat: 21 }
+        },
         STUDIO: {
           S: { sunThu: 24, friSat: 24 },
           I: { sunThu: 27, friSat: 27 },
@@ -1626,6 +1655,168 @@ var CCV_default = {
   ]
 };
 
+// src/data/2025/CFW.json
+var CFW_default = {
+  resortCode: "CFW",
+  year: 2025,
+  periods: [
+    {
+      id: 1,
+      name: "Travel Period 1",
+      ranges: [
+        {
+          start: "2025-09-01",
+          end: "2025-09-30"
+        }
+      ],
+      points: {
+        CABIN: {
+          S: {
+            sunThu: 15,
+            friSat: 18
+          }
+        }
+      }
+    },
+    {
+      id: 2,
+      name: "Travel Period 2",
+      ranges: [
+        {
+          start: "2025-01-01",
+          end: "2025-01-31"
+        },
+        {
+          start: "2025-05-01",
+          end: "2025-05-14"
+        }
+      ],
+      points: {
+        CABIN: {
+          S: {
+            sunThu: 16,
+            friSat: 19
+          }
+        }
+      }
+    },
+    {
+      id: 3,
+      name: "Travel Period 3",
+      ranges: [
+        {
+          start: "2025-05-15",
+          end: "2025-06-10"
+        },
+        {
+          start: "2025-12-01",
+          end: "2025-12-23"
+        }
+      ],
+      points: {
+        CABIN: {
+          S: {
+            sunThu: 18,
+            friSat: 21
+          }
+        }
+      }
+    },
+    {
+      id: 4,
+      name: "Travel Period 4",
+      ranges: [
+        {
+          start: "2025-02-01",
+          end: "2025-02-15"
+        },
+        {
+          start: "2025-06-11",
+          end: "2025-08-31"
+        }
+      ],
+      points: {
+        CABIN: {
+          S: {
+            sunThu: 20,
+            friSat: 24
+          }
+        }
+      }
+    },
+    {
+      id: 5,
+      name: "Travel Period 5",
+      ranges: [
+        {
+          start: "2025-10-01",
+          end: "2025-11-25"
+        },
+        {
+          start: "2025-11-29",
+          end: "2025-11-30"
+        }
+      ],
+      points: {
+        CABIN: {
+          S: {
+            sunThu: 22,
+            friSat: 25
+          }
+        }
+      }
+    },
+    {
+      id: 6,
+      name: "Travel Period 6",
+      ranges: [
+        {
+          start: "2025-02-16",
+          end: "2025-04-12"
+        },
+        {
+          start: "2025-04-21",
+          end: "2025-04-30"
+        },
+        {
+          start: "2025-11-26",
+          end: "2025-11-28"
+        }
+      ],
+      points: {
+        CABIN: {
+          S: {
+            sunThu: 24,
+            friSat: 28
+          }
+        }
+      }
+    },
+    {
+      id: 7,
+      name: "Travel Period 7",
+      ranges: [
+        {
+          start: "2025-04-13",
+          end: "2025-04-20"
+        },
+        {
+          start: "2025-12-24",
+          end: "2025-12-31"
+        }
+      ],
+      points: {
+        CABIN: {
+          S: {
+            sunThu: 32,
+            friSat: 36
+          }
+        }
+      }
+    }
+  ]
+};
+
 // src/data/2025/HHI.json
 var HHI_default = {
   resortCode: "HHI",
@@ -1897,34 +2088,35 @@ var PVB_default = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 14, friSat: 17 }
+          R: { sunThu: 14, friSat: 17 },
+          P: { sunThu: 19, friSat: 24 }
         },
         TWOBRBUNGALOW: {
           P: { sunThu: 112, friSat: 132 }
         },
         DUOSTUDIO: {
-          R: { sunThu: 12, friSat: 16 },
+          R: { sunThu: 12, friSat: 14 },
           P: { sunThu: 16, friSat: 19 },
-          PM: { sunThu: 19, friSat: 21 }
+          PM: { sunThu: 19, friSat: 23 }
         },
         DELUXESTUDIO: {
-          R: { sunThu: 14, friSat: 19 },
+          R: { sunThu: 14, friSat: 17 },
           P: { sunThu: 19, friSat: 24 },
-          TP: { sunThu: 24, friSat: 27 }
+          TP: { sunThu: 24, friSat: 29 }
         },
         ONEBR: {
-          R: { sunThu: 28, friSat: 38 },
-          P: { sunThu: 38, friSat: 45 },
-          TP: { sunThu: 47, friSat: 52 }
+          R: { sunThu: 28, friSat: 34 },
+          P: { sunThu: 38, friSat: 46 },
+          TP: { sunThu: 42, friSat: 51 }
         },
         TWOBR: {
-          R: { sunThu: 42, friSat: 53 },
-          P: { sunThu: 53, friSat: 63 },
-          TP: { sunThu: 64, friSat: 75 }
+          R: { sunThu: 44, friSat: 53 },
+          P: { sunThu: 54, friSat: 65 },
+          TP: { sunThu: 68, friSat: 79 }
         },
         PENTHOUSE: {
           P: { sunThu: 86, friSat: 104 },
-          TP: { sunThu: 108, friSat: 126 }
+          TP: { sunThu: 108, friSat: 128 }
         }
       }
     },
@@ -1937,33 +2129,34 @@ var PVB_default = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 17, friSat: 20 }
+          R: { sunThu: 17, friSat: 20 },
+          P: { sunThu: 22, friSat: 24 }
         },
         TWOBRBUNGALOW: {
-          P: { sunThu: 120, friSat: 139 }
+          P: { sunThu: 120, friSat: 138 }
         },
         DUOSTUDIO: {
-          R: { sunThu: 14, friSat: 18 },
+          R: { sunThu: 14, friSat: 16 },
           P: { sunThu: 18, friSat: 20 },
           PM: { sunThu: 21, friSat: 24 }
         },
         DELUXESTUDIO: {
-          R: { sunThu: 17, friSat: 22 },
-          P: { sunThu: 22, friSat: 26 },
-          TP: { sunThu: 27, friSat: 30 }
+          R: { sunThu: 17, friSat: 20 },
+          P: { sunThu: 22, friSat: 24 },
+          TP: { sunThu: 26, friSat: 30 }
         },
         ONEBR: {
-          R: { sunThu: 34, friSat: 42 },
+          R: { sunThu: 34, friSat: 40 },
           P: { sunThu: 42, friSat: 48 },
-          TP: { sunThu: 50, friSat: 56 }
+          TP: { sunThu: 47, friSat: 54 }
         },
         TWOBR: {
-          R: { sunThu: 47, friSat: 54 },
-          P: { sunThu: 54, friSat: 66 },
-          TP: { sunThu: 71, friSat: 82 }
+          R: { sunThu: 48, friSat: 56 },
+          P: { sunThu: 60, friSat: 68 },
+          TP: { sunThu: 71, friSat: 84 }
         },
         PENTHOUSE: {
-          P: { sunThu: 95, friSat: 110 },
+          P: { sunThu: 95, friSat: 112 },
           TP: { sunThu: 117, friSat: 135 }
         }
       }
@@ -1977,13 +2170,14 @@ var PVB_default = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 18, friSat: 22 }
+          R: { sunThu: 19, friSat: 22 },
+          P: { sunThu: 22, friSat: 26 }
         },
         TWOBRBUNGALOW: {
           P: { sunThu: 128, friSat: 147 }
         },
         DUOSTUDIO: {
-          R: { sunThu: 16, friSat: 19 },
+          R: { sunThu: 16, friSat: 18 },
           P: { sunThu: 19, friSat: 21 },
           PM: { sunThu: 22, friSat: 26 }
         },
@@ -1993,14 +2187,14 @@ var PVB_default = {
           TP: { sunThu: 27, friSat: 32 }
         },
         ONEBR: {
-          R: { sunThu: 38, friSat: 47 },
+          R: { sunThu: 38, friSat: 44 },
           P: { sunThu: 47, friSat: 52 },
           TP: { sunThu: 53, friSat: 61 }
         },
         TWOBR: {
-          R: { sunThu: 54, friSat: 63 },
-          P: { sunThu: 63, friSat: 67 },
-          TP: { sunThu: 82, friSat: 97 }
+          R: { sunThu: 54, friSat: 62 },
+          P: { sunThu: 62, friSat: 73 },
+          TP: { sunThu: 76, friSat: 90 }
         },
         PENTHOUSE: {
           P: { sunThu: 102, friSat: 119 },
@@ -2017,34 +2211,35 @@ var PVB_default = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 20, friSat: 23 }
+          R: { sunThu: 20, friSat: 23 },
+          P: { sunThu: 24, friSat: 27 }
         },
         TWOBRBUNGALOW: {
           P: { sunThu: 136, friSat: 157 }
         },
         DUOSTUDIO: {
-          R: { sunThu: 17, friSat: 20 },
-          P: { sunThu: 19, friSat: 22 },
+          R: { sunThu: 17, friSat: 19 },
+          P: { sunThu: 20, friSat: 22 },
           PM: { sunThu: 24, friSat: 27 }
         },
         DELUXESTUDIO: {
-          R: { sunThu: 20, friSat: 24 },
+          R: { sunThu: 20, friSat: 23 },
           P: { sunThu: 24, friSat: 27 },
-          TP: { sunThu: 29, friSat: 35 }
+          TP: { sunThu: 29, friSat: 33 }
         },
         ONEBR: {
-          R: { sunThu: 40, friSat: 48 },
+          R: { sunThu: 40, friSat: 46 },
           P: { sunThu: 48, friSat: 54 },
-          TP: { sunThu: 56, friSat: 63 }
+          TP: { sunThu: 54, friSat: 63 }
         },
         TWOBR: {
           R: { sunThu: 56, friSat: 65 },
-          P: { sunThu: 65, friSat: 79 },
-          TP: { sunThu: 88, friSat: 98 }
+          P: { sunThu: 68, friSat: 79 },
+          TP: { sunThu: 82, friSat: 96 }
         },
         PENTHOUSE: {
           P: { sunThu: 108, friSat: 122 },
-          TP: { sunThu: 128, friSat: 162 }
+          TP: { sunThu: 128, friSat: 152 }
         }
       }
     },
@@ -2057,29 +2252,30 @@ var PVB_default = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 22, friSat: 26 }
+          R: { sunThu: 22, friSat: 25 },
+          P: { sunThu: 25, friSat: 30 }
         },
         TWOBRBUNGALOW: {
-          P: { sunThu: 160, friSat: 172 }
+          P: { sunThu: 150, friSat: 172 }
         },
         DUOSTUDIO: {
-          R: { sunThu: 18, friSat: 21 },
-          P: { sunThu: 20, friSat: 24 },
+          R: { sunThu: 18, friSat: 20 },
+          P: { sunThu: 21, friSat: 24 },
           PM: { sunThu: 26, friSat: 29 }
         },
         DELUXESTUDIO: {
           R: { sunThu: 22, friSat: 25 },
           P: { sunThu: 25, friSat: 30 },
-          TP: { sunThu: 31, friSat: 38 }
+          TP: { sunThu: 31, friSat: 36 }
         },
         ONEBR: {
-          R: { sunThu: 44, friSat: 53 },
+          R: { sunThu: 44, friSat: 50 },
           P: { sunThu: 53, friSat: 60 },
-          TP: { sunThu: 62, friSat: 70 }
+          TP: { sunThu: 58, friSat: 67 }
         },
         TWOBR: {
           R: { sunThu: 62, friSat: 70 },
-          P: { sunThu: 70, friSat: 84 },
+          P: { sunThu: 73, friSat: 84 },
           TP: { sunThu: 90, friSat: 101 }
         },
         PENTHOUSE: {
@@ -2098,14 +2294,15 @@ var PVB_default = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 25, friSat: 28 }
+          R: { sunThu: 25, friSat: 28 },
+          P: { sunThu: 28, friSat: 32 }
         },
         TWOBRBUNGALOW: {
           P: { sunThu: 162, friSat: 185 }
         },
         DUOSTUDIO: {
           R: { sunThu: 20, friSat: 23 },
-          P: { sunThu: 22, friSat: 26 },
+          P: { sunThu: 23, friSat: 26 },
           PM: { sunThu: 28, friSat: 32 }
         },
         DELUXESTUDIO: {
@@ -2114,14 +2311,14 @@ var PVB_default = {
           TP: { sunThu: 34, friSat: 39 }
         },
         ONEBR: {
-          R: { sunThu: 48, friSat: 54 },
+          R: { sunThu: 48, friSat: 56 },
           P: { sunThu: 54, friSat: 64 },
-          TP: { sunThu: 69, friSat: 75 }
+          TP: { sunThu: 65, friSat: 75 }
         },
         TWOBR: {
-          R: { sunThu: 68, friSat: 75 },
-          P: { sunThu: 75, friSat: 90 },
-          TP: { sunThu: 96, friSat: 119 }
+          R: { sunThu: 68, friSat: 79 },
+          P: { sunThu: 79, friSat: 90 },
+          TP: { sunThu: 96, friSat: 110 }
         },
         PENTHOUSE: {
           P: { sunThu: 126, friSat: 144 },
@@ -2138,34 +2335,35 @@ var PVB_default = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 34, friSat: 38 }
+          R: { sunThu: 34, friSat: 36 },
+          P: { sunThu: 41, friSat: 43 }
         },
         TWOBRBUNGALOW: {
           P: { sunThu: 199, friSat: 226 }
         },
         DUOSTUDIO: {
-          R: { sunThu: 27, friSat: 32 },
-          P: { sunThu: 30, friSat: 36 },
+          R: { sunThu: 27, friSat: 30 },
+          P: { sunThu: 32, friSat: 36 },
           PM: { sunThu: 39, friSat: 43 }
         },
         DELUXESTUDIO: {
-          R: { sunThu: 34, friSat: 41 },
+          R: { sunThu: 34, friSat: 36 },
           P: { sunThu: 41, friSat: 43 },
           TP: { sunThu: 48, friSat: 53 }
         },
         ONEBR: {
           R: { sunThu: 68, friSat: 78 },
           P: { sunThu: 78, friSat: 86 },
-          TP: { sunThu: 89, friSat: 105 }
+          TP: { sunThu: 89, friSat: 98 }
         },
         TWOBR: {
           R: { sunThu: 92, friSat: 105 },
-          P: { sunThu: 105, friSat: 129 },
-          TP: { sunThu: 149, friSat: 175 }
+          P: { sunThu: 109, friSat: 125 },
+          TP: { sunThu: 128, friSat: 149 }
         },
         PENTHOUSE: {
           P: { sunThu: 178, friSat: 198 },
-          TP: { sunThu: 197, friSat: 229 }
+          TP: { sunThu: 197, friSat: 226 }
         }
       }
     }
@@ -2734,35 +2932,31 @@ var VDH_default = {
       id: 1,
       name: "Travel Period 1",
       ranges: [
-        { start: "2025-01-06", end: "2025-02-12" },
-        { start: "2025-04-22", end: "2025-05-21" }
+        { start: "2025-01-01", end: "2025-01-31" }
       ],
       points: {
         DUOSTUDIO: {
-          S: { sunThu: 14, friSat: 23 },
-          P: { sunThu: 17, friSat: 28 }
+          S: { sunThu: 10, friSat: 13 },
+          P: { sunThu: 11, friSat: 14 }
         },
         DELUXESTUDIO: {
-          S: { sunThu: 19, friSat: 30 },
-          P: { sunThu: 23, friSat: 37 }
-        },
-        GARDENDUOSTUDIO: {
-          S: { sunThu: 18, friSat: 29 }
-        },
-        GARDENDELUXESTUDIO: {
-          S: { sunThu: 24, friSat: 38 }
+          S: { sunThu: 13, friSat: 16 },
+          P: { sunThu: 15, friSat: 19 }
         },
         ONEBR: {
-          S: { sunThu: 31, friSat: 50 },
-          P: { sunThu: 38, friSat: 60 }
+          P: { sunThu: 30, friSat: 37 }
         },
         TWOBR: {
-          S: { sunThu: 43, friSat: 68 },
-          P: { sunThu: 52, friSat: 83 }
+          P: { sunThu: 43, friSat: 53 }
         },
         GRANDVILLA: {
-          S: { sunThu: 96, friSat: 154 },
-          P: { sunThu: 117, friSat: 187 }
+          P: { sunThu: 94, friSat: 116 }
+        },
+        GARDENDUOSTUDIO: {
+          S: { sunThu: 12, friSat: 15 }
+        },
+        GARDENDELUXESTUDIO: {
+          S: { sunThu: 19, friSat: 23 }
         }
       }
     },
@@ -2770,34 +2964,32 @@ var VDH_default = {
       id: 2,
       name: "Travel Period 2",
       ranges: [
-        { start: "2025-02-13", end: "2025-04-09" }
+        { start: "2025-05-01", end: "2025-05-22" },
+        { start: "2025-08-16", end: "2025-09-15" }
       ],
       points: {
         DUOSTUDIO: {
-          S: { sunThu: 17, friSat: 28 },
-          P: { sunThu: 21, friSat: 34 }
+          S: { sunThu: 12, friSat: 14 },
+          P: { sunThu: 13, friSat: 15 }
         },
         DELUXESTUDIO: {
-          S: { sunThu: 23, friSat: 37 },
-          P: { sunThu: 28, friSat: 45 }
-        },
-        GARDENDUOSTUDIO: {
-          S: { sunThu: 22, friSat: 35 }
-        },
-        GARDENDELUXESTUDIO: {
-          S: { sunThu: 29, friSat: 47 }
+          S: { sunThu: 15, friSat: 18 },
+          P: { sunThu: 18, friSat: 22 }
         },
         ONEBR: {
-          S: { sunThu: 38, friSat: 60 },
-          P: { sunThu: 46, friSat: 73 }
+          P: { sunThu: 33, friSat: 40 }
         },
         TWOBR: {
-          S: { sunThu: 52, friSat: 83 },
-          P: { sunThu: 63, friSat: 101 }
+          P: { sunThu: 49, friSat: 59 }
         },
         GRANDVILLA: {
-          S: { sunThu: 117, friSat: 187 },
-          P: { sunThu: 142, friSat: 227 }
+          P: { sunThu: 104, friSat: 126 }
+        },
+        GARDENDUOSTUDIO: {
+          S: { sunThu: 14, friSat: 17 }
+        },
+        GARDENDELUXESTUDIO: {
+          S: { sunThu: 21, friSat: 25 }
         }
       }
     },
@@ -2805,36 +2997,32 @@ var VDH_default = {
       id: 3,
       name: "Travel Period 3",
       ranges: [
-        { start: "2025-05-22", end: "2025-08-13" },
-        { start: "2025-08-18", end: "2025-09-03" },
-        { start: "2025-11-30", end: "2025-12-18" }
+        { start: "2025-02-01", end: "2025-03-14" },
+        { start: "2025-09-16", end: "2025-09-30" }
       ],
       points: {
         DUOSTUDIO: {
-          S: { sunThu: 21, friSat: 34 },
-          P: { sunThu: 26, friSat: 42 }
+          S: { sunThu: 13, friSat: 15 },
+          P: { sunThu: 14, friSat: 17 }
         },
         DELUXESTUDIO: {
-          S: { sunThu: 28, friSat: 45 },
-          P: { sunThu: 34, friSat: 54 }
-        },
-        GARDENDUOSTUDIO: {
-          S: { sunThu: 27, friSat: 43 }
-        },
-        GARDENDELUXESTUDIO: {
-          S: { sunThu: 35, friSat: 56 }
+          S: { sunThu: 17, friSat: 20 },
+          P: { sunThu: 20, friSat: 24 }
         },
         ONEBR: {
-          S: { sunThu: 46, friSat: 73 },
-          P: { sunThu: 56, friSat: 90 }
+          P: { sunThu: 36, friSat: 42 }
         },
         TWOBR: {
-          S: { sunThu: 63, friSat: 101 },
-          P: { sunThu: 76, friSat: 122 }
+          P: { sunThu: 52, friSat: 61 }
         },
         GRANDVILLA: {
-          S: { sunThu: 142, friSat: 227 },
-          P: { sunThu: 172, friSat: 275 }
+          P: { sunThu: 120, friSat: 142 }
+        },
+        GARDENDUOSTUDIO: {
+          S: { sunThu: 16, friSat: 19 }
+        },
+        GARDENDELUXESTUDIO: {
+          S: { sunThu: 24, friSat: 28 }
         }
       }
     },
@@ -2842,34 +3030,33 @@ var VDH_default = {
       id: 4,
       name: "Travel Period 4",
       ranges: [
-        { start: "2025-04-10", end: "2025-04-21" }
+        { start: "2025-05-23", end: "2025-05-31" },
+        { start: "2025-10-01", end: "2025-11-24" },
+        { start: "2025-11-29", end: "2025-12-17" }
       ],
       points: {
         DUOSTUDIO: {
-          S: { sunThu: 26, friSat: 42 },
-          P: { sunThu: 32, friSat: 51 }
+          S: { sunThu: 14, friSat: 16 },
+          P: { sunThu: 15, friSat: 17 }
         },
         DELUXESTUDIO: {
-          S: { sunThu: 34, friSat: 54 },
-          P: { sunThu: 41, friSat: 66 }
-        },
-        GARDENDUOSTUDIO: {
-          S: { sunThu: 33, friSat: 53 }
-        },
-        GARDENDELUXESTUDIO: {
-          S: { sunThu: 43, friSat: 69 }
+          S: { sunThu: 20, friSat: 23 },
+          P: { sunThu: 23, friSat: 26 }
         },
         ONEBR: {
-          S: { sunThu: 56, friSat: 90 },
-          P: { sunThu: 68, friSat: 109 }
+          P: { sunThu: 40, friSat: 46 }
         },
         TWOBR: {
-          S: { sunThu: 76, friSat: 122 },
-          P: { sunThu: 92, friSat: 147 }
+          P: { sunThu: 60, friSat: 69 }
         },
         GRANDVILLA: {
-          S: { sunThu: 172, friSat: 275 },
-          P: { sunThu: 209, friSat: 334 }
+          P: { sunThu: 127, friSat: 150 }
+        },
+        GARDENDUOSTUDIO: {
+          S: { sunThu: 17, friSat: 20 }
+        },
+        GARDENDELUXESTUDIO: {
+          S: { sunThu: 28, friSat: 32 }
         }
       }
     },
@@ -2877,35 +3064,31 @@ var VDH_default = {
       id: 5,
       name: "Travel Period 5",
       ranges: [
-        { start: "2025-08-14", end: "2025-08-17" },
-        { start: "2025-09-04", end: "2025-11-25" }
+        { start: "2025-06-01", end: "2025-08-15" }
       ],
       points: {
         DUOSTUDIO: {
-          S: { sunThu: 30, friSat: 48 },
-          P: { sunThu: 36, friSat: 58 }
+          S: { sunThu: 16, friSat: 18 },
+          P: { sunThu: 18, friSat: 20 }
         },
         DELUXESTUDIO: {
-          S: { sunThu: 39, friSat: 62 },
-          P: { sunThu: 47, friSat: 75 }
-        },
-        GARDENDUOSTUDIO: {
-          S: { sunThu: 38, friSat: 61 }
-        },
-        GARDENDELUXESTUDIO: {
-          S: { sunThu: 49, friSat: 78 }
+          S: { sunThu: 23, friSat: 26 },
+          P: { sunThu: 26, friSat: 29 }
         },
         ONEBR: {
-          S: { sunThu: 64, friSat: 102 },
-          P: { sunThu: 77, friSat: 123 }
+          P: { sunThu: 42, friSat: 48 }
         },
         TWOBR: {
-          S: { sunThu: 87, friSat: 139 },
-          P: { sunThu: 105, friSat: 168 }
+          P: { sunThu: 65, friSat: 73 }
         },
         GRANDVILLA: {
-          S: { sunThu: 196, friSat: 314 },
-          P: { sunThu: 238, friSat: 381 }
+          P: { sunThu: 145, friSat: 165 }
+        },
+        GARDENDUOSTUDIO: {
+          S: { sunThu: 21, friSat: 23 }
+        },
+        GARDENDELUXESTUDIO: {
+          S: { sunThu: 31, friSat: 34 }
         }
       }
     },
@@ -2913,34 +3096,32 @@ var VDH_default = {
       id: 6,
       name: "Travel Period 6",
       ranges: [
-        { start: "2025-11-26", end: "2025-11-29" }
+        { start: "2025-03-15", end: "2025-04-12" },
+        { start: "2025-04-21", end: "2025-04-30" }
       ],
       points: {
         DUOSTUDIO: {
-          S: { sunThu: 36, friSat: 58 },
-          P: { sunThu: 44, friSat: 70 }
+          S: { sunThu: 16, friSat: 19 },
+          P: { sunThu: 18, friSat: 21 }
         },
         DELUXESTUDIO: {
-          S: { sunThu: 47, friSat: 75 },
-          P: { sunThu: 57, friSat: 91 }
-        },
-        GARDENDUOSTUDIO: {
-          S: { sunThu: 46, friSat: 74 }
-        },
-        GARDENDELUXESTUDIO: {
-          S: { sunThu: 60, friSat: 96 }
+          S: { sunThu: 24, friSat: 27 },
+          P: { sunThu: 27, friSat: 30 }
         },
         ONEBR: {
-          S: { sunThu: 77, friSat: 123 },
-          P: { sunThu: 93, friSat: 149 }
+          P: { sunThu: 42, friSat: 50 }
         },
         TWOBR: {
-          S: { sunThu: 105, friSat: 168 },
-          P: { sunThu: 127, friSat: 203 }
+          P: { sunThu: 65, friSat: 75 }
         },
         GRANDVILLA: {
-          S: { sunThu: 238, friSat: 381 },
-          P: { sunThu: 289, friSat: 462 }
+          P: { sunThu: 145, friSat: 170 }
+        },
+        GARDENDUOSTUDIO: {
+          S: { sunThu: 21, friSat: 24 }
+        },
+        GARDENDELUXESTUDIO: {
+          S: { sunThu: 31, friSat: 35 }
         }
       }
     },
@@ -2948,34 +3129,33 @@ var VDH_default = {
       id: 7,
       name: "Travel Period 7",
       ranges: [
-        { start: "2025-12-19", end: "2025-12-31" }
+        { start: "2025-04-13", end: "2025-04-20" },
+        { start: "2025-11-25", end: "2025-11-28" },
+        { start: "2025-12-18", end: "2025-12-31" }
       ],
       points: {
         DUOSTUDIO: {
-          S: { sunThu: 44, friSat: 70 },
-          P: { sunThu: 53, friSat: 85 }
+          S: { sunThu: 22, friSat: 25 },
+          P: { sunThu: 24, friSat: 27 }
         },
         DELUXESTUDIO: {
-          S: { sunThu: 57, friSat: 91 },
-          P: { sunThu: 69, friSat: 110 }
-        },
-        GARDENDUOSTUDIO: {
-          S: { sunThu: 56, friSat: 90 }
-        },
-        GARDENDELUXESTUDIO: {
-          S: { sunThu: 72, friSat: 115 }
+          S: { sunThu: 28, friSat: 31 },
+          P: { sunThu: 31, friSat: 34 }
         },
         ONEBR: {
-          S: { sunThu: 93, friSat: 149 },
-          P: { sunThu: 113, friSat: 181 }
+          P: { sunThu: 54, friSat: 62 }
         },
         TWOBR: {
-          S: { sunThu: 127, friSat: 203 },
-          P: { sunThu: 154, friSat: 246 }
+          P: { sunThu: 82, friSat: 92 }
         },
         GRANDVILLA: {
-          S: { sunThu: 289, friSat: 462 },
-          P: { sunThu: 351, friSat: 562 }
+          P: { sunThu: 170, friSat: 200 }
+        },
+        GARDENDUOSTUDIO: {
+          S: { sunThu: 26, friSat: 30 }
+        },
+        GARDENDELUXESTUDIO: {
+          S: { sunThu: 37, friSat: 41 }
         }
       }
     }
@@ -3201,7 +3381,7 @@ var VGF_default = {
           P: { sunThu: 66, friSat: 78 }
         },
         GRANDVILLA: {
-          P: { sunThu: 131, friSat: 165 }
+          P: { sunThu: 131, friSat: 155 }
         }
       }
     },
@@ -3546,6 +3726,9 @@ var AUL_default2 = {
         { start: "2026-11-29", end: "2026-12-17" }
       ],
       points: {
+        HOTELROOM: {
+          S: { sunThu: 16, friSat: 16 }
+        },
         STUDIO: {
           S: { sunThu: 17, friSat: 17 },
           I: { sunThu: 19, friSat: 19 },
@@ -3579,6 +3762,9 @@ var AUL_default2 = {
         { start: "2026-10-11", end: "2026-11-09" }
       ],
       points: {
+        HOTELROOM: {
+          S: { sunThu: 17, friSat: 17 }
+        },
         STUDIO: {
           S: { sunThu: 19, friSat: 19 },
           I: { sunThu: 21, friSat: 21 },
@@ -3612,6 +3798,9 @@ var AUL_default2 = {
         { start: "2026-08-10", end: "2026-09-05" }
       ],
       points: {
+        HOTELROOM: {
+          S: { sunThu: 18, friSat: 18 }
+        },
         STUDIO: {
           S: { sunThu: 22, friSat: 22 },
           I: { sunThu: 25, friSat: 25 },
@@ -3642,12 +3831,14 @@ var AUL_default2 = {
       ranges: [
         { start: "2026-01-01", end: "2026-01-03" },
         { start: "2026-03-25", end: "2026-04-11" },
-        { start: "2026-04-11", end: "2026-04-26" },
         { start: "2026-06-29", end: "2026-08-09" },
         { start: "2026-11-24", end: "2026-11-28" },
         { start: "2026-12-18", end: "2026-12-31" }
       ],
       points: {
+        HOTELROOM: {
+          S: { sunThu: 21, friSat: 21 }
+        },
         STUDIO: {
           S: { sunThu: 24, friSat: 24 },
           I: { sunThu: 27, friSat: 27 },
@@ -3780,7 +3971,7 @@ var BCV_default2 = {
       ranges: [
         { start: "2026-02-16", end: "2026-03-28" },
         { start: "2026-04-06", end: "2026-04-30" },
-        { start: "2026-11-26", end: "2026-11-28" }
+        { start: "2026-11-25", end: "2026-11-27" }
       ],
       points: {
         STUDIO: {
@@ -4181,7 +4372,7 @@ var BWV_default2 = {
       ],
       points: {
         STUDIO: {
-          S: { sunThu: 9, friSat: 13 },
+          S: { sunThu: 10, friSat: 13 },
           P: { sunThu: 14, friSat: 16 }
         },
         ONEBR: {
@@ -4206,7 +4397,7 @@ var BWV_default2 = {
       ],
       points: {
         STUDIO: {
-          S: { sunThu: 9, friSat: 14 },
+          S: { sunThu: 10, friSat: 14 },
           P: { sunThu: 15, friSat: 16 }
         },
         ONEBR: {
@@ -4231,7 +4422,7 @@ var BWV_default2 = {
       ],
       points: {
         STUDIO: {
-          S: { sunThu: 10, friSat: 15 },
+          S: { sunThu: 11, friSat: 15 },
           P: { sunThu: 16, friSat: 17 }
         },
         ONEBR: {
@@ -4256,7 +4447,7 @@ var BWV_default2 = {
       ],
       points: {
         STUDIO: {
-          S: { sunThu: 12, friSat: 16 },
+          S: { sunThu: 11, friSat: 16 },
           P: { sunThu: 16, friSat: 18 }
         },
         ONEBR: {
@@ -4281,7 +4472,7 @@ var BWV_default2 = {
       ],
       points: {
         STUDIO: {
-          S: { sunThu: 14, friSat: 17 },
+          S: { sunThu: 14, friSat: 16 },
           P: { sunThu: 18, friSat: 20 }
         },
         ONEBR: {
@@ -4528,6 +4719,168 @@ var CCV_default2 = {
         },
         CABIN: {
           S: { sunThu: 171, friSat: 196 }
+        }
+      }
+    }
+  ]
+};
+
+// src/data/2026/CFW.json
+var CFW_default2 = {
+  resortCode: "CFW",
+  year: 2026,
+  periods: [
+    {
+      id: 1,
+      name: "Travel Period 1",
+      ranges: [
+        {
+          start: "2026-09-01",
+          end: "2026-09-30"
+        }
+      ],
+      points: {
+        CABIN: {
+          S: {
+            sunThu: 15,
+            friSat: 18
+          }
+        }
+      }
+    },
+    {
+      id: 2,
+      name: "Travel Period 2",
+      ranges: [
+        {
+          start: "2026-01-01",
+          end: "2026-01-31"
+        },
+        {
+          start: "2026-05-01",
+          end: "2026-05-14"
+        }
+      ],
+      points: {
+        CABIN: {
+          S: {
+            sunThu: 16,
+            friSat: 19
+          }
+        }
+      }
+    },
+    {
+      id: 3,
+      name: "Travel Period 3",
+      ranges: [
+        {
+          start: "2026-05-15",
+          end: "2026-06-10"
+        },
+        {
+          start: "2026-12-01",
+          end: "2026-12-23"
+        }
+      ],
+      points: {
+        CABIN: {
+          S: {
+            sunThu: 18,
+            friSat: 21
+          }
+        }
+      }
+    },
+    {
+      id: 4,
+      name: "Travel Period 4",
+      ranges: [
+        {
+          start: "2026-02-01",
+          end: "2026-02-15"
+        },
+        {
+          start: "2026-06-11",
+          end: "2026-08-31"
+        }
+      ],
+      points: {
+        CABIN: {
+          S: {
+            sunThu: 20,
+            friSat: 24
+          }
+        }
+      }
+    },
+    {
+      id: 5,
+      name: "Travel Period 5",
+      ranges: [
+        {
+          start: "2026-10-01",
+          end: "2026-11-24"
+        },
+        {
+          start: "2026-11-28",
+          end: "2026-11-30"
+        }
+      ],
+      points: {
+        CABIN: {
+          S: {
+            sunThu: 22,
+            friSat: 25
+          }
+        }
+      }
+    },
+    {
+      id: 6,
+      name: "Travel Period 6",
+      ranges: [
+        {
+          start: "2026-02-16",
+          end: "2026-03-28"
+        },
+        {
+          start: "2026-04-06",
+          end: "2026-04-30"
+        },
+        {
+          start: "2026-11-25",
+          end: "2026-11-27"
+        }
+      ],
+      points: {
+        CABIN: {
+          S: {
+            sunThu: 24,
+            friSat: 28
+          }
+        }
+      }
+    },
+    {
+      id: 7,
+      name: "Travel Period 7",
+      ranges: [
+        {
+          start: "2026-03-29",
+          end: "2026-04-05"
+        },
+        {
+          start: "2026-12-24",
+          end: "2026-12-31"
+        }
+      ],
+      points: {
+        CABIN: {
+          S: {
+            sunThu: 32,
+            friSat: 36
+          }
         }
       }
     }
@@ -4805,34 +5158,35 @@ var PVB_default2 = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 14, friSat: 17 }
+          R: { sunThu: 14, friSat: 17 },
+          P: { sunThu: 19, friSat: 24 }
         },
         TWOBRBUNGALOW: {
           P: { sunThu: 112, friSat: 132 }
         },
         DUOSTUDIO: {
-          R: { sunThu: 12, friSat: 16 },
+          R: { sunThu: 12, friSat: 14 },
           P: { sunThu: 16, friSat: 19 },
-          PM: { sunThu: 19, friSat: 21 }
+          PM: { sunThu: 19, friSat: 23 }
         },
         DELUXESTUDIO: {
-          R: { sunThu: 14, friSat: 19 },
+          R: { sunThu: 14, friSat: 17 },
           P: { sunThu: 19, friSat: 24 },
-          TP: { sunThu: 24, friSat: 27 }
+          TP: { sunThu: 24, friSat: 29 }
         },
         ONEBR: {
-          R: { sunThu: 28, friSat: 38 },
-          P: { sunThu: 38, friSat: 45 },
-          TP: { sunThu: 47, friSat: 52 }
+          R: { sunThu: 28, friSat: 34 },
+          P: { sunThu: 38, friSat: 46 },
+          TP: { sunThu: 42, friSat: 51 }
         },
         TWOBR: {
-          R: { sunThu: 42, friSat: 53 },
-          P: { sunThu: 53, friSat: 63 },
-          TP: { sunThu: 64, friSat: 75 }
+          R: { sunThu: 44, friSat: 53 },
+          P: { sunThu: 54, friSat: 65 },
+          TP: { sunThu: 68, friSat: 79 }
         },
         PENTHOUSE: {
           P: { sunThu: 86, friSat: 104 },
-          TP: { sunThu: 108, friSat: 126 }
+          TP: { sunThu: 108, friSat: 128 }
         }
       }
     },
@@ -4845,33 +5199,34 @@ var PVB_default2 = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 17, friSat: 20 }
+          R: { sunThu: 17, friSat: 20 },
+          P: { sunThu: 22, friSat: 24 }
         },
         TWOBRBUNGALOW: {
-          P: { sunThu: 120, friSat: 139 }
+          P: { sunThu: 120, friSat: 138 }
         },
         DUOSTUDIO: {
-          R: { sunThu: 14, friSat: 18 },
+          R: { sunThu: 14, friSat: 16 },
           P: { sunThu: 18, friSat: 20 },
           PM: { sunThu: 21, friSat: 24 }
         },
         DELUXESTUDIO: {
-          R: { sunThu: 17, friSat: 22 },
-          P: { sunThu: 22, friSat: 26 },
-          TP: { sunThu: 27, friSat: 30 }
+          R: { sunThu: 17, friSat: 20 },
+          P: { sunThu: 22, friSat: 24 },
+          TP: { sunThu: 26, friSat: 30 }
         },
         ONEBR: {
-          R: { sunThu: 34, friSat: 42 },
+          R: { sunThu: 34, friSat: 40 },
           P: { sunThu: 42, friSat: 48 },
-          TP: { sunThu: 50, friSat: 56 }
+          TP: { sunThu: 47, friSat: 54 }
         },
         TWOBR: {
-          R: { sunThu: 47, friSat: 54 },
-          P: { sunThu: 54, friSat: 66 },
-          TP: { sunThu: 71, friSat: 82 }
+          R: { sunThu: 48, friSat: 56 },
+          P: { sunThu: 60, friSat: 68 },
+          TP: { sunThu: 71, friSat: 84 }
         },
         PENTHOUSE: {
-          P: { sunThu: 95, friSat: 110 },
+          P: { sunThu: 95, friSat: 112 },
           TP: { sunThu: 117, friSat: 135 }
         }
       }
@@ -4885,7 +5240,8 @@ var PVB_default2 = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 18, friSat: 22 }
+          R: { sunThu: 19, friSat: 22 },
+          P: { sunThu: 22, friSat: 26 }
         },
         TWOBRBUNGALOW: {
           P: { sunThu: 128, friSat: 147 }
@@ -4901,14 +5257,14 @@ var PVB_default2 = {
           TP: { sunThu: 27, friSat: 32 }
         },
         ONEBR: {
-          R: { sunThu: 38, friSat: 47 },
+          R: { sunThu: 38, friSat: 44 },
           P: { sunThu: 47, friSat: 52 },
           TP: { sunThu: 53, friSat: 61 }
         },
         TWOBR: {
-          R: { sunThu: 54, friSat: 63 },
-          P: { sunThu: 63, friSat: 67 },
-          TP: { sunThu: 82, friSat: 97 }
+          R: { sunThu: 54, friSat: 62 },
+          P: { sunThu: 62, friSat: 73 },
+          TP: { sunThu: 76, friSat: 90 }
         },
         PENTHOUSE: {
           P: { sunThu: 102, friSat: 119 },
@@ -4925,34 +5281,35 @@ var PVB_default2 = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 20, friSat: 23 }
+          R: { sunThu: 20, friSat: 23 },
+          P: { sunThu: 24, friSat: 27 }
         },
         TWOBRBUNGALOW: {
           P: { sunThu: 136, friSat: 157 }
         },
         DUOSTUDIO: {
-          R: { sunThu: 17, friSat: 20 },
-          P: { sunThu: 19, friSat: 22 },
+          R: { sunThu: 17, friSat: 19 },
+          P: { sunThu: 20, friSat: 22 },
           PM: { sunThu: 24, friSat: 27 }
         },
         DELUXESTUDIO: {
-          R: { sunThu: 20, friSat: 24 },
+          R: { sunThu: 20, friSat: 23 },
           P: { sunThu: 24, friSat: 27 },
-          TP: { sunThu: 29, friSat: 35 }
+          TP: { sunThu: 29, friSat: 33 }
         },
         ONEBR: {
-          R: { sunThu: 40, friSat: 48 },
+          R: { sunThu: 40, friSat: 46 },
           P: { sunThu: 48, friSat: 54 },
-          TP: { sunThu: 56, friSat: 63 }
+          TP: { sunThu: 54, friSat: 63 }
         },
         TWOBR: {
           R: { sunThu: 56, friSat: 65 },
-          P: { sunThu: 65, friSat: 79 },
-          TP: { sunThu: 88, friSat: 98 }
+          P: { sunThu: 68, friSat: 79 },
+          TP: { sunThu: 82, friSat: 96 }
         },
         PENTHOUSE: {
           P: { sunThu: 108, friSat: 122 },
-          TP: { sunThu: 128, friSat: 162 }
+          TP: { sunThu: 128, friSat: 152 }
         }
       }
     },
@@ -4965,29 +5322,30 @@ var PVB_default2 = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 22, friSat: 26 }
+          R: { sunThu: 22, friSat: 25 },
+          P: { sunThu: 25, friSat: 30 }
         },
         TWOBRBUNGALOW: {
-          P: { sunThu: 160, friSat: 172 }
+          P: { sunThu: 150, friSat: 172 }
         },
         DUOSTUDIO: {
-          R: { sunThu: 18, friSat: 21 },
-          P: { sunThu: 20, friSat: 24 },
+          R: { sunThu: 18, friSat: 20 },
+          P: { sunThu: 21, friSat: 24 },
           PM: { sunThu: 26, friSat: 29 }
         },
         DELUXESTUDIO: {
           R: { sunThu: 22, friSat: 25 },
           P: { sunThu: 25, friSat: 30 },
-          TP: { sunThu: 31, friSat: 38 }
+          TP: { sunThu: 31, friSat: 36 }
         },
         ONEBR: {
-          R: { sunThu: 44, friSat: 53 },
+          R: { sunThu: 44, friSat: 50 },
           P: { sunThu: 53, friSat: 60 },
-          TP: { sunThu: 62, friSat: 70 }
+          TP: { sunThu: 58, friSat: 67 }
         },
         TWOBR: {
           R: { sunThu: 62, friSat: 70 },
-          P: { sunThu: 70, friSat: 84 },
+          P: { sunThu: 73, friSat: 84 },
           TP: { sunThu: 90, friSat: 101 }
         },
         PENTHOUSE: {
@@ -5006,14 +5364,15 @@ var PVB_default2 = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 25, friSat: 28 }
+          R: { sunThu: 25, friSat: 28 },
+          P: { sunThu: 28, friSat: 32 }
         },
         TWOBRBUNGALOW: {
           P: { sunThu: 162, friSat: 185 }
         },
         DUOSTUDIO: {
           R: { sunThu: 20, friSat: 23 },
-          P: { sunThu: 22, friSat: 26 },
+          P: { sunThu: 23, friSat: 26 },
           PM: { sunThu: 28, friSat: 32 }
         },
         DELUXESTUDIO: {
@@ -5022,14 +5381,14 @@ var PVB_default2 = {
           TP: { sunThu: 34, friSat: 39 }
         },
         ONEBR: {
-          R: { sunThu: 48, friSat: 54 },
+          R: { sunThu: 48, friSat: 56 },
           P: { sunThu: 54, friSat: 64 },
-          TP: { sunThu: 69, friSat: 75 }
+          TP: { sunThu: 65, friSat: 75 }
         },
         TWOBR: {
-          R: { sunThu: 68, friSat: 75 },
-          P: { sunThu: 75, friSat: 90 },
-          TP: { sunThu: 96, friSat: 119 }
+          R: { sunThu: 68, friSat: 79 },
+          P: { sunThu: 79, friSat: 90 },
+          TP: { sunThu: 96, friSat: 110 }
         },
         PENTHOUSE: {
           P: { sunThu: 126, friSat: 144 },
@@ -5046,34 +5405,35 @@ var PVB_default2 = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 34, friSat: 38 }
+          R: { sunThu: 34, friSat: 36 },
+          P: { sunThu: 41, friSat: 43 }
         },
         TWOBRBUNGALOW: {
           P: { sunThu: 199, friSat: 226 }
         },
         DUOSTUDIO: {
-          R: { sunThu: 27, friSat: 32 },
-          P: { sunThu: 30, friSat: 36 },
+          R: { sunThu: 27, friSat: 30 },
+          P: { sunThu: 32, friSat: 36 },
           PM: { sunThu: 39, friSat: 43 }
         },
         DELUXESTUDIO: {
-          R: { sunThu: 34, friSat: 41 },
+          R: { sunThu: 34, friSat: 36 },
           P: { sunThu: 41, friSat: 43 },
           TP: { sunThu: 48, friSat: 53 }
         },
         ONEBR: {
           R: { sunThu: 68, friSat: 78 },
           P: { sunThu: 78, friSat: 86 },
-          TP: { sunThu: 89, friSat: 105 }
+          TP: { sunThu: 89, friSat: 98 }
         },
         TWOBR: {
           R: { sunThu: 92, friSat: 105 },
-          P: { sunThu: 105, friSat: 129 },
-          TP: { sunThu: 149, friSat: 175 }
+          P: { sunThu: 109, friSat: 125 },
+          TP: { sunThu: 128, friSat: 149 }
         },
         PENTHOUSE: {
           P: { sunThu: 178, friSat: 198 },
-          TP: { sunThu: 197, friSat: 229 }
+          TP: { sunThu: 197, friSat: 226 }
         }
       }
     }
@@ -5642,35 +6002,31 @@ var VDH_default2 = {
       id: 1,
       name: "Travel Period 1",
       ranges: [
-        { start: "2026-01-05", end: "2026-02-11" },
-        { start: "2026-04-21", end: "2026-05-20" }
+        { start: "2026-01-01", end: "2026-01-31" }
       ],
       points: {
         DUOSTUDIO: {
-          S: { sunThu: 14, friSat: 23 },
-          P: { sunThu: 17, friSat: 28 }
+          S: { sunThu: 10, friSat: 13 },
+          P: { sunThu: 11, friSat: 14 }
         },
         DELUXESTUDIO: {
-          S: { sunThu: 19, friSat: 30 },
-          P: { sunThu: 23, friSat: 37 }
-        },
-        GARDENDUOSTUDIO: {
-          S: { sunThu: 18, friSat: 29 }
-        },
-        GARDENDELUXESTUDIO: {
-          S: { sunThu: 24, friSat: 38 }
+          S: { sunThu: 13, friSat: 16 },
+          P: { sunThu: 15, friSat: 19 }
         },
         ONEBR: {
-          S: { sunThu: 31, friSat: 50 },
-          P: { sunThu: 38, friSat: 60 }
+          P: { sunThu: 30, friSat: 37 }
         },
         TWOBR: {
-          S: { sunThu: 43, friSat: 68 },
-          P: { sunThu: 52, friSat: 83 }
+          P: { sunThu: 43, friSat: 53 }
         },
         GRANDVILLA: {
-          S: { sunThu: 96, friSat: 154 },
-          P: { sunThu: 117, friSat: 187 }
+          P: { sunThu: 96, friSat: 118 }
+        },
+        GARDENDUOSTUDIO: {
+          S: { sunThu: 12, friSat: 15 }
+        },
+        GARDENDELUXESTUDIO: {
+          S: { sunThu: 19, friSat: 23 }
         }
       }
     },
@@ -5678,34 +6034,32 @@ var VDH_default2 = {
       id: 2,
       name: "Travel Period 2",
       ranges: [
-        { start: "2026-02-12", end: "2026-04-08" }
+        { start: "2026-05-01", end: "2026-05-22" },
+        { start: "2026-08-16", end: "2026-09-15" }
       ],
       points: {
         DUOSTUDIO: {
-          S: { sunThu: 17, friSat: 28 },
-          P: { sunThu: 21, friSat: 34 }
+          S: { sunThu: 12, friSat: 14 },
+          P: { sunThu: 13, friSat: 15 }
         },
         DELUXESTUDIO: {
-          S: { sunThu: 23, friSat: 37 },
-          P: { sunThu: 28, friSat: 45 }
-        },
-        GARDENDUOSTUDIO: {
-          S: { sunThu: 22, friSat: 35 }
-        },
-        GARDENDELUXESTUDIO: {
-          S: { sunThu: 29, friSat: 47 }
+          S: { sunThu: 15, friSat: 18 },
+          P: { sunThu: 18, friSat: 22 }
         },
         ONEBR: {
-          S: { sunThu: 38, friSat: 60 },
-          P: { sunThu: 46, friSat: 73 }
+          P: { sunThu: 33, friSat: 40 }
         },
         TWOBR: {
-          S: { sunThu: 52, friSat: 83 },
-          P: { sunThu: 63, friSat: 101 }
+          P: { sunThu: 49, friSat: 59 }
         },
         GRANDVILLA: {
-          S: { sunThu: 117, friSat: 187 },
-          P: { sunThu: 142, friSat: 227 }
+          P: { sunThu: 106, friSat: 128 }
+        },
+        GARDENDUOSTUDIO: {
+          S: { sunThu: 14, friSat: 17 }
+        },
+        GARDENDELUXESTUDIO: {
+          S: { sunThu: 21, friSat: 25 }
         }
       }
     },
@@ -5713,36 +6067,32 @@ var VDH_default2 = {
       id: 3,
       name: "Travel Period 3",
       ranges: [
-        { start: "2026-05-21", end: "2026-08-12" },
-        { start: "2026-08-17", end: "2026-09-02" },
-        { start: "2026-11-29", end: "2026-12-17" }
+        { start: "2026-02-01", end: "2026-03-14" },
+        { start: "2026-09-16", end: "2026-09-30" }
       ],
       points: {
         DUOSTUDIO: {
-          S: { sunThu: 21, friSat: 34 },
-          P: { sunThu: 26, friSat: 42 }
+          S: { sunThu: 13, friSat: 15 },
+          P: { sunThu: 14, friSat: 17 }
         },
         DELUXESTUDIO: {
-          S: { sunThu: 28, friSat: 45 },
-          P: { sunThu: 34, friSat: 54 }
-        },
-        GARDENDUOSTUDIO: {
-          S: { sunThu: 27, friSat: 43 }
-        },
-        GARDENDELUXESTUDIO: {
-          S: { sunThu: 35, friSat: 56 }
+          S: { sunThu: 17, friSat: 20 },
+          P: { sunThu: 20, friSat: 24 }
         },
         ONEBR: {
-          S: { sunThu: 46, friSat: 73 },
-          P: { sunThu: 56, friSat: 90 }
+          P: { sunThu: 36, friSat: 42 }
         },
         TWOBR: {
-          S: { sunThu: 63, friSat: 101 },
-          P: { sunThu: 76, friSat: 122 }
+          P: { sunThu: 52, friSat: 61 }
         },
         GRANDVILLA: {
-          S: { sunThu: 142, friSat: 227 },
-          P: { sunThu: 172, friSat: 275 }
+          P: { sunThu: 122, friSat: 146 }
+        },
+        GARDENDUOSTUDIO: {
+          S: { sunThu: 16, friSat: 19 }
+        },
+        GARDENDELUXESTUDIO: {
+          S: { sunThu: 24, friSat: 28 }
         }
       }
     },
@@ -5750,34 +6100,33 @@ var VDH_default2 = {
       id: 4,
       name: "Travel Period 4",
       ranges: [
-        { start: "2026-04-09", end: "2026-04-20" }
+        { start: "2026-05-23", end: "2026-05-31" },
+        { start: "2026-10-01", end: "2026-11-23" },
+        { start: "2026-11-28", end: "2026-12-17" }
       ],
       points: {
         DUOSTUDIO: {
-          S: { sunThu: 26, friSat: 42 },
-          P: { sunThu: 32, friSat: 51 }
+          S: { sunThu: 14, friSat: 16 },
+          P: { sunThu: 15, friSat: 17 }
         },
         DELUXESTUDIO: {
-          S: { sunThu: 34, friSat: 54 },
-          P: { sunThu: 41, friSat: 66 }
-        },
-        GARDENDUOSTUDIO: {
-          S: { sunThu: 33, friSat: 53 }
-        },
-        GARDENDELUXESTUDIO: {
-          S: { sunThu: 43, friSat: 69 }
+          S: { sunThu: 20, friSat: 23 },
+          P: { sunThu: 23, friSat: 26 }
         },
         ONEBR: {
-          S: { sunThu: 56, friSat: 90 },
-          P: { sunThu: 68, friSat: 109 }
+          P: { sunThu: 40, friSat: 46 }
         },
         TWOBR: {
-          S: { sunThu: 76, friSat: 122 },
-          P: { sunThu: 92, friSat: 147 }
+          P: { sunThu: 60, friSat: 69 }
         },
         GRANDVILLA: {
-          S: { sunThu: 172, friSat: 275 },
-          P: { sunThu: 209, friSat: 334 }
+          P: { sunThu: 129, friSat: 152 }
+        },
+        GARDENDUOSTUDIO: {
+          S: { sunThu: 17, friSat: 20 }
+        },
+        GARDENDELUXESTUDIO: {
+          S: { sunThu: 28, friSat: 32 }
         }
       }
     },
@@ -5785,35 +6134,31 @@ var VDH_default2 = {
       id: 5,
       name: "Travel Period 5",
       ranges: [
-        { start: "2026-08-13", end: "2026-08-16" },
-        { start: "2026-09-03", end: "2026-11-24" }
+        { start: "2026-06-01", end: "2026-08-15" }
       ],
       points: {
         DUOSTUDIO: {
-          S: { sunThu: 30, friSat: 48 },
-          P: { sunThu: 36, friSat: 58 }
+          S: { sunThu: 16, friSat: 18 },
+          P: { sunThu: 18, friSat: 20 }
         },
         DELUXESTUDIO: {
-          S: { sunThu: 39, friSat: 62 },
-          P: { sunThu: 47, friSat: 75 }
-        },
-        GARDENDUOSTUDIO: {
-          S: { sunThu: 38, friSat: 61 }
-        },
-        GARDENDELUXESTUDIO: {
-          S: { sunThu: 49, friSat: 78 }
+          S: { sunThu: 23, friSat: 26 },
+          P: { sunThu: 26, friSat: 29 }
         },
         ONEBR: {
-          S: { sunThu: 64, friSat: 102 },
-          P: { sunThu: 77, friSat: 123 }
+          P: { sunThu: 42, friSat: 48 }
         },
         TWOBR: {
-          S: { sunThu: 87, friSat: 139 },
-          P: { sunThu: 105, friSat: 168 }
+          P: { sunThu: 65, friSat: 73 }
         },
         GRANDVILLA: {
-          S: { sunThu: 196, friSat: 314 },
-          P: { sunThu: 238, friSat: 381 }
+          P: { sunThu: 149, friSat: 169 }
+        },
+        GARDENDUOSTUDIO: {
+          S: { sunThu: 21, friSat: 23 }
+        },
+        GARDENDELUXESTUDIO: {
+          S: { sunThu: 31, friSat: 34 }
         }
       }
     },
@@ -5821,34 +6166,32 @@ var VDH_default2 = {
       id: 6,
       name: "Travel Period 6",
       ranges: [
-        { start: "2026-11-25", end: "2026-11-28" }
+        { start: "2026-03-15", end: "2026-03-28" },
+        { start: "2026-04-06", end: "2026-04-30" }
       ],
       points: {
         DUOSTUDIO: {
-          S: { sunThu: 36, friSat: 58 },
-          P: { sunThu: 44, friSat: 70 }
+          S: { sunThu: 16, friSat: 19 },
+          P: { sunThu: 18, friSat: 21 }
         },
         DELUXESTUDIO: {
-          S: { sunThu: 47, friSat: 75 },
-          P: { sunThu: 57, friSat: 91 }
-        },
-        GARDENDUOSTUDIO: {
-          S: { sunThu: 46, friSat: 74 }
-        },
-        GARDENDELUXESTUDIO: {
-          S: { sunThu: 60, friSat: 96 }
+          S: { sunThu: 24, friSat: 27 },
+          P: { sunThu: 27, friSat: 30 }
         },
         ONEBR: {
-          S: { sunThu: 77, friSat: 123 },
-          P: { sunThu: 93, friSat: 149 }
+          P: { sunThu: 42, friSat: 50 }
         },
         TWOBR: {
-          S: { sunThu: 105, friSat: 168 },
-          P: { sunThu: 127, friSat: 203 }
+          P: { sunThu: 65, friSat: 75 }
         },
         GRANDVILLA: {
-          S: { sunThu: 238, friSat: 381 },
-          P: { sunThu: 289, friSat: 462 }
+          P: { sunThu: 149, friSat: 174 }
+        },
+        GARDENDUOSTUDIO: {
+          S: { sunThu: 21, friSat: 24 }
+        },
+        GARDENDELUXESTUDIO: {
+          S: { sunThu: 31, friSat: 35 }
         }
       }
     },
@@ -5856,34 +6199,33 @@ var VDH_default2 = {
       id: 7,
       name: "Travel Period 7",
       ranges: [
+        { start: "2026-03-29", end: "2026-04-05" },
+        { start: "2026-11-24", end: "2026-11-27" },
         { start: "2026-12-18", end: "2026-12-31" }
       ],
       points: {
         DUOSTUDIO: {
-          S: { sunThu: 44, friSat: 70 },
-          P: { sunThu: 53, friSat: 85 }
+          S: { sunThu: 22, friSat: 25 },
+          P: { sunThu: 24, friSat: 27 }
         },
         DELUXESTUDIO: {
-          S: { sunThu: 57, friSat: 91 },
-          P: { sunThu: 69, friSat: 110 }
-        },
-        GARDENDUOSTUDIO: {
-          S: { sunThu: 56, friSat: 90 }
-        },
-        GARDENDELUXESTUDIO: {
-          S: { sunThu: 72, friSat: 115 }
+          S: { sunThu: 28, friSat: 31 },
+          P: { sunThu: 31, friSat: 34 }
         },
         ONEBR: {
-          S: { sunThu: 93, friSat: 149 },
-          P: { sunThu: 113, friSat: 181 }
+          P: { sunThu: 54, friSat: 62 }
         },
         TWOBR: {
-          S: { sunThu: 127, friSat: 203 },
-          P: { sunThu: 154, friSat: 246 }
+          P: { sunThu: 82, friSat: 92 }
         },
         GRANDVILLA: {
-          S: { sunThu: 289, friSat: 462 },
-          P: { sunThu: 351, friSat: 562 }
+          P: { sunThu: 174, friSat: 204 }
+        },
+        GARDENDUOSTUDIO: {
+          S: { sunThu: 26, friSat: 30 }
+        },
+        GARDENDELUXESTUDIO: {
+          S: { sunThu: 37, friSat: 41 }
         }
       }
     }
@@ -6109,7 +6451,7 @@ var VGF_default2 = {
           P: { sunThu: 66, friSat: 78 }
         },
         GRANDVILLA: {
-          P: { sunThu: 131, friSat: 165 }
+          P: { sunThu: 131, friSat: 155 }
         }
       }
     },
@@ -6454,8 +6796,11 @@ var AUL_default3 = {
         { start: "2027-11-28", end: "2027-12-23" }
       ],
       points: {
+        HOTELROOM: {
+          S: { sunThu: 16, friSat: 16 }
+        },
         STUDIO: {
-          S: { sunThu: 16, friSat: 16 },
+          S: { sunThu: 17, friSat: 17 },
           I: { sunThu: 19, friSat: 19 },
           P: { sunThu: 23, friSat: 23 },
           O: { sunThu: 25, friSat: 25 }
@@ -6487,8 +6832,11 @@ var AUL_default3 = {
         { start: "2027-10-10", end: "2027-11-09" }
       ],
       points: {
+        HOTELROOM: {
+          S: { sunThu: 17, friSat: 17 }
+        },
         STUDIO: {
-          S: { sunThu: 17, friSat: 17 },
+          S: { sunThu: 19, friSat: 19 },
           I: { sunThu: 21, friSat: 21 },
           P: { sunThu: 24, friSat: 24 },
           O: { sunThu: 26, friSat: 26 }
@@ -6520,8 +6868,11 @@ var AUL_default3 = {
         { start: "2027-08-09", end: "2027-09-04" }
       ],
       points: {
+        HOTELROOM: {
+          S: { sunThu: 18, friSat: 18 }
+        },
         STUDIO: {
-          S: { sunThu: 18, friSat: 18 },
+          S: { sunThu: 22, friSat: 22 },
           I: { sunThu: 25, friSat: 25 },
           P: { sunThu: 26, friSat: 26 },
           O: { sunThu: 29, friSat: 29 }
@@ -6555,8 +6906,11 @@ var AUL_default3 = {
         { start: "2027-12-24", end: "2027-12-31" }
       ],
       points: {
+        HOTELROOM: {
+          S: { sunThu: 21, friSat: 21 }
+        },
         STUDIO: {
-          S: { sunThu: 21, friSat: 21 },
+          S: { sunThu: 24, friSat: 24 },
           I: { sunThu: 27, friSat: 27 },
           P: { sunThu: 29, friSat: 29 },
           O: { sunThu: 31, friSat: 31 }
@@ -7188,7 +7542,7 @@ var BWV_default3 = {
       ],
       points: {
         STUDIO: {
-          S: { sunThu: 14, friSat: 17 },
+          S: { sunThu: 14, friSat: 16 },
           P: { sunThu: 18, friSat: 20 }
         },
         ONEBR: {
@@ -7442,7 +7796,7 @@ var CCV_default3 = {
 };
 
 // src/data/2027/CFW.json
-var CFW_default = {
+var CFW_default3 = {
   resortCode: "CFW",
   year: 2027,
   periods: [
@@ -7811,34 +8165,35 @@ var PVB_default3 = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 14, friSat: 17 }
+          R: { sunThu: 15, friSat: 18 },
+          P: { sunThu: 20, friSat: 24 }
         },
         TWOBRBUNGALOW: {
-          P: { sunThu: 112, friSat: 132 }
+          P: { sunThu: 114, friSat: 134 }
         },
         DUOSTUDIO: {
-          R: { sunThu: 12, friSat: 16 },
-          P: { sunThu: 16, friSat: 19 },
-          PM: { sunThu: 19, friSat: 21 }
+          R: { sunThu: 13, friSat: 15 },
+          P: { sunThu: 17, friSat: 20 },
+          PM: { sunThu: 20, friSat: 24 }
         },
         DELUXESTUDIO: {
-          R: { sunThu: 14, friSat: 19 },
-          P: { sunThu: 19, friSat: 24 },
-          TP: { sunThu: 24, friSat: 27 }
+          R: { sunThu: 15, friSat: 18 },
+          P: { sunThu: 20, friSat: 24 },
+          TP: { sunThu: 25, friSat: 30 }
         },
         ONEBR: {
-          R: { sunThu: 28, friSat: 38 },
-          P: { sunThu: 38, friSat: 45 },
-          TP: { sunThu: 47, friSat: 52 }
+          R: { sunThu: 30, friSat: 36 },
+          P: { sunThu: 39, friSat: 47 },
+          TP: { sunThu: 44, friSat: 53 }
         },
         TWOBR: {
-          R: { sunThu: 42, friSat: 53 },
-          P: { sunThu: 53, friSat: 63 },
-          TP: { sunThu: 64, friSat: 75 }
+          R: { sunThu: 46, friSat: 55 },
+          P: { sunThu: 56, friSat: 67 },
+          TP: { sunThu: 70, friSat: 81 }
         },
         PENTHOUSE: {
-          P: { sunThu: 86, friSat: 104 },
-          TP: { sunThu: 108, friSat: 126 }
+          P: { sunThu: 88, friSat: 105 },
+          TP: { sunThu: 110, friSat: 129 }
         }
       }
     },
@@ -7851,10 +8206,11 @@ var PVB_default3 = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 17, friSat: 20 }
+          R: { sunThu: 17, friSat: 20 },
+          P: { sunThu: 22, friSat: 24 }
         },
         TWOBRBUNGALOW: {
-          P: { sunThu: 120, friSat: 139 }
+          P: { sunThu: 122, friSat: 140 }
         },
         DUOSTUDIO: {
           R: { sunThu: 14, friSat: 16 },
@@ -7862,23 +8218,23 @@ var PVB_default3 = {
           PM: { sunThu: 21, friSat: 24 }
         },
         DELUXESTUDIO: {
-          R: { sunThu: 17, friSat: 22 },
-          P: { sunThu: 22, friSat: 26 },
-          TP: { sunThu: 27, friSat: 30 }
+          R: { sunThu: 17, friSat: 20 },
+          P: { sunThu: 22, friSat: 24 },
+          TP: { sunThu: 26, friSat: 30 }
         },
         ONEBR: {
-          R: { sunThu: 34, friSat: 42 },
+          R: { sunThu: 34, friSat: 40 },
           P: { sunThu: 42, friSat: 48 },
-          TP: { sunThu: 50, friSat: 56 }
+          TP: { sunThu: 47, friSat: 54 }
         },
         TWOBR: {
-          R: { sunThu: 47, friSat: 54 },
-          P: { sunThu: 54, friSat: 66 },
-          TP: { sunThu: 71, friSat: 82 }
+          R: { sunThu: 49, friSat: 57 },
+          P: { sunThu: 61, friSat: 69 },
+          TP: { sunThu: 72, friSat: 85 }
         },
         PENTHOUSE: {
-          P: { sunThu: 95, friSat: 110 },
-          TP: { sunThu: 117, friSat: 135 }
+          P: { sunThu: 96, friSat: 113 },
+          TP: { sunThu: 118, friSat: 136 }
         }
       }
     },
@@ -7891,13 +8247,14 @@ var PVB_default3 = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 18, friSat: 22 }
+          R: { sunThu: 19, friSat: 22 },
+          P: { sunThu: 22, friSat: 26 }
         },
         TWOBRBUNGALOW: {
           P: { sunThu: 128, friSat: 147 }
         },
         DUOSTUDIO: {
-          R: { sunThu: 16, friSat: 19 },
+          R: { sunThu: 16, friSat: 18 },
           P: { sunThu: 19, friSat: 21 },
           PM: { sunThu: 22, friSat: 26 }
         },
@@ -7907,14 +8264,14 @@ var PVB_default3 = {
           TP: { sunThu: 27, friSat: 32 }
         },
         ONEBR: {
-          R: { sunThu: 38, friSat: 47 },
+          R: { sunThu: 38, friSat: 44 },
           P: { sunThu: 47, friSat: 52 },
           TP: { sunThu: 53, friSat: 61 }
         },
         TWOBR: {
-          R: { sunThu: 54, friSat: 63 },
-          P: { sunThu: 63, friSat: 67 },
-          TP: { sunThu: 82, friSat: 97 }
+          R: { sunThu: 54, friSat: 62 },
+          P: { sunThu: 62, friSat: 73 },
+          TP: { sunThu: 76, friSat: 90 }
         },
         PENTHOUSE: {
           P: { sunThu: 102, friSat: 119 },
@@ -7931,34 +8288,35 @@ var PVB_default3 = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 20, friSat: 23 }
+          R: { sunThu: 20, friSat: 23 },
+          P: { sunThu: 24, friSat: 27 }
         },
         TWOBRBUNGALOW: {
           P: { sunThu: 136, friSat: 157 }
         },
         DUOSTUDIO: {
-          R: { sunThu: 17, friSat: 20 },
-          P: { sunThu: 19, friSat: 22 },
+          R: { sunThu: 17, friSat: 19 },
+          P: { sunThu: 20, friSat: 22 },
           PM: { sunThu: 24, friSat: 27 }
         },
         DELUXESTUDIO: {
-          R: { sunThu: 20, friSat: 24 },
+          R: { sunThu: 20, friSat: 23 },
           P: { sunThu: 24, friSat: 27 },
-          TP: { sunThu: 29, friSat: 35 }
+          TP: { sunThu: 29, friSat: 33 }
         },
         ONEBR: {
-          R: { sunThu: 40, friSat: 48 },
+          R: { sunThu: 40, friSat: 46 },
           P: { sunThu: 48, friSat: 54 },
-          TP: { sunThu: 56, friSat: 63 }
+          TP: { sunThu: 54, friSat: 63 }
         },
         TWOBR: {
           R: { sunThu: 56, friSat: 65 },
-          P: { sunThu: 65, friSat: 79 },
-          TP: { sunThu: 88, friSat: 98 }
+          P: { sunThu: 68, friSat: 79 },
+          TP: { sunThu: 82, friSat: 96 }
         },
         PENTHOUSE: {
           P: { sunThu: 108, friSat: 122 },
-          TP: { sunThu: 128, friSat: 162 }
+          TP: { sunThu: 128, friSat: 152 }
         }
       }
     },
@@ -7971,29 +8329,30 @@ var PVB_default3 = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 22, friSat: 26 }
+          R: { sunThu: 22, friSat: 25 },
+          P: { sunThu: 25, friSat: 30 }
         },
         TWOBRBUNGALOW: {
-          P: { sunThu: 160, friSat: 172 }
+          P: { sunThu: 150, friSat: 172 }
         },
         DUOSTUDIO: {
-          R: { sunThu: 18, friSat: 21 },
-          P: { sunThu: 20, friSat: 24 },
+          R: { sunThu: 18, friSat: 20 },
+          P: { sunThu: 21, friSat: 24 },
           PM: { sunThu: 26, friSat: 29 }
         },
         DELUXESTUDIO: {
           R: { sunThu: 22, friSat: 25 },
           P: { sunThu: 25, friSat: 30 },
-          TP: { sunThu: 31, friSat: 38 }
+          TP: { sunThu: 31, friSat: 36 }
         },
         ONEBR: {
-          R: { sunThu: 44, friSat: 53 },
+          R: { sunThu: 44, friSat: 50 },
           P: { sunThu: 53, friSat: 60 },
-          TP: { sunThu: 62, friSat: 70 }
+          TP: { sunThu: 58, friSat: 67 }
         },
         TWOBR: {
           R: { sunThu: 62, friSat: 70 },
-          P: { sunThu: 70, friSat: 84 },
+          P: { sunThu: 73, friSat: 84 },
           TP: { sunThu: 90, friSat: 101 }
         },
         PENTHOUSE: {
@@ -8012,14 +8371,15 @@ var PVB_default3 = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 25, friSat: 28 }
+          R: { sunThu: 25, friSat: 28 },
+          P: { sunThu: 28, friSat: 32 }
         },
         TWOBRBUNGALOW: {
           P: { sunThu: 162, friSat: 185 }
         },
         DUOSTUDIO: {
           R: { sunThu: 20, friSat: 23 },
-          P: { sunThu: 22, friSat: 26 },
+          P: { sunThu: 23, friSat: 26 },
           PM: { sunThu: 28, friSat: 32 }
         },
         DELUXESTUDIO: {
@@ -8028,14 +8388,14 @@ var PVB_default3 = {
           TP: { sunThu: 34, friSat: 39 }
         },
         ONEBR: {
-          R: { sunThu: 48, friSat: 54 },
+          R: { sunThu: 48, friSat: 56 },
           P: { sunThu: 54, friSat: 64 },
-          TP: { sunThu: 69, friSat: 75 }
+          TP: { sunThu: 65, friSat: 75 }
         },
         TWOBR: {
-          R: { sunThu: 68, friSat: 75 },
-          P: { sunThu: 75, friSat: 90 },
-          TP: { sunThu: 96, friSat: 119 }
+          R: { sunThu: 68, friSat: 79 },
+          P: { sunThu: 79, friSat: 90 },
+          TP: { sunThu: 96, friSat: 110 }
         },
         PENTHOUSE: {
           P: { sunThu: 126, friSat: 144 },
@@ -8052,34 +8412,35 @@ var PVB_default3 = {
       ],
       points: {
         STUDIO: {
-          R: { sunThu: 34, friSat: 38 }
+          R: { sunThu: 34, friSat: 36 },
+          P: { sunThu: 41, friSat: 43 }
         },
         TWOBRBUNGALOW: {
           P: { sunThu: 199, friSat: 226 }
         },
         DUOSTUDIO: {
-          R: { sunThu: 27, friSat: 32 },
-          P: { sunThu: 30, friSat: 36 },
+          R: { sunThu: 27, friSat: 30 },
+          P: { sunThu: 32, friSat: 36 },
           PM: { sunThu: 39, friSat: 43 }
         },
         DELUXESTUDIO: {
-          R: { sunThu: 34, friSat: 41 },
+          R: { sunThu: 34, friSat: 36 },
           P: { sunThu: 41, friSat: 43 },
           TP: { sunThu: 48, friSat: 53 }
         },
         ONEBR: {
           R: { sunThu: 68, friSat: 78 },
           P: { sunThu: 78, friSat: 86 },
-          TP: { sunThu: 89, friSat: 105 }
+          TP: { sunThu: 89, friSat: 98 }
         },
         TWOBR: {
           R: { sunThu: 92, friSat: 105 },
-          P: { sunThu: 105, friSat: 129 },
-          TP: { sunThu: 149, friSat: 175 }
+          P: { sunThu: 109, friSat: 125 },
+          TP: { sunThu: 128, friSat: 149 }
         },
         PENTHOUSE: {
           P: { sunThu: 178, friSat: 198 },
-          TP: { sunThu: 197, friSat: 229 }
+          TP: { sunThu: 197, friSat: 226 }
         }
       }
     }
@@ -8652,23 +9013,20 @@ var VDH_default3 = {
       ],
       points: {
         DUOSTUDIO: {
-          S: { sunThu: 11, friSat: 13 },
-          P: { sunThu: 13, friSat: 14 }
+          S: { sunThu: 10, friSat: 13 },
+          P: { sunThu: 11, friSat: 14 }
         },
         DELUXESTUDIO: {
-          S: { sunThu: 16, friSat: 16 },
-          P: { sunThu: 19, friSat: 19 }
+          S: { sunThu: 13, friSat: 16 },
+          P: { sunThu: 15, friSat: 19 }
         },
         ONEBR: {
-          S: { sunThu: 30, friSat: 37 },
           P: { sunThu: 30, friSat: 37 }
         },
         TWOBR: {
-          S: { sunThu: 43, friSat: 53 },
           P: { sunThu: 43, friSat: 53 }
         },
         GRANDVILLA: {
-          S: { sunThu: 96, friSat: 118 },
           P: { sunThu: 96, friSat: 118 }
         },
         GARDENDUOSTUDIO: {
@@ -8696,15 +9054,12 @@ var VDH_default3 = {
           P: { sunThu: 18, friSat: 22 }
         },
         ONEBR: {
-          S: { sunThu: 33, friSat: 40 },
           P: { sunThu: 33, friSat: 40 }
         },
         TWOBR: {
-          S: { sunThu: 49, friSat: 59 },
           P: { sunThu: 49, friSat: 59 }
         },
         GRANDVILLA: {
-          S: { sunThu: 106, friSat: 128 },
           P: { sunThu: 106, friSat: 128 }
         },
         GARDENDUOSTUDIO: {
@@ -8732,15 +9087,12 @@ var VDH_default3 = {
           P: { sunThu: 20, friSat: 24 }
         },
         ONEBR: {
-          S: { sunThu: 36, friSat: 42 },
           P: { sunThu: 36, friSat: 42 }
         },
         TWOBR: {
-          S: { sunThu: 52, friSat: 67 },
-          P: { sunThu: 52, friSat: 67 }
+          P: { sunThu: 52, friSat: 61 }
         },
         GRANDVILLA: {
-          S: { sunThu: 122, friSat: 146 },
           P: { sunThu: 122, friSat: 146 }
         },
         GARDENDUOSTUDIO: {
@@ -8757,7 +9109,7 @@ var VDH_default3 = {
       ranges: [
         { start: "2027-05-23", end: "2027-05-31" },
         { start: "2027-10-01", end: "2027-11-22" },
-        { start: "2027-11-28", end: "2027-12-17" }
+        { start: "2027-11-27", end: "2027-12-17" }
       ],
       points: {
         DUOSTUDIO: {
@@ -8769,15 +9121,12 @@ var VDH_default3 = {
           P: { sunThu: 23, friSat: 26 }
         },
         ONEBR: {
-          S: { sunThu: 40, friSat: 46 },
           P: { sunThu: 40, friSat: 46 }
         },
         TWOBR: {
-          S: { sunThu: 60, friSat: 69 },
           P: { sunThu: 60, friSat: 69 }
         },
         GRANDVILLA: {
-          S: { sunThu: 129, friSat: 152 },
           P: { sunThu: 129, friSat: 152 }
         },
         GARDENDUOSTUDIO: {
@@ -8804,15 +9153,12 @@ var VDH_default3 = {
           P: { sunThu: 26, friSat: 29 }
         },
         ONEBR: {
-          S: { sunThu: 42, friSat: 48 },
           P: { sunThu: 42, friSat: 48 }
         },
         TWOBR: {
-          S: { sunThu: 65, friSat: 73 },
           P: { sunThu: 65, friSat: 73 }
         },
         GRANDVILLA: {
-          S: { sunThu: 149, friSat: 169 },
           P: { sunThu: 149, friSat: 169 }
         },
         GARDENDUOSTUDIO: {
@@ -8832,23 +9178,20 @@ var VDH_default3 = {
       ],
       points: {
         DUOSTUDIO: {
-          S: { sunThu: 18, friSat: 19 },
-          P: { sunThu: 24, friSat: 21 }
+          S: { sunThu: 16, friSat: 19 },
+          P: { sunThu: 18, friSat: 21 }
         },
         DELUXESTUDIO: {
-          S: { sunThu: 27, friSat: 27 },
-          P: { sunThu: 30, friSat: 30 }
+          S: { sunThu: 24, friSat: 27 },
+          P: { sunThu: 27, friSat: 30 }
         },
         ONEBR: {
-          S: { sunThu: 42, friSat: 50 },
           P: { sunThu: 42, friSat: 50 }
         },
         TWOBR: {
-          S: { sunThu: 65, friSat: 75 },
           P: { sunThu: 65, friSat: 75 }
         },
         GRANDVILLA: {
-          S: { sunThu: 149, friSat: 174 },
           P: { sunThu: 149, friSat: 174 }
         },
         GARDENDUOSTUDIO: {
@@ -8877,15 +9220,12 @@ var VDH_default3 = {
           P: { sunThu: 31, friSat: 34 }
         },
         ONEBR: {
-          S: { sunThu: 54, friSat: 62 },
           P: { sunThu: 54, friSat: 62 }
         },
         TWOBR: {
-          S: { sunThu: 82, friSat: 92 },
           P: { sunThu: 82, friSat: 92 }
         },
         GRANDVILLA: {
-          S: { sunThu: 174, friSat: 204 },
           P: { sunThu: 174, friSat: 204 }
         },
         GARDENDUOSTUDIO: {
@@ -9226,6 +9566,7 @@ var chartRegistry = {
     BRV: BRV_default,
     BWV: BWV_default,
     CCV: CCV_default,
+    CFW: CFW_default,
     HHI: HHI_default,
     OKW: OKW_default,
     PVB: PVB_default,
@@ -9244,6 +9585,7 @@ var chartRegistry = {
     BRV: BRV_default2,
     BWV: BWV_default2,
     CCV: CCV_default2,
+    CFW: CFW_default2,
     HHI: HHI_default2,
     OKW: OKW_default2,
     PVB: PVB_default2,
@@ -9262,7 +9604,7 @@ var chartRegistry = {
     BRV: BRV_default3,
     BWV: BWV_default3,
     CCV: CCV_default3,
-    CFW: CFW_default,
+    CFW: CFW_default3,
     HHI: HHI_default3,
     OKW: OKW_default3,
     PVB: PVB_default3,
@@ -9278,8 +9620,7 @@ function getResortYearChart(resortCode, year) {
   const yearData = chartRegistry[year.toString()];
   if (yearData?.[resortCode])
     return yearData[resortCode];
-  const fallbackYearData = chartRegistry["2026"];
-  return fallbackYearData?.[resortCode] ?? null;
+  return null;
 }
 
 // src/engine/charts.ts
@@ -9305,11 +9646,11 @@ function formatISO(date, options) {
 }
 function addDays(date, amount) {
   const next = new Date(date);
-  next.setDate(next.getDate() + amount);
+  next.setUTCDate(next.getUTCDate() + amount);
   return next;
 }
 function differenceInMonths(later, earlier) {
-  return (later.getFullYear() - earlier.getFullYear()) * 12 + (later.getMonth() - earlier.getMonth());
+  return (later.getUTCFullYear() - earlier.getUTCFullYear()) * 12 + (later.getUTCMonth() - earlier.getUTCMonth());
 }
 function isWithinInterval(date, interval) {
   const time = date.getTime();
@@ -9358,7 +9699,7 @@ function pointsForNight(period, room, view, iso) {
   const rate = period.points?.[room]?.[view];
   if (!rate)
     return 0;
-  const dow = parseISO(iso).getDay();
+  const dow = parseISO(iso).getUTCDay();
   const isFriSat = dow === 5 || dow === 6;
   return isFriSat ? rate.friSat : rate.sunThu;
 }
@@ -9423,12 +9764,102 @@ async function quoteAllResorts(params) {
   }
   return results;
 }
+
+// src/engine/accommodations.ts
+function dvcAccommodationIdentityKey(identity) {
+  return `${identity.resortCode}:${identity.roomCode}:${identity.viewCode}`;
+}
+function normalizeResortCode(resortCode) {
+  return resortCode.trim().toUpperCase();
+}
+function getResortMeta(resortCode, resorts = Resorts) {
+  const normalized = normalizeResortCode(resortCode);
+  return resorts.find((resort) => resort.code.toUpperCase() === normalized) ?? null;
+}
+function formatDvcRoomLabel(roomCode) {
+  switch (roomCode) {
+    case "STUDIO":
+      return "Deluxe Studio";
+    case "RESORTSTUDIO":
+      return "Resort Studio";
+    case "TOWERSTUDIO":
+      return "Tower Studio";
+    case "DUOSTUDIO":
+      return "Duo Studio";
+    case "DELUXESTUDIO":
+      return "Deluxe Studio";
+    case "GARDENDUOSTUDIO":
+      return "Garden Room Duo Studio";
+    case "GARDENDELUXESTUDIO":
+      return "Garden Room Deluxe Studio";
+    case "CABIN":
+      return "Cabin";
+    case "ONEBR":
+      return "One Bedroom";
+    case "TWOBR":
+      return "Two Bedroom";
+    case "TWOBRBUNGALOW":
+      return "Two-Bedroom Bungalow";
+    case "PENTHOUSE":
+      return "Two-Bedroom Penthouse Villa";
+    case "GRANDVILLA":
+      return "Grand Villa";
+    case "TREEHOUSE":
+      return "Three-Bedroom Treehouse Villa";
+    case "INNROOM":
+      return "Deluxe Inn Room";
+    case "COTTAGE":
+      return "Three-Bedroom Beach Cottage";
+    case "HOTELROOM":
+      return "Hotel Room";
+    default:
+      return roomCode;
+  }
+}
+function buildOption(resort, roomCode, viewCode) {
+  const roomLabel = formatDvcRoomLabel(roomCode);
+  const categoryLabel = resort.viewNames[viewCode] ?? `Category ${viewCode}`;
+  return {
+    resortCode: resort.code,
+    roomCode,
+    viewCode,
+    roomLabel,
+    categoryLabel,
+    displayLabel: `${roomLabel} - ${categoryLabel}`
+  };
+}
+function getDvcAccommodationOptions(resortCode, resorts = Resorts) {
+  const resort = getResortMeta(resortCode, resorts);
+  if (!resort)
+    return [];
+  const options = [];
+  for (const roomCode of resort.roomTypes) {
+    const viewCodes = resort.viewsByRoom[roomCode] ?? [];
+    for (const viewCode of viewCodes) {
+      options.push(buildOption(resort, roomCode, viewCode));
+    }
+  }
+  return options;
+}
+function getDvcAccommodationOption(identity, resorts = Resorts) {
+  return getDvcAccommodationOptions(identity.resortCode, resorts).find(
+    (option) => option.roomCode === identity.roomCode && option.viewCode === identity.viewCode
+  ) ?? null;
+}
+function isValidDvcAccommodationIdentity(identity, resorts = Resorts) {
+  return getDvcAccommodationOption(identity, resorts) !== null;
+}
 export {
   RATE_BY_CATEGORY,
   Resorts,
   SERVICE_FEE_PCT,
   TIER_DISPLAY_NAMES,
+  dvcAccommodationIdentityKey,
+  formatDvcRoomLabel,
+  getDvcAccommodationOption,
+  getDvcAccommodationOptions,
   getResortYearChart,
+  isValidDvcAccommodationIdentity,
   loadResortYearChart,
   quoteAllResorts,
   quoteStay,

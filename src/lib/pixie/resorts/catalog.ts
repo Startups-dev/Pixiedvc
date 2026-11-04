@@ -160,7 +160,7 @@ export const PIXIE_UNSUPPORTED_WDW_RESORTS = [
   {
     slug: "fort-wilderness-cabins",
     calculatorCode: "CFW",
-    reason: "The repository has a 2027 CFW chart and slug fallback, but calculator resort metadata lacks CFW category, room types, and occupancy.",
+    reason: "The points calculator supports CFW, but Pixie's room model does not distinguish Fort Wilderness Cabin layout details from other calculator cabin categories yet.",
   },
 ] as const;
 

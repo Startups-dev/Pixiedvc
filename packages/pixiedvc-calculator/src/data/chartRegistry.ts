@@ -9,6 +9,7 @@ import BLT_2025 from "./2025/BLT.json";
 import BRV_2025 from "./2025/BRV.json";
 import BWV_2025 from "./2025/BWV.json";
 import CCV_2025 from "./2025/CCV.json";
+import CFW_2025 from "./2025/CFW.json";
 import HHI_2025 from "./2025/HHI.json";
 import OKW_2025 from "./2025/OKW.json";
 import PVB_2025 from "./2025/PVB.json";
@@ -27,6 +28,7 @@ import BLT_2026 from "./2026/BLT.json";
 import BRV_2026 from "./2026/BRV.json";
 import BWV_2026 from "./2026/BWV.json";
 import CCV_2026 from "./2026/CCV.json";
+import CFW_2026 from "./2026/CFW.json";
 import HHI_2026 from "./2026/HHI.json";
 import OKW_2026 from "./2026/OKW.json";
 import PVB_2026 from "./2026/PVB.json";
@@ -65,6 +67,7 @@ const chartRegistry: Record<string, Record<string, ResortYearChart>> = {
     BRV: BRV_2025 as ResortYearChart,
     BWV: BWV_2025 as ResortYearChart,
     CCV: CCV_2025 as ResortYearChart,
+    CFW: CFW_2025 as ResortYearChart,
     HHI: HHI_2025 as ResortYearChart,
     OKW: OKW_2025 as ResortYearChart,
     PVB: PVB_2025 as ResortYearChart,
@@ -83,6 +86,7 @@ const chartRegistry: Record<string, Record<string, ResortYearChart>> = {
     BRV: BRV_2026 as ResortYearChart,
     BWV: BWV_2026 as ResortYearChart,
     CCV: CCV_2026 as ResortYearChart,
+    CFW: CFW_2026 as ResortYearChart,
     HHI: HHI_2026 as ResortYearChart,
     OKW: OKW_2026 as ResortYearChart,
     PVB: PVB_2026 as ResortYearChart,
@@ -118,7 +122,5 @@ export function getResortYearChart(resortCode: string, year: number): ResortYear
   const yearData = chartRegistry[year.toString()];
   if (yearData?.[resortCode]) return yearData[resortCode];
 
-  // Fallback to the most recent stable baseline year when a chart is missing.
-  const fallbackYearData = chartRegistry["2026"];
-  return fallbackYearData?.[resortCode] ?? null;
+  return null;
 }

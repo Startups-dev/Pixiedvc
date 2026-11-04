@@ -57,7 +57,7 @@ Pixie decision:
 
 | Identifier | Status | Reason |
 | --- | --- | --- |
-| `CFW`, `fort-wilderness-cabins` | Unsupported WDW | Chart/fallback traces exist, but calculator resort metadata lacks complete category, room types, and occupancy. |
+| `CFW`, `fort-wilderness-cabins` | Unsupported WDW Pixie recommendation | Calculator points data is supported, but Pixie room layout metadata does not distinguish the CFW cabin from other calculator cabin categories. |
 | `AUL`, `aulani` | Excluded | Non-WDW. |
 | `VDH`, `disneyland-hotel-villas` | Excluded | Non-WDW. |
 | `VGC`, `grand-californian-villas` | Excluded | Non-WDW. |
@@ -70,6 +70,6 @@ Pixie decision:
 - Unknown resort identifiers return `unknown_resort_identifier`.
 - Bare Kidani/Jambo/KV return `ambiguous_resort_identifier`.
 - Non-WDW identifiers return `unsupported_non_wdw_resort`.
-- Fort Wilderness returns `unsupported_resort`.
+- Fort Wilderness remains `unsupported_resort` in Pixie recommendation identifiers until its room-layout metadata is modeled separately.
 - Database IDs are not accepted as durable Pixie identifiers.
 - Booking mapping is not considered verified merely because a display name matched.

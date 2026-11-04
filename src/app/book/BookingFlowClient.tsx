@@ -15,6 +15,7 @@ const CALC_CODE_TO_SLUG: Record<string, string> = {
   BWV: "boardwalk-villas",
   BRV: "boulder-ridge-villas",
   CCV: "copper-creek-villas",
+  CFW: "fort-wilderness-cabins",
   HHI: "hilton-head-island",
   OKW: "old-key-west",
   PVB: "polynesian-villas",

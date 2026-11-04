@@ -10,34 +10,35 @@
       ],
       "points": {
         "STUDIO": {
-          "R": { "sunThu": 14, "friSat": 17 }
+          "R": { "sunThu": 14, "friSat": 17 },
+          "P": { "sunThu": 19, "friSat": 24 }
         },
         "TWOBRBUNGALOW": {
           "P": { "sunThu": 112, "friSat": 132 }
         },
         "DUOSTUDIO": {
-          "R": { "sunThu": 12, "friSat": 16 },
+          "R": { "sunThu": 12, "friSat": 14 },
           "P": { "sunThu": 16, "friSat": 19 },
-          "PM": { "sunThu": 19, "friSat": 21 }
+          "PM": { "sunThu": 19, "friSat": 23 }
         },
         "DELUXESTUDIO": {
-          "R": { "sunThu": 14, "friSat": 19 },
+          "R": { "sunThu": 14, "friSat": 17 },
           "P": { "sunThu": 19, "friSat": 24 },
-          "TP": { "sunThu": 24, "friSat": 27 }
+          "TP": { "sunThu": 24, "friSat": 29 }
         },
         "ONEBR": {
-          "R": { "sunThu": 28, "friSat": 38 },
-          "P": { "sunThu": 38, "friSat": 45 },
-          "TP": { "sunThu": 47, "friSat": 52 }
+          "R": { "sunThu": 28, "friSat": 34 },
+          "P": { "sunThu": 38, "friSat": 46 },
+          "TP": { "sunThu": 42, "friSat": 51 }
         },
         "TWOBR": {
-          "R": { "sunThu": 42, "friSat": 53 },
-          "P": { "sunThu": 53, "friSat": 63 },
-          "TP": { "sunThu": 64, "friSat": 75 }
+          "R": { "sunThu": 44, "friSat": 53 },
+          "P": { "sunThu": 54, "friSat": 65 },
+          "TP": { "sunThu": 68, "friSat": 79 }
         },
         "PENTHOUSE": {
           "P": { "sunThu": 86, "friSat": 104 },
-          "TP": { "sunThu": 108, "friSat": 126 }
+          "TP": { "sunThu": 108, "friSat": 128 }
         }
       }
     },
@@ -50,33 +51,34 @@
       ],
       "points": {
         "STUDIO": {
-          "R": { "sunThu": 17, "friSat": 20 }
+          "R": { "sunThu": 17, "friSat": 20 },
+          "P": { "sunThu": 22, "friSat": 24 }
         },
         "TWOBRBUNGALOW": {
-          "P": { "sunThu": 120, "friSat": 139 }
+          "P": { "sunThu": 120, "friSat": 138 }
         },
         "DUOSTUDIO": {
-          "R": { "sunThu": 14, "friSat": 18 },
+          "R": { "sunThu": 14, "friSat": 16 },
           "P": { "sunThu": 18, "friSat": 20 },
           "PM": { "sunThu": 21, "friSat": 24 }
         },
         "DELUXESTUDIO": {
-          "R": { "sunThu": 17, "friSat": 22 },
-          "P": { "sunThu": 22, "friSat": 26 },
-          "TP": { "sunThu": 27, "friSat": 30 }
+          "R": { "sunThu": 17, "friSat": 20 },
+          "P": { "sunThu": 22, "friSat": 24 },
+          "TP": { "sunThu": 26, "friSat": 30 }
         },
         "ONEBR": {
-          "R": { "sunThu": 34, "friSat": 42 },
+          "R": { "sunThu": 34, "friSat": 40 },
           "P": { "sunThu": 42, "friSat": 48 },
-          "TP": { "sunThu": 50, "friSat": 56 }
+          "TP": { "sunThu": 47, "friSat": 54 }
         },
         "TWOBR": {
-          "R": { "sunThu": 47, "friSat": 54 },
-          "P": { "sunThu": 54, "friSat": 66 },
-          "TP": { "sunThu": 71, "friSat": 82 }
+          "R": { "sunThu": 48, "friSat": 56 },
+          "P": { "sunThu": 60, "friSat": 68 },
+          "TP": { "sunThu": 71, "friSat": 84 }
         },
         "PENTHOUSE": {
-          "P": { "sunThu": 95, "friSat": 110 },
+          "P": { "sunThu": 95, "friSat": 112 },
           "TP": { "sunThu": 117, "friSat": 135 }
         }
       }
@@ -90,13 +92,14 @@
       ],
       "points": {
         "STUDIO": {
-          "R": { "sunThu": 18, "friSat": 22 }
+          "R": { "sunThu": 19, "friSat": 22 },
+          "P": { "sunThu": 22, "friSat": 26 }
         },
         "TWOBRBUNGALOW": {
           "P": { "sunThu": 128, "friSat": 147 }
         },
         "DUOSTUDIO": {
-          "R": { "sunThu": 16, "friSat": 19 },
+          "R": { "sunThu": 16, "friSat": 18 },
           "P": { "sunThu": 19, "friSat": 21 },
           "PM": { "sunThu": 22, "friSat": 26 }
         },
@@ -106,14 +109,14 @@
           "TP": { "sunThu": 27, "friSat": 32 }
         },
         "ONEBR": {
-          "R": { "sunThu": 38, "friSat": 47 },
+          "R": { "sunThu": 38, "friSat": 44 },
           "P": { "sunThu": 47, "friSat": 52 },
           "TP": { "sunThu": 53, "friSat": 61 }
         },
         "TWOBR": {
-          "R": { "sunThu": 54, "friSat": 63 },
-          "P": { "sunThu": 63, "friSat": 67 },
-          "TP": { "sunThu": 82, "friSat": 97 }
+          "R": { "sunThu": 54, "friSat": 62 },
+          "P": { "sunThu": 62, "friSat": 73 },
+          "TP": { "sunThu": 76, "friSat": 90 }
         },
         "PENTHOUSE": {
           "P": { "sunThu": 102, "friSat": 119 },
@@ -130,34 +133,35 @@
       ],
       "points": {
         "STUDIO": {
-          "R": { "sunThu": 20, "friSat": 23 }
+          "R": { "sunThu": 20, "friSat": 23 },
+          "P": { "sunThu": 24, "friSat": 27 }
         },
         "TWOBRBUNGALOW": {
           "P": { "sunThu": 136, "friSat": 157 }
         },
         "DUOSTUDIO": {
-          "R": { "sunThu": 17, "friSat": 20 },
-          "P": { "sunThu": 19, "friSat": 22 },
+          "R": { "sunThu": 17, "friSat": 19 },
+          "P": { "sunThu": 20, "friSat": 22 },
           "PM": { "sunThu": 24, "friSat": 27 }
         },
         "DELUXESTUDIO": {
-          "R": { "sunThu": 20, "friSat": 24 },
+          "R": { "sunThu": 20, "friSat": 23 },
           "P": { "sunThu": 24, "friSat": 27 },
-          "TP": { "sunThu": 29, "friSat": 35 }
+          "TP": { "sunThu": 29, "friSat": 33 }
         },
         "ONEBR": {
-          "R": { "sunThu": 40, "friSat": 48 },
+          "R": { "sunThu": 40, "friSat": 46 },
           "P": { "sunThu": 48, "friSat": 54 },
-          "TP": { "sunThu": 56, "friSat": 63 }
+          "TP": { "sunThu": 54, "friSat": 63 }
         },
         "TWOBR": {
           "R": { "sunThu": 56, "friSat": 65 },
-          "P": { "sunThu": 65, "friSat": 79 },
-          "TP": { "sunThu": 88, "friSat": 98 }
+          "P": { "sunThu": 68, "friSat": 79 },
+          "TP": { "sunThu": 82, "friSat": 96 }
         },
         "PENTHOUSE": {
           "P": { "sunThu": 108, "friSat": 122 },
-          "TP": { "sunThu": 128, "friSat": 162 }
+          "TP": { "sunThu": 128, "friSat": 152 }
         }
       }
     },
@@ -170,29 +174,30 @@
       ],
       "points": {
         "STUDIO": {
-          "R": { "sunThu": 22, "friSat": 26 }
+          "R": { "sunThu": 22, "friSat": 25 },
+          "P": { "sunThu": 25, "friSat": 30 }
         },
         "TWOBRBUNGALOW": {
-          "P": { "sunThu": 160, "friSat": 172 }
+          "P": { "sunThu": 150, "friSat": 172 }
         },
         "DUOSTUDIO": {
-          "R": { "sunThu": 18, "friSat": 21 },
-          "P": { "sunThu": 20, "friSat": 24 },
+          "R": { "sunThu": 18, "friSat": 20 },
+          "P": { "sunThu": 21, "friSat": 24 },
           "PM": { "sunThu": 26, "friSat": 29 }
         },
         "DELUXESTUDIO": {
           "R": { "sunThu": 22, "friSat": 25 },
           "P": { "sunThu": 25, "friSat": 30 },
-          "TP": { "sunThu": 31, "friSat": 38 }
+          "TP": { "sunThu": 31, "friSat": 36 }
         },
         "ONEBR": {
-          "R": { "sunThu": 44, "friSat": 53 },
+          "R": { "sunThu": 44, "friSat": 50 },
           "P": { "sunThu": 53, "friSat": 60 },
-          "TP": { "sunThu": 62, "friSat": 70 }
+          "TP": { "sunThu": 58, "friSat": 67 }
         },
         "TWOBR": {
           "R": { "sunThu": 62, "friSat": 70 },
-          "P": { "sunThu": 70, "friSat": 84 },
+          "P": { "sunThu": 73, "friSat": 84 },
           "TP": { "sunThu": 90, "friSat": 101 }
         },
         "PENTHOUSE": {
@@ -211,14 +216,15 @@
       ],
       "points": {
         "STUDIO": {
-          "R": { "sunThu": 25, "friSat": 28 }
+          "R": { "sunThu": 25, "friSat": 28 },
+          "P": { "sunThu": 28, "friSat": 32 }
         },
         "TWOBRBUNGALOW": {
           "P": { "sunThu": 162, "friSat": 185 }
         },
         "DUOSTUDIO": {
           "R": { "sunThu": 20, "friSat": 23 },
-          "P": { "sunThu": 22, "friSat": 26 },
+          "P": { "sunThu": 23, "friSat": 26 },
           "PM": { "sunThu": 28, "friSat": 32 }
         },
         "DELUXESTUDIO": {
@@ -227,14 +233,14 @@
           "TP": { "sunThu": 34, "friSat": 39 }
         },
         "ONEBR": {
-          "R": { "sunThu": 48, "friSat": 54 },
+          "R": { "sunThu": 48, "friSat": 56 },
           "P": { "sunThu": 54, "friSat": 64 },
-          "TP": { "sunThu": 69, "friSat": 75 }
+          "TP": { "sunThu": 65, "friSat": 75 }
         },
         "TWOBR": {
-          "R": { "sunThu": 68, "friSat": 75 },
-          "P": { "sunThu": 75, "friSat": 90 },
-          "TP": { "sunThu": 96, "friSat": 119 }
+          "R": { "sunThu": 68, "friSat": 79 },
+          "P": { "sunThu": 79, "friSat": 90 },
+          "TP": { "sunThu": 96, "friSat": 110 }
         },
         "PENTHOUSE": {
           "P": { "sunThu": 126, "friSat": 144 },
@@ -251,34 +257,35 @@
       ],
       "points": {
         "STUDIO": {
-          "R": { "sunThu": 34, "friSat": 38 }
+          "R": { "sunThu": 34, "friSat": 36 },
+          "P": { "sunThu": 41, "friSat": 43 }
         },
         "TWOBRBUNGALOW": {
           "P": { "sunThu": 199, "friSat": 226 }
         },
         "DUOSTUDIO": {
-          "R": { "sunThu": 27, "friSat": 32 },
-          "P": { "sunThu": 30, "friSat": 36 },
+          "R": { "sunThu": 27, "friSat": 30 },
+          "P": { "sunThu": 32, "friSat": 36 },
           "PM": { "sunThu": 39, "friSat": 43 }
         },
         "DELUXESTUDIO": {
-          "R": { "sunThu": 34, "friSat": 41 },
+          "R": { "sunThu": 34, "friSat": 36 },
           "P": { "sunThu": 41, "friSat": 43 },
           "TP": { "sunThu": 48, "friSat": 53 }
         },
         "ONEBR": {
           "R": { "sunThu": 68, "friSat": 78 },
           "P": { "sunThu": 78, "friSat": 86 },
-          "TP": { "sunThu": 89, "friSat": 105 }
+          "TP": { "sunThu": 89, "friSat": 98 }
         },
         "TWOBR": {
           "R": { "sunThu": 92, "friSat": 105 },
-          "P": { "sunThu": 105, "friSat": 129 },
-          "TP": { "sunThu": 149, "friSat": 175 }
+          "P": { "sunThu": 109, "friSat": 125 },
+          "TP": { "sunThu": 128, "friSat": 149 }
         },
         "PENTHOUSE": {
           "P": { "sunThu": 178, "friSat": 198 },
-          "TP": { "sunThu": 197, "friSat": 229 }
+          "TP": { "sunThu": 197, "friSat": 226 }
         }
       }
     }

@@ -10,7 +10,7 @@
       ],
       "points": {
         "STUDIO": {
-          "S": { "sunThu": 9, "friSat": 13 },
+          "S": { "sunThu": 10, "friSat": 13 },
           "P": { "sunThu": 14, "friSat": 16 }
         },
         "ONEBR": {
@@ -35,7 +35,7 @@
       ],
       "points": {
         "STUDIO": {
-          "S": { "sunThu": 9, "friSat": 14 },
+          "S": { "sunThu": 10, "friSat": 14 },
           "P": { "sunThu": 15, "friSat": 16 }
         },
         "ONEBR": {
@@ -60,7 +60,7 @@
       ],
       "points": {
         "STUDIO": {
-          "S": { "sunThu": 10, "friSat": 15 },
+          "S": { "sunThu": 11, "friSat": 15 },
           "P": { "sunThu": 16, "friSat": 17 }
         },
         "ONEBR": {
@@ -85,7 +85,7 @@
       ],
       "points": {
         "STUDIO": {
-          "S": { "sunThu": 12, "friSat": 16 },
+          "S": { "sunThu": 11, "friSat": 16 },
           "P": { "sunThu": 16, "friSat": 18 }
         },
         "ONEBR": {
@@ -110,7 +110,7 @@
       ],
       "points": {
         "STUDIO": {
-          "S": { "sunThu": 14, "friSat": 17 },
+          "S": { "sunThu": 14, "friSat": 16 },
           "P": { "sunThu": 18, "friSat": 20 }
         },
         "ONEBR": {

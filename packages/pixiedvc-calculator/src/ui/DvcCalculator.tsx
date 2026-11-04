@@ -56,6 +56,7 @@ const RESORT_SLUG_TO_CODE: Record<string, string> = {
   "boulder-ridge-villas": "BRV",
   "copper-creek-villas": "CCV",
   "copper-creek-villas-and-cabins": "CCV",
+  "fort-wilderness-cabins": "CFW",
   "disneyland-hotel-villas": "VDH",
   "villas-at-disneyland-hotel": "VDH",
   "grand-californian-villas": "VGC",
@@ -84,6 +85,7 @@ const RESORT_CODE_TO_SLUG: Record<string, string> = {
   BWV: "boardwalk-villas",
   BRV: "boulder-ridge-villas",
   CCV: "copper-creek-villas-and-cabins",
+  CFW: "fort-wilderness-cabins",
   VDH: "disneyland-hotel-villas",
   VGC: "grand-californian-villas",
   VGF: "grand-floridian-villas",
@@ -101,6 +103,7 @@ const SUMMARY_IMAGE_OVERRIDE_BY_CODE: Record<string, string> = {
 
 const SUMMARY_IMAGE_FALLBACK_BY_CODE: Record<string, string> = {
   CCV: "/images/Fort wilderness.png",
+  CFW: "/images/Fort wilderness.png",
 };
 
 const DEFAULT_SUMMARY_IMAGE = resolveResortImage({ resortCode: "SSR", imageIndex: 1 }).url;

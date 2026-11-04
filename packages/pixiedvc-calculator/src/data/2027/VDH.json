@@ -10,23 +10,20 @@
       ],
       "points": {
         "DUOSTUDIO": {
-          "S": { "sunThu": 11, "friSat": 13 },
-          "P": { "sunThu": 13, "friSat": 14 }
+          "S": { "sunThu": 10, "friSat": 13 },
+          "P": { "sunThu": 11, "friSat": 14 }
         },
         "DELUXESTUDIO": {
-          "S": { "sunThu": 16, "friSat": 16 },
-          "P": { "sunThu": 19, "friSat": 19 }
+          "S": { "sunThu": 13, "friSat": 16 },
+          "P": { "sunThu": 15, "friSat": 19 }
         },
         "ONEBR": {
-          "S": { "sunThu": 30, "friSat": 37 },
           "P": { "sunThu": 30, "friSat": 37 }
         },
         "TWOBR": {
-          "S": { "sunThu": 43, "friSat": 53 },
           "P": { "sunThu": 43, "friSat": 53 }
         },
         "GRANDVILLA": {
-          "S": { "sunThu": 96, "friSat": 118 },
           "P": { "sunThu": 96, "friSat": 118 }
         },
         "GARDENDUOSTUDIO": {
@@ -54,15 +51,12 @@
           "P": { "sunThu": 18, "friSat": 22 }
         },
         "ONEBR": {
-          "S": { "sunThu": 33, "friSat": 40 },
           "P": { "sunThu": 33, "friSat": 40 }
         },
         "TWOBR": {
-          "S": { "sunThu": 49, "friSat": 59 },
           "P": { "sunThu": 49, "friSat": 59 }
         },
         "GRANDVILLA": {
-          "S": { "sunThu": 106, "friSat": 128 },
           "P": { "sunThu": 106, "friSat": 128 }
         },
         "GARDENDUOSTUDIO": {
@@ -90,15 +84,12 @@
           "P": { "sunThu": 20, "friSat": 24 }
         },
         "ONEBR": {
-          "S": { "sunThu": 36, "friSat": 42 },
           "P": { "sunThu": 36, "friSat": 42 }
         },
         "TWOBR": {
-          "S": { "sunThu": 52, "friSat": 67 },
-          "P": { "sunThu": 52, "friSat": 67 }
+          "P": { "sunThu": 52, "friSat": 61 }
         },
         "GRANDVILLA": {
-          "S": { "sunThu": 122, "friSat": 146 },
           "P": { "sunThu": 122, "friSat": 146 }
         },
         "GARDENDUOSTUDIO": {
@@ -115,7 +106,7 @@
       "ranges": [
         { "start": "2027-05-23", "end": "2027-05-31" },
         { "start": "2027-10-01", "end": "2027-11-22" },
-        { "start": "2027-11-28", "end": "2027-12-17" }
+        { "start": "2027-11-27", "end": "2027-12-17" }
       ],
       "points": {
         "DUOSTUDIO": {
@@ -127,15 +118,12 @@
           "P": { "sunThu": 23, "friSat": 26 }
         },
         "ONEBR": {
-          "S": { "sunThu": 40, "friSat": 46 },
           "P": { "sunThu": 40, "friSat": 46 }
         },
         "TWOBR": {
-          "S": { "sunThu": 60, "friSat": 69 },
           "P": { "sunThu": 60, "friSat": 69 }
         },
         "GRANDVILLA": {
-          "S": { "sunThu": 129, "friSat": 152 },
           "P": { "sunThu": 129, "friSat": 152 }
         },
         "GARDENDUOSTUDIO": {
@@ -162,15 +150,12 @@
           "P": { "sunThu": 26, "friSat": 29 }
         },
         "ONEBR": {
-          "S": { "sunThu": 42, "friSat": 48 },
           "P": { "sunThu": 42, "friSat": 48 }
         },
         "TWOBR": {
-          "S": { "sunThu": 65, "friSat": 73 },
           "P": { "sunThu": 65, "friSat": 73 }
         },
         "GRANDVILLA": {
-          "S": { "sunThu": 149, "friSat": 169 },
           "P": { "sunThu": 149, "friSat": 169 }
         },
         "GARDENDUOSTUDIO": {
@@ -190,23 +175,20 @@
       ],
       "points": {
         "DUOSTUDIO": {
-          "S": { "sunThu": 18, "friSat": 19 },
-          "P": { "sunThu": 24, "friSat": 21 }
+          "S": { "sunThu": 16, "friSat": 19 },
+          "P": { "sunThu": 18, "friSat": 21 }
         },
         "DELUXESTUDIO": {
-          "S": { "sunThu": 27, "friSat": 27 },
-          "P": { "sunThu": 30, "friSat": 30 }
+          "S": { "sunThu": 24, "friSat": 27 },
+          "P": { "sunThu": 27, "friSat": 30 }
         },
         "ONEBR": {
-          "S": { "sunThu": 42, "friSat": 50 },
           "P": { "sunThu": 42, "friSat": 50 }
         },
         "TWOBR": {
-          "S": { "sunThu": 65, "friSat": 75 },
           "P": { "sunThu": 65, "friSat": 75 }
         },
         "GRANDVILLA": {
-          "S": { "sunThu": 149, "friSat": 174 },
           "P": { "sunThu": 149, "friSat": 174 }
         },
         "GARDENDUOSTUDIO": {
@@ -235,15 +217,12 @@
           "P": { "sunThu": 31, "friSat": 34 }
         },
         "ONEBR": {
-          "S": { "sunThu": 54, "friSat": 62 },
           "P": { "sunThu": 54, "friSat": 62 }
         },
         "TWOBR": {
-          "S": { "sunThu": 82, "friSat": 92 },
           "P": { "sunThu": 82, "friSat": 92 }
         },
         "GRANDVILLA": {
-          "S": { "sunThu": 174, "friSat": 204 },
           "P": { "sunThu": 174, "friSat": 204 }
         },
         "GARDENDUOSTUDIO": {

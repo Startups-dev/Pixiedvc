@@ -31,7 +31,7 @@ describe("Pixie WDW resort catalog", () => {
     }
   });
 
-  it("excludes Fort Wilderness until calculator metadata is complete", () => {
+  it("excludes Fort Wilderness from recommendations pending resort-specific room layout metadata", () => {
     expect(PIXIE_WDW_RESORT_CATALOG.map((resort) => resort.slug)).not.toContain("fort-wilderness-cabins");
     expect(PIXIE_UNSUPPORTED_WDW_RESORTS[0]?.calculatorCode).toBe("CFW");
   });

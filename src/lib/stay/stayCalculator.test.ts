@@ -44,6 +44,23 @@ describe("stayCalculator", () => {
     expect(result.nights[0]?.night).toBe("2026-12-24");
   });
 
+  it("quotes a Fort Wilderness Cabin through the shared stay quote flow", () => {
+    const result = calculateStayPoints({
+      resortCalculatorCode: "CFW",
+      roomCode: "CABIN",
+      viewCode: "S",
+      checkIn: "2026-12-31",
+      checkOut: "2027-01-02",
+    });
+
+    expect(result.nights).toEqual([
+      { night: "2026-12-31", points: 32 },
+      { night: "2027-01-01", points: 19 },
+    ]);
+    expect(result.totalNights).toBe(2);
+    expect(result.totalPoints).toBe(51);
+  });
+
   it("quotes exact BLT Studio categories without collapsing views", () => {
     expect(
       calculateStayPoints({

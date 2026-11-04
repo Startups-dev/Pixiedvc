@@ -1,0 +1,160 @@
+{
+  "resortCode": "CFW",
+  "year": 2025,
+  "periods": [
+    {
+      "id": 1,
+      "name": "Travel Period 1",
+      "ranges": [
+        {
+          "start": "2025-09-01",
+          "end": "2025-09-30"
+        }
+      ],
+      "points": {
+        "CABIN": {
+          "S": {
+            "sunThu": 15,
+            "friSat": 18
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "Travel Period 2",
+      "ranges": [
+        {
+          "start": "2025-01-01",
+          "end": "2025-01-31"
+        },
+        {
+          "start": "2025-05-01",
+          "end": "2025-05-14"
+        }
+      ],
+      "points": {
+        "CABIN": {
+          "S": {
+            "sunThu": 16,
+            "friSat": 19
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "Travel Period 3",
+      "ranges": [
+        {
+          "start": "2025-05-15",
+          "end": "2025-06-10"
+        },
+        {
+          "start": "2025-12-01",
+          "end": "2025-12-23"
+        }
+      ],
+      "points": {
+        "CABIN": {
+          "S": {
+            "sunThu": 18,
+            "friSat": 21
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "name": "Travel Period 4",
+      "ranges": [
+        {
+          "start": "2025-02-01",
+          "end": "2025-02-15"
+        },
+        {
+          "start": "2025-06-11",
+          "end": "2025-08-31"
+        }
+      ],
+      "points": {
+        "CABIN": {
+          "S": {
+            "sunThu": 20,
+            "friSat": 24
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "name": "Travel Period 5",
+      "ranges": [
+        {
+          "start": "2025-10-01",
+          "end": "2025-11-25"
+        },
+        {
+          "start": "2025-11-29",
+          "end": "2025-11-30"
+        }
+      ],
+      "points": {
+        "CABIN": {
+          "S": {
+            "sunThu": 22,
+            "friSat": 25
+          }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "name": "Travel Period 6",
+      "ranges": [
+        {
+          "start": "2025-02-16",
+          "end": "2025-04-12"
+        },
+        {
+          "start": "2025-04-21",
+          "end": "2025-04-30"
+        },
+        {
+          "start": "2025-11-26",
+          "end": "2025-11-28"
+        }
+      ],
+      "points": {
+        "CABIN": {
+          "S": {
+            "sunThu": 24,
+            "friSat": 28
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "name": "Travel Period 7",
+      "ranges": [
+        {
+          "start": "2025-04-13",
+          "end": "2025-04-20"
+        },
+        {
+          "start": "2025-12-24",
+          "end": "2025-12-31"
+        }
+      ],
+      "points": {
+        "CABIN": {
+          "S": {
+            "sunThu": 32,
+            "friSat": 36
+          }
+        }
+      }
+    }
+  ]
+}

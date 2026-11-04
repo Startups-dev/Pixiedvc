@@ -1,5 +1,5 @@
 // src/engine/types.ts
-export type RoomCode = "STUDIO" | "ONEBR" | "TWOBR" | "GRANDVILLA" | "DUOSTUDIO" | "DELUXESTUDIO" | "GARDENDUOSTUDIO" | "GARDENDELUXESTUDIO" | "CABIN" | "RESORTSTUDIO" | "TWOBRBUNGALOW" | "PENTHOUSE" | "TREEHOUSE" | "TOWERSTUDIO" | "INNROOM" | "COTTAGE";
+export type RoomCode = "STUDIO" | "ONEBR" | "TWOBR" | "GRANDVILLA" | "DUOSTUDIO" | "DELUXESTUDIO" | "GARDENDUOSTUDIO" | "GARDENDELUXESTUDIO" | "CABIN" | "RESORTSTUDIO" | "TWOBRBUNGALOW" | "PENTHOUSE" | "TREEHOUSE" | "TOWERSTUDIO" | "INNROOM" | "COTTAGE" | "HOTELROOM";
 export type ViewCode = "V" | "S" | "SV" | "C" | "I" | "P" | "O" | "L" | "T" | "R" | "TP" | "PM"; // Value, Standard, Savanna, Concierge, Island, Poolside/Preferred, Ocean, Lake, Theme Park, Resort, Theme Park View, Premium
 export type WeekRate = { sunThu: number; friSat: number };
 
@@ -24,6 +24,7 @@ export type TravelPeriod = {
     TOWERSTUDIO?: Partial<Record<ViewCode, WeekRate>>;
     INNROOM?: Partial<Record<ViewCode, WeekRate>>;
     COTTAGE?: Partial<Record<ViewCode, WeekRate>>;
+    HOTELROOM?: Partial<Record<ViewCode, WeekRate>>;
   };
 };
 

@@ -12,6 +12,9 @@
         { "start": "2026-11-29", "end": "2026-12-17" }
       ],
       "points": {
+        "HOTELROOM": {
+          "S": { "sunThu": 16, "friSat": 16 }
+        },
         "STUDIO": {
           "S": { "sunThu": 17, "friSat": 17 },
           "I": { "sunThu": 19, "friSat": 19 },
@@ -45,6 +48,9 @@
         { "start": "2026-10-11", "end": "2026-11-09" }
       ],
       "points": {
+        "HOTELROOM": {
+          "S": { "sunThu": 17, "friSat": 17 }
+        },
         "STUDIO": {
           "S": { "sunThu": 19, "friSat": 19 },
           "I": { "sunThu": 21, "friSat": 21 },
@@ -78,6 +84,9 @@
         { "start": "2026-08-10", "end": "2026-09-05" }
       ],
       "points": {
+        "HOTELROOM": {
+          "S": { "sunThu": 18, "friSat": 18 }
+        },
         "STUDIO": {
           "S": { "sunThu": 22, "friSat": 22 },
           "I": { "sunThu": 25, "friSat": 25 },
@@ -108,12 +117,14 @@
       "ranges": [
         { "start": "2026-01-01", "end": "2026-01-03" },
         { "start": "2026-03-25", "end": "2026-04-11" },
-        { "start": "2026-04-11", "end": "2026-04-26" },
         { "start": "2026-06-29", "end": "2026-08-09" },
         { "start": "2026-11-24", "end": "2026-11-28" },
         { "start": "2026-12-18", "end": "2026-12-31" }
       ],
       "points": {
+        "HOTELROOM": {
+          "S": { "sunThu": 21, "friSat": 21 }
+        },
         "STUDIO": {
           "S": { "sunThu": 24, "friSat": 24 },
           "I": { "sunThu": 27, "friSat": 27 },

@@ -60,6 +60,8 @@ export function formatDvcRoomLabel(roomCode: RoomCode) {
       return "Deluxe Inn Room";
     case "COTTAGE":
       return "Three-Bedroom Beach Cottage";
+    case "HOTELROOM":
+      return "Hotel Room";
     default:
       return roomCode;
   }

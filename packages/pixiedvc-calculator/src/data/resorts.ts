@@ -30,8 +30,9 @@ export const resortsData: ResortMeta[] = [
     code: "AUL",
     name: "Aulani, Ko Olina, Hawai'i",
     category: "PRIORITY_ACCESS",
-    roomTypes: ["STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
+    roomTypes: ["HOTELROOM", "STUDIO", "ONEBR", "TWOBR", "GRANDVILLA"],
     viewsByRoom: {
+      HOTELROOM: ["S"],
       STUDIO: ["S", "I", "P", "O"],
       ONEBR: ["S", "I", "P", "O"],
       TWOBR: ["S", "I", "P", "O"],
@@ -44,6 +45,7 @@ export const resortsData: ResortMeta[] = [
       O: "Ocean View"
     },
     occupancy: {
+      HOTELROOM: 4,
       STUDIO: 4,
       ONEBR: 5,
       TWOBR: 9,
@@ -181,7 +183,7 @@ export const resortsData: ResortMeta[] = [
     category: "PREMIER_ACCESS",
     roomTypes: ["STUDIO", "DUOSTUDIO", "DELUXESTUDIO", "ONEBR", "TWOBR", "TWOBRBUNGALOW", "PENTHOUSE"],
     viewsByRoom: {
-      STUDIO: ["R"],
+      STUDIO: ["R", "P"],
       DUOSTUDIO: ["R", "P", "PM"],
       DELUXESTUDIO: ["R", "P", "TP"],
       ONEBR: ["R", "P", "TP"],
@@ -301,6 +303,21 @@ export const resortsData: ResortMeta[] = [
     }
   },
   {
+    code: "CFW",
+    name: "The Cabins at Disney's Fort Wilderness Resort",
+    category: "SELECT_ACCESS",
+    roomTypes: ["CABIN"],
+    viewsByRoom: {
+      CABIN: ["S"]
+    },
+    viewNames: {
+      S: "Standard"
+    },
+    occupancy: {
+      CABIN: 6
+    }
+  },
+  {
     code: "VDH",
     name: "The Villas at Disneyland Hotel",
     category: "PRIORITY_ACCESS",
@@ -310,9 +327,9 @@ export const resortsData: ResortMeta[] = [
       DELUXESTUDIO: ["S", "P"],
       GARDENDUOSTUDIO: ["S"],
       GARDENDELUXESTUDIO: ["S"],
-      ONEBR: ["S", "P"],
-      TWOBR: ["S", "P"],
-      GRANDVILLA: ["S", "P"]
+      ONEBR: ["P"],
+      TWOBR: ["P"],
+      GRANDVILLA: ["P"]
     },
     viewNames: {
       S: "Standard View",

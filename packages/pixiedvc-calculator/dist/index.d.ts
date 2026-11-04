@@ -1,4 +1,4 @@
-type RoomCode = "STUDIO" | "ONEBR" | "TWOBR" | "GRANDVILLA" | "DUOSTUDIO" | "DELUXESTUDIO" | "GARDENDUOSTUDIO" | "GARDENDELUXESTUDIO" | "CABIN" | "RESORTSTUDIO" | "TWOBRBUNGALOW" | "PENTHOUSE" | "TREEHOUSE" | "TOWERSTUDIO" | "INNROOM" | "COTTAGE";
+type RoomCode = "STUDIO" | "ONEBR" | "TWOBR" | "GRANDVILLA" | "DUOSTUDIO" | "DELUXESTUDIO" | "GARDENDUOSTUDIO" | "GARDENDELUXESTUDIO" | "CABIN" | "RESORTSTUDIO" | "TWOBRBUNGALOW" | "PENTHOUSE" | "TREEHOUSE" | "TOWERSTUDIO" | "INNROOM" | "COTTAGE" | "HOTELROOM";
 type ViewCode = "V" | "S" | "SV" | "C" | "I" | "P" | "O" | "L" | "T" | "R" | "TP" | "PM";
 type WeekRate = {
     sunThu: number;
@@ -28,6 +28,7 @@ type TravelPeriod = {
         TOWERSTUDIO?: Partial<Record<ViewCode, WeekRate>>;
         INNROOM?: Partial<Record<ViewCode, WeekRate>>;
         COTTAGE?: Partial<Record<ViewCode, WeekRate>>;
+        HOTELROOM?: Partial<Record<ViewCode, WeekRate>>;
     };
 };
 type ResortYearChart = {
@@ -93,8 +94,24 @@ declare function quoteAllResorts(params: Omit<QuoteInput, "resortCode" | "room" 
     }[]>>;
 }): Promise<Record<string, Partial<Record<RoomCode, QuoteResult>>>>;
 
+type DvcAccommodationIdentity = {
+    resortCode: string;
+    roomCode: RoomCode;
+    viewCode: ViewCode;
+};
+type DvcAccommodationOption = DvcAccommodationIdentity & {
+    roomLabel: string;
+    categoryLabel: string;
+    displayLabel: string;
+};
+declare function dvcAccommodationIdentityKey(identity: DvcAccommodationIdentity): string;
+declare function formatDvcRoomLabel(roomCode: RoomCode): "Deluxe Studio" | "Resort Studio" | "Tower Studio" | "Duo Studio" | "Garden Room Duo Studio" | "Garden Room Deluxe Studio" | "Cabin" | "One Bedroom" | "Two Bedroom" | "Two-Bedroom Bungalow" | "Two-Bedroom Penthouse Villa" | "Grand Villa" | "Three-Bedroom Treehouse Villa" | "Deluxe Inn Room" | "Three-Bedroom Beach Cottage" | "Hotel Room";
+declare function getDvcAccommodationOptions(resortCode: string, resorts?: ResortMeta[]): DvcAccommodationOption[];
+declare function getDvcAccommodationOption(identity: DvcAccommodationIdentity, resorts?: ResortMeta[]): DvcAccommodationOption | null;
+declare function isValidDvcAccommodationIdentity(identity: DvcAccommodationIdentity, resorts?: ResortMeta[]): boolean;
+
 declare const resortsData: ResortMeta[];
 
 declare function getResortYearChart(resortCode: string, year: number): ResortYearChart | null;
 
-export { PricingTier, QuoteInput, QuoteResult, RATE_BY_CATEGORY, ResortMeta, ResortYearChart, Resorts, RoomCode, SERVICE_FEE_PCT, TIER_DISPLAY_NAMES, TravelPeriod, ViewCode, WeekRate, getResortYearChart, loadResortYearChart, quoteAllResorts, quoteStay, resortsData };
+export { DvcAccommodationIdentity, DvcAccommodationOption, PricingTier, QuoteInput, QuoteResult, RATE_BY_CATEGORY, ResortMeta, ResortYearChart, Resorts, RoomCode, SERVICE_FEE_PCT, TIER_DISPLAY_NAMES, TravelPeriod, ViewCode, WeekRate, dvcAccommodationIdentityKey, formatDvcRoomLabel, getDvcAccommodationOption, getDvcAccommodationOptions, getResortYearChart, isValidDvcAccommodationIdentity, loadResortYearChart, quoteAllResorts, quoteStay, resortsData };

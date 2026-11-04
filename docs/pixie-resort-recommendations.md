@@ -65,7 +65,7 @@ Non-WDW DVC resorts are hard excluded from Pixie v1:
 - `HHI` / Hilton Head Island.
 - `VB` / Vero Beach.
 
-Fort Wilderness Cabins (`CFW`, `fort-wilderness-cabins`) are also excluded for now. The repository has slug fallback and a 2027 point chart, but the calculator resort metadata does not currently provide `CFW` category, room types, or occupancy. Pixie must not recommend it until that source data is complete.
+Fort Wilderness Cabins (`CFW`, `fort-wilderness-cabins`) remain excluded from Pixie recommendations. The points calculator now supports the official Cabin category and capacity of six, but Pixie's separate room model currently maps every `CABIN` code to the same bedroom count. Keep recommendations disabled until CFW's room-layout semantics are modeled separately from other cabin categories.
 
 ## Identifier Rules
 
@@ -297,7 +297,7 @@ Pixie should say when exact-date pricing was used, when pricing is unavailable, 
 ## Known Data Limitations
 
 - `public.resorts` may contain operational aliases and database identifiers that differ from calculator identifiers. Pixie Phase 2 deliberately keeps database IDs out of local recommendations.
-- Fort Wilderness Cabins need calculator resort metadata before recommendation support.
+- Fort Wilderness Cabins have calculator support, but Pixie recommendations need a resort-specific cabin room model before they can include CFW accurately.
 - Existing migrations include a Kidani `KV` calculator-code reference, while the calculator uses `AKV` for Animal Kingdom Villas. Pixie treats AKV as the supported calculator identity for Phase 2.
 - Bare `kidani`, `jambo`, and `KV` are ambiguous identifiers. Full AKV slugs can resolve to umbrella `akv`, but building-specific booking/matching must use dedicated metadata in later phases.
 - The adapter does not yet model room view preferences as first-class Pixie state.

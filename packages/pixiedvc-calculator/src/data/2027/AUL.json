@@ -12,8 +12,11 @@
         { "start": "2027-11-28", "end": "2027-12-23" }
       ],
       "points": {
+        "HOTELROOM": {
+          "S": { "sunThu": 16, "friSat": 16 }
+        },
         "STUDIO": {
-          "S": { "sunThu": 16, "friSat": 16 },
+          "S": { "sunThu": 17, "friSat": 17 },
           "I": { "sunThu": 19, "friSat": 19 },
           "P": { "sunThu": 23, "friSat": 23 },
           "O": { "sunThu": 25, "friSat": 25 }
@@ -45,8 +48,11 @@
         { "start": "2027-10-10", "end": "2027-11-09" }
       ],
       "points": {
+        "HOTELROOM": {
+          "S": { "sunThu": 17, "friSat": 17 }
+        },
         "STUDIO": {
-          "S": { "sunThu": 17, "friSat": 17 },
+          "S": { "sunThu": 19, "friSat": 19 },
           "I": { "sunThu": 21, "friSat": 21 },
           "P": { "sunThu": 24, "friSat": 24 },
           "O": { "sunThu": 26, "friSat": 26 }
@@ -78,8 +84,11 @@
         { "start": "2027-08-09", "end": "2027-09-04" }
       ],
       "points": {
+        "HOTELROOM": {
+          "S": { "sunThu": 18, "friSat": 18 }
+        },
         "STUDIO": {
-          "S": { "sunThu": 18, "friSat": 18 },
+          "S": { "sunThu": 22, "friSat": 22 },
           "I": { "sunThu": 25, "friSat": 25 },
           "P": { "sunThu": 26, "friSat": 26 },
           "O": { "sunThu": 29, "friSat": 29 }
@@ -113,8 +122,11 @@
         { "start": "2027-12-24", "end": "2027-12-31" }
       ],
       "points": {
+        "HOTELROOM": {
+          "S": { "sunThu": 21, "friSat": 21 }
+        },
         "STUDIO": {
-          "S": { "sunThu": 21, "friSat": 21 },
+          "S": { "sunThu": 24, "friSat": 24 },
           "I": { "sunThu": 27, "friSat": 27 },
           "P": { "sunThu": 29, "friSat": 29 },
           "O": { "sunThu": 31, "friSat": 31 }
