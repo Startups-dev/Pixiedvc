@@ -177,6 +177,7 @@ export function GuestInfo({
   const [occupancyError, setOccupancyError] = useState<string | null>(null);
   const occupancyWarningRef = useRef<HTMLDivElement | null>(null);
   const addressRef = useRef<HTMLInputElement>(null);
+  const [addressInput, setAddressInput] = useState<HTMLInputElement | null>(null);
   const villaType = useWatch({ control, name: "trip.villaType" });
   const resortId = useWatch({ control, name: "trip.resortId" });
   const accessibility = useWatch({ control, name: "trip.accessibility" });
@@ -215,7 +216,9 @@ export function GuestInfo({
 
   usePlacesAutocomplete({
     inputRef: addressRef,
+    inputElement: addressInput,
     debugLabel: "booking-form",
+    disabled: disableAddressAutocomplete,
     countryCode: countryCodeMap[country],
     onSelect: (address) => {
       if (disableAddressAutocomplete) return;
@@ -489,6 +492,7 @@ export function GuestInfo({
                             ref={(node) => {
                               field.ref(node);
                               addressRef.current = node;
+                              setAddressInput(node);
                             }}
                           />
                         )}

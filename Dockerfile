@@ -52,7 +52,11 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_GOOGLE_PLACES_API_KEY=$NEXT_PUBLIC_GOOGLE_PLACES_API_KEY
 ENV NEXT_PUBLIC_INTERCOM_APP_ID=$NEXT_PUBLIC_INTERCOM_APP_ID
 
-RUN pnpm build
+RUN --mount=type=secret,id=google_places_api_key \
+    if [ -f /run/secrets/google_places_api_key ]; then \
+      export NEXT_PUBLIC_GOOGLE_PLACES_API_KEY="$(cat /run/secrets/google_places_api_key)"; \
+    fi; \
+    pnpm build
 
 FROM node:20-bookworm-slim AS runner
 WORKDIR /app

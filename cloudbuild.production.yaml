@@ -22,23 +22,24 @@ steps:
         fi
 
   - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    secretEnv: ["NEXT_PUBLIC_GOOGLE_PLACES_API_KEY"]
+    env: ["DOCKER_BUILDKIT=1"]
     args:
-      - "build"
-      - "-t"
-      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/web:${_IMAGE_TAG}"
-      - "--build-arg"
-      - "NEXT_PUBLIC_SITE_URL=${_NEXT_PUBLIC_SITE_URL}"
-      - "--build-arg"
-      - "NEXT_PUBLIC_APP_URL=${_NEXT_PUBLIC_APP_URL}"
-      - "--build-arg"
-      - "NEXT_PUBLIC_SUPABASE_URL=${_NEXT_PUBLIC_SUPABASE_URL}"
-      - "--build-arg"
-      - "NEXT_PUBLIC_SUPABASE_ANON_KEY=${_NEXT_PUBLIC_SUPABASE_ANON_KEY}"
-      - "--build-arg"
-      - "NEXT_PUBLIC_GOOGLE_PLACES_API_KEY=${_NEXT_PUBLIC_GOOGLE_PLACES_API_KEY}"
-      - "--build-arg"
-      - "NEXT_PUBLIC_INTERCOM_APP_ID=${_NEXT_PUBLIC_INTERCOM_APP_ID}"
-      - "."
+      - "-ceu"
+      - |
+        # The browser bundle needs this at build time; runtime env is too late.
+        # Pass it via a BuildKit secret so the value is never printed in logs.
+        test -n "$$NEXT_PUBLIC_GOOGLE_PLACES_API_KEY" || { echo "Missing production Places browser key"; exit 1; }
+        docker build \
+          --secret id=google_places_api_key,env=NEXT_PUBLIC_GOOGLE_PLACES_API_KEY \
+          -t "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/web:${_IMAGE_TAG}" \
+          --build-arg "NEXT_PUBLIC_SITE_URL=${_NEXT_PUBLIC_SITE_URL}" \
+          --build-arg "NEXT_PUBLIC_APP_URL=${_NEXT_PUBLIC_APP_URL}" \
+          --build-arg "NEXT_PUBLIC_SUPABASE_URL=${_NEXT_PUBLIC_SUPABASE_URL}" \
+          --build-arg "NEXT_PUBLIC_SUPABASE_ANON_KEY=${_NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
+          --build-arg "NEXT_PUBLIC_INTERCOM_APP_ID=${_NEXT_PUBLIC_INTERCOM_APP_ID}" \
+          .
 
   - name: "gcr.io/cloud-builders/docker"
     args:
@@ -57,8 +58,10 @@ steps:
       - "${_REGION}"
       - "--platform"
       - "managed"
+      - "--remove-env-vars"
+      - "NEXT_PUBLIC_GOOGLE_PLACES_API_KEY"
       - "--update-secrets"
-      - "ZOHO_MAIL_CLIENT_ID=PRODUCTION_ZOHO_MAIL_CLIENT_ID:latest,ZOHO_MAIL_CLIENT_SECRET=PRODUCTION_ZOHO_MAIL_CLIENT_SECRET:latest,ZOHO_MAIL_ENCRYPTION_KEY=PRODUCTION_ZOHO_MAIL_ENCRYPTION_KEY:latest,ZOHO_MAIL_WEBHOOK_TOKEN=PRODUCTION_ZOHO_MAIL_WEBHOOK_TOKEN:latest,RESEND_WEBHOOK_SIGNING_SECRET=PRODUCTION_RESEND_WEBHOOK_SIGNING_SECRET:latest,ADMIN_INBOX_SMS_ENCRYPTION_KEY=PRODUCTION_ADMIN_INBOX_SMS_ENCRYPTION_KEY:latest,TWILIO_SMS_ACCOUNT_SID=PRODUCTION_TWILIO_SMS_ACCOUNT_SID:latest,TWILIO_SMS_AUTH_TOKEN=PRODUCTION_TWILIO_SMS_AUTH_TOKEN:latest,TWILIO_SMS_MESSAGING_SERVICE_SID=PRODUCTION_TWILIO_SMS_MESSAGING_SERVICE_SID:latest"
+      - "NEXT_PUBLIC_GOOGLE_PLACES_API_KEY=PRODUCTION_NEXT_PUBLIC_GOOGLE_PLACES_API_KEY:latest,ZOHO_MAIL_CLIENT_ID=PRODUCTION_ZOHO_MAIL_CLIENT_ID:latest,ZOHO_MAIL_CLIENT_SECRET=PRODUCTION_ZOHO_MAIL_CLIENT_SECRET:latest,ZOHO_MAIL_ENCRYPTION_KEY=PRODUCTION_ZOHO_MAIL_ENCRYPTION_KEY:latest,ZOHO_MAIL_WEBHOOK_TOKEN=PRODUCTION_ZOHO_MAIL_WEBHOOK_TOKEN:latest,RESEND_WEBHOOK_SIGNING_SECRET=PRODUCTION_RESEND_WEBHOOK_SIGNING_SECRET:latest,ADMIN_INBOX_SMS_ENCRYPTION_KEY=PRODUCTION_ADMIN_INBOX_SMS_ENCRYPTION_KEY:latest,TWILIO_SMS_ACCOUNT_SID=PRODUCTION_TWILIO_SMS_ACCOUNT_SID:latest,TWILIO_SMS_AUTH_TOKEN=PRODUCTION_TWILIO_SMS_AUTH_TOKEN:latest,TWILIO_SMS_MESSAGING_SERVICE_SID=PRODUCTION_TWILIO_SMS_MESSAGING_SERVICE_SID:latest"
       - "--quiet"
 
 images:
@@ -72,8 +75,12 @@ substitutions:
   _NEXT_PUBLIC_APP_URL: "https://hannadvc.com"
   _NEXT_PUBLIC_SUPABASE_URL: ""
   _NEXT_PUBLIC_SUPABASE_ANON_KEY: ""
-  _NEXT_PUBLIC_GOOGLE_PLACES_API_KEY: ""
   _NEXT_PUBLIC_INTERCOM_APP_ID: ""
+
+availableSecrets:
+  secretManager:
+    - versionName: "projects/$PROJECT_ID/secrets/PRODUCTION_NEXT_PUBLIC_GOOGLE_PLACES_API_KEY/versions/latest"
+      env: "NEXT_PUBLIC_GOOGLE_PLACES_API_KEY"
 
 options:
   logging: CLOUD_LOGGING_ONLY
