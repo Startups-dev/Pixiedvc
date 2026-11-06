@@ -35,6 +35,8 @@ type ResortOption = {
 
 type SearchParams = {
   resort?: string;
+  checkIn?: string;
+  checkOut?: string;
   month?: string;
   holiday?: string;
   price_min?: string;
@@ -159,6 +161,8 @@ export default function ReadyStaysMarketplaceClient({
 
   const hasActiveFilters = Boolean(
     searchParams.resort ||
+      searchParams.checkIn ||
+      searchParams.checkOut ||
       searchParams.month ||
       searchParams.holiday ||
       searchParams.price_min ||
@@ -178,6 +182,27 @@ export default function ReadyStaysMarketplaceClient({
       <form method="get" className="space-y-5">
         <input type="hidden" name="resort" value={resortId} />
         <input type="hidden" name="sort" value={sort} />
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Check-in</span>
+            <input
+              name="checkIn"
+              type="date"
+              defaultValue={searchParams.checkIn ?? ""}
+              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Check-out</span>
+            <input
+              name="checkOut"
+              type="date"
+              defaultValue={searchParams.checkOut ?? ""}
+              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            />
+          </label>
+        </div>
 
         <label className="block">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Resort</span>
@@ -310,6 +335,12 @@ export default function ReadyStaysMarketplaceClient({
       </aside>
 
       <div className="space-y-6">
+        {searchParams.checkIn || searchParams.checkOut ? (
+          <p className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+            Ready Stays have fixed travel dates. Results match the requested check-in and/or checkout date exactly.
+            Update the date filters to search other dates.
+          </p>
+        ) : null}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             {sortedReadyStays.length > 0 ? (

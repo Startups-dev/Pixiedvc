@@ -9,12 +9,17 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 vi.mock("@/hooks/useReferral", () => ({ useReferral: () => ({ ref: null }) }));
 vi.mock("@/lib/supabase-browser", () => ({ supabaseBrowser: () => ({ auth: { getSession } }) }));
 vi.mock("../../../packages/booking-form/src/steps/GuestInfo", async () => {
-  const { useFormContext } = await import("react-hook-form");
+  const { useFormContext, useWatch } = await import("react-hook-form");
   return { GuestInfo: ({ onNext }: { onNext: () => void }) => {
-    const { register } = useFormContext();
+    const { register, control } = useFormContext();
+    const adults = useWatch({ control, name: "guest.adults" });
+    const youths = useWatch({ control, name: "guest.youths" });
+    const adultGuests = useWatch({ control, name: "guest.adultGuests" });
+    const childGuests = useWatch({ control, name: "guest.childGuests" });
     return <div>
       <input aria-label="Room selection" {...register("trip.villaType")} />
       <input aria-label="View selection" {...register("trip.viewType")} />
+      <output data-testid="prefilled-party">{JSON.stringify({ adults, youths, adultGuestCount: adultGuests?.length, childGuestCount: childGuests?.length })}</output>
       <button onClick={onNext}>Continue guest information</button>
     </div>;
   } };
@@ -164,5 +169,12 @@ describe("calculator quote accommodation identity", () => {
       trip: { villaType: "GRANDVILLA", viewType: "P" }, testBooking: false, depositAmount: 99,
     });
     expect(fetchMock.mock.calls.some(([url]) => url === "/api/booking/test-complete")).toBe(false);
+  });
+
+  it("prefills adult and child counts from the calculator quote", async () => {
+    await openQuote({ adults: 3, children: 2 });
+    expect(screen.getByTestId("prefilled-party")).toHaveTextContent(
+      JSON.stringify({ adults: 3, youths: 2, adultGuestCount: 2, childGuestCount: 2 }),
+    );
   });
 });

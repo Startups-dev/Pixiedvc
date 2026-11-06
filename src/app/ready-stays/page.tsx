@@ -11,6 +11,7 @@ import {
 } from "@/lib/ready-stays/showcase-mock";
 import { getSearchReadyStaysShowcase } from "@/lib/ready-stays/showcase-live";
 import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
+import { matchesReadyStayDates, normalizeReadyStayDate, resolveReadyStayResortId } from "@/lib/ready-stays/search";
 
 const READY_STAY_GUIDE_LINKS = [
   { href: "/guides/ready-stays-transfer-linking#what-is-ready-stay", label: "1. What Is a Ready Stay?" },
@@ -34,6 +35,8 @@ export default async function ReadyStaysPublicPage({
   searchParams?:
     | Promise<{
         resort?: string;
+        checkIn?: string;
+        checkOut?: string;
         month?: string;
         holiday?: string;
         price_min?: string;
@@ -44,6 +47,8 @@ export default async function ReadyStaysPublicPage({
       }>
     | {
         resort?: string;
+        checkIn?: string;
+        checkOut?: string;
         month?: string;
         holiday?: string;
         price_min?: string;
@@ -63,8 +68,11 @@ export default async function ReadyStaysPublicPage({
 
   const { data: resorts } = await supabase
     .from("resorts")
-    .select("id, name")
+    .select("id, name, slug, calculator_code")
     .order("name", { ascending: true });
+  const resortFilter = resolveReadyStayResortId(resolvedSearchParams?.resort, resorts ?? []);
+  const requestedCheckIn = normalizeReadyStayDate(resolvedSearchParams?.checkIn);
+  const requestedCheckOut = normalizeReadyStayDate(resolvedSearchParams?.checkOut);
 
   let query = readyStaysClient
     .from("ready_stays")
@@ -76,8 +84,16 @@ export default async function ReadyStaysPublicPage({
     .order("price_reduced_at", { ascending: false, nullsFirst: false })
     .order("check_in", { ascending: true });
 
-  if (resolvedSearchParams?.resort) {
-    query = query.eq("resort_id", resolvedSearchParams.resort);
+  if (resortFilter.requested) {
+    if (resortFilter.id) query = query.eq("resort_id", resortFilter.id);
+    else query = query.eq("resort_id", "00000000-0000-0000-0000-000000000000");
+  }
+
+  if (requestedCheckIn) {
+    query = query.eq("check_in", requestedCheckIn);
+  }
+  if (requestedCheckOut) {
+    query = query.eq("check_out", requestedCheckOut);
   }
 
   if (resolvedSearchParams?.holiday) {
@@ -125,7 +141,8 @@ export default async function ReadyStaysPublicPage({
   const visibleReadyStays = (readyStays ?? []).filter((stay) => {
     return isAdminOrPublicReadyStayRow(stay, isAdmin, nowMs, today);
   }).filter((stay) => {
-    if (resolvedSearchParams?.resort && stay.resort_id !== resolvedSearchParams.resort) return false;
+    if (resortFilter.requested && stay.resort_id !== resortFilter.id) return false;
+    if (!matchesReadyStayDates(stay, requestedCheckIn, requestedCheckOut)) return false;
     if (resolvedSearchParams?.holiday && stay.season_type !== resolvedSearchParams.holiday) return false;
 
     if (resolvedSearchParams?.month) {
@@ -172,7 +189,12 @@ export default async function ReadyStaysPublicPage({
       <ReadyStaysMarketplaceClient
         readyStays={visibleReadyStays}
         resorts={(resorts ?? []) as { id: string; name: string }[]}
-        searchParams={resolvedSearchParams ?? {}}
+        searchParams={{
+          ...(resolvedSearchParams ?? {}),
+          resort: resortFilter.id ?? undefined,
+          checkIn: requestedCheckIn,
+          checkOut: requestedCheckOut,
+        }}
       />
       {READY_STAYS_SHOWCASE_FLAGS.enableSearchReadyStays ? (
         <ReadyStaysSection

@@ -8,7 +8,9 @@ import {
 } from "@heroicons/react/24/outline";
 import { Resorts } from "../engine/charts";
 import { quoteStay } from "../engine/calc";
+import { formatDvcRoomLabel } from "../engine/accommodations";
 import type { RoomCode, ViewCode } from "../engine/types";
+import { normalizeQuoteParty } from "./quoteParty";
 import { ResultsTable } from "./ResultsTable";
 import { resolveResortImage } from "@/lib/resort-image";
 
@@ -989,6 +991,7 @@ export function DvcCalculator() {
                             points: Number(res.totalPoints ?? 0),
                             totalUSD: Number(res.totalUSD ?? 0),
                             pricingTier: String(res.pricingTier ?? ""),
+                            ...normalizeQuoteParty(tripIntentContext.adults, tripIntentContext.children),
                           },
                         };
 
@@ -1109,24 +1112,4 @@ function formatAverageNightly(amount: number) {
   }).format(amount);
 }
 
-function label(room: string) {
-  switch (room) {
-    case "STUDIO": return "Deluxe Studio";
-    case "RESORTSTUDIO": return "Resort Studio";
-    case "DUOSTUDIO": return "Duo Studio";
-    case "DELUXESTUDIO": return "Deluxe Studio";
-    case "GARDENDUOSTUDIO": return "Garden Room Duo Studio";
-    case "GARDENDELUXESTUDIO": return "Garden Room Deluxe Studio";
-    case "CABIN": return "Cabin";
-    case "ONEBR": return "One Bedroom";
-    case "TWOBR": return "Two Bedroom";
-    case "TWOBRBUNGALOW": return "Two-Bedroom Bungalow";
-    case "PENTHOUSE": return "Two-Bedroom Penthouse Villa";
-    case "GRANDVILLA": return "Grand Villa";
-    case "TREEHOUSE": return "Three-Bedroom Treehouse Villa";
-    case "TOWERSTUDIO": return "Tower Studio";
-    case "INNROOM": return "Deluxe Inn Room";
-    case "COTTAGE": return "Three-Bedroom Beach Cottage";
-    default: return room;
-  }
-}
+const label = (room: RoomCode) => formatDvcRoomLabel(room);

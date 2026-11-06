@@ -27,6 +27,11 @@ const CALC_CODE_TO_SLUG: Record<string, string> = {
   VGF: "grand-floridian-villas",
 };
 
+function normalizeCount(value: number | undefined, fallback: number, maximum: number) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return Math.max(fallback, Math.min(maximum, Math.floor(value)));
+}
+
 export default function BookingFlowClient({
   prefill,
   resorts,
@@ -58,6 +63,7 @@ export default function BookingFlowClient({
 }) {
   const router = useRouter();
   const [resolvedPrefill, setResolvedPrefill] = useState<Prefill>(prefill);
+  const [resolvedGuestDefaults, setResolvedGuestDefaults] = useState<Partial<GuestInfoInput> | undefined>(guestDefaults);
   const [quoteStatus, setQuoteStatus] = useState<"loading" | "ready" | "missing">(
     quoteToken ? "loading" : "ready",
   );
@@ -65,6 +71,7 @@ export default function BookingFlowClient({
   useEffect(() => {
     if (!quoteToken) {
       setResolvedPrefill(prefill);
+      setResolvedGuestDefaults(guestDefaults);
       setQuoteStatus("ready");
       return;
     }
@@ -89,6 +96,8 @@ export default function BookingFlowClient({
           checkOut?: string;
           points?: number;
           totalUSD?: number;
+          adults?: number;
+          children?: number;
         };
       };
       const quote = parsed?.quote;
@@ -117,11 +126,24 @@ export default function BookingFlowClient({
         points: typeof quote.points === "number" ? quote.points : prefill.points,
         estCash: typeof quote.totalUSD === "number" ? quote.totalUSD : prefill.estCash,
       });
+      const adults = normalizeCount(quote.adults, 1, 20);
+      const children = normalizeCount(quote.children, 0, 20);
+      setResolvedGuestDefaults({
+        ...guestDefaults,
+        adults,
+        youths: children,
+        adultGuests: Array.from({ length: adults - 1 }, (_, index) =>
+          guestDefaults?.adultGuests?.[index] ?? { title: "Mr.", firstName: "", lastName: "" },
+        ),
+        childGuests: Array.from({ length: children }, (_, index) =>
+          guestDefaults?.childGuests?.[index] ?? { title: "Master", firstName: "", lastName: "", age: 0 },
+        ),
+      });
       setQuoteStatus("ready");
     } catch {
       setQuoteStatus("missing");
     }
-  }, [prefill, quoteToken, resorts]);
+  }, [prefill, quoteToken, resorts, guestDefaults]);
 
   if (quoteStatus === "loading") {
     return null;
@@ -154,7 +176,7 @@ export default function BookingFlowClient({
       totalStepsOverride={totalStepsOverride}
       quoteToken={quoteToken}
       onGuestInfoSubmit={onGuestInfoSubmit}
-      initialGuest={guestDefaults}
+      initialGuest={resolvedGuestDefaults}
       signInHref={signInHref}
       onSignInClick={onSignInClick}
       onGuestInfoNext={
