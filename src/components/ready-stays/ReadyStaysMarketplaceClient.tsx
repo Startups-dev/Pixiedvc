@@ -183,14 +183,14 @@ export default function ReadyStaysMarketplaceClient({
         <input type="hidden" name="resort" value={resortId} />
         <input type="hidden" name="sort" value={sort} />
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3">
           <label className="block">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Check-in</span>
             <input
               name="checkIn"
               type="date"
               defaultValue={searchParams.checkIn ?? ""}
-              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              className="mt-2 box-border w-full min-w-0 max-w-full rounded-xl border border-slate-200 px-3 py-2 pr-10 text-sm"
             />
           </label>
           <label className="block">
@@ -199,7 +199,7 @@ export default function ReadyStaysMarketplaceClient({
               name="checkOut"
               type="date"
               defaultValue={searchParams.checkOut ?? ""}
-              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              className="mt-2 box-border w-full min-w-0 max-w-full rounded-xl border border-slate-200 px-3 py-2 pr-10 text-sm"
             />
           </label>
         </div>
@@ -211,7 +211,7 @@ export default function ReadyStaysMarketplaceClient({
             value={resortQuery}
             onChange={(event) => handleResortChange(event.target.value)}
             placeholder="Search resort"
-            className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            className="mt-2 box-border w-full min-w-0 max-w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
           />
           <datalist id={`ready-stays-resorts-${variant}`}>
             {resorts.map((resort) => (
