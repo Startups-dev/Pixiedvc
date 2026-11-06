@@ -8,6 +8,7 @@ import { resolveReadyStaySignals } from "@/lib/ready-stays/signal-engine";
 import { resolveResortImage } from "@/lib/resort-image";
 import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
 import { resolveReadyStaySearchDateFilters, type ReadyStayDateMode } from "@/lib/ready-stays/search";
+import { buildTripIntentQuery } from "@/lib/trip-intent";
 
 type ReadyStayRow = {
   id: string;
@@ -32,6 +33,8 @@ type ReadyStayRow = {
 type ResortOption = {
   id: string;
   name: string;
+  slug?: string | null;
+  calculator_code?: string | null;
 };
 
 type SearchParams = {
@@ -46,6 +49,9 @@ type SearchParams = {
   points_min?: string;
   points_max?: string;
   sort?: string;
+  adults?: string;
+  children?: string;
+  nights?: string;
 };
 
 const HOLIDAY_TAGS = [
@@ -78,7 +84,7 @@ function formatMonth(value: string) {
 
 function buildFlexibleBrowseHref(searchParams: SearchParams) {
   const params = new URLSearchParams({ dateMode: "flexible" });
-  for (const key of ["resort", "sort", "price_min", "price_max", "points_min", "points_max"] as const) {
+  for (const key of ["resort", "sort", "price_min", "price_max", "points_min", "points_max", "adults", "children", "nights"] as const) {
     const value = searchParams[key];
     if (value) params.set(key, value);
   }
@@ -86,6 +92,20 @@ function buildFlexibleBrowseHref(searchParams: SearchParams) {
     params.set("holiday", searchParams.holiday);
   }
   return `/ready-stays?${params.toString()}`;
+}
+
+function nightsBetweenDates(checkIn?: string, checkOut?: string) {
+  if (!checkIn || !checkOut) return undefined;
+  const start = Date.parse(`${checkIn}T00:00:00Z`);
+  const end = Date.parse(`${checkOut}T00:00:00Z`);
+  const nights = Math.round((end - start) / 86_400_000);
+  return Number.isFinite(nights) && nights > 0 ? nights : undefined;
+}
+
+function parseCount(value?: string, allowZero = false) {
+  if (!value) return undefined;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) && parsed >= (allowZero ? 0 : 1) ? parsed : undefined;
 }
 
 function formatCurrencyFromCents(value: number) {
@@ -191,6 +211,17 @@ export default function ReadyStaysMarketplaceClient({
   const sortedReadyStays = useMemo(() => sortReadyStays(readyStays, sort), [readyStays, sort]);
   const appliedDateFilters = resolveReadyStaySearchDateFilters(searchParams);
   const flexibleBrowseHref = buildFlexibleBrowseHref(searchParams);
+  const selectedResort = resorts.find((resort) => resort.id === searchParams.resort);
+  const exactDateIntent = buildTripIntentQuery({
+    checkIn: appliedDateFilters.dateMode === "specific" ? appliedDateFilters.checkIn : undefined,
+    checkOut: appliedDateFilters.dateMode === "specific" ? appliedDateFilters.checkOut : undefined,
+    nights: parseCount(searchParams.nights) ?? nightsBetweenDates(appliedDateFilters.checkIn, appliedDateFilters.checkOut),
+    resort: selectedResort?.slug ?? selectedResort?.calculator_code ?? undefined,
+    adults: parseCount(searchParams.adults),
+    children: parseCount(searchParams.children, true),
+  }).toString();
+  const requestExactDatesHref = exactDateIntent ? `/calculator?${exactDateIntent}` : "/calculator";
+  const selectedResortName = selectedResort?.name;
 
   const hasActiveFilters = Boolean(
     searchParams.resort ||
@@ -216,6 +247,9 @@ export default function ReadyStaysMarketplaceClient({
         <input type="hidden" name="resort" value={resortId} />
         <input type="hidden" name="sort" value={sort} />
         <input type="hidden" name="dateMode" value={dateMode} />
+        {searchParams.adults ? <input type="hidden" name="adults" value={searchParams.adults} /> : null}
+        {searchParams.children ? <input type="hidden" name="children" value={searchParams.children} /> : null}
+        {searchParams.nights ? <input type="hidden" name="nights" value={searchParams.nights} /> : null}
 
         <fieldset className="space-y-2">
           <legend className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Travel dates</legend>
@@ -408,10 +442,16 @@ export default function ReadyStaysMarketplaceClient({
           </p>
           <p className="mt-1">
             {appliedDateFilters.dateMode === "specific"
-              ? `Only fixed reservations matching ${appliedDateFilters.checkIn ? formatDate(appliedDateFilters.checkIn) : "your selected check-in"} – ${appliedDateFilters.checkOut ? formatDate(appliedDateFilters.checkOut) : "your selected check-out"} are shown. Existing stays cannot be moved.`
+              ? `${appliedDateFilters.checkIn && appliedDateFilters.checkOut
+                  ? `Only pre-confirmed stays with check-in ${formatDate(appliedDateFilters.checkIn)} and check-out ${formatDate(appliedDateFilters.checkOut)} are shown.`
+                  : appliedDateFilters.checkIn
+                    ? `Showing pre-confirmed stays with check-in on ${formatDate(appliedDateFilters.checkIn)}.`
+                    : appliedDateFilters.checkOut
+                      ? `Showing pre-confirmed stays with check-out on ${formatDate(appliedDateFilters.checkOut)}.`
+                      : "Choose dates to find a pre-confirmed stay."} Existing stays have fixed dates and cannot be moved.${selectedResortName ? ` Resort: ${selectedResortName}.` : ""}`
               : appliedDateFilters.month
-                ? `Showing fixed reservations that overlap ${formatMonth(appliedDateFilters.month)}. Existing stays cannot be moved.`
-                : "Browsing all available months. Ready Stays have fixed reservation dates and cannot be moved."}
+                ? `Showing pre-confirmed stays that overlap ${formatMonth(appliedDateFilters.month)}. Each stay has fixed dates and cannot be moved.${selectedResortName ? ` Resort: ${selectedResortName}.` : ""}`
+                : `Browsing all available months. Ready Stays are pre-confirmed reservations with fixed dates.${selectedResortName ? ` Resort: ${selectedResortName}.` : ""}`}
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -449,7 +489,9 @@ export default function ReadyStaysMarketplaceClient({
           <Card className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
             <p className="text-lg font-semibold text-ink">
               {appliedDateFilters.dateMode === "specific" && (appliedDateFilters.checkIn || appliedDateFilters.checkOut)
-                ? "No Ready Stays match these exact dates"
+                ? appliedDateFilters.checkIn && appliedDateFilters.checkOut
+                  ? "No Ready Stays match these dates"
+                  : `No Ready Stays match this ${appliedDateFilters.checkIn ? "check-in" : "check-out"} date`
                 : appliedDateFilters.month
                   ? `No Ready Stays overlap ${formatMonth(appliedDateFilters.month)}`
                   : hasActiveFilters
@@ -459,20 +501,40 @@ export default function ReadyStaysMarketplaceClient({
             {appliedDateFilters.dateMode === "specific" && (appliedDateFilters.checkIn || appliedDateFilters.checkOut) ? (
               <>
                 <p className="mt-2 text-sm text-muted">
-                  Reservations have fixed dates. You can change your dates in the filters or browse flexible dates.
+                  {`We couldn’t find a pre-confirmed stay${selectedResortName ? ` at ${selectedResortName}` : ""} for ${appliedDateFilters.checkIn && appliedDateFilters.checkOut
+                    ? `${formatDate(appliedDateFilters.checkIn)}–${formatDate(appliedDateFilters.checkOut)}`
+                    : appliedDateFilters.checkIn
+                      ? `check-in on ${formatDate(appliedDateFilters.checkIn)}`
+                      : `check-out on ${formatDate(appliedDateFilters.checkOut!)}`}. Ready Stays have fixed travel dates. You can explore other dates or request your trip through our custom owner-matching service.`}
                 </p>
-                <Button type="button" className="mt-5 lg:hidden" onClick={() => setFiltersOpen(true)}>
-                  Change dates
+                <Button asChild className="mt-5">
+                  <Link href={requestExactDatesHref}>Request These Exact Dates</Link>
                 </Button>
-                <Button asChild className="mt-5 lg:ml-3">
-                  <Link href={flexibleBrowseHref}>Browse flexible dates</Link>
+                <Button asChild className="mt-3 sm:ml-3">
+                  <Link href={flexibleBrowseHref}>Explore Flexible Dates</Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-3 sm:ml-3"
+                  onClick={() => {
+                    setDateMode("specific");
+                    setFiltersOpen(true);
+                  }}
+                >
+                  Change My Dates
                 </Button>
               </>
+            ) : null}
+            {appliedDateFilters.dateMode === "flexible" && !appliedDateFilters.month ? (
+              <p className="mt-2 text-sm text-muted">
+                No pre-confirmed stays match the current filters. Try clearing a filter or choose a preferred month and year. Ready Stays have fixed travel dates.
+              </p>
             ) : null}
             {appliedDateFilters.dateMode === "flexible" && appliedDateFilters.month ? (
               <>
                 <p className="mt-2 text-sm text-muted">
-                  Ready Stays are fixed reservations. Choose another preferred month or browse every available month.
+                  No pre-confirmed stays overlap {formatMonth(appliedDateFilters.month)} with the current filters. Choose another preferred month or browse every available month. Each Ready Stay has fixed travel dates.
                 </p>
                 <Button asChild className="mt-5">
                   <Link href={flexibleBrowseHref}>Browse all available months</Link>

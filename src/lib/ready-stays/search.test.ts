@@ -25,6 +25,9 @@ describe("Ready Stays search intent", () => {
     const stay = { check_in: "2027-01-10", check_out: "2027-01-17" };
     expect(matchesReadyStayDates(stay, "2027-01-10", "2027-01-17")).toBe(true);
     expect(matchesReadyStayDates(stay, "2027-01-09", "2027-01-17")).toBe(false);
+    expect(matchesReadyStayDates(stay, "2027-01-10")).toBe(true);
+    expect(matchesReadyStayDates(stay, undefined, "2027-01-17")).toBe(true);
+    expect(matchesReadyStayDates(stay, "2027-01-11")).toBe(false);
     expect(normalizeReadyStayDate("2027-02-29")).toBeUndefined();
     expect(normalizeReadyStayDate("2027-01-10")).toBe("2027-01-10");
   });

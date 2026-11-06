@@ -51,6 +51,9 @@ export default async function ReadyStaysPublicPage({
         points_min?: string;
         points_max?: string;
         sort?: string;
+        adults?: string;
+        children?: string;
+        nights?: string;
       }>
     | {
         resort?: string;
@@ -64,6 +67,9 @@ export default async function ReadyStaysPublicPage({
         points_min?: string;
         points_max?: string;
         sort?: string;
+        adults?: string;
+        children?: string;
+        nights?: string;
       };
 }) {
   const resolvedSearchParams = searchParams instanceof Promise ? await searchParams : searchParams;
@@ -181,7 +187,7 @@ export default async function ReadyStaysPublicPage({
 
       <ReadyStaysMarketplaceClient
         readyStays={visibleReadyStays}
-        resorts={(resorts ?? []) as { id: string; name: string }[]}
+        resorts={(resorts ?? []) as { id: string; name: string; slug: string | null; calculator_code: string | null }[]}
         searchParams={{
           ...(resolvedSearchParams ?? {}),
           dateMode,
