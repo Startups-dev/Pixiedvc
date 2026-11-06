@@ -4,6 +4,43 @@ export type ReadyStayResortLookup = {
   calculator_code?: string | null;
 };
 
+export type ReadyStayDateMode = "specific" | "flexible";
+
+export type ReadyStaySearchDateFilters = {
+  dateMode: ReadyStayDateMode;
+  checkIn?: string;
+  checkOut?: string;
+  month?: string;
+  holiday?: string;
+};
+
+export function resolveReadyStaySearchDateFilters(input: {
+  dateMode?: string;
+  checkIn?: string;
+  checkOut?: string;
+  month?: string;
+  holiday?: string;
+}): ReadyStaySearchDateFilters {
+  const checkIn = normalizeReadyStayDate(input.checkIn);
+  const checkOut = normalizeReadyStayDate(input.checkOut);
+  const dateMode: ReadyStayDateMode =
+    input.dateMode === "specific" || input.dateMode === "flexible"
+      ? input.dateMode
+      : checkIn || checkOut
+        ? "specific"
+        : "flexible";
+
+  if (dateMode === "specific") {
+    return { dateMode, checkIn, checkOut };
+  }
+
+  return {
+    dateMode,
+    month: normalizeReadyStayMonth(input.month),
+    holiday: input.holiday || undefined,
+  };
+}
+
 export function resolveReadyStayResortId(
   value: string | undefined,
   resorts: ReadyStayResortLookup[],
@@ -28,6 +65,32 @@ export function matchesReadyStayDates(
   if (checkIn && stay.check_in !== checkIn) return false;
   if (checkOut && stay.check_out !== checkOut) return false;
   return true;
+}
+
+export function normalizeReadyStayMonth(value?: string) {
+  if (!value || !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) return undefined;
+  return value;
+}
+
+export function readyStayMonthRange(value?: string) {
+  const month = normalizeReadyStayMonth(value);
+  if (!month) return undefined;
+
+  const [year, monthNumber] = month.split("-").map(Number);
+  const nextYear = monthNumber === 12 ? year + 1 : year;
+  const nextMonth = monthNumber === 12 ? 1 : monthNumber + 1;
+  return {
+    start: `${month}-01`,
+    endExclusive: `${String(nextYear).padStart(4, "0")}-${String(nextMonth).padStart(2, "0")}-01`,
+  };
+}
+
+export function matchesReadyStayMonth(stay: { check_in: string; check_out: string }, month?: string) {
+  const range = readyStayMonthRange(month);
+  if (!range) return true;
+
+  // check_out is exclusive, so a stay ending on the first of the month does not overlap it.
+  return stay.check_in < range.endExclusive && stay.check_out > range.start;
 }
 
 export function normalizeReadyStayDate(value?: string) {

@@ -7,6 +7,7 @@ import { Button, Card } from "@pixiedvc/design-system";
 import { resolveReadyStaySignals } from "@/lib/ready-stays/signal-engine";
 import { resolveResortImage } from "@/lib/resort-image";
 import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
+import { resolveReadyStaySearchDateFilters, type ReadyStayDateMode } from "@/lib/ready-stays/search";
 
 type ReadyStayRow = {
   id: string;
@@ -35,6 +36,7 @@ type ResortOption = {
 
 type SearchParams = {
   resort?: string;
+  dateMode?: string;
   checkIn?: string;
   checkOut?: string;
   month?: string;
@@ -62,6 +64,28 @@ function formatDate(value: string) {
 
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatMonth(value: string) {
+  const [year, month] = value.split("-").map(Number);
+  if (!year || !month) return value;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, month - 1, 1)));
+}
+
+function buildFlexibleBrowseHref(searchParams: SearchParams) {
+  const params = new URLSearchParams({ dateMode: "flexible" });
+  for (const key of ["resort", "sort", "price_min", "price_max", "points_min", "points_max"] as const) {
+    const value = searchParams[key];
+    if (value) params.set(key, value);
+  }
+  if (searchParams.dateMode === "flexible" && searchParams.holiday) {
+    params.set("holiday", searchParams.holiday);
+  }
+  return `/ready-stays?${params.toString()}`;
 }
 
 function formatCurrencyFromCents(value: number) {
@@ -156,8 +180,17 @@ export default function ReadyStaysMarketplaceClient({
   });
   const [resortId, setResortId] = useState(searchParams.resort ?? "");
   const [sort, setSort] = useState(searchParams.sort ?? "featured");
+  const [dateMode, setDateMode] = useState<ReadyStayDateMode>(
+    () => resolveReadyStaySearchDateFilters(searchParams).dateMode,
+  );
+  const [checkIn, setCheckIn] = useState(searchParams.checkIn ?? "");
+  const [checkOut, setCheckOut] = useState(searchParams.checkOut ?? "");
+  const [preferredMonth, setPreferredMonth] = useState(searchParams.month ?? "");
+  const [holiday, setHoliday] = useState(searchParams.holiday ?? "");
 
   const sortedReadyStays = useMemo(() => sortReadyStays(readyStays, sort), [readyStays, sort]);
+  const appliedDateFilters = resolveReadyStaySearchDateFilters(searchParams);
+  const flexibleBrowseHref = buildFlexibleBrowseHref(searchParams);
 
   const hasActiveFilters = Boolean(
     searchParams.resort ||
@@ -182,27 +215,67 @@ export default function ReadyStaysMarketplaceClient({
       <form method="get" className="space-y-5">
         <input type="hidden" name="resort" value={resortId} />
         <input type="hidden" name="sort" value={sort} />
+        <input type="hidden" name="dateMode" value={dateMode} />
 
-        <div className="grid grid-cols-1 gap-3">
+        <fieldset className="space-y-2">
+          <legend className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Travel dates</legend>
+          <div className="grid gap-2">
+            {([
+              ["specific", "I have specific dates"],
+              ["flexible", "My dates are flexible"],
+            ] as const).map(([mode, label]) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={dateMode === mode}
+                onClick={() => setDateMode(mode)}
+                className={`w-full rounded-xl border px-3 py-2 text-left text-sm font-semibold transition ${
+                  dateMode === mode
+                    ? "border-[#0F2148] bg-[#0F2148]/10 text-[#0F2148]"
+                    : "border-slate-200 text-slate-600 hover:border-slate-300"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        {dateMode === "specific" ? (
+          <div className="grid grid-cols-1 gap-3">
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Check-in</span>
+              <input
+                name="checkIn"
+                type="date"
+                value={checkIn}
+                onChange={(event) => setCheckIn(event.target.value)}
+                className="mt-2 box-border w-full min-w-0 max-w-full rounded-xl border border-slate-200 px-3 py-2 pr-10 text-sm"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Check-out</span>
+              <input
+                name="checkOut"
+                type="date"
+                value={checkOut}
+                onChange={(event) => setCheckOut(event.target.value)}
+                className="mt-2 box-border w-full min-w-0 max-w-full rounded-xl border border-slate-200 px-3 py-2 pr-10 text-sm"
+              />
+            </label>
+          </div>
+        ) : (
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Check-in</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Preferred month and year</span>
             <input
-              name="checkIn"
-              type="date"
-              defaultValue={searchParams.checkIn ?? ""}
+              name="month"
+              type="month"
+              value={preferredMonth}
+              onChange={(event) => setPreferredMonth(event.target.value)}
               className="mt-2 box-border w-full min-w-0 max-w-full rounded-xl border border-slate-200 px-3 py-2 pr-10 text-sm"
             />
           </label>
-          <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Check-out</span>
-            <input
-              name="checkOut"
-              type="date"
-              defaultValue={searchParams.checkOut ?? ""}
-              className="mt-2 box-border w-full min-w-0 max-w-full rounded-xl border border-slate-200 px-3 py-2 pr-10 text-sm"
-            />
-          </label>
-        </div>
+        )}
 
         <label className="block">
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Resort</span>
@@ -220,47 +293,41 @@ export default function ReadyStaysMarketplaceClient({
           </datalist>
         </label>
 
-        <label className="block">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Month</span>
-          <input
-            name="month"
-            type="month"
-            defaultValue={searchParams.month ?? ""}
-            className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-          />
-        </label>
-
-        <div>
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Holiday</span>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {HOLIDAY_TAGS.map((tag) => (
-              <label key={tag.value} className="cursor-pointer">
+        {dateMode === "flexible" ? (
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Holiday</span>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {HOLIDAY_TAGS.map((tag) => (
+                <label key={tag.value} className="cursor-pointer">
+                  <input
+                    type="radio"
+                    name="holiday"
+                    value={tag.value}
+                    checked={holiday === tag.value}
+                    onChange={() => setHoliday(tag.value)}
+                    className="peer sr-only"
+                  />
+                  <span className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 transition peer-checked:border-[#0F2148] peer-checked:bg-[#0F2148]/10 peer-checked:text-[#0F2148]">
+                    {tag.label}
+                  </span>
+                </label>
+              ))}
+              <label className="cursor-pointer">
                 <input
                   type="radio"
                   name="holiday"
-                  value={tag.value}
-                  defaultChecked={searchParams.holiday === tag.value}
+                  value=""
+                  checked={!holiday}
+                  onChange={() => setHoliday("")}
                   className="peer sr-only"
                 />
                 <span className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 transition peer-checked:border-[#0F2148] peer-checked:bg-[#0F2148]/10 peer-checked:text-[#0F2148]">
-                  {tag.label}
+                  Any
                 </span>
               </label>
-            ))}
-            <label className="cursor-pointer">
-              <input
-                type="radio"
-                name="holiday"
-                value=""
-                defaultChecked={!searchParams.holiday}
-                className="peer sr-only"
-              />
-              <span className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 transition peer-checked:border-[#0F2148] peer-checked:bg-[#0F2148]/10 peer-checked:text-[#0F2148]">
-                Any
-              </span>
-            </label>
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <div>
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Price per point</span>
@@ -335,12 +402,18 @@ export default function ReadyStaysMarketplaceClient({
       </aside>
 
       <div className="space-y-6">
-        {searchParams.checkIn || searchParams.checkOut ? (
-          <p className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-            Ready Stays have fixed travel dates. Results match the requested check-in and/or checkout date exactly.
-            Update the date filters to search other dates.
+        <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <p className="font-semibold">
+            {appliedDateFilters.dateMode === "specific" ? "Specific dates" : "Flexible dates"}
           </p>
-        ) : null}
+          <p className="mt-1">
+            {appliedDateFilters.dateMode === "specific"
+              ? `Only fixed reservations matching ${appliedDateFilters.checkIn ? formatDate(appliedDateFilters.checkIn) : "your selected check-in"} – ${appliedDateFilters.checkOut ? formatDate(appliedDateFilters.checkOut) : "your selected check-out"} are shown. Existing stays cannot be moved.`
+              : appliedDateFilters.month
+                ? `Showing fixed reservations that overlap ${formatMonth(appliedDateFilters.month)}. Existing stays cannot be moved.`
+                : "Browsing all available months. Ready Stays have fixed reservation dates and cannot be moved."}
+          </p>
+        </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             {sortedReadyStays.length > 0 ? (
@@ -375,8 +448,37 @@ export default function ReadyStaysMarketplaceClient({
         {sortedReadyStays.length === 0 ? (
           <Card className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
             <p className="text-lg font-semibold text-ink">
-              {hasActiveFilters ? "No Ready Stays match your filters" : "No Ready Stays available right now."}
+              {appliedDateFilters.dateMode === "specific" && (appliedDateFilters.checkIn || appliedDateFilters.checkOut)
+                ? "No Ready Stays match these exact dates"
+                : appliedDateFilters.month
+                  ? `No Ready Stays overlap ${formatMonth(appliedDateFilters.month)}`
+                  : hasActiveFilters
+                    ? "No Ready Stays match your filters"
+                    : "No Ready Stays available right now."}
             </p>
+            {appliedDateFilters.dateMode === "specific" && (appliedDateFilters.checkIn || appliedDateFilters.checkOut) ? (
+              <>
+                <p className="mt-2 text-sm text-muted">
+                  Reservations have fixed dates. You can change your dates in the filters or browse flexible dates.
+                </p>
+                <Button type="button" className="mt-5 lg:hidden" onClick={() => setFiltersOpen(true)}>
+                  Change dates
+                </Button>
+                <Button asChild className="mt-5 lg:ml-3">
+                  <Link href={flexibleBrowseHref}>Browse flexible dates</Link>
+                </Button>
+              </>
+            ) : null}
+            {appliedDateFilters.dateMode === "flexible" && appliedDateFilters.month ? (
+              <>
+                <p className="mt-2 text-sm text-muted">
+                  Ready Stays are fixed reservations. Choose another preferred month or browse every available month.
+                </p>
+                <Button asChild className="mt-5">
+                  <Link href={flexibleBrowseHref}>Browse all available months</Link>
+                </Button>
+              </>
+            ) : null}
             {hasActiveFilters ? (
               <Button asChild className="mt-6">
                 <Link href="/ready-stays">Clear filters</Link>

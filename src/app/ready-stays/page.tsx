@@ -11,7 +11,13 @@ import {
 } from "@/lib/ready-stays/showcase-mock";
 import { getSearchReadyStaysShowcase } from "@/lib/ready-stays/showcase-live";
 import { getReadyStayGuestTotalCents } from "@/lib/ready-stays/test-pricing";
-import { matchesReadyStayDates, normalizeReadyStayDate, resolveReadyStayResortId } from "@/lib/ready-stays/search";
+import {
+  matchesReadyStayDates,
+  matchesReadyStayMonth,
+  readyStayMonthRange,
+  resolveReadyStayResortId,
+  resolveReadyStaySearchDateFilters,
+} from "@/lib/ready-stays/search";
 
 const READY_STAY_GUIDE_LINKS = [
   { href: "/guides/ready-stays-transfer-linking#what-is-ready-stay", label: "1. What Is a Ready Stay?" },
@@ -35,6 +41,7 @@ export default async function ReadyStaysPublicPage({
   searchParams?:
     | Promise<{
         resort?: string;
+        dateMode?: string;
         checkIn?: string;
         checkOut?: string;
         month?: string;
@@ -47,6 +54,7 @@ export default async function ReadyStaysPublicPage({
       }>
     | {
         resort?: string;
+        dateMode?: string;
         checkIn?: string;
         checkOut?: string;
         month?: string;
@@ -71,8 +79,8 @@ export default async function ReadyStaysPublicPage({
     .select("id, name, slug, calculator_code")
     .order("name", { ascending: true });
   const resortFilter = resolveReadyStayResortId(resolvedSearchParams?.resort, resorts ?? []);
-  const requestedCheckIn = normalizeReadyStayDate(resolvedSearchParams?.checkIn);
-  const requestedCheckOut = normalizeReadyStayDate(resolvedSearchParams?.checkOut);
+  const dateFilters = resolveReadyStaySearchDateFilters(resolvedSearchParams ?? {});
+  const { dateMode, checkIn: requestedCheckIn, checkOut: requestedCheckOut, month: requestedMonth, holiday: requestedHoliday } = dateFilters;
 
   let query = readyStaysClient
     .from("ready_stays")
@@ -96,18 +104,14 @@ export default async function ReadyStaysPublicPage({
     query = query.eq("check_out", requestedCheckOut);
   }
 
-  if (resolvedSearchParams?.holiday) {
-    query = query.eq("season_type", resolvedSearchParams.holiday);
+  if (requestedHoliday) {
+    query = query.eq("season_type", requestedHoliday);
   }
 
-  if (resolvedSearchParams?.month) {
-    const [year, month] = resolvedSearchParams.month.split("-").map((part) => Number(part));
-    if (year && month) {
-      const start = new Date(Date.UTC(year, month - 1, 1)).toISOString().slice(0, 10);
-      const end = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
-      // Include any stay that overlaps the selected month, not only stays that begin in it.
-      query = query.lte("check_in", end).gte("check_out", start);
-    }
+  if (requestedMonth) {
+    const monthRange = readyStayMonthRange(requestedMonth);
+    // Include stays that overlap any part of the preferred month; checkout is exclusive.
+    if (monthRange) query = query.lt("check_in", monthRange.endExclusive).gt("check_out", monthRange.start);
   }
 
   const priceMin = parseOptionalNumberParam(resolvedSearchParams?.price_min);
@@ -143,19 +147,8 @@ export default async function ReadyStaysPublicPage({
   }).filter((stay) => {
     if (resortFilter.requested && stay.resort_id !== resortFilter.id) return false;
     if (!matchesReadyStayDates(stay, requestedCheckIn, requestedCheckOut)) return false;
-    if (resolvedSearchParams?.holiday && stay.season_type !== resolvedSearchParams.holiday) return false;
-
-    if (resolvedSearchParams?.month) {
-      const [year, month] = resolvedSearchParams.month.split("-").map((part) => Number(part));
-      if (year && month) {
-        const monthStart = new Date(Date.UTC(year, month - 1, 1));
-        const monthEnd = new Date(Date.UTC(year, month, 0));
-        const checkIn = new Date(`${stay.check_in}T00:00:00Z`);
-        const checkOut = new Date(`${stay.check_out}T00:00:00Z`);
-        if (Number.isNaN(checkIn.getTime()) || Number.isNaN(checkOut.getTime())) return false;
-        if (checkIn > monthEnd || checkOut < monthStart) return false;
-      }
-    }
+    if (requestedHoliday && stay.season_type !== requestedHoliday) return false;
+    if (!matchesReadyStayMonth(stay, requestedMonth)) return false;
 
     const effectiveGuestTotalCents = getReadyStayGuestTotalCents(stay);
     const effectivePricePerPointCents =
@@ -191,9 +184,12 @@ export default async function ReadyStaysPublicPage({
         resorts={(resorts ?? []) as { id: string; name: string }[]}
         searchParams={{
           ...(resolvedSearchParams ?? {}),
+          dateMode,
           resort: resortFilter.id ?? undefined,
           checkIn: requestedCheckIn,
           checkOut: requestedCheckOut,
+          month: requestedMonth,
+          holiday: requestedHoliday,
         }}
       />
       {READY_STAYS_SHOWCASE_FLAGS.enableSearchReadyStays ? (
