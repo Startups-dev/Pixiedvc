@@ -18,6 +18,22 @@ function formatExpectedMonth(value: string) {
     .format(new Date(Date.UTC(2020, month - 1, 1)));
 }
 
+function makeReadyStay(id: string, points: number, checkIn: string, resortName = "Bay Lake Tower") {
+  return {
+    id,
+    resort_id: "resort-blt",
+    check_in: checkIn,
+    check_out: "2027-12-11",
+    points,
+    room_type: "STUDIO",
+    season_type: "standard",
+    guest_price_per_point_cents: 2000,
+    original_guest_price_per_point_cents: null,
+    price_reduced_at: null,
+    resorts: { name: resortName, slug: "bay-lake-tower", calculator_code: "BLT" },
+  };
+}
+
 describe("Ready Stays date filter modes", () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -52,10 +68,11 @@ describe("Ready Stays date filter modes", () => {
     expect(submitted.get("checkOut")).toBe("2026-12-11");
     expect(submitted.has("month")).toBe(false);
     expect(submitted.has("holiday")).toBe(false);
-    expect(screen.getByText(/pre-confirmed stays with check-in Dec 4, 2026 and check-out Dec 11, 2026/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Current search")).toHaveTextContent("Dec 4, 2026 – Dec 11, 2026 · Bay Lake Tower");
+    expect(screen.queryByText(/Existing stays have fixed dates/)).not.toBeInTheDocument();
     const clearLinks = screen.getAllByRole("link", { name: "Clear filters" });
     expect(clearLinks.every((link) => link.getAttribute("href") === "/ready-stays")).toBe(true);
-    expect(clearLinks.find((link) => link.hasAttribute("data-slot"))).toHaveClass("!text-white");
+    expect(clearLinks[0]).toHaveClass("text-xs", "font-semibold");
     expect(screen.getByRole("button", { name: "Apply filters" })).toBeInTheDocument();
   });
 
@@ -75,7 +92,7 @@ describe("Ready Stays date filter modes", () => {
     expect(screen.queryByText(/choose a month and year/i)).not.toBeInTheDocument();
     expect(submitted.has("month")).toBe(false);
     expect(screen.queryByLabelText("Check-in")).not.toBeInTheDocument();
-    expect(screen.getByText(/Browsing all available months/)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Current search")).not.toBeInTheDocument();
     expect(within(form).queryByText("Holiday")).not.toBeInTheDocument();
     expect(submitted.get("dateMode")).toBe("flexible");
     expect(submitted.has("checkIn")).toBe(false);
@@ -85,19 +102,7 @@ describe("Ready Stays date filter modes", () => {
   it("ignores legacy holiday query parameters without hiding matching marketplace results", () => {
     render(
       <ReadyStaysMarketplaceClient
-        readyStays={[{
-          id: "legacy-holiday-stay",
-          resort_id: "resort-blt",
-          check_in: "2027-10-30",
-          check_out: "2027-11-02",
-          points: 100,
-          room_type: "STUDIO",
-          season_type: "halloween",
-          guest_price_per_point_cents: 2000,
-          original_guest_price_per_point_cents: null,
-          price_reduced_at: null,
-          resorts: { name: "Bay Lake Tower", slug: "bay-lake-tower", calculator_code: "BLT" },
-        }]}
+        readyStays={[{ ...makeReadyStay("legacy-holiday-stay", 100, "2027-10-30"), check_out: "2027-11-02", season_type: "halloween" }]}
         resorts={resorts}
         searchParams={{ dateMode: "flexible", holiday: "christmas" }}
       />,
@@ -253,13 +258,21 @@ describe("Ready Stays date filter modes", () => {
           checkOut: "2026-12-11",
           adults: "2",
           children: "1",
+          nights: "7",
+          room: "TWOBR",
+          view: "P",
+          price_min: "2000",
+          points_max: "500",
+          sort: "price_asc",
         }}
       />,
     );
 
-    expect(screen.getByText("No Ready Stays match these dates")).toBeInTheDocument();
-    expect(screen.getByText(/couldn’t find a pre-confirmed stay at Bay Lake Tower for Dec 4, 2026–Dec 11, 2026/i)).toBeInTheDocument();
-    const requestLink = screen.getByRole("link", { name: "Request These Exact Dates" });
+    expect(screen.getByText("No Ready Stays for these dates")).toBeInTheDocument();
+    expect(screen.getByText("Dec 4, 2026 – Dec 11, 2026 · Bay Lake Tower")).toBeInTheDocument();
+    expect(screen.getByText("We couldn't find a confirmed reservation at Bay Lake Tower for Dec 4, 2026 – Dec 11, 2026. You can request these exact dates or explore other available stays.")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Sort")).not.toBeInTheDocument();
+    const requestLink = screen.getByRole("link", { name: "Request These Dates" });
     expect(requestLink).toHaveClass("!text-white");
     const requestUrl = new URL(requestLink.getAttribute("href")!, "https://hannadvc.com");
     expect(requestUrl.pathname).toBe("/calculator");
@@ -270,16 +283,28 @@ describe("Ready Stays date filter modes", () => {
       resort: "bay-lake-tower",
       adults: "2",
       children: "1",
+      room: "TWOBR",
+      view: "P",
     });
-    const browseLink = screen.getByRole("link", { name: "Explore Flexible Dates" });
-    expect(browseLink).toHaveClass("!text-white");
+    const browseLink = screen.getByRole("link", { name: "Explore Other Stays" });
     expect(browseLink).toHaveAttribute("href", expect.stringContaining("dateMode=flexible"));
     expect(browseLink).toHaveAttribute("href", expect.stringContaining("resort=resort-blt"));
+    expect(browseLink).toHaveAttribute("href", expect.stringContaining("price_min=2000"));
+    expect(browseLink).toHaveAttribute("href", expect.stringContaining("points_max=500"));
+    expect(browseLink).toHaveAttribute("href", expect.stringContaining("sort=price_asc"));
+    expect(browseLink).toHaveAttribute("href", expect.stringContaining("room=TWOBR"));
+    expect(browseLink).toHaveAttribute("href", expect.stringContaining("view=P"));
+    expect(browseLink).toHaveAttribute("href", expect.stringContaining("adults=2"));
+    expect(browseLink).toHaveAttribute("href", expect.stringContaining("children=1"));
+    expect(browseLink).toHaveAttribute("href", expect.stringContaining("nights=7"));
     expect(browseLink.getAttribute("href")).not.toContain("checkIn");
     expect(browseLink.getAttribute("href")).not.toContain("checkOut");
-
-    fireEvent.click(screen.getByRole("button", { name: "Change My Dates" }));
-    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+    expect(browseLink.getAttribute("href")).not.toContain("month=");
+    expect(screen.queryByRole("button", { name: "Change My Dates" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Clear filters" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Clear filters" })).toHaveAttribute("href", "/ready-stays");
+    expect(screen.getAllByRole("link", { name: "Clear filters" })).toHaveLength(1);
+    expect(requestLink.parentElement).toHaveClass("flex-col", "sm:flex-row");
   });
 
   it("uses only the supplied single date in an empty-result message and request intent", () => {
@@ -292,7 +317,7 @@ describe("Ready Stays date filter modes", () => {
     );
 
     expect(screen.getByText(/for check-in on Dec 4, 2026/i)).toBeInTheDocument();
-    const requestUrl = new URL(screen.getByRole("link", { name: "Request These Exact Dates" }).getAttribute("href")!, "https://hannadvc.com");
+    const requestUrl = new URL(screen.getByRole("link", { name: "Request These Dates" }).getAttribute("href")!, "https://hannadvc.com");
     expect(requestUrl.searchParams.get("checkIn")).toBe("2026-12-04");
     expect(requestUrl.searchParams.has("checkOut")).toBe(false);
     expect(requestUrl.searchParams.has("nights")).toBe(false);
@@ -307,30 +332,46 @@ describe("Ready Stays date filter modes", () => {
       />,
     );
 
-    expect(screen.getByText("No Ready Stays overlap January 2027")).toBeInTheDocument();
-    const allMonthsLink = screen.getByRole("link", { name: "Browse all available months" });
+    expect(screen.getByText("No Ready Stays for January 2027")).toBeInTheDocument();
+    const allMonthsLink = screen.getByRole("link", { name: "Explore Other Stays" });
     expect(allMonthsLink).toHaveAttribute("href", expect.stringContaining("resort=resort-blt"));
     expect(allMonthsLink.getAttribute("href")).not.toContain("month=");
     expect(screen.queryByRole("link", { name: "Request These Exact Dates" })).not.toBeInTheDocument();
-    expect(screen.getByText(/No pre-confirmed stays overlap January 2027/i)).toBeInTheDocument();
+    expect(screen.getByText(/We couldn't find a confirmed reservation at Bay Lake Tower for January 2027/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Sort")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Clear filters" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Clear filters" })).toHaveLength(1);
   });
 
   it("shows helpful copy for flexible browsing without an available month", () => {
     render(<ReadyStaysMarketplaceClient readyStays={[]} resorts={resorts} searchParams={{ dateMode: "flexible" }} />);
     expect(screen.getByText("No Ready Stays available right now.")).toBeInTheDocument();
-    expect(screen.getByText(/No pre-confirmed stays match the current filters/i)).toBeInTheDocument();
+    expect(screen.getByText("No confirmed reservations are available right now. Explore other available stays.")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Request These Exact Dates" })).not.toBeInTheDocument();
   });
 
-  it("preserves sorting and price/points filters when applied", () => {
+  it("preserves sorting and price/points filters when inventory exists", () => {
     render(
       <ReadyStaysMarketplaceClient
-        readyStays={[]}
+        readyStays={[
+          makeReadyStay("higher-points", 500, "2027-01-15", "Resort A"),
+          makeReadyStay("lower-points", 100, "2027-01-10", "Resort B"),
+        ]}
         resorts={resorts}
-        searchParams={{ dateMode: "flexible", sort: "price_asc", price_min: "20", points_max: "500", resort: "resort-blt" }}
+        searchParams={{ dateMode: "flexible", sort: "price_desc", price_min: "20", points_max: "500", resort: "resort-blt" }}
       />,
     );
-    expect((screen.getByLabelText("Sort") as HTMLSelectElement).value).toBe("price_asc");
+    const sort = screen.getByLabelText("Sort") as HTMLSelectElement;
+    expect(sort.value).toBe("price_desc");
+    expect(screen.getAllByRole("link", { name: "View Details" }).map((link) => link.getAttribute("href"))).toEqual([
+      "/ready-stays/higher-points",
+      "/ready-stays/lower-points",
+    ]);
+    fireEvent.change(sort, { target: { value: "points_asc" } });
+    expect(screen.getAllByRole("link", { name: "View Details" }).map((link) => link.getAttribute("href"))).toEqual([
+      "/ready-stays/lower-points",
+      "/ready-stays/higher-points",
+    ]);
     const form = screen.getByLabelText("Month").closest("form")!;
     expect(new FormData(form).get("price_min")).toBe("20");
     expect(new FormData(form).get("points_max")).toBe("500");

@@ -54,6 +54,8 @@ export default async function ReadyStaysPublicPage({
         adults?: string;
         children?: string;
         nights?: string;
+        room?: string;
+        view?: string;
       }>
     | {
         resort?: string;
@@ -70,6 +72,8 @@ export default async function ReadyStaysPublicPage({
         adults?: string;
         children?: string;
         nights?: string;
+        room?: string;
+        view?: string;
       };
 }) {
   const resolvedSearchParams = searchParams instanceof Promise ? await searchParams : searchParams;
@@ -171,13 +175,9 @@ export default async function ReadyStaysPublicPage({
             Instant-Book Disney Villa Stays
           </h1>
           <p className="max-w-[560px] text-sm leading-7 text-muted sm:text-[15px]">
-            Browse Disney villa reservations already secured through verified DVC owners.
+            Browse confirmed Disney Vacation Club reservations with fixed dates, ready to book.
           </p>
         </div>
-
-        <p className="text-sm leading-7 text-slate-500">
-          Pre-confirmed stays • Fixed travel dates • Faster than custom matching
-        </p>
       </section>
 
       <ReadyStaysMarketplaceClient

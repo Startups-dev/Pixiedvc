@@ -53,6 +53,8 @@ type SearchParams = {
   adults?: string;
   children?: string;
   nights?: string;
+  room?: string;
+  view?: string;
 };
 
 function formatDate(value: string) {
@@ -103,7 +105,7 @@ const FLEXIBLE_MONTHS = Array.from({ length: 12 }, (_, monthIndex) => ({
 
 function buildFlexibleBrowseHref(searchParams: SearchParams) {
   const params = new URLSearchParams({ dateMode: "flexible" });
-  for (const key of ["resort", "sort", "price_min", "price_max", "points_min", "points_max", "adults", "children", "nights"] as const) {
+  for (const key of ["resort", "sort", "price_min", "price_max", "points_min", "points_max", "adults", "children", "nights", "room", "view"] as const) {
     const value = searchParams[key];
     if (value) params.set(key, value);
   }
@@ -238,9 +240,22 @@ export default function ReadyStaysMarketplaceClient({
     resort: selectedResort?.slug ?? selectedResort?.calculator_code ?? undefined,
     adults: parseCount(searchParams.adults),
     children: parseCount(searchParams.children, true),
+    room: searchParams.room,
+    view: searchParams.view,
   }).toString();
   const requestExactDatesHref = exactDateIntent ? `/calculator?${exactDateIntent}` : "/calculator";
   const selectedResortName = selectedResort?.name;
+  const selectedDateLabel = appliedDateFilters.checkIn && appliedDateFilters.checkOut
+    ? `${formatDate(appliedDateFilters.checkIn)} – ${formatDate(appliedDateFilters.checkOut)}`
+    : appliedDateFilters.checkIn
+      ? `check-in on ${formatDate(appliedDateFilters.checkIn)}`
+      : appliedDateFilters.checkOut
+        ? `check-out on ${formatDate(appliedDateFilters.checkOut)}`
+        : "";
+  const searchSummary = appliedDateFilters.dateMode === "specific"
+    ? [selectedDateLabel, selectedResortName].filter(Boolean).join(" · ")
+    : [appliedDateFilters.month ? formatMonth(appliedDateFilters.month) : "", selectedResortName].filter(Boolean).join(" · ");
+  const hasSpecificDateSearch = appliedDateFilters.dateMode === "specific" && Boolean(selectedDateLabel);
 
   const hasActiveFilters = Boolean(
     searchParams.resort ||
@@ -268,6 +283,8 @@ export default function ReadyStaysMarketplaceClient({
         {searchParams.adults ? <input type="hidden" name="adults" value={searchParams.adults} /> : null}
         {searchParams.children ? <input type="hidden" name="children" value={searchParams.children} /> : null}
         {searchParams.nights ? <input type="hidden" name="nights" value={searchParams.nights} /> : null}
+        {searchParams.room ? <input type="hidden" name="room" value={searchParams.room} /> : null}
+        {searchParams.view ? <input type="hidden" name="view" value={searchParams.view} /> : null}
 
         <fieldset className="space-y-2">
           <legend className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Travel dates</legend>
@@ -457,24 +474,11 @@ export default function ReadyStaysMarketplaceClient({
       </aside>
 
       <div className="space-y-6">
-        <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-          <p className="font-semibold">
-            {appliedDateFilters.dateMode === "specific" ? "Specific dates" : "Flexible dates"}
-          </p>
-          <p className="mt-1">
-            {appliedDateFilters.dateMode === "specific"
-              ? `${appliedDateFilters.checkIn && appliedDateFilters.checkOut
-                  ? `Only pre-confirmed stays with check-in ${formatDate(appliedDateFilters.checkIn)} and check-out ${formatDate(appliedDateFilters.checkOut)} are shown.`
-                  : appliedDateFilters.checkIn
-                    ? `Showing pre-confirmed stays with check-in on ${formatDate(appliedDateFilters.checkIn)}.`
-                    : appliedDateFilters.checkOut
-                      ? `Showing pre-confirmed stays with check-out on ${formatDate(appliedDateFilters.checkOut)}.`
-                      : "Choose dates to find a pre-confirmed stay."} Existing stays have fixed dates and cannot be moved.${selectedResortName ? ` Resort: ${selectedResortName}.` : ""}`
-              : appliedDateFilters.month
-                ? `Showing pre-confirmed stays that overlap ${formatMonth(appliedDateFilters.month)}. Each stay has fixed dates and cannot be moved.${selectedResortName ? ` Resort: ${selectedResortName}.` : ""}`
-                : `Browsing all available months. Ready Stays are pre-confirmed reservations with fixed dates.${selectedResortName ? ` Resort: ${selectedResortName}.` : ""}`}
-          </p>
-        </div>
+        {searchSummary ? (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700" aria-label="Current search">
+            {searchSummary}
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             {sortedReadyStays.length > 0 ? (
@@ -489,83 +493,60 @@ export default function ReadyStaysMarketplaceClient({
             >
               Filters
             </button>
-            <label className="flex items-center gap-2 text-xs font-semibold text-muted">
-              Sort
-              <select
-                value={sort}
-                onChange={(event) => setSort(event.target.value)}
-                className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
-              >
-                <option value="featured">Featured</option>
-                <option value="price_asc">Price: Low to High</option>
-                <option value="price_desc">Price: High to Low</option>
-                <option value="check_in">Check-in: Soonest</option>
-                <option value="points_asc">Points: Low to High</option>
-              </select>
-            </label>
+            {sortedReadyStays.length > 0 ? (
+              <label className="flex items-center gap-2 text-xs font-semibold text-muted">
+                Sort
+                <select
+                  value={sort}
+                  onChange={(event) => setSort(event.target.value)}
+                  className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
+                >
+                  <option value="featured">Featured</option>
+                  <option value="price_asc">Price: Low to High</option>
+                  <option value="price_desc">Price: High to Low</option>
+                  <option value="check_in">Check-in: Soonest</option>
+                  <option value="points_asc">Points: Low to High</option>
+                </select>
+              </label>
+            ) : null}
           </div>
         </div>
 
         {sortedReadyStays.length === 0 ? (
-          <Card className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+          <Card className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm sm:p-8">
             <p className="text-lg font-semibold text-ink">
-              {appliedDateFilters.dateMode === "specific" && (appliedDateFilters.checkIn || appliedDateFilters.checkOut)
-                ? appliedDateFilters.checkIn && appliedDateFilters.checkOut
-                  ? "No Ready Stays match these dates"
-                  : `No Ready Stays match this ${appliedDateFilters.checkIn ? "check-in" : "check-out"} date`
+              {hasSpecificDateSearch
+                ? "No Ready Stays for these dates"
                 : appliedDateFilters.month
-                  ? `No Ready Stays overlap ${formatMonth(appliedDateFilters.month)}`
+                  ? `No Ready Stays for ${formatMonth(appliedDateFilters.month)}`
                   : hasActiveFilters
-                    ? "No Ready Stays match your filters"
+                    ? "No Ready Stays match these filters"
                     : "No Ready Stays available right now."}
             </p>
-            {appliedDateFilters.dateMode === "specific" && (appliedDateFilters.checkIn || appliedDateFilters.checkOut) ? (
-              <>
-                <p className="mt-2 text-sm text-muted">
-                  {`We couldn’t find a pre-confirmed stay${selectedResortName ? ` at ${selectedResortName}` : ""} for ${appliedDateFilters.checkIn && appliedDateFilters.checkOut
-                    ? `${formatDate(appliedDateFilters.checkIn)}–${formatDate(appliedDateFilters.checkOut)}`
-                    : appliedDateFilters.checkIn
-                      ? `check-in on ${formatDate(appliedDateFilters.checkIn)}`
-                      : `check-out on ${formatDate(appliedDateFilters.checkOut!)}`}. Ready Stays have fixed travel dates. You can explore other dates or request your trip through our custom owner-matching service.`}
-                </p>
-                <Button asChild className="mt-5">
-                  <Link href={requestExactDatesHref} className="!text-white">Request These Exact Dates</Link>
+            <p className="mx-auto mt-2 max-w-2xl text-sm text-muted">
+              {hasSpecificDateSearch
+                ? `We couldn't find a confirmed reservation${selectedResortName ? ` at ${selectedResortName}` : ""} for ${selectedDateLabel}. You can request these exact dates or explore other available stays.`
+                : appliedDateFilters.month
+                  ? `We couldn't find a confirmed reservation${selectedResortName ? ` at ${selectedResortName}` : ""} for ${formatMonth(appliedDateFilters.month)}. Explore other available stays.`
+                  : hasActiveFilters
+                    ? `We couldn't find a confirmed reservation${selectedResortName ? ` at ${selectedResortName}` : ""} matching these filters. Explore other available stays.`
+                    : "No confirmed reservations are available right now. Explore other available stays."}
+            </p>
+            {hasSpecificDateSearch ? (
+              <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
+                <Button asChild className="w-full sm:w-auto">
+                  <Link href={requestExactDatesHref} className="!text-white">Request These Dates</Link>
                 </Button>
-                <Button asChild className="mt-3 sm:ml-3">
-                  <Link href={flexibleBrowseHref} className="!text-white">Explore Flexible Dates</Link>
+                <Button asChild variant="outline" className="w-full sm:w-auto">
+                  <Link href={flexibleBrowseHref}>Explore Other Stays</Link>
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="mt-3 sm:ml-3"
-                  onClick={() => {
-                    setDateMode("specific");
-                    setFiltersOpen(true);
-                  }}
-                >
-                  Change My Dates
+              </div>
+            ) : appliedDateFilters.dateMode === "flexible" && appliedDateFilters.month ? (
+              <div className="mt-5 flex justify-center">
+                <Button asChild variant="outline" className="w-full sm:w-auto">
+                  <Link href={flexibleBrowseHref}>Explore Other Stays</Link>
                 </Button>
-              </>
-            ) : null}
-            {appliedDateFilters.dateMode === "flexible" && !appliedDateFilters.month ? (
-              <p className="mt-2 text-sm text-muted">
-                No pre-confirmed stays match the current filters. Try clearing a filter or choose a preferred month and year. Ready Stays have fixed travel dates.
-              </p>
-            ) : null}
-            {appliedDateFilters.dateMode === "flexible" && appliedDateFilters.month ? (
-              <>
-                <p className="mt-2 text-sm text-muted">
-                  No pre-confirmed stays overlap {formatMonth(appliedDateFilters.month)} with the current filters. Choose another preferred month or browse every available month. Each Ready Stay has fixed travel dates.
-                </p>
-                <Button asChild className="mt-5">
-                  <Link href={flexibleBrowseHref} className="!text-white">Browse all available months</Link>
-                </Button>
-              </>
-            ) : null}
-            {hasActiveFilters ? (
-              <Button asChild className="mt-6">
-                <Link href="/ready-stays" className="!text-white">Clear filters</Link>
-              </Button>
+              </div>
             ) : null}
           </Card>
         ) : (
