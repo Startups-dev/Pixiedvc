@@ -508,10 +508,10 @@ export default function ReadyStaysMarketplaceClient({
                       : `check-out on ${formatDate(appliedDateFilters.checkOut!)}`}. Ready Stays have fixed travel dates. You can explore other dates or request your trip through our custom owner-matching service.`}
                 </p>
                 <Button asChild className="mt-5">
-                  <Link href={requestExactDatesHref}>Request These Exact Dates</Link>
+                  <Link href={requestExactDatesHref} className="!text-white">Request These Exact Dates</Link>
                 </Button>
                 <Button asChild className="mt-3 sm:ml-3">
-                  <Link href={flexibleBrowseHref}>Explore Flexible Dates</Link>
+                  <Link href={flexibleBrowseHref} className="!text-white">Explore Flexible Dates</Link>
                 </Button>
                 <Button
                   type="button"
@@ -537,13 +537,13 @@ export default function ReadyStaysMarketplaceClient({
                   No pre-confirmed stays overlap {formatMonth(appliedDateFilters.month)} with the current filters. Choose another preferred month or browse every available month. Each Ready Stay has fixed travel dates.
                 </p>
                 <Button asChild className="mt-5">
-                  <Link href={flexibleBrowseHref}>Browse all available months</Link>
+                  <Link href={flexibleBrowseHref} className="!text-white">Browse all available months</Link>
                 </Button>
               </>
             ) : null}
             {hasActiveFilters ? (
               <Button asChild className="mt-6">
-                <Link href="/ready-stays">Clear filters</Link>
+                <Link href="/ready-stays" className="!text-white">Clear filters</Link>
               </Button>
             ) : null}
           </Card>

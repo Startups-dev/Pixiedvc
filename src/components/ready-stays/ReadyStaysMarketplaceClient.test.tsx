@@ -43,7 +43,9 @@ describe("Ready Stays date filter modes", () => {
     expect(submitted.has("month")).toBe(false);
     expect(submitted.has("holiday")).toBe(false);
     expect(screen.getByText(/pre-confirmed stays with check-in Dec 4, 2026 and check-out Dec 11, 2026/i)).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: "Clear filters" }).every((link) => link.getAttribute("href") === "/ready-stays")).toBe(true);
+    const clearLinks = screen.getAllByRole("link", { name: "Clear filters" });
+    expect(clearLinks.every((link) => link.getAttribute("href") === "/ready-stays")).toBe(true);
+    expect(clearLinks.find((link) => link.hasAttribute("data-slot"))).toHaveClass("!text-white");
     expect(screen.getByRole("button", { name: "Apply filters" })).toBeInTheDocument();
   });
 
@@ -118,6 +120,7 @@ describe("Ready Stays date filter modes", () => {
     expect(screen.getByText("No Ready Stays match these dates")).toBeInTheDocument();
     expect(screen.getByText(/couldn’t find a pre-confirmed stay at Bay Lake Tower for Dec 4, 2026–Dec 11, 2026/i)).toBeInTheDocument();
     const requestLink = screen.getByRole("link", { name: "Request These Exact Dates" });
+    expect(requestLink).toHaveClass("!text-white");
     const requestUrl = new URL(requestLink.getAttribute("href")!, "https://hannadvc.com");
     expect(requestUrl.pathname).toBe("/calculator");
     expect(Object.fromEntries(requestUrl.searchParams)).toEqual({
@@ -129,6 +132,7 @@ describe("Ready Stays date filter modes", () => {
       children: "1",
     });
     const browseLink = screen.getByRole("link", { name: "Explore Flexible Dates" });
+    expect(browseLink).toHaveClass("!text-white");
     expect(browseLink).toHaveAttribute("href", expect.stringContaining("dateMode=flexible"));
     expect(browseLink).toHaveAttribute("href", expect.stringContaining("resort=resort-blt"));
     expect(browseLink.getAttribute("href")).not.toContain("checkIn");
