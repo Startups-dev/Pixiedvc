@@ -104,7 +104,7 @@ describe("Ready Stays date filter modes", () => {
     vi.useRealTimers();
   });
 
-  it("limits year and month choices to the current date and the next eleven months", () => {
+  it("limits years to the current and following year while disabling only past months", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 10, 15, 12));
 
@@ -122,12 +122,12 @@ describe("Ready Stays date filter modes", () => {
     fireEvent.change(month, { target: { value: "12" } });
     expect(new FormData(month.closest("form")!).get("month")).toBe("2026-12");
     fireEvent.change(year, { target: { value: "2027" } });
-    expect(month.value).toBe("");
-    expect(new FormData(month.closest("form")!).has("month")).toBe(false);
+    expect(month.value).toBe("12");
+    expect(new FormData(month.closest("form")!).get("month")).toBe("2027-12");
     expect(within(month).getByRole("option", { name: "January" })).toBeEnabled();
     expect(within(month).getByRole("option", { name: "October" })).toBeEnabled();
-    expect(within(month).getByRole("option", { name: "November" })).toBeDisabled();
-    expect(within(month).getByRole("option", { name: "December" })).toBeDisabled();
+    expect(within(month).getByRole("option", { name: "November" })).toBeEnabled();
+    expect(within(month).getByRole("option", { name: "December" })).toBeEnabled();
     fireEvent.change(month, { target: { value: "01" } });
     expect(new FormData(month.closest("form")!).get("month")).toBe("2027-01");
 
@@ -141,7 +141,7 @@ describe("Ready Stays date filter modes", () => {
     expect(rolloverMonth.value).toBe("");
     expect(within(rolloverMonth).getByRole("option", { name: "January" })).toBeEnabled();
     fireEvent.change(rolloverYear, { target: { value: "2028" } });
-    expect(within(rolloverMonth).getByRole("option", { name: "January" })).toBeDisabled();
+    expect(within(rolloverMonth).getByRole("option", { name: "January" })).toBeEnabled();
 
     vi.useRealTimers();
   });

@@ -91,15 +91,12 @@ function getFlexibleMonthOptions(selectedYearValue: string, now = new Date()) {
   const currentYear = now.getFullYear();
   const selectedYear = Number(selectedYearValue) || currentYear;
   const firstAvailableMonth = new Date(currentYear, now.getMonth(), 1);
-  // Use the longest general DVC advance-booking window for this listing search.
-  // This only limits filter choices; it does not indicate that inventory exists.
-  const lastAvailableMonth = new Date(currentYear, now.getMonth() + 11, 1);
 
   return FLEXIBLE_MONTHS.map((month) => {
     const monthDate = new Date(selectedYear, Number(month.value) - 1, 1);
     return {
       ...month,
-      disabled: monthDate < firstAvailableMonth || monthDate > lastAvailableMonth,
+      disabled: monthDate < firstAvailableMonth,
     };
   });
 }
