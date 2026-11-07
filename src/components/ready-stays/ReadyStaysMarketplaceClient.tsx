@@ -82,29 +82,21 @@ function formatMonth(value: string) {
   }).format(new Date(Date.UTC(year, month - 1, 1)));
 }
 
-function getFlexibleMonthOptions(selectedMonth: string) {
+function getFlexibleYearOptions(selectedYearValue: string) {
   const currentYear = new Date().getFullYear();
-  const selectedYear = /^\d{4}-(0[1-9]|1[0-2])$/.test(selectedMonth)
-    ? Number(selectedMonth.slice(0, 4))
+  const selectedYear = /^\d{4}$/.test(selectedYearValue)
+    ? Number(selectedYearValue)
     : currentYear;
   const firstYear = Math.min(currentYear, selectedYear);
   const finalYear = Math.max(currentYear + 10, selectedYear);
-  return Array.from({ length: finalYear - firstYear + 1 }, (_, yearIndex) => {
-    const year = firstYear + yearIndex;
-    return Array.from({ length: 12 }, (_, monthIndex) => {
-      const month = String(monthIndex + 1).padStart(2, "0");
-      const value = `${year}-${month}`;
-      return {
-        value,
-        label: new Intl.DateTimeFormat("en-US", {
-          month: "long",
-          year: "numeric",
-          timeZone: "UTC",
-        }).format(new Date(Date.UTC(year, monthIndex, 1))),
-      };
-    });
-  }).flat();
+  return Array.from({ length: finalYear - firstYear + 1 }, (_, yearIndex) => String(firstYear + yearIndex));
 }
+
+const FLEXIBLE_MONTHS = Array.from({ length: 12 }, (_, monthIndex) => ({
+  value: String(monthIndex + 1).padStart(2, "0"),
+  label: new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" })
+    .format(new Date(Date.UTC(2020, monthIndex, 1))),
+}));
 
 function buildFlexibleBrowseHref(searchParams: SearchParams) {
   const params = new URLSearchParams({ dateMode: "flexible" });
@@ -229,8 +221,11 @@ export default function ReadyStaysMarketplaceClient({
   );
   const [checkIn, setCheckIn] = useState(searchParams.checkIn ?? "");
   const [checkOut, setCheckOut] = useState(searchParams.checkOut ?? "");
-  const [preferredMonth, setPreferredMonth] = useState(searchParams.month ?? "");
-  const flexibleMonthOptions = useMemo(() => getFlexibleMonthOptions(preferredMonth), [preferredMonth]);
+  const initialMonthParts = searchParams.month?.match(/^(\d{4})-(0[1-9]|1[0-2])$/);
+  const [preferredMonth, setPreferredMonth] = useState(initialMonthParts?.[2] ?? "");
+  const [preferredYear, setPreferredYear] = useState(initialMonthParts?.[1] ?? "");
+  const flexibleYearOptions = useMemo(() => getFlexibleYearOptions(preferredYear), [preferredYear]);
+  const appliedPreferredMonth = preferredMonth && preferredYear ? `${preferredYear}-${preferredMonth}` : "";
   const [holiday, setHoliday] = useState(searchParams.holiday ?? "");
 
   const sortedReadyStays = useMemo(() => sortReadyStays(readyStays, sort), [readyStays, sort]);
@@ -325,25 +320,44 @@ export default function ReadyStaysMarketplaceClient({
           </div>
         ) : (
           <div>
-            <label htmlFor={`ready-stays-preferred-month-${variant}`} className="block text-xs font-semibold uppercase tracking-[0.2em] text-muted">
-              Preferred month and year
-            </label>
-            <select
-              id={`ready-stays-preferred-month-${variant}`}
-              aria-describedby={`ready-stays-preferred-month-help-${variant}`}
-              value={preferredMonth}
-              onChange={(event) => setPreferredMonth(event.target.value)}
-              className="mt-2 box-border w-full min-w-0 max-w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
-            >
-              <option value="">Any month — browse all available stays</option>
-              {flexibleMonthOptions.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-            <p id={`ready-stays-preferred-month-help-${variant}`} className="mt-1 text-xs text-muted">
-              Choose a month and year to filter. Leave it on Any month to browse all available stays.
-            </p>
-            {preferredMonth ? <input type="hidden" name="month" value={preferredMonth} /> : null}
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">TRAVEL MONTH</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <div>
+                <label htmlFor={`ready-stays-travel-month-${variant}`} className="sr-only">Month</label>
+                <select
+                  id={`ready-stays-travel-month-${variant}`}
+                  aria-label="Month"
+                  value={preferredMonth}
+                  onChange={(event) => {
+                    setPreferredMonth(event.target.value);
+                    if (!event.target.value) setPreferredYear("");
+                  }}
+                  className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                >
+                  <option value="">Month</option>
+                  {FLEXIBLE_MONTHS.map((month) => (
+                    <option key={month.value} value={month.value}>{month.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor={`ready-stays-travel-year-${variant}`} className="sr-only">Year</label>
+                <select
+                  id={`ready-stays-travel-year-${variant}`}
+                  aria-label="Year"
+                  value={preferredYear}
+                  onChange={(event) => {
+                    setPreferredYear(event.target.value);
+                    if (!event.target.value) setPreferredMonth("");
+                  }}
+                  className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                >
+                  <option value="">Year</option>
+                  {flexibleYearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
+                </select>
+              </div>
+            </div>
+            {appliedPreferredMonth ? <input type="hidden" name="month" value={appliedPreferredMonth} /> : null}
           </div>
         )}
 

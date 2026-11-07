@@ -13,9 +13,9 @@ vi.mock("next/link", async () => {
 const resorts = [{ id: "resort-blt", name: "Bay Lake Tower", slug: "bay-lake-tower", calculator_code: "BLT" }];
 
 function formatExpectedMonth(value: string) {
-  const [year, month] = value.split("-").map(Number);
-  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" })
-    .format(new Date(Date.UTC(year, month - 1, 1)));
+  const month = Number(value.split("-")[1]);
+  return new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" })
+    .format(new Date(Date.UTC(2020, month - 1, 1)));
 }
 
 describe("Ready Stays date filter modes", () => {
@@ -55,17 +55,19 @@ describe("Ready Stays date filter modes", () => {
     expect(screen.getByRole("button", { name: "Apply filters" })).toBeInTheDocument();
   });
 
-  it("defaults direct entry to flexible dates and allows all months", () => {
+  it("defaults direct entry to flexible dates with no month filter", () => {
     render(<ReadyStaysMarketplaceClient readyStays={[]} resorts={resorts} searchParams={{}} />);
 
-    const month = screen.getByLabelText("Preferred month and year") as HTMLSelectElement;
+    const month = screen.getByLabelText("Month") as HTMLSelectElement;
+    const year = screen.getByLabelText("Year") as HTMLSelectElement;
     const form = month.closest("form")!;
     const submitted = new FormData(form);
 
     expect(screen.getByRole("button", { name: "My dates are flexible" })).toHaveAttribute("aria-pressed", "true");
     expect(month.value).toBe("");
-    expect(month.tagName).toBe("SELECT");
-    expect(within(month).getByRole("option", { name: "Any month — browse all available stays" })).toHaveValue("");
+    expect(year.value).toBe("");
+    expect(screen.getByText("TRAVEL MONTH")).toBeInTheDocument();
+    expect(screen.queryByText(/choose a month and year/i)).not.toBeInTheDocument();
     expect(submitted.has("month")).toBe(false);
     expect(screen.queryByLabelText("Check-in")).not.toBeInTheDocument();
     expect(screen.getByText(/Browsing all available months/)).toBeInTheDocument();
@@ -84,30 +86,45 @@ describe("Ready Stays date filter modes", () => {
       />,
     );
 
-    const month = screen.getByLabelText("Preferred month and year") as HTMLSelectElement;
-    expect(month.value).toBe(selectedMonth);
-    expect(within(month).getByRole("option", { name: formatExpectedMonth(selectedMonth) })).toHaveValue(selectedMonth);
+    const [expectedYear, expectedMonth] = selectedMonth.split("-");
+    const month = screen.getByLabelText("Month") as HTMLSelectElement;
+    const year = screen.getByLabelText("Year") as HTMLSelectElement;
+    expect(month.value).toBe(expectedMonth);
+    expect(year.value).toBe(expectedYear);
+    expect(within(month).getByRole("option", { name: formatExpectedMonth(`2020-${expectedMonth}`) })).toHaveValue(expectedMonth);
+    expect(within(year).getByRole("option", { name: expectedYear })).toHaveValue(expectedYear);
     const submitted = new FormData(month.closest("form")!);
     expect(submitted.get("month")).toBe(selectedMonth);
   });
 
-  it("offers all twelve months without relying on inventory and clears the month filter", () => {
-    render(<ReadyStaysMarketplaceClient readyStays={[]} resorts={resorts} searchParams={{ dateMode: "flexible", month: "2026-12" }} />);
+  it("offers all twelve months and clears month/year without clearing other filters", () => {
+    const currentYear = new Date().getFullYear();
+    render(
+      <ReadyStaysMarketplaceClient
+        readyStays={[]}
+        resorts={resorts}
+        searchParams={{ dateMode: "flexible", resort: "resort-blt", price_min: "20" }}
+      />,
+    );
 
-    const month = screen.getByLabelText("Preferred month and year") as HTMLSelectElement;
-    for (const value of [
-      "2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06",
-      "2026-07", "2026-08", "2026-09", "2026-10", "2026-11", "2026-12",
-      "2027-01", "2027-02", "2027-12",
-    ]) {
-      expect(within(month).getByRole("option", { name: formatExpectedMonth(value) })).toHaveValue(value);
+    const month = screen.getByLabelText("Month") as HTMLSelectElement;
+    const year = screen.getByLabelText("Year") as HTMLSelectElement;
+    for (const monthNumber of Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0"))) {
+      expect(within(month).getByRole("option", { name: formatExpectedMonth(`2020-${monthNumber}`) })).toHaveValue(monthNumber);
     }
+    expect(within(year).getByRole("option", { name: String(currentYear) })).toHaveValue(String(currentYear));
+    expect(within(year).getByRole("option", { name: String(currentYear + 1) })).toHaveValue(String(currentYear + 1));
 
-    fireEvent.change(month, { target: { value: "2027-02" } });
-    expect(new FormData(month.closest("form")!).get("month")).toBe("2027-02");
+    fireEvent.change(month, { target: { value: "02" } });
+    expect(new FormData(month.closest("form")!).has("month")).toBe(false);
+    fireEvent.change(year, { target: { value: String(currentYear + 1) } });
+    expect(new FormData(month.closest("form")!).get("month")).toBe(`${currentYear + 1}-02`);
     fireEvent.change(month, { target: { value: "" } });
     expect(month.value).toBe("");
+    expect(year.value).toBe("");
     expect(new FormData(month.closest("form")!).has("month")).toBe(false);
+    expect(new FormData(month.closest("form")!).get("resort")).toBe("resort-blt");
+    expect(new FormData(month.closest("form")!).get("price_min")).toBe("20");
   });
 
   it("switches modes without losing entered values or submitting conflicting filters", () => {
@@ -122,10 +139,14 @@ describe("Ready Stays date filter modes", () => {
     const flexibleButton = screen.getByRole("button", { name: "My dates are flexible" });
     fireEvent.click(flexibleButton);
 
-    const month = screen.getByLabelText("Preferred month and year") as HTMLSelectElement;
-    fireEvent.change(month, { target: { value: "2027-01" } });
+    const month = screen.getByLabelText("Month") as HTMLSelectElement;
+    const year = screen.getByLabelText("Year") as HTMLSelectElement;
+    fireEvent.change(month, { target: { value: "01" } });
     let submitted = new FormData(month.closest("form")!);
     expect(submitted.get("dateMode")).toBe("flexible");
+    expect(submitted.has("month")).toBe(false);
+    fireEvent.change(year, { target: { value: "2027" } });
+    submitted = new FormData(month.closest("form")!);
     expect(submitted.get("month")).toBe("2027-01");
     expect(submitted.get("resort")).toBe("resort-blt");
     expect(submitted.has("checkIn")).toBe(false);
@@ -141,7 +162,8 @@ describe("Ready Stays date filter modes", () => {
     expect(submitted.has("holiday")).toBe(false);
 
     fireEvent.click(screen.getByRole("button", { name: "My dates are flexible" }));
-    expect((screen.getByLabelText("Preferred month and year") as HTMLSelectElement).value).toBe("2027-01");
+    expect((screen.getByLabelText("Month") as HTMLSelectElement).value).toBe("01");
+    expect((screen.getByLabelText("Year") as HTMLSelectElement).value).toBe("2027");
     expect((screen.getByRole("radio", { name: "Christmas" }) as HTMLInputElement).checked).toBe(true);
   });
 
@@ -235,7 +257,7 @@ describe("Ready Stays date filter modes", () => {
       />,
     );
     expect((screen.getByLabelText("Sort") as HTMLSelectElement).value).toBe("price_asc");
-    const form = screen.getByLabelText("Preferred month and year").closest("form")!;
+    const form = screen.getByLabelText("Month").closest("form")!;
     expect(new FormData(form).get("price_min")).toBe("20");
     expect(new FormData(form).get("points_max")).toBe("500");
     expect(new FormData(form).get("resort")).toBe("resort-blt");
