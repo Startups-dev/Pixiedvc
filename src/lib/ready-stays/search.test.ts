@@ -44,10 +44,10 @@ describe("Ready Stays search intent", () => {
   });
 
   it("defaults direct entry to flexible browsing without requiring a month", () => {
-    expect(resolveReadyStaySearchDateFilters({})).toEqual({ dateMode: "flexible", month: undefined, holiday: undefined });
+    expect(resolveReadyStaySearchDateFilters({})).toEqual({ dateMode: "flexible", month: undefined });
   });
 
-  it("uses only flexible filters when flexible mode is explicit", () => {
+  it("uses the flexible month and ignores legacy holiday parameters", () => {
     expect(
       resolveReadyStaySearchDateFilters({
         dateMode: "flexible",
@@ -56,7 +56,7 @@ describe("Ready Stays search intent", () => {
         month: "2027-02",
         holiday: "christmas",
       }),
-    ).toEqual({ dateMode: "flexible", month: "2027-02", holiday: "christmas" });
+    ).toEqual({ dateMode: "flexible", month: "2027-02" });
   });
 
   it("matches flexible stays overlapping the selected month, excluding checkout-only overlap", () => {

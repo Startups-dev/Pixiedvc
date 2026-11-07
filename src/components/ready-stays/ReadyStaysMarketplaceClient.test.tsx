@@ -71,14 +71,42 @@ describe("Ready Stays date filter modes", () => {
     expect(month.value).toBe("");
     expect(year.value).toBe("");
     expect(screen.getByText("TRAVEL MONTH")).toBeInTheDocument();
+    expect(screen.queryByText("Holiday")).not.toBeInTheDocument();
     expect(screen.queryByText(/choose a month and year/i)).not.toBeInTheDocument();
     expect(submitted.has("month")).toBe(false);
     expect(screen.queryByLabelText("Check-in")).not.toBeInTheDocument();
     expect(screen.getByText(/Browsing all available months/)).toBeInTheDocument();
-    expect(within(form).getByText("Holiday")).toBeInTheDocument();
+    expect(within(form).queryByText("Holiday")).not.toBeInTheDocument();
     expect(submitted.get("dateMode")).toBe("flexible");
     expect(submitted.has("checkIn")).toBe(false);
     expect(submitted.has("checkOut")).toBe(false);
+  });
+
+  it("ignores legacy holiday query parameters without hiding matching marketplace results", () => {
+    render(
+      <ReadyStaysMarketplaceClient
+        readyStays={[{
+          id: "legacy-holiday-stay",
+          resort_id: "resort-blt",
+          check_in: "2027-10-30",
+          check_out: "2027-11-02",
+          points: 100,
+          room_type: "STUDIO",
+          season_type: "halloween",
+          guest_price_per_point_cents: 2000,
+          original_guest_price_per_point_cents: null,
+          price_reduced_at: null,
+          resorts: { name: "Bay Lake Tower", slug: "bay-lake-tower", calculator_code: "BLT" },
+        }]}
+        resorts={resorts}
+        searchParams={{ dateMode: "flexible", holiday: "christmas" }}
+      />,
+    );
+
+    const month = screen.getByLabelText("Month") as HTMLSelectElement;
+    expect(screen.queryByText("Holiday")).not.toBeInTheDocument();
+    expect(screen.getByText("Bay Lake Tower")).toBeInTheDocument();
+    expect(new FormData(month.closest("form")!).has("holiday")).toBe(false);
   });
 
   it.each(["2026-12", "2027-01", "2027-02"])("selects and submits %s in YYYY-MM format", (selectedMonth) => {
@@ -197,8 +225,8 @@ describe("Ready Stays date filter modes", () => {
     expect(submitted.get("resort")).toBe("resort-blt");
     expect(submitted.has("checkIn")).toBe(false);
     expect(submitted.has("checkOut")).toBe(false);
+    expect(submitted.has("holiday")).toBe(false);
 
-    fireEvent.click(screen.getByRole("radio", { name: "Christmas" }));
     fireEvent.click(screen.getByRole("button", { name: "I have specific dates" }));
     expect((screen.getByLabelText("Check-in") as HTMLInputElement).value).toBe("2026-12-04");
     expect((screen.getByLabelText("Check-out") as HTMLInputElement).value).toBe("2026-12-11");
@@ -210,7 +238,7 @@ describe("Ready Stays date filter modes", () => {
     fireEvent.click(screen.getByRole("button", { name: "My dates are flexible" }));
     expect((screen.getByLabelText("Month") as HTMLSelectElement).value).toBe("01");
     expect((screen.getByLabelText("Year") as HTMLSelectElement).value).toBe("2027");
-    expect((screen.getByRole("radio", { name: "Christmas" }) as HTMLInputElement).checked).toBe(true);
+    expect(screen.queryByText("Holiday")).not.toBeInTheDocument();
   });
 
   it("explains exact-date empty results and provides custom request, flexible browse, and date editing", () => {
@@ -317,5 +345,6 @@ describe("Ready Stays date filter modes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Filters" }));
     expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "I have specific dates" })).toHaveLength(2);
+    expect(screen.queryByText("Holiday")).not.toBeInTheDocument();
   });
 });

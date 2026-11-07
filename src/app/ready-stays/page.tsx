@@ -86,7 +86,7 @@ export default async function ReadyStaysPublicPage({
     .order("name", { ascending: true });
   const resortFilter = resolveReadyStayResortId(resolvedSearchParams?.resort, resorts ?? []);
   const dateFilters = resolveReadyStaySearchDateFilters(resolvedSearchParams ?? {});
-  const { dateMode, checkIn: requestedCheckIn, checkOut: requestedCheckOut, month: requestedMonth, holiday: requestedHoliday } = dateFilters;
+  const { dateMode, checkIn: requestedCheckIn, checkOut: requestedCheckOut, month: requestedMonth } = dateFilters;
 
   let query = readyStaysClient
     .from("ready_stays")
@@ -108,10 +108,6 @@ export default async function ReadyStaysPublicPage({
   }
   if (requestedCheckOut) {
     query = query.eq("check_out", requestedCheckOut);
-  }
-
-  if (requestedHoliday) {
-    query = query.eq("season_type", requestedHoliday);
   }
 
   if (requestedMonth) {
@@ -153,7 +149,6 @@ export default async function ReadyStaysPublicPage({
   }).filter((stay) => {
     if (resortFilter.requested && stay.resort_id !== resortFilter.id) return false;
     if (!matchesReadyStayDates(stay, requestedCheckIn, requestedCheckOut)) return false;
-    if (requestedHoliday && stay.season_type !== requestedHoliday) return false;
     if (!matchesReadyStayMonth(stay, requestedMonth)) return false;
 
     const effectiveGuestTotalCents = getReadyStayGuestTotalCents(stay);
@@ -195,7 +190,7 @@ export default async function ReadyStaysPublicPage({
           checkIn: requestedCheckIn,
           checkOut: requestedCheckOut,
           month: requestedMonth,
-          holiday: requestedHoliday,
+          holiday: undefined,
         }}
       />
       {READY_STAYS_SHOWCASE_FLAGS.enableSearchReadyStays ? (

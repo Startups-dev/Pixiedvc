@@ -43,6 +43,7 @@ type SearchParams = {
   checkIn?: string;
   checkOut?: string;
   month?: string;
+  // Legacy links may still contain this parameter; it is intentionally ignored.
   holiday?: string;
   price_min?: string;
   price_max?: string;
@@ -53,13 +54,6 @@ type SearchParams = {
   children?: string;
   nights?: string;
 };
-
-const HOLIDAY_TAGS = [
-  { value: "christmas", label: "Christmas" },
-  { value: "halloween", label: "Halloween" },
-  { value: "marathon", label: "Marathon" },
-  { value: "spring_break", label: "Spring Break" },
-];
 
 function formatDate(value: string) {
   const [year, month, day] = value.split("-").map((part) => Number(part));
@@ -112,9 +106,6 @@ function buildFlexibleBrowseHref(searchParams: SearchParams) {
   for (const key of ["resort", "sort", "price_min", "price_max", "points_min", "points_max", "adults", "children", "nights"] as const) {
     const value = searchParams[key];
     if (value) params.set(key, value);
-  }
-  if (searchParams.dateMode === "flexible" && searchParams.holiday) {
-    params.set("holiday", searchParams.holiday);
   }
   return `/ready-stays?${params.toString()}`;
 }
@@ -236,8 +227,6 @@ export default function ReadyStaysMarketplaceClient({
   const flexibleYearOptions = getFlexibleYearOptions();
   const flexibleMonthOptions = getFlexibleMonthOptions(preferredYear);
   const appliedPreferredMonth = preferredMonth && preferredYear ? `${preferredYear}-${preferredMonth}` : "";
-  const [holiday, setHoliday] = useState(searchParams.holiday ?? "");
-
   const sortedReadyStays = useMemo(() => sortReadyStays(readyStays, sort), [readyStays, sort]);
   const appliedDateFilters = resolveReadyStaySearchDateFilters(searchParams);
   const flexibleBrowseHref = buildFlexibleBrowseHref(searchParams);
@@ -258,7 +247,6 @@ export default function ReadyStaysMarketplaceClient({
       searchParams.checkIn ||
       searchParams.checkOut ||
       searchParams.month ||
-      searchParams.holiday ||
       searchParams.price_min ||
       searchParams.price_max ||
       searchParams.points_min ||
@@ -395,42 +383,6 @@ export default function ReadyStaysMarketplaceClient({
             ))}
           </datalist>
         </label>
-
-        {dateMode === "flexible" ? (
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Holiday</span>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {HOLIDAY_TAGS.map((tag) => (
-                <label key={tag.value} className="cursor-pointer">
-                  <input
-                    type="radio"
-                    name="holiday"
-                    value={tag.value}
-                    checked={holiday === tag.value}
-                    onChange={() => setHoliday(tag.value)}
-                    className="peer sr-only"
-                  />
-                  <span className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 transition peer-checked:border-[#0F2148] peer-checked:bg-[#0F2148]/10 peer-checked:text-[#0F2148]">
-                    {tag.label}
-                  </span>
-                </label>
-              ))}
-              <label className="cursor-pointer">
-                <input
-                  type="radio"
-                  name="holiday"
-                  value=""
-                  checked={!holiday}
-                  onChange={() => setHoliday("")}
-                  className="peer sr-only"
-                />
-                <span className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 transition peer-checked:border-[#0F2148] peer-checked:bg-[#0F2148]/10 peer-checked:text-[#0F2148]">
-                  Any
-                </span>
-              </label>
-            </div>
-          </div>
-        ) : null}
 
         <div>
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Price per point</span>

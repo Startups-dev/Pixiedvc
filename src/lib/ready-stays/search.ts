@@ -11,7 +11,6 @@ export type ReadyStaySearchDateFilters = {
   checkIn?: string;
   checkOut?: string;
   month?: string;
-  holiday?: string;
 };
 
 export function resolveReadyStaySearchDateFilters(input: {
@@ -19,6 +18,7 @@ export function resolveReadyStaySearchDateFilters(input: {
   checkIn?: string;
   checkOut?: string;
   month?: string;
+  // Accepted for legacy URLs but intentionally not used as a filter.
   holiday?: string;
 }): ReadyStaySearchDateFilters {
   const checkIn = normalizeReadyStayDate(input.checkIn);
@@ -37,7 +37,6 @@ export function resolveReadyStaySearchDateFilters(input: {
   return {
     dateMode,
     month: normalizeReadyStayMonth(input.month),
-    holiday: input.holiday || undefined,
   };
 }
 
