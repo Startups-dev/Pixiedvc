@@ -82,14 +82,26 @@ function formatMonth(value: string) {
   }).format(new Date(Date.UTC(year, month - 1, 1)));
 }
 
-function getFlexibleYearOptions(selectedYearValue: string) {
+function getFlexibleYearOptions() {
   const currentYear = new Date().getFullYear();
-  const selectedYear = /^\d{4}$/.test(selectedYearValue)
-    ? Number(selectedYearValue)
-    : currentYear;
-  const firstYear = Math.min(currentYear, selectedYear);
-  const finalYear = Math.max(currentYear + 10, selectedYear);
-  return Array.from({ length: finalYear - firstYear + 1 }, (_, yearIndex) => String(firstYear + yearIndex));
+  return [String(currentYear), String(currentYear + 1)];
+}
+
+function getFlexibleMonthOptions(selectedYearValue: string, now = new Date()) {
+  const currentYear = now.getFullYear();
+  const selectedYear = Number(selectedYearValue) || currentYear;
+  const firstAvailableMonth = new Date(currentYear, now.getMonth(), 1);
+  // Use the longest general DVC advance-booking window for this listing search.
+  // This only limits filter choices; it does not indicate that inventory exists.
+  const lastAvailableMonth = new Date(currentYear, now.getMonth() + 11, 1);
+
+  return FLEXIBLE_MONTHS.map((month) => {
+    const monthDate = new Date(selectedYear, Number(month.value) - 1, 1);
+    return {
+      ...month,
+      disabled: monthDate < firstAvailableMonth || monthDate > lastAvailableMonth,
+    };
+  });
 }
 
 const FLEXIBLE_MONTHS = Array.from({ length: 12 }, (_, monthIndex) => ({
@@ -224,7 +236,8 @@ export default function ReadyStaysMarketplaceClient({
   const initialMonthParts = searchParams.month?.match(/^(\d{4})-(0[1-9]|1[0-2])$/);
   const [preferredMonth, setPreferredMonth] = useState(initialMonthParts?.[2] ?? "");
   const [preferredYear, setPreferredYear] = useState(initialMonthParts?.[1] ?? "");
-  const flexibleYearOptions = useMemo(() => getFlexibleYearOptions(preferredYear), [preferredYear]);
+  const flexibleYearOptions = getFlexibleYearOptions();
+  const flexibleMonthOptions = getFlexibleMonthOptions(preferredYear);
   const appliedPreferredMonth = preferredMonth && preferredYear ? `${preferredYear}-${preferredMonth}` : "";
   const [holiday, setHoliday] = useState(searchParams.holiday ?? "");
 
@@ -336,7 +349,13 @@ export default function ReadyStaysMarketplaceClient({
                 >
                   <option value="">Month</option>
                   {FLEXIBLE_MONTHS.map((month) => (
-                    <option key={month.value} value={month.value}>{month.label}</option>
+                    <option
+                      key={month.value}
+                      value={month.value}
+                      disabled={flexibleMonthOptions.find((option) => option.value === month.value)?.disabled}
+                    >
+                      {month.label}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -347,8 +366,11 @@ export default function ReadyStaysMarketplaceClient({
                   aria-label="Year"
                   value={preferredYear}
                   onChange={(event) => {
-                    setPreferredYear(event.target.value);
-                    if (!event.target.value) setPreferredMonth("");
+                    const nextYear = event.target.value;
+                    setPreferredYear(nextYear);
+                    const selectedMonthIsUnavailable = getFlexibleMonthOptions(nextYear)
+                      .find((month) => month.value === preferredMonth)?.disabled;
+                    if (!nextYear || selectedMonthIsUnavailable) setPreferredMonth("");
                   }}
                   className="box-border w-full min-w-0 max-w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
                 >
