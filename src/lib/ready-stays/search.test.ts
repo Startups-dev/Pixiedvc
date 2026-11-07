@@ -65,4 +65,11 @@ describe("Ready Stays search intent", () => {
     expect(matchesReadyStayMonth({ check_in: "2027-01-25", check_out: "2027-02-01" }, "2027-02")).toBe(false);
     expect(matchesReadyStayMonth({ check_in: "2027-03-01", check_out: "2027-03-08" }, "2027-02")).toBe(false);
   });
+
+  it("uses both the month and year when matching flexible stays", () => {
+    expect(matchesReadyStayMonth({ check_in: "2026-12-04", check_out: "2026-12-11" }, "2026-12")).toBe(true);
+    expect(matchesReadyStayMonth({ check_in: "2027-12-04", check_out: "2027-12-11" }, "2026-12")).toBe(false);
+    expect(matchesReadyStayMonth({ check_in: "2027-01-04", check_out: "2027-01-11" }, "2027-01")).toBe(true);
+    expect(matchesReadyStayMonth({ check_in: "2027-02-04", check_out: "2027-02-11" }, "2027-02")).toBe(true);
+  });
 });
