@@ -69,6 +69,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Impact requires a value attribute for ownership verification. */}
+        <meta
+          name="impact-site-verification"
+          {...{ value: "ba80d384-38ea-4248-b26e-cb0d201dca79" }}
+        />
+      </head>
       <body
         className={`${inter.variable} ${geistMono.variable} bg-surface text-ink antialiased`}
       >
