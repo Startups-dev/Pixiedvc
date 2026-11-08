@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
-import { decryptSecret, encryptSecret, htmlToText, matchZohoMailboxAccount, normalizeZohoMessageDetails, parseInternetHeaders, summarizeZohoAccounts, verifyResendWebhook, verifyZohoWebhook } from "@/lib/zoho-mail-inbox";
+import { classifyZohoMessageSource, decryptSecret, encryptSecret, htmlToText, matchZohoMailboxAccount, normalizeZohoMessageDetails, normalizeZohoThreadId, parseInternetHeaders, summarizeZohoAccounts, verifyResendWebhook, verifyZohoWebhook } from "@/lib/zoho-mail-inbox";
 import { parseZohoJson } from "@/lib/zoho-json";
 
 const oldKey = process.env.ZOHO_MAIL_ENCRYPTION_KEY;
@@ -69,6 +69,8 @@ describe("Zoho Mail inbox security and threading helpers", () => {
   it("normalizes Zoho's documented header-map and content response shapes", () => {
     const details = normalizeZohoMessageDetails({
       From: ['Hanna Test <Sender@Example.test>'],
+      To: ["hello@hannadvc.com, Jen <jen@example.test>"],
+      Cc: ["copy@example.test"],
       Subject: ["Re: Test"],
       "Message-ID": ["<incoming@example.test>"],
       "In-Reply-To": ["<outgoing@example.test>"],
@@ -77,6 +79,7 @@ describe("Zoho Mail inbox security and threading helpers", () => {
     expect(details).toMatchObject({
       senderEmail: "sender@example.test",
       senderName: "Hanna Test",
+      recipientEmails: ["hello@hannadvc.com", "jen@example.test", "copy@example.test"],
       subject: "Re: Test",
       messageId: "<incoming@example.test>",
       inReplyTo: ["<outgoing@example.test>"],
@@ -145,5 +148,49 @@ describe("Zoho Mail inbox security and threading helpers", () => {
       targetMailboxMatched: true,
     });
     expect(JSON.stringify(summarizeZohoAccounts(accounts, "hello@hannadvc.com"))).not.toContain("hello@hannadvc.com");
+  });
+
+  it("imports only external messages from the configured inbox folder", () => {
+    expect(classifyZohoMessageSource({
+      folderId: "inbox-folder", inboxFolderId: "inbox-folder", senderEmail: "guest@example.test",
+    })).toBe("inbound");
+    expect(classifyZohoMessageSource({
+      folderId: "sent-folder", inboxFolderId: "inbox-folder", senderEmail: "hello@hannadvc.com",
+    })).toBe("non_inbox_folder");
+  });
+
+  it("ignores an outgoing message copied into the Inbox by its mailbox From header", () => {
+    const details = normalizeZohoMessageDetails({
+      From: ["HannaDVC <hello@hannadvc.com>"],
+      To: ["Jen <jen@example.test>"],
+    }, { content: "Hi Jen" });
+
+    expect(classifyZohoMessageSource({
+      folderId: "inbox-folder", inboxFolderId: "inbox-folder", senderEmail: details.senderEmail,
+    })).toBe("mailbox_sent_copy");
+    expect(details.recipientEmails).toEqual(["jen@example.test"]);
+  });
+
+  it("uses real reply IDs while rejecting Zoho's zero thread sentinel", () => {
+    expect(normalizeZohoThreadId("0")).toBeNull();
+    expect(normalizeZohoThreadId("000")).toBeNull();
+    expect(normalizeZohoThreadId(" null ")).toBeNull();
+    expect(normalizeZohoThreadId("thread-123")).toBe("thread-123");
+  });
+
+  it("keeps an incoming reply in its mixed conversation using RFC references", () => {
+    const details = normalizeZohoMessageDetails({
+      From: ["Guest <guest@example.test>"],
+      To: ["hello@hannadvc.com"],
+      "Message-ID": ["<guest-reply@example.test>"],
+      "In-Reply-To": ["<resend-reply@example.test>"],
+      References: ["<initial-request@example.test> <resend-reply@example.test>"],
+    }, { content: "Guest reply" });
+
+    expect(classifyZohoMessageSource({
+      folderId: "inbox-folder", inboxFolderId: "inbox-folder", senderEmail: details.senderEmail,
+    })).toBe("inbound");
+    expect(normalizeZohoThreadId("0")).toBeNull();
+    expect([...details.references, ...details.inReplyTo]).toContain("<resend-reply@example.test>");
   });
 });

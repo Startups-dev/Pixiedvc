@@ -98,6 +98,29 @@ function parseZohoAddress(value: unknown) {
   return match?.[1] ?? match?.[0] ?? null;
 }
 
+function parseZohoAddresses(values: string[]) {
+  return [...new Set(values.flatMap((value) =>
+    [...value.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)].map((match) => match[0].toLowerCase()),
+  ))];
+}
+
+export function normalizeZohoThreadId(value: unknown) {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const normalized = String(value).trim();
+  if (!normalized || /^0+$/.test(normalized) || /^(null|undefined)$/i.test(normalized)) return null;
+  return normalized;
+}
+
+export function classifyZohoMessageSource(input: {
+  folderId: string;
+  inboxFolderId: string | null | undefined;
+  senderEmail: string;
+}, mailbox = MAILBOX): "inbound" | "non_inbox_folder" | "mailbox_sent_copy" {
+  if (!input.inboxFolderId || input.folderId !== input.inboxFolderId) return "non_inbox_folder";
+  if (input.senderEmail.trim().toLowerCase() === mailbox.toLowerCase()) return "mailbox_sent_copy";
+  return "inbound";
+}
+
 function zohoMessageBody(data: Record<string, unknown>) {
   const value = typeof data.content === "string" ? data.content : typeof data.mailContent === "string" ? data.mailContent : "";
   return htmlToText(value).slice(0, 10000);
@@ -115,6 +138,13 @@ export function normalizeZohoMessageDetails(
     ...identifiers,
     senderEmail: (parseZohoAddress(from) ?? parseZohoAddress(listData.fromAddress) ?? "").trim().toLowerCase(),
     senderName: from.replace(/<[^<>]+>/g, "").replace(/^['"]|['"]$/g, "").trim(),
+    recipientEmails: parseZohoAddresses([
+      ...(headerFields.to ?? []),
+      ...(headerFields.cc ?? []),
+      ...(headerFields["delivered-to"] ?? []),
+      ...(headerFields["x-original-to"] ?? []),
+      ...(headerFields["envelope-to"] ?? []),
+    ]),
     subject: (headerFields.subject?.[0] ?? listData.subject ?? "").trim().slice(0, 300),
     body: zohoMessageBody(contentData),
   };
@@ -298,7 +328,14 @@ export async function recordZohoEvent(input: { eventId: string; eventType: strin
 export async function importZohoMessage(message: { messageId: string; folderId: string; threadId?: string; receivedTime?: number | string; fromAddress?: string; subject?: string }) {
   const db = createServiceClient();
   const connection = await getZohoConnection();
-  if (!connection?.zoho_account_id || !connection.import_started_at) throw new Error("ZOHO_NOT_CONNECTED");
+  if (!connection?.zoho_account_id || !connection.import_started_at || !connection.zoho_inbox_folder_id) throw new Error("ZOHO_NOT_CONNECTED");
+  if (classifyZohoMessageSource({
+    folderId: message.folderId,
+    inboxFolderId: connection.zoho_inbox_folder_id,
+    senderEmail: message.fromAddress ?? "",
+  }) === "non_inbox_folder") {
+    return { ignored: true, reason: "non_inbox_folder" };
+  }
   const occurredAt = new Date(Number(message.receivedTime) || Date.now()).toISOString();
   if (Date.parse(occurredAt) < Date.parse(connection.import_started_at)) return { ignored: true, reason: "before_connection" };
 
@@ -315,10 +352,17 @@ export async function importZohoMessage(message: { messageId: string; folderId: 
   ]);
   const details = normalizeZohoMessageDetails(headerData.headerContent, contentData, message);
   if (!details.senderEmail) throw new Error("ZOHO_MESSAGE_MISSING_SENDER");
+  if (classifyZohoMessageSource({
+    folderId: message.folderId,
+    inboxFolderId: connection.zoho_inbox_folder_id,
+    senderEmail: details.senderEmail,
+  }) === "mailbox_sent_copy") {
+    return { ignored: true, reason: "mailbox_sent_copy" };
+  }
   const references = [...details.references, ...details.inReplyTo].filter((value, index, all) => all.indexOf(value) === index);
   const { data, error } = await db.rpc("import_zoho_support_email", {
     p_provider_message_id: message.messageId,
-    p_provider_thread_id: message.threadId ?? null,
+    p_provider_thread_id: normalizeZohoThreadId(message.threadId),
     p_rfc_message_id: details.messageId,
     p_references: references,
     p_sender_email: details.senderEmail,
