@@ -14,9 +14,12 @@ alter table public.ready_stays
 comment on column public.ready_stays.founding_bonus_per_point_cents is
   'Server-calculated Founders Club bonus per point committed when this Ready Stay was submitted; null for legacy rows.';
 
--- The owner RLS policy allows owners to insert/update their own listing rows.
--- Recompute the commitment on insert and make it immutable on later edits so a
--- client cannot grant itself a bonus or change one after submission.
+-- A Ready Stay can have status = 'draft' while already submitted for review.
+-- The submission marker is verification_status = 'proof_uploaded' (or the
+-- legacy 'submitted' / 'approved' states) and verification_submitted_at.
+-- Snapshot eligibility when that submission state is first entered, not just
+-- because a draft row exists. Preserve that snapshot, including NULL on legacy
+-- submitted rows, across all later updates.
 create or replace function public.ready_stays_snapshot_founding_bonus()
 returns trigger
 language plpgsql
@@ -27,11 +30,38 @@ declare
   v_bonus_cents integer;
   v_started_at timestamptz;
   v_expires_at timestamptz;
+  v_old_was_submitted boolean := false;
+  v_new_is_submitted boolean := false;
 begin
+  v_new_is_submitted :=
+    coalesce(new.verification_status in ('proof_uploaded', 'submitted', 'approved'), false);
+
   if tg_op = 'UPDATE' then
-    new.founding_bonus_per_point_cents := old.founding_bonus_per_point_cents;
+    v_old_was_submitted :=
+      old.verification_submitted_at is not null
+      or coalesce(old.verification_status in ('proof_uploaded', 'submitted', 'approved', 'rejected'), false)
+      or old.founding_bonus_per_point_cents is not null;
+
+    if v_old_was_submitted then
+      new.founding_bonus_per_point_cents := old.founding_bonus_per_point_cents;
+      new.verification_submitted_at := old.verification_submitted_at;
+      return new;
+    end if;
+  end if;
+
+  if not v_new_is_submitted then
+    new.founding_bonus_per_point_cents := null;
+    if tg_op = 'UPDATE' then
+      new.verification_submitted_at := old.verification_submitted_at;
+    else
+      new.verification_submitted_at := null;
+    end if;
     return new;
   end if;
+
+  -- The database owns the eligibility timestamp; ignore any client-supplied
+  -- timestamp when a submission transition occurs.
+  new.verification_submitted_at := now();
 
   select
     o.founding_owner_bonus_cents_per_point,
