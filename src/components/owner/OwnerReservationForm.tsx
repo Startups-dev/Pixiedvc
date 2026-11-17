@@ -13,6 +13,7 @@ import {
   getStayGuestPriceCap,
   getSuggestedOwnerPayouts,
 } from "@/lib/ready-stays/ownerPricing";
+import { calculateReadyStayPayoutBreakdown } from "@/lib/ready-stays/payout-calculation";
 
 type ResortOption = {
   id: string;
@@ -22,6 +23,7 @@ type ResortOption = {
 
 type OwnerReservationFormProps = {
   resorts: ResortOption[];
+  foundingOwnerBonusCentsPerPoint?: number;
 };
 
 function formatDollars(value: number) {
@@ -58,7 +60,10 @@ function getReservationProofMimeType(file: File) {
   return null;
 }
 
-export default function OwnerReservationForm({ resorts }: OwnerReservationFormProps) {
+export default function OwnerReservationForm({
+  resorts,
+  foundingOwnerBonusCentsPerPoint = 0,
+}: OwnerReservationFormProps) {
   const router = useRouter();
   const [resortId, setResortId] = useState("");
   const [checkIn, setCheckIn] = useState("");
@@ -116,10 +121,18 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
   const hasConfirmationNumber = confirmationNumber.trim().length > 0;
   const guestPays = ownerPayoutValid ? ownerPayout + FEE_PER_POINT : null;
   const pointsCount = Number(points);
-  const totalOwnerPayout =
-    ownerPayoutValid && Number.isFinite(pointsCount) && pointsCount > 0
-      ? ownerPayout * pointsCount
-      : null;
+  const payoutBreakdown = ownerPayoutValid && Number.isFinite(pointsCount) && pointsCount > 0
+    ? calculateReadyStayPayoutBreakdown({
+        points: pointsCount,
+        ownerBaseRatePerPointCents: Math.round(ownerPayout * 100),
+        foundingBonusPerPointCents: foundingOwnerBonusCentsPerPoint,
+        guestPricePerPointCents: Math.round((ownerPayout + FEE_PER_POINT) * 100),
+      })
+    : null;
+  const totalOwnerPayout = payoutBreakdown?.ownerTotalCents == null ? null : payoutBreakdown.ownerTotalCents / 100;
+  const foundingBonusForStay = payoutBreakdown?.foundingBonusTotalCents == null
+    ? null
+    : payoutBreakdown.foundingBonusTotalCents / 100;
 
   useEffect(() => {
     pointsValueRef.current = points;
@@ -134,6 +147,7 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
       return;
     }
 
+    const accommodation = selectedAccommodation;
     let cancelled = false;
 
     async function quotePoints() {
@@ -145,9 +159,9 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            resort_code: selectedAccommodation.resortCode,
-            room_code: selectedAccommodation.roomCode,
-            view_code: selectedAccommodation.viewCode,
+            resort_code: accommodation.resortCode,
+            room_code: accommodation.roomCode,
+            view_code: accommodation.viewCode,
             check_in: checkIn,
             check_out: checkOut,
           }),
@@ -505,7 +519,7 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
         </div>
 
         <label className="mt-3 block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-          Set your payout
+          Set your base payout
           <input
             type="number"
             min="1"
@@ -564,8 +578,20 @@ export default function OwnerReservationForm({ resorts }: OwnerReservationFormPr
         ) : null}
 
         <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
-          <p>You receive {ownerPayoutValid ? `${formatDollars(ownerPayout)}/pt` : "—"}</p>
+          <p>Owner base rate: {ownerPayoutValid ? `${formatDollars(ownerPayout)}/pt` : "—"}</p>
+          {foundingOwnerBonusCentsPerPoint > 0 ? (
+            <p>
+              Founders Club bonus: +{formatDollars(foundingOwnerBonusCentsPerPoint / 100)}/pt
+              {foundingBonusForStay !== null ? ` · ${formatDollars(foundingBonusForStay)} for this stay` : ""}
+            </p>
+          ) : null}
+          <p>Total owner rate: {ownerPayoutValid ? `${formatDollars(ownerPayout + foundingOwnerBonusCentsPerPoint / 100)}/pt` : "—"}</p>
           <p>Total owner payout: {totalOwnerPayout !== null ? formatDollars(totalOwnerPayout) : "—"}</p>
+          {foundingOwnerBonusCentsPerPoint > 0 && foundingBonusForStay !== null ? (
+            <p className="mt-2 text-xs font-medium text-emerald-700">
+              Your Founders Club benefit adds {formatDollars(foundingBonusForStay)} to this stay.
+            </p>
+          ) : null}
           <p className="mt-2 text-xs text-slate-500">
             Heads up: guests pay a HannaDVC service fee on top of your payout.
           </p>

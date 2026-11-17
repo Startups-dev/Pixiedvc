@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@pixiedvc/design-system";
 import { getReadyStayPricingBand, getReadyStaySeason } from "@/lib/ready-stays/pricing";
-import { getMaxOwnerPayout, getStayGuestPriceCap } from "@/lib/ready-stays/ownerPricing";
+import { FEE_PER_POINT_CENTS, getMaxOwnerPayout, getStayGuestPriceCap } from "@/lib/ready-stays/ownerPricing";
+import { calculateReadyStayPayoutBreakdown } from "@/lib/ready-stays/payout-calculation";
 
 type ReadyStayRental = {
   id: string;
@@ -21,6 +22,7 @@ type OwnerReadyStayPublishFormProps = {
   rental: ReadyStayRental;
   confirmationReady: boolean;
   hasExistingReservationProof: boolean;
+  foundingOwnerBonusCentsPerPoint?: number;
 };
 
 
@@ -62,6 +64,7 @@ export default function OwnerReadyStayPublishForm({
   rental,
   confirmationReady,
   hasExistingReservationProof,
+  foundingOwnerBonusCentsPerPoint = 0,
 }: OwnerReadyStayPublishFormProps) {
   const router = useRouter();
   const band = useMemo(
@@ -83,7 +86,14 @@ export default function OwnerReadyStayPublishForm({
   const [error, setError] = useState<string | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
 
-  const estimatedOwnerPayout = ownerPrice * rental.points_required;
+  const payoutBreakdown = calculateReadyStayPayoutBreakdown({
+    points: rental.points_required,
+    ownerBaseRatePerPointCents: ownerPrice,
+    foundingBonusPerPointCents: foundingOwnerBonusCentsPerPoint,
+    guestPricePerPointCents: ownerPrice + FEE_PER_POINT_CENTS,
+  });
+  const foundingBonusTotal = payoutBreakdown.foundingBonusTotalCents ?? 0;
+  const estimatedOwnerPayout = payoutBreakdown.ownerTotalCents ?? 0;
 
   const uploadReservationProof = async () => {
     if (!proofFile) return;
@@ -219,7 +229,7 @@ export default function OwnerReadyStayPublishForm({
           <p className="text-xs text-slate-500">Owner price per point</p>
         </div>
         <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-sm">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Estimated payout</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Estimated total owner payout</p>
           <p className="mt-2 text-lg font-semibold text-ink">{formatDollars(estimatedOwnerPayout)}</p>
           <p className="text-xs text-slate-500">Based on your selected payout</p>
         </div>
@@ -227,7 +237,7 @@ export default function OwnerReadyStayPublishForm({
 
       <div className="mt-6 space-y-3">
         <label className="text-sm font-semibold text-slate-700">
-          Owner price per point: {formatDollars(ownerPrice)} /pt
+          Owner base payout per point: {formatDollars(ownerPrice)} /pt
         </label>
         <input
           type="range"
@@ -242,6 +252,22 @@ export default function OwnerReadyStayPublishForm({
           <span>Min {formatDollars(minOwnerCents)}/pt</span>
           <span>Max {formatDollars(maxOwnerCents)}/pt</span>
         </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+        <p>Base owner amount: {formatDollars(ownerPrice * rental.points_required)}</p>
+        <p>Base owner rate: {formatDollars(ownerPrice)} /pt</p>
+        {foundingOwnerBonusCentsPerPoint > 0 ? (
+          <>
+            <p>Founders Club bonus: {formatDollars(foundingOwnerBonusCentsPerPoint)} /pt · {formatDollars(foundingBonusTotal)} for this stay</p>
+            <p>Founders Club bonus amount: +{formatDollars(foundingBonusTotal)}</p>
+            <p className="mt-2 text-xs font-medium text-emerald-700">
+              Your Founders Club benefit adds {formatDollars(foundingBonusTotal)} to this stay.
+            </p>
+          </>
+        ) : null}
+        <p>Total owner rate: {formatDollars(ownerPrice + foundingOwnerBonusCentsPerPoint)} /pt</p>
+        <p className="mt-1 font-semibold">Total owner payout: {formatDollars(estimatedOwnerPayout)}</p>
       </div>
 
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 text-sm">

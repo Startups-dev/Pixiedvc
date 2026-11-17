@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { isOwnerLifecycleActive } from "@/lib/owner/lifecycle";
+import { getActiveFoundingOwnerBonusCents } from "@/lib/founding-owner-bonus";
+import { getMaxOwnerPayout } from "@/lib/ready-stays/ownerPricing";
 import { computeCapsForStay, FEE_PER_POINT_CENTS } from "@/lib/ready-stays/pricingEngine";
 import { isValidDvcAccommodationIdentity } from "../../../../../packages/pixiedvc-calculator/src/engine/accommodations";
 import type { RoomCode, ViewCode } from "../../../../../packages/pixiedvc-calculator/src/engine/types";
@@ -25,7 +27,7 @@ export async function POST(request: NextRequest) {
 
   const { data: ownerRecord, error: ownerRecordError } = await supabase
     .from("owners")
-    .select("id, lifecycle_status")
+    .select("id, lifecycle_status, founding_owner_bonus_cents_per_point, founding_owner_bonus_started_at, founding_owner_bonus_expires_at")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -157,6 +159,7 @@ export async function POST(request: NextRequest) {
   const guestPrice = ownerPrice + FEE_PER_POINT_CENTS;
 
   const proofUploadedAt = new Date().toISOString();
+  const foundingBonusPerPointCents = getActiveFoundingOwnerBonusCents(ownerRecord, new Date(proofUploadedAt));
 
   const { data: createdReadyStay, error: insertError } = await supabase
     .from("ready_stays")
@@ -173,6 +176,7 @@ export async function POST(request: NextRequest) {
       season_type: caps.strictestSeasonType,
       owner_price_per_point_cents: ownerPrice,
       guest_price_per_point_cents: guestPrice,
+      founding_bonus_per_point_cents: foundingBonusPerPointCents,
       status: "draft",
       reservation_proof_path: reservationProof.storage_path ?? null,
       reservation_proof_name:

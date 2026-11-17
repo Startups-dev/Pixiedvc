@@ -7,6 +7,8 @@ import ReadyStayMarkdownForm from "@/components/owner/ReadyStayMarkdownForm";
 import OwnerPageHeader from "@/components/owner/shared/OwnerPageHeader";
 import { buildOwnerReadyStayListItems, type OwnerReadyStayListItem } from "@/lib/owner/secondary-subpages";
 import { getActiveFoundingOwnerBonusCents } from "@/lib/founding-owner-bonus";
+import { FEE_PER_POINT_CENTS } from "@/lib/ready-stays/ownerPricing";
+import { calculateReadyStayPayoutBreakdown, getLockedReadyStayFoundingBonusPerPointCents } from "@/lib/ready-stays/payout-calculation";
 
 function formatDate(value: string | null) {
   if (!value) return "—";
@@ -66,7 +68,7 @@ export default async function OwnerReadyStayDetailPage({
   const { data: readyStay } = await supabase
     .from("ready_stays")
     .select(
-      "id, rental_id, status, verification_status, verification_review_notes, check_in, check_out, room_type, points, owner_price_per_point_cents, created_at, updated_at, reservation_proof_uploaded_at, is_visible_publicly, slug, title, image_url, expires_at, locked_until, resorts(name, slug, calculator_code)",
+      "id, rental_id, status, verification_status, verification_submitted_at, verification_review_notes, check_in, check_out, room_type, points, owner_price_per_point_cents, founding_bonus_per_point_cents, created_at, updated_at, reservation_proof_uploaded_at, is_visible_publicly, slug, title, image_url, expires_at, locked_until, resorts(name, slug, calculator_code)",
     )
     .eq("id", params.id)
     .eq("owner_id", user.id)
@@ -94,13 +96,34 @@ export default async function OwnerReadyStayDetailPage({
       .select("founding_owner_bonus_cents_per_point, founding_owner_bonus_started_at, founding_owner_bonus_expires_at")
       .eq("user_id", user.id).maybeSingle(),
     readyStay.rental_id
-      ? supabase.from("rentals").select("owner_rate_per_point_cents").eq("id", readyStay.rental_id).maybeSingle()
+      ? supabase.from("rentals").select("owner_base_rate_per_point_cents, owner_founding_bonus_per_point_cents, owner_rate_per_point_cents, owner_total_cents, rental_amount_cents").eq("id", readyStay.rental_id).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
-  const payoutRate = readyStay.status === "sold"
-    ? Number(storedRental?.owner_rate_per_point_cents ?? ownerPrice)
-    : ownerPrice + getActiveFoundingOwnerBonusCents(foundingOwner);
-  const estimatedOwnerPayout = points * payoutRate;
+  const committedBonus = readyStay.founding_bonus_per_point_cents ?? getActiveFoundingOwnerBonusCents(
+    foundingOwner,
+    new Date(readyStay.verification_submitted_at ?? readyStay.created_at),
+  );
+  const baseRate = readyStay.status === "sold"
+    ? Number(storedRental?.owner_base_rate_per_point_cents ?? ownerPrice)
+    : ownerPrice;
+  const soldBonus = readyStay.status === "sold" ? getLockedReadyStayFoundingBonusPerPointCents({
+    ownerBaseRatePerPointCents: baseRate,
+    ownerFoundingBonusPerPointCents: storedRental?.owner_founding_bonus_per_point_cents ?? readyStay.founding_bonus_per_point_cents,
+    ownerTotalRatePerPointCents: storedRental?.owner_rate_per_point_cents,
+  }) : committedBonus;
+  const bonusRate = readyStay.status === "sold" ? soldBonus : committedBonus;
+  const payoutBreakdown = calculateReadyStayPayoutBreakdown({
+    points,
+    ownerBaseRatePerPointCents: baseRate,
+    foundingBonusPerPointCents: bonusRate,
+    guestPricePerPointCents: Number(readyStay.owner_price_per_point_cents ?? 0) + FEE_PER_POINT_CENTS,
+    lockedOwnerTotalRatePerPointCents: readyStay.status === "sold" ? storedRental?.owner_rate_per_point_cents : null,
+    lockedOwnerTotalCents: readyStay.status === "sold"
+      ? (storedRental?.owner_total_cents ?? storedRental?.rental_amount_cents)
+      : null,
+  });
+  const payoutRate = payoutBreakdown.ownerTotalRatePerPointCents ?? baseRate;
+  const estimatedOwnerPayout = payoutBreakdown.ownerTotalCents ?? points * payoutRate;
   const [displayItem] = buildOwnerReadyStayListItems([{
     ...readyStay,
     resorts: Array.isArray(readyStay.resorts) ? (readyStay.resorts[0] ?? null) : readyStay.resorts,
@@ -159,17 +182,27 @@ export default async function OwnerReadyStayDetailPage({
 
           <p className="text-sm text-[#667085]">{displayItem.displayStatusDescription}</p>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <div className="rounded-2xl bg-[#FBF8F1] px-5 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8992A3]">Points</p>
               <p className="mt-1 text-xl font-semibold text-[#10224A]">{displayItem.pointsLabel}</p>
             </div>
             <div className="rounded-2xl bg-[#FBF8F1] px-5 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8992A3]">Payout / point</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8992A3]">Base payout / point</p>
+              <p className="mt-1 text-xl font-semibold text-[#10224A]">{formatCurrencyFromCents(baseRate)}</p>
+              <p className="mt-1 text-xs text-[#667085]">{formatCurrencyFromCents(payoutBreakdown.ownerBaseTotalCents)} base amount</p>
+            </div>
+            {bonusRate != null && bonusRate > 0 ? <div className="rounded-2xl bg-[#FBF8F1] px-5 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8992A3]">Founders bonus</p>
+              <p className="mt-1 text-xl font-semibold text-[#10224A]">{formatCurrencyFromCents(bonusRate)} / point</p>
+              <p className="mt-1 text-xs text-[#667085]">{formatCurrencyFromCents(payoutBreakdown.foundingBonusTotalCents)} for this stay</p>
+            </div> : null}
+            <div className="rounded-2xl bg-[#FBF8F1] px-5 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8992A3]">Total payout / point</p>
               <p className="mt-1 text-xl font-semibold text-[#10224A]">{formatCurrencyFromCents(payoutRate)}</p>
             </div>
             <div className="rounded-2xl bg-[#F7F2E8] px-5 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7A6B43]">Estimated payout</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7A6B43]">Total owner payout</p>
               <p className="mt-1 text-xl font-semibold text-[#10224A]">{formatCurrencyFromCents(estimatedOwnerPayout)}</p>
             </div>
           </div>
@@ -211,7 +244,7 @@ export default async function OwnerReadyStayDetailPage({
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-[#10224A]">Payout Summary</h2>
-              <p className="mt-2 text-sm text-[#667085]">Adjust owner payout per point if this listing supports editing.</p>
+            <p className="mt-2 text-sm text-[#667085]">Adjust your base payout per point if this listing supports editing.</p>
             </div>
           </div>
           <div className="mt-5 rounded-2xl bg-[#FBF8F1] p-5">
@@ -219,6 +252,7 @@ export default async function OwnerReadyStayDetailPage({
               readyStayId={readyStay.id}
               initialOwnerPricePerPointCents={ownerPrice}
               points={points}
+              foundingBonusPerPointCents={readyStay.status === "sold" ? (bonusRate ?? 0) : committedBonus}
             />
           </div>
           <div className="mt-4 rounded-2xl bg-[#F7F2E8] px-5 py-4">

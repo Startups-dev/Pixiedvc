@@ -99,13 +99,13 @@ describe("founding owner bonus", () => {
     expect(hasFoundingOwnerGrant({ founding_owner_granted_at: null })).toBe(false);
   });
 
-  it("treats null expiry as active for UI status and expired dates as inactive", () => {
+  it("uses the payout eligibility window for UI status, including requiring an expiry", () => {
     expect(
       isActiveFoundingOwner({
         founding_owner_bonus_cents_per_point: 200,
         founding_owner_bonus_expires_at: null,
       }),
-    ).toBe(true);
+    ).toBe(false);
 
     expect(
       isActiveFoundingOwner(

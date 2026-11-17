@@ -5,6 +5,7 @@ import { requireAdminUser } from "@/lib/admin";
 import { READY_STAYS_SHOWCASE_FLAGS } from "@/lib/ready-stays/showcase-config";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import AdminReadyStaysManager from "@/app/admin/ready-stays/AdminReadyStaysManager";
+import { getActiveFoundingOwnerBonusCents } from "@/lib/founding-owner-bonus";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,11 @@ type ReadyStayRow = {
   room_type: string;
   season_type: string;
   owner_price_per_point_cents: number;
+  founding_bonus_per_point_cents: number | null;
+  locked_owner_base_rate_per_point_cents?: number | null;
+  locked_owner_founding_bonus_per_point_cents?: number | null;
+  locked_owner_total_rate_per_point_cents?: number | null;
+  locked_owner_total_cents?: number | null;
   guest_price_per_point_cents: number;
   original_guest_price_per_point_cents: number | null;
   price_reduced_at: string | null;
@@ -121,7 +127,7 @@ export default async function AdminReadyStaysPage() {
     adminClient
       .from("ready_stays")
       .select(
-        "id, slug, title, short_description, status, verification_status, verification_submitted_at, verification_approved_at, verification_rejected_at, verification_review_notes, reservation_proof_path, reservation_proof_name, reservation_proof_uploaded_at, featured, priority, sort_override, placement_home, placement_resort, placement_search, check_in, check_out, points, sleeps, image_url, badge, cta_label, href, expires_at, owner_id, rental_id, resort_id, room_type, season_type, owner_price_per_point_cents, guest_price_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, created_at, updated_at, resorts(name, slug)",
+        "id, slug, title, short_description, status, verification_status, verification_submitted_at, verification_approved_at, verification_rejected_at, verification_review_notes, reservation_proof_path, reservation_proof_name, reservation_proof_uploaded_at, featured, priority, sort_override, placement_home, placement_resort, placement_search, check_in, check_out, points, sleeps, image_url, badge, cta_label, href, expires_at, owner_id, rental_id, resort_id, room_type, season_type, owner_price_per_point_cents, guest_price_per_point_cents, founding_bonus_per_point_cents, original_guest_price_per_point_cents, price_reduced_at, created_at, updated_at, resorts(name, slug)",
       )
       .order("created_at", { ascending: false })
       .limit(300),
@@ -151,6 +157,19 @@ export default async function AdminReadyStaysPage() {
 
   const readyStayRows = (rows ?? []) as ReadyStayRow[];
   const resortRows = ((resorts ?? []) as Array<{ id: string; name: string; slug: string | null }>);
+  const ownerIds = Array.from(new Set(readyStayRows.map((row) => row.owner_id).filter(Boolean)));
+  const rentalIds = Array.from(new Set(readyStayRows.map((row) => row.rental_id).filter(Boolean)));
+  const { data: lockedPayouts } = rentalIds.length
+    ? await adminClient.from("rentals")
+        .select("id, owner_base_rate_per_point_cents, owner_founding_bonus_per_point_cents, owner_rate_per_point_cents, owner_total_cents, rental_amount_cents")
+        .in("id", rentalIds)
+    : { data: [] };
+  const payoutByRentalId = new Map((lockedPayouts ?? []).map((rental) => [rental.id, rental]));
+  const { data: ownersByUser } = ownerIds.length
+    ? await adminClient.from("owners")
+        .select("user_id, founding_owner_bonus_cents_per_point, founding_owner_bonus_started_at, founding_owner_bonus_expires_at")
+        .in("user_id", ownerIds)
+    : { data: [] };
   const rentalIdsMissingProof = readyStayRows
     .filter((row) => !row.reservation_proof_path && row.rental_id)
     .map((row) => row.rental_id);
@@ -181,6 +200,10 @@ export default async function AdminReadyStaysPage() {
     const fallbackProof = fallbackProofByRentalId.get(row.rental_id);
     return {
       ...row,
+      locked_owner_base_rate_per_point_cents: payoutByRentalId.get(row.rental_id)?.owner_base_rate_per_point_cents ?? null,
+      locked_owner_founding_bonus_per_point_cents: payoutByRentalId.get(row.rental_id)?.owner_founding_bonus_per_point_cents ?? null,
+      locked_owner_total_rate_per_point_cents: payoutByRentalId.get(row.rental_id)?.owner_rate_per_point_cents ?? null,
+      locked_owner_total_cents: payoutByRentalId.get(row.rental_id)?.owner_total_cents ?? payoutByRentalId.get(row.rental_id)?.rental_amount_cents ?? null,
       status:
         row.status === "active" && row.verification_status === "proof_uploaded"
           ? ("draft" as ReadyStayRow["status"])
@@ -188,6 +211,10 @@ export default async function AdminReadyStaysPage() {
       reservation_proof_path: row.reservation_proof_path ?? fallbackProof?.storage_path ?? null,
       reservation_proof_name: row.reservation_proof_name ?? fallbackProof?.original_name ?? null,
       reservation_proof_uploaded_at: row.reservation_proof_uploaded_at ?? fallbackProof?.created_at ?? null,
+      founding_bonus_per_point_cents: row.founding_bonus_per_point_cents ?? getActiveFoundingOwnerBonusCents(
+        ownersByUser?.find((owner) => owner.user_id === row.owner_id),
+        new Date(row.verification_submitted_at ?? row.created_at),
+      ),
     };
   });
 

@@ -58,12 +58,10 @@ export default async function ReadyStaysPage({
   const { data: foundingOwner } = await adminClient.from("owners")
     .select("founding_owner_bonus_cents_per_point, founding_owner_bonus_started_at, founding_owner_bonus_expires_at")
     .eq("id", owner.id).maybeSingle();
-  const foundingBonusCents = getActiveFoundingOwnerBonusCents(foundingOwner);
-
   const { data: readyStays } = await adminClient
     .from("ready_stays")
     .select(
-      "id, rental_id, status, verification_status, sold_booking_request_id, booking_request_id, check_in, check_out, room_type, points, owner_price_per_point_cents, created_at, updated_at, reservation_proof_uploaded_at, is_visible_publicly, slug, title, image_url, expires_at, locked_until, resorts(name, slug, calculator_code)",
+      "id, rental_id, status, verification_status, verification_submitted_at, sold_booking_request_id, booking_request_id, check_in, check_out, room_type, points, owner_price_per_point_cents, founding_bonus_per_point_cents, created_at, updated_at, reservation_proof_uploaded_at, is_visible_publicly, slug, title, image_url, expires_at, locked_until, resorts(name, slug, calculator_code)",
     )
     .in("owner_id", ownerIds)
     .order("created_at", { ascending: false });
@@ -80,7 +78,12 @@ export default async function ReadyStaysPage({
     resorts: Array.isArray(stay.resorts) ? (stay.resorts[0] ?? null) : stay.resorts,
     owner_payout_rate_cents: stay.status === "sold"
       ? (soldRateByRentalId.get(stay.rental_id ?? "") ?? stay.owner_price_per_point_cents)
-      : Number(stay.owner_price_per_point_cents ?? 0) + foundingBonusCents,
+      : Number(stay.owner_price_per_point_cents ?? 0) + (
+          stay.founding_bonus_per_point_cents ?? getActiveFoundingOwnerBonusCents(
+            foundingOwner,
+            new Date(stay.verification_submitted_at ?? stay.created_at),
+          )
+        ),
     status:
       stay.status === "active" && stay.verification_status === "proof_uploaded"
         ? ("draft" as typeof stay.status)

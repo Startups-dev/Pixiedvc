@@ -57,6 +57,7 @@ type OwnerDashboardClientProps = {
   pendingPayouts: PayoutLedgerRow[];
   rewardsSummary: RewardsSummary | null;
   foundingOwnerSummary: FoundingOwnerSummary | null;
+  foundingOwnerBonusCentsPerPoint: number;
 };
 
 function deriveMatchStatus(match: OwnerMatchRow, rental: DashboardRentalRow | null) {
@@ -148,6 +149,7 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
     pendingPayouts,
     rewardsSummary,
     foundingOwnerSummary,
+    foundingOwnerBonusCentsPerPoint,
   } = props;
 
   return (
@@ -429,7 +431,10 @@ export default function OwnerDashboardClient(props: OwnerDashboardClientProps) {
       {activeTab === "listings" && listingsMode === "add" ? (
         <section className="space-y-6">
           <Card id="add-reservation-form" className="space-y-4">
-            <OwnerReservationForm resorts={resorts} />
+            <OwnerReservationForm
+              resorts={resorts}
+              foundingOwnerBonusCentsPerPoint={foundingOwnerBonusCentsPerPoint}
+            />
           </Card>
           <p className="text-xs text-slate-500">
             After publishing, manage active, pending, and sold Ready Stays on the inventory page.

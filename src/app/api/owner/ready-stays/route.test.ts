@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { NextRequest } from "next/server";
 
-import { POST } from "./route";
+import { PATCH, POST } from "./route";
 
 const readyStaysInsertMock = vi.fn();
 
@@ -84,7 +85,13 @@ describe("POST /api/owner/ready-stays", () => {
     const resortsSelect = vi.fn(() => ({ eq: resortsEq }));
 
     const ownersMaybeSingle = vi.fn().mockResolvedValue({
-      data: { id: "owner-record-1", lifecycle_status: "active" },
+      data: {
+        id: "owner-record-1",
+        lifecycle_status: "active",
+        founding_owner_bonus_cents_per_point: 200,
+        founding_owner_bonus_started_at: "2020-01-01T00:00:00.000Z",
+        founding_owner_bonus_expires_at: "2030-01-01T00:00:00.000Z",
+      },
       error: null,
     });
     const ownersEq = vi.fn(() => ({ maybeSingle: ownersMaybeSingle }));
@@ -129,7 +136,7 @@ describe("POST /api/owner/ready-stays", () => {
   });
 
   test("rejects owner price below global minimum", async () => {
-    const request = new Request("http://localhost/api/owner/ready-stays", {
+    const request = new NextRequest("http://localhost/api/owner/ready-stays", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -138,7 +145,7 @@ describe("POST /api/owner/ready-stays", () => {
       }),
     });
 
-    const response = await POST(request as Request);
+    const response = await POST(request);
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -197,7 +204,13 @@ describe("POST /api/owner/ready-stays", () => {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
               maybeSingle: vi.fn().mockResolvedValue({
-                data: { id: "owner-record-1", lifecycle_status: "active" },
+                data: {
+                  id: "owner-record-1",
+                  lifecycle_status: "active",
+                  founding_owner_bonus_cents_per_point: 200,
+                  founding_owner_bonus_started_at: "2020-01-01T00:00:00.000Z",
+                  founding_owner_bonus_expires_at: "2030-01-01T00:00:00.000Z",
+                },
                 error: null,
               }),
             })),
@@ -217,16 +230,17 @@ describe("POST /api/owner/ready-stays", () => {
       return { select: vi.fn() };
     });
 
-    const request = new Request("http://localhost/api/owner/ready-stays", {
+    const request = new NextRequest("http://localhost/api/owner/ready-stays", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         rental_id: "rental-1",
         owner_price_per_point_cents: 2100,
+        founding_bonus_per_point_cents: 9999,
       }),
     });
 
-    const response = await POST(request as Request);
+    const response = await POST(request);
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -291,7 +305,13 @@ describe("POST /api/owner/ready-stays", () => {
           select: vi.fn(() => ({
             eq: vi.fn(() => ({
               maybeSingle: vi.fn().mockResolvedValue({
-                data: { id: "owner-record-1", lifecycle_status: "active" },
+                data: {
+                  id: "owner-record-1",
+                  lifecycle_status: "active",
+                  founding_owner_bonus_cents_per_point: 200,
+                  founding_owner_bonus_started_at: "2020-01-01T00:00:00.000Z",
+                  founding_owner_bonus_expires_at: "2030-01-01T00:00:00.000Z",
+                },
                 error: null,
               }),
             })),
@@ -311,16 +331,17 @@ describe("POST /api/owner/ready-stays", () => {
       return { select: vi.fn() };
     });
 
-    const request = new Request("http://localhost/api/owner/ready-stays", {
+    const request = new NextRequest("http://localhost/api/owner/ready-stays", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         rental_id: "rental-1",
         owner_price_per_point_cents: 2100,
+        founding_bonus_per_point_cents: 9999,
       }),
     });
 
-    const response = await POST(request as Request);
+    const response = await POST(request);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -331,12 +352,15 @@ describe("POST /api/owner/ready-stays", () => {
         room_type: "Deluxe Studio - Lake View",
         calculator_room_code: "STUDIO",
         calculator_view_code: "L",
+        owner_price_per_point_cents: 2100,
+        guest_price_per_point_cents: 2800,
+        founding_bonus_per_point_cents: 200,
       }),
     );
   });
 
   test("does not assign calculator identity to legacy rentals during publishing", async () => {
-    const request = new Request("http://localhost/api/owner/ready-stays", {
+    const request = new NextRequest("http://localhost/api/owner/ready-stays", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -345,7 +369,7 @@ describe("POST /api/owner/ready-stays", () => {
       }),
     });
 
-    const response = await POST(request as Request);
+    const response = await POST(request);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -402,7 +426,7 @@ describe("POST /api/owner/ready-stays", () => {
       return { select: vi.fn() };
     });
 
-    const request = new Request("http://localhost/api/owner/ready-stays", {
+    const request = new NextRequest("http://localhost/api/owner/ready-stays", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -411,7 +435,7 @@ describe("POST /api/owner/ready-stays", () => {
       }),
     });
 
-    const response = await POST(request as Request);
+    const response = await POST(request);
     const body = await response.json();
 
     expect(response.status).toBe(400);
@@ -436,7 +460,7 @@ describe("POST /api/owner/ready-stays", () => {
       return { select: vi.fn() };
     });
 
-    const request = new Request("http://localhost/api/owner/ready-stays", {
+    const request = new NextRequest("http://localhost/api/owner/ready-stays", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -445,11 +469,42 @@ describe("POST /api/owner/ready-stays", () => {
       }),
     });
 
-    const response = await POST(request as Request);
+    const response = await POST(request);
     const body = await response.json();
 
     expect(response.status).toBe(403);
     expect(body).toEqual({ error: "Owner account is not active for new Ready Stay listings." });
     expect(readyStaysInsertMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("PATCH /api/owner/ready-stays pricing", () => {
+  test("saves the owner base rate and guest fee without folding in the Founders bonus", async () => {
+    const update = vi.fn(() => ({ eq: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) })) }));
+    supabaseMock = {
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "owner-1" } }, error: null }) },
+      from: vi.fn((table: string) => {
+        if (table !== "ready_stays") throw new Error(`unexpected table ${table}`);
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({ maybeSingle: vi.fn().mockResolvedValue({
+              data: { id: "ready-1", owner_id: "owner-1", check_in: "2027-01-18", check_out: "2027-01-20", status: "draft" },
+              error: null,
+            }) })),
+          })),
+          update,
+        };
+      }),
+    };
+
+    const response = await PATCH(new NextRequest("http://localhost/api/owner/ready-stays", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "ready-1", owner_price_per_point_cents: 2300 }),
+    }));
+
+    expect(response.status).toBe(200);
+    expect(update).toHaveBeenCalledWith({ owner_price_per_point_cents: 2300, guest_price_per_point_cents: 3000 });
+    expect(update).not.toHaveBeenCalledWith(expect.objectContaining({ founding_bonus_per_point_cents: expect.anything() }));
   });
 });

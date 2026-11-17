@@ -86,16 +86,7 @@ export function isActiveFoundingOwner(
   owner: FoundingOwnerBonusFields | null | undefined,
   now = new Date(),
 ) {
-  const cents = Number(owner?.founding_owner_bonus_cents_per_point ?? 0);
-  if (!Number.isFinite(cents) || cents <= 0) return false;
-
-  if (!owner?.founding_owner_bonus_expires_at) {
-    return true;
-  }
-
-  const expiresAt = new Date(owner.founding_owner_bonus_expires_at);
-  if (Number.isNaN(expiresAt.getTime())) return false;
-  return now < expiresAt;
+  return getActiveFoundingOwnerBonusCents(owner, now) > 0;
 }
 
 export function buildFoundingOwnerGrantUpdate(params: {
@@ -208,9 +199,9 @@ export async function maybeGrantFoundingOwnerBonus(params: {
       targetId: String(ownerId),
       error: {
         message: promotionError.message ?? null,
-        code: promotionError.code ?? null,
-        details: promotionError.details ?? null,
-        hint: promotionError.hint ?? null,
+        code: "code" in promotionError ? promotionError.code ?? null : null,
+        details: "details" in promotionError ? promotionError.details ?? null : null,
+        hint: "hint" in promotionError ? promotionError.hint ?? null : null,
       },
     });
     return { granted: false, reason: "promotion_lookup_failed" as const, error: promotionError };

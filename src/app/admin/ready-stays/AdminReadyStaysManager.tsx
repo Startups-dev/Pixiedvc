@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { calculateReadyStayPayoutBreakdown } from '@/lib/ready-stays/payout-calculation';
+import { FEE_PER_POINT_CENTS } from '@/lib/ready-stays/ownerPricing';
 
 type ResortOption = {
   id: string;
@@ -45,6 +47,11 @@ type ReadyStayRow = {
   room_type: string;
   season_type: string;
   owner_price_per_point_cents: number;
+  founding_bonus_per_point_cents?: number | null;
+  locked_owner_base_rate_per_point_cents?: number | null;
+  locked_owner_founding_bonus_per_point_cents?: number | null;
+  locked_owner_total_rate_per_point_cents?: number | null;
+  locked_owner_total_cents?: number | null;
   guest_price_per_point_cents: number;
   original_guest_price_per_point_cents: number | null;
   price_reduced_at: string | null;
@@ -216,7 +223,7 @@ function updateRowOwnerPrice(id: string, nextOwnerPrice: number) {
     const owner = Number.isFinite(nextOwnerPrice) ? Math.max(0, Math.round(nextOwnerPrice * 100)) : 0;
     setRowEditor(id, {
       owner_price_per_point_cents: owner,
-      guest_price_per_point_cents: owner + 700,
+      guest_price_per_point_cents: owner + FEE_PER_POINT_CENTS,
     });
   }
 
@@ -397,11 +404,22 @@ function updateRowOwnerPrice(id: string, nextOwnerPrice: number) {
           const rowBusy = busyId === row.id;
           const requiresApproval = rowNeedsReview(row);
           const totalReservationCents = editor.guest_price_per_point_cents * row.points;
-          const ownerPayoutPerPoint = editor.owner_price_per_point_cents / 100;
-          const totalOwnerPayoutCents = editor.owner_price_per_point_cents * row.points;
-          const platformEarningsPerPointCents =
-            Math.max(0, editor.guest_price_per_point_cents - editor.owner_price_per_point_cents);
-          const totalPlatformEarningsCents = platformEarningsPerPointCents * row.points;
+          const ownerBaseRateCents = row.locked_owner_base_rate_per_point_cents ?? editor.owner_price_per_point_cents;
+          const ownerBasePerPoint = ownerBaseRateCents / 100;
+          const foundingBonusPerPointCents = Math.max(0, Number(
+            row.locked_owner_founding_bonus_per_point_cents ?? row.founding_bonus_per_point_cents ?? 0,
+          ));
+          const payoutBreakdown = calculateReadyStayPayoutBreakdown({
+            points: row.points,
+            ownerBaseRatePerPointCents: editor.owner_price_per_point_cents,
+            foundingBonusPerPointCents,
+            guestPricePerPointCents: editor.guest_price_per_point_cents,
+            lockedOwnerTotalRatePerPointCents: row.locked_owner_total_rate_per_point_cents,
+            lockedOwnerTotalCents: row.locked_owner_total_cents,
+          });
+          const totalOwnerPayoutCents = payoutBreakdown.ownerTotalCents ?? 0;
+          const totalHannaMarginCents = payoutBreakdown.hannaMarginAfterBonusCents ?? 0;
+          const hannaMarginPerPointCents = editor.guest_price_per_point_cents - editor.owner_price_per_point_cents - foundingBonusPerPointCents;
           const isDeclined = row.verification_status === 'rejected';
           const isAccepted = row.status === 'active';
           const canEditPricing = canEditReadyStayPricing(row);
@@ -446,33 +464,41 @@ function updateRowOwnerPrice(id: string, nextOwnerPrice: number) {
                       <p className="mt-2 text-sm text-[#ececec]">{row.points} points</p>
                     </div>
                   <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Cost Per Point</p>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Guest Price per Point</p>
                     <p className="mt-2 text-sm text-[#ececec]">{formatCurrencyFromCents(editor.guest_price_per_point_cents)}</p>
                   </div>
                   <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Owner Payout / Point</p>
-                    <p className="mt-2 text-sm text-[#ececec]">{formatDollars(ownerPayoutPerPoint)}</p>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Owner Base Payout per Point</p>
+                    <p className="mt-2 text-sm text-[#ececec]">{formatDollars(ownerBasePerPoint)}</p>
                   </div>
                   <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Platform Take / Point</p>
-                    <p className="mt-2 text-sm text-[#ececec]">{formatCurrencyFromCents(platformEarningsPerPointCents)}</p>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Founders Bonus per Point</p>
+                    <p className="mt-2 text-sm text-[#ececec]">{foundingBonusPerPointCents > 0 ? formatCurrencyFromCents(foundingBonusPerPointCents) : "—"}</p>
+                  </div>
+                  <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Hanna Margin per Point after Bonus</p>
+                    <p className="mt-2 text-sm text-[#ececec]">{formatCurrencyFromCents(hannaMarginPerPointCents)}</p>
                   </div>
                   <div className="sm:col-span-2 grid gap-3 sm:grid-cols-2">
                     <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Total Reservation Cost</p>
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Guest Booking Total</p>
                       <p className="mt-2 text-sm text-[#ececec]">{formatCurrencyFromCents(totalReservationCents)}</p>
+                    </div>
+                    <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Owner Base Payout</p>
+                      <p className="mt-2 text-sm text-[#ececec]">{formatCurrencyFromCents(ownerBaseRateCents * row.points)}</p>
+                    </div>
+                    <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Founders Bonus</p>
+                      <p className="mt-2 text-sm text-[#ececec]">{foundingBonusPerPointCents > 0 ? formatCurrencyFromCents(foundingBonusPerPointCents * row.points) : "—"}</p>
                     </div>
                     <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
                       <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Total Owner Payout</p>
                       <p className="mt-2 text-sm text-[#ececec]">{formatCurrencyFromCents(totalOwnerPayoutCents)}</p>
                     </div>
                     <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Total Platform Earnings</p>
-                      <p className="mt-2 text-sm text-[#ececec]">{formatCurrencyFromCents(totalPlatformEarningsCents)}</p>
-                    </div>
-                    <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Owner Payout / Point</p>
-                      <p className="mt-2 text-sm text-[#ececec]">{formatDollars(ownerPayoutPerPoint)}</p>
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Hanna Margin after Bonus</p>
+                      <p className="mt-2 text-sm text-[#ececec]">{formatCurrencyFromCents(totalHannaMarginCents)}</p>
                     </div>
                   </div>
                 </div>
@@ -481,12 +507,12 @@ function updateRowOwnerPrice(id: string, nextOwnerPrice: number) {
                 <div className="space-y-3">
                   {canEditPricing ? (
                     <div className="rounded-xl border border-[#3a3a3a] bg-[#212121] p-3">
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Adjust Owner Payout / Point</p>
+                      <p className="text-[11px] uppercase tracking-[0.2em] text-[#8e8ea0]">Adjust Owner Base Payout / Point</p>
                       <input
                         type="number"
                         step="0.01"
                         className="mt-3 w-full rounded border border-[#3a3a3a] bg-[#2f2f2f] px-2 py-1 text-sm text-[#ececec]"
-                        value={ownerPayoutPerPoint}
+                        value={ownerBasePerPoint}
                         onChange={(e) => updateRowOwnerPrice(row.id, Number(e.target.value))}
                         placeholder="owner payout / pt"
                       />

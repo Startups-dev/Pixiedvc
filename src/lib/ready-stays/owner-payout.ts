@@ -2,20 +2,33 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { getActiveFoundingOwnerBonusCents, type FoundingOwnerBonusFields } from "@/lib/founding-owner-bonus";
 import { getActivePromotion } from "@/lib/pricing-promotions";
+import { calculateReadyStayPayoutBreakdown } from "@/lib/ready-stays/payout-calculation";
 
 export function computeReadyStayOwnerPayout(params: {
   points: number;
   standardRateCents: number;
   owner: FoundingOwnerBonusFields | null;
   soldAt: Date;
+  committedBonusCents?: number | null;
 }) {
-  const { points, standardRateCents, owner, soldAt } = params;
+  const { points, standardRateCents, owner, soldAt, committedBonusCents } = params;
   if (!Number.isInteger(points) || points <= 0 || !Number.isInteger(standardRateCents) || standardRateCents <= 0) {
     throw new Error("invalid_ready_stay_payout_inputs");
   }
-  const bonusCents = getActiveFoundingOwnerBonusCents(owner, soldAt);
-  const rateCents = standardRateCents + bonusCents;
-  return { standardRateCents, bonusCents, rateCents, totalCents: points * rateCents };
+  const bonusCents = committedBonusCents ?? getActiveFoundingOwnerBonusCents(owner, soldAt);
+  const breakdown = calculateReadyStayPayoutBreakdown({
+    points,
+    ownerBaseRatePerPointCents: standardRateCents,
+    foundingBonusPerPointCents: bonusCents,
+    guestPricePerPointCents: 0,
+  });
+  return {
+    standardRateCents,
+    bonusCents,
+    rateCents: breakdown.ownerTotalRatePerPointCents ?? standardRateCents,
+    totalCents: breakdown.ownerTotalCents ?? 0,
+    breakdown,
+  };
 }
 
 export async function lockReadyStayOwnerPayout(params: {
@@ -26,7 +39,7 @@ export async function lockReadyStayOwnerPayout(params: {
 }) {
   const { adminClient, readyStayId, bookingId, soldAt } = params;
   const { data: stay, error: stayError } = await adminClient.from("ready_stays")
-    .select("id, owner_id, rental_id, points, owner_price_per_point_cents, guest_price_per_point_cents, booking_request_id, sold_booking_request_id")
+    .select("id, owner_id, rental_id, points, owner_price_per_point_cents, guest_price_per_point_cents, founding_bonus_per_point_cents, created_at, verification_submitted_at, booking_request_id, sold_booking_request_id")
     .eq("id", readyStayId).maybeSingle();
   if (stayError) throw new Error(stayError.message);
   if (!stay || !stay.rental_id) throw new Error("ready_stay_rental_missing");
@@ -49,6 +62,10 @@ export async function lockReadyStayOwnerPayout(params: {
     standardRateCents: Number(stay.owner_price_per_point_cents),
     owner,
     soldAt,
+    committedBonusCents: stay.founding_bonus_per_point_cents ?? getActiveFoundingOwnerBonusCents(
+      owner,
+      new Date(stay.verification_submitted_at ?? stay.created_at ?? soldAt),
+    ),
   });
   const { data: rental, error: rentalError } = await adminClient.from("rentals")
     .select("id, match_id, rental_amount_cents")
@@ -69,6 +86,7 @@ export async function lockReadyStayOwnerPayout(params: {
     .update({
       owner_base_rate_per_point_cents: payout.standardRateCents,
       owner_premium_per_point_cents: 0,
+      owner_founding_bonus_per_point_cents: payout.bonusCents,
       owner_home_resort_premium_applied: false,
       owner_rate_per_point_cents: payout.rateCents,
       owner_total_cents: payout.totalCents,

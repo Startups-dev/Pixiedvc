@@ -290,6 +290,7 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
       pendingPayouts={pendingPayouts}
       rewardsSummary={rewardsSummary}
       foundingOwnerSummary={foundingOwnerSummary}
+      foundingOwnerBonusCentsPerPoint={foundingOwnerBonusCents}
     />
   );
 }

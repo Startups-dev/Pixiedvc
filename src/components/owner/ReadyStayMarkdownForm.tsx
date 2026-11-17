@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@pixiedvc/design-system";
+import { calculateReadyStayPayoutBreakdown } from "@/lib/ready-stays/payout-calculation";
+import { FEE_PER_POINT_CENTS } from "@/lib/ready-stays/ownerPricing";
 
 function formatCurrencyFromCents(value: number | null) {
   if (value == null || Number.isNaN(value)) return "—";
@@ -18,10 +20,12 @@ export default function ReadyStayMarkdownForm({
   readyStayId,
   initialOwnerPricePerPointCents,
   points,
+  foundingBonusPerPointCents = 0,
 }: {
   readyStayId: string;
   initialOwnerPricePerPointCents: number;
   points: number;
+  foundingBonusPerPointCents?: number;
 }) {
   const router = useRouter();
   const [ownerPricePerPointDollars, setOwnerPricePerPointDollars] = useState(
@@ -31,8 +35,12 @@ export default function ReadyStayMarkdownForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const ownerPricePerPointCents = Math.round(Number(ownerPricePerPointDollars || "0") * 100);
-  const estimatedOwnerPayout =
-    Number.isFinite(ownerPricePerPointCents) && ownerPricePerPointCents > 0 ? ownerPricePerPointCents * points : null;
+  const breakdown = calculateReadyStayPayoutBreakdown({
+    points,
+    ownerBaseRatePerPointCents: ownerPricePerPointCents,
+    foundingBonusPerPointCents,
+    guestPricePerPointCents: ownerPricePerPointCents + FEE_PER_POINT_CENTS,
+  });
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -86,7 +94,7 @@ export default function ReadyStayMarkdownForm({
             Adjust your payout per point. Lower payouts may improve placement speed.
           </p>
           <label className="block">
-            <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Owner payout / point</span>
+            <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Owner base payout / point</span>
             <input
               type="number"
               min={0}
@@ -96,9 +104,13 @@ export default function ReadyStayMarkdownForm({
               className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-ink"
             />
           </label>
-          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
-            Estimated owner payout:{" "}
-            <span className="font-semibold text-ink">{formatCurrencyFromCents(estimatedOwnerPayout)}</span>
+          <div className="space-y-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
+            <p>Base payout: <span className="font-semibold text-ink">{formatCurrencyFromCents(breakdown.ownerBaseTotalCents)}</span></p>
+            {foundingBonusPerPointCents > 0 ? <>
+              <p>Founders Club bonus: <span className="font-semibold text-ink">{formatCurrencyFromCents(breakdown.foundingBonusTotalCents)}</span></p>
+              <p className="text-xs">Your Founders Club benefit adds {formatCurrencyFromCents(breakdown.foundingBonusTotalCents)} to this stay.</p>
+            </> : null}
+            <p>Total estimated owner payout: <span className="font-semibold text-ink">{formatCurrencyFromCents(breakdown.ownerTotalCents)}</span></p>
           </div>
           {error ? <p className="text-sm text-rose-600">{error}</p> : null}
           <Button type="submit" disabled={submitting}>

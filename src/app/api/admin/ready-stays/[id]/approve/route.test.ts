@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { NextRequest } from "next/server";
 
 import { POST } from "./route";
 
@@ -9,8 +10,8 @@ const flags = vi.hoisted(() => ({
   },
 }));
 
-let sessionClient: any;
-let adminClient: any;
+let sessionClient: unknown;
+let adminClient: unknown;
 let updateReadyStay: ReturnType<typeof vi.fn>;
 
 vi.mock("@/lib/ready-stays/showcase-config", () => ({
@@ -112,7 +113,7 @@ describe("POST /api/admin/ready-stays/[id]/approve", () => {
   test("blocks approval when Ready Stays admin is disabled", async () => {
     flags.value.enableReadyStaysAdmin = false;
 
-    const response = await POST(new Request("http://localhost"), {
+    const response = await POST(new NextRequest("http://localhost"), {
       params: Promise.resolve({ id: "ready-1" }),
     });
     const body = await response.json();
@@ -123,7 +124,7 @@ describe("POST /api/admin/ready-stays/[id]/approve", () => {
   });
 
   test("approves when Ready Stays admin is enabled for an admin", async () => {
-    const response = await POST(new Request("http://localhost"), {
+    const response = await POST(new NextRequest("http://localhost"), {
       params: Promise.resolve({ id: "ready-1" }),
     });
     const body = await response.json();
@@ -138,5 +139,10 @@ describe("POST /api/admin/ready-stays/[id]/approve", () => {
         placement_search: true,
       }),
     );
+    expect(updateReadyStay).not.toHaveBeenCalledWith(expect.objectContaining({
+      owner_price_per_point_cents: expect.anything(),
+      guest_price_per_point_cents: expect.anything(),
+      founding_bonus_per_point_cents: expect.anything(),
+    }));
   });
 });

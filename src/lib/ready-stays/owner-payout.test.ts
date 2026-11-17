@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { computeReadyStayOwnerPayout, lockReadyStayOwnerPayout } from "./owner-payout";
+import { calculateReadyStayPayoutBreakdown } from "./payout-calculation";
 
 const owner = {
   founding_owner_bonus_cents_per_point: 200,
@@ -10,8 +11,19 @@ const owner = {
 
 describe("Ready Stay founding owner payout", () => {
   it("adds $2 above the selected rate without a cap even at a low margin", () => {
-    expect(computeReadyStayOwnerPayout({ points: 300, standardRateCents: 2300, owner, soldAt: new Date("2027-01-01") }))
-      .toEqual({ standardRateCents: 2300, bonusCents: 200, rateCents: 2500, totalCents: 750000 });
+    const result = computeReadyStayOwnerPayout({ points: 26, standardRateCents: 2300, owner, soldAt: new Date("2027-01-01") });
+    expect(result).toMatchObject({ standardRateCents: 2300, bonusCents: 200, rateCents: 2500, totalCents: 65000 });
+    expect(result.breakdown).toMatchObject({ ownerBaseTotalCents: 59800, foundingBonusTotalCents: 5200, ownerTotalCents: 65000 });
+  });
+
+  it("uses a submission-time Founders commitment even if it expires before the sale", () => {
+    expect(computeReadyStayOwnerPayout({
+      points: 26,
+      standardRateCents: 2300,
+      owner,
+      soldAt: new Date("2029-01-01"),
+      committedBonusCents: 200,
+    })).toMatchObject({ bonusCents: 200, rateCents: 2500, totalCents: 65000 });
   });
 
   it("uses the two-year start-inclusive, end-exclusive benefit window", () => {
@@ -32,8 +44,9 @@ describe("Ready Stay founding owner payout", () => {
     }));
     const adminClient = { from: (table: string) => {
       if (table === "ready_stays") return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: {
-        id: "stay-1", owner_id: "user-1", rental_id: "rental-1", points: 300,
-        owner_price_per_point_cents: 2300, guest_price_per_point_cents: 2400,
+        id: "stay-1", owner_id: "user-1", rental_id: "rental-1", points: 26,
+        owner_price_per_point_cents: 2300, guest_price_per_point_cents: 3000,
+        founding_bonus_per_point_cents: 200, created_at: "2026-10-20T12:00:00.000Z",
         booking_request_id: "booking-1", sold_booking_request_id: null,
       }, error: null }) }) }) };
       if (table === "owners") return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: owner, error: null }) }) }) };
@@ -51,12 +64,31 @@ describe("Ready Stay founding owner payout", () => {
       throw new Error(`unexpected table ${table}`);
     } };
     const params = { adminClient: adminClient as never, readyStayId: "stay-1", bookingId: "booking-1", soldAt: new Date("2027-01-01") };
-    expect(await lockReadyStayOwnerPayout(params)).toBe(750000);
-    expect(await lockReadyStayOwnerPayout(params)).toBe(750000);
+    expect(await lockReadyStayOwnerPayout(params)).toBe(65000);
+    expect(await lockReadyStayOwnerPayout(params)).toBe(65000);
     expect(update).toHaveBeenCalledTimes(1);
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
       owner_base_rate_per_point_cents: 2300, owner_rate_per_point_cents: 2500,
-      owner_total_cents: 750000, rental_amount_cents: 750000,
+      owner_founding_bonus_per_point_cents: 200,
+      owner_total_cents: 65000, rental_amount_cents: 65000,
     }));
+  });
+
+  it("calculates the required Founder and non-Founder gross margin examples", () => {
+    const founder = calculateReadyStayPayoutBreakdown({
+      points: 26,
+      ownerBaseRatePerPointCents: 2300,
+      foundingBonusPerPointCents: 200,
+      guestPricePerPointCents: 3000,
+    });
+    expect(founder).toMatchObject({ guestTotalCents: 78000, ownerTotalCents: 65000, hannaMarginAfterBonusCents: 13000 });
+
+    const nonFounder = calculateReadyStayPayoutBreakdown({
+      points: 26,
+      ownerBaseRatePerPointCents: 2300,
+      foundingBonusPerPointCents: 0,
+      guestPricePerPointCents: 3000,
+    });
+    expect(nonFounder).toMatchObject({ ownerBaseTotalCents: 59800, ownerTotalCents: 59800, foundingBonusTotalCents: 0, hannaMarginAfterBonusCents: 18200 });
   });
 });

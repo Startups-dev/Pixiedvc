@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Card, Button } from "@pixiedvc/design-system";
@@ -8,14 +7,14 @@ import { requireOwnerAccess } from "@/lib/owner/requireOwnerAccess";
 import OwnerReadyStayPublishForm from "@/components/owner/OwnerReadyStayPublishForm";
 import OwnerPageHeader from "@/components/owner/shared/OwnerPageHeader";
 import OwnerRecordStatusBadge from "@/components/owner/shared/OwnerRecordStatusBadge";
+import { getActiveFoundingOwnerBonusCents } from "@/lib/founding-owner-bonus";
 
 export default async function ReadyStayNewPage({
   searchParams,
 }: {
   searchParams: { rentalId?: string };
 }) {
-  const cookieStore = await cookies();
-  const { user } = await requireOwnerAccess("/owner/ready-stays/new", cookieStore);
+  const { user } = await requireOwnerAccess("/owner/ready-stays/new");
   const supabase = await createSupabaseServerClient();
 
   const rentalId = searchParams.rentalId ?? null;
@@ -65,6 +64,12 @@ export default async function ReadyStayNewPage({
     .select("name")
     .eq("id", rental.resort_id ?? "")
     .maybeSingle();
+
+  const { data: foundingOwner } = await supabase.from("owners")
+    .select("founding_owner_bonus_cents_per_point, founding_owner_bonus_started_at, founding_owner_bonus_expires_at")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const foundingOwnerBonusCentsPerPoint = getActiveFoundingOwnerBonusCents(foundingOwner);
 
   const { data: milestones } = await supabase
     .from("rental_milestones")
@@ -144,6 +149,7 @@ export default async function ReadyStayNewPage({
           }}
           confirmationReady={confirmationReady}
           hasExistingReservationProof={Boolean(reservationProof?.id)}
+          foundingOwnerBonusCentsPerPoint={foundingOwnerBonusCentsPerPoint}
         />
       )}
 
