@@ -304,6 +304,14 @@ describe("retryOutboundEmail", () => {
     });
   });
 
+  it("does not let manual retries race the durable submission email worker", async () => {
+    retryState.row.metadata = { durableQueue: true };
+    const result = await retryOutboundEmail(retryState.row.id);
+    expect(result).toMatchObject({ ok: false, status: 409 });
+    expect(retryState.sendBookingConfirmationEmail).not.toHaveBeenCalled();
+    expect(retryState.row.retry_count).toBe(0);
+  });
+
   it("retries a failed abandoned guest booking request email", async () => {
     retryState.row.template_key = "abandoned_guest_booking_request";
     retryState.row.subject = "Still planning your Disney villa stay?";

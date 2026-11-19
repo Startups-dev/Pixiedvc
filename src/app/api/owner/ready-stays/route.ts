@@ -10,11 +10,6 @@ import type { RoomCode, ViewCode } from "../../../../../packages/pixiedvc-calcul
 
 const GLOBAL_MIN_OWNER_CENTS = 1400;
 
-function friendlyReadyStayInsertError(message: string | null | undefined) {
-  if (!message) return "We saved your reservation, but couldn’t finish preparing the listing. Please try again or contact concierge.";
-  return message;
-}
-
 export async function POST(request: NextRequest) {
   const supabase = await createSupabaseServerClient();
   const {
@@ -206,14 +201,16 @@ export async function POST(request: NextRequest) {
         .eq("rental_id", rental.id)
         .eq("owner_id", user.id)
         .maybeSingle();
-      return NextResponse.json({
-        ok: true,
-        id: existingReadyStay?.id ?? null,
-        alreadyListed: true,
-      });
+      if (existingReadyStay?.id) {
+        return NextResponse.json({ ok: true, id: existingReadyStay.id, alreadyListed: true });
+      }
     }
-    return NextResponse.json({ error: friendlyReadyStayInsertError(insertError.message) }, { status: 400 });
+    console.error("Ready Stay submission transaction failed", { code: insertError.code });
+    return NextResponse.json({ error: "Unable to save your Ready Stay submission. Please try again or contact concierge." }, { status: 500 });
   }
+
+  // The trigger commits the alert AND durable email intent with the submission.
+  // Scheduled delivery needs no work from this HTTP process after the save.
 
   return NextResponse.json({
     ok: true,

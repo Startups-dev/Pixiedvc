@@ -12,10 +12,10 @@ export async function POST(request: Request) {
   const validId = source === "renter"
     ? validRenterRequestId(requestId)
     : /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(requestId);
-  if (!validId || !["booking", "renter"].includes(source)) {
+  if (!validId || !["booking", "renter", "ready_stay"].includes(source)) {
     return NextResponse.json({ ok: false, error: "INVALID_REQUEST" }, { status: 400 });
   }
-  const column = source === "renter" ? "renter_request_id" : "booking_request_id";
+  const column = source === "renter" ? "renter_request_id" : source === "ready_stay" ? "ready_stay_id" : "booking_request_id";
   const { error } = await auth.client.from("admin_reservation_request_alerts")
     .update({ read_at: new Date().toISOString(), read_by: auth.userId })
     .eq(column, requestId).is("read_at", null);

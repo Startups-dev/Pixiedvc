@@ -124,4 +124,44 @@ describe("Admin Inbox automatic sound recovery", () => {
     fireEvent.click(screen.getByRole("button", { name: "Sound ON. Turn sound off" }));
     expect(screen.getByRole("button", { name: "Sound OFF. Enable sound" })).toBeInTheDocument();
   });
+
+  it("shows Ready Stay submissions in the global Admin alert bar with a separate pending-review count", async () => {
+    const readyStayId = "11111111-1111-4111-8111-111111111111";
+    localStorage.setItem("hannadvc:admin-inbox-alerts:ready-stay-admin:preferences", JSON.stringify({
+      soundEnabled: true, muted: false, volume: 1, desktopNotificationsEnabled: false,
+    }));
+    const frequencies: number[] = [];
+    class AudioContextMock {
+      state = "running";
+      currentTime = 0;
+      destination = {};
+      resume = vi.fn(async () => undefined);
+      close = vi.fn(async () => undefined);
+      createOscillator() { return { type: "sine", frequency: { setValueAtTime: (value: number) => frequencies.push(value) }, connect: vi.fn(), start: vi.fn(), stop: vi.fn() }; }
+      createGain() { return { gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() }, connect: vi.fn() }; }
+    }
+    Object.defineProperty(window, "AudioContext", { configurable: true, value: AudioContextMock });
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).includes("/api/admin/reservations/alerts")) {
+        return Response.json({
+          ok: true,
+          cursor: "2026-11-17T10:00:01.000Z",
+          unreadCount: 1,
+          pendingReadyStayReviewCount: 3,
+          latestUnread: { kind: "reservation", id: "ready-alert", requestId: readyStayId, source: "ready_stay", isTestBooking: false, createdAt: "2026-11-17T10:00:00.000Z" },
+          events: [{ kind: "reservation", id: "ready-alert", requestId: readyStayId, source: "ready_stay", isTestBooking: false, createdAt: "2026-11-17T10:00:00.000Z" }],
+        });
+      }
+      return Response.json({ ok: true, cursor: "2026-11-17T10:00:01.000Z", unreadCount: 0, events: [] });
+    }));
+    render(<AdminInboxAlerts staffUserId="ready-stay-admin" />);
+    expect(await screen.findByText("New Ready Stay submission — review needed.")).toBeInTheDocument();
+    const review = await screen.findByRole("link", { name: "Review submission" });
+    expect(review).toHaveAttribute("href", `/admin/ready-stays?review=${readyStayId}#ready-stay-${readyStayId}`);
+    expect(screen.getByRole("link", { name: /Ready Stays/ })).toHaveAttribute("href", "/admin/ready-stays");
+    fireEvent.click(await screen.findByRole("button", { name: "Enable sound & play missed chime" }));
+    await waitFor(() => expect(frequencies).toEqual([523.25, 783.99, 1046.5, 783.99]));
+    expect(JSON.parse(localStorage.getItem("hannadvc:admin-inbox-alerts:ready-stay-admin:seen:sound") ?? "[]"))
+      .toContain("reservation:ready-alert");
+  });
 });

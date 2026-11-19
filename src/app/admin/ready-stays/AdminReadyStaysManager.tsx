@@ -426,7 +426,7 @@ function updateRowOwnerPrice(id: string, nextOwnerPrice: number) {
           const canRemove = canSoftRemoveReadyStay(row);
 
           return (
-            <article key={row.id} className="rounded-2xl border border-[#3a3a3a] bg-[#2f2f2f] p-5">
+            <article id={`ready-stay-${row.id}`} key={row.id} className="scroll-mt-24 rounded-2xl border border-[#3a3a3a] bg-[#2f2f2f] p-5">
               <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr_1fr]">
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">

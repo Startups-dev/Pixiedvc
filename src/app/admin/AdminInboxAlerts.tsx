@@ -28,13 +28,14 @@ type AdminAlertEvent = InboxAlertEvent | ReservationAlertEvent;
 type CrossTabMessage =
   | { type: "alert"; event: AdminAlertEvent; nonce: string }
   | { type: "badge"; count: number; nonce: string }
-  | { type: "reservation_badge"; count: number; latest: ReservationAlertEvent | null; nonce: string };
+  | { type: "reservation_badge"; count: number; pendingReviewCount: number; latest: ReservationAlertEvent | null; nonce: string };
 
 type AlertsPayload = {
   ok?: boolean;
   error?: string;
   cursor?: string;
   unreadCount?: number;
+  pendingReadyStayReviewCount?: number;
   events?: InboxAlertEvent[];
 };
 
@@ -76,6 +77,7 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
   const preferencesRef = useRef(preferences);
   const [unreadCount, setUnreadCount] = useState(0);
   const [reservationUnreadCount, setReservationUnreadCount] = useState(0);
+  const [pendingReadyStayReviewCount, setPendingReadyStayReviewCount] = useState(0);
   const [latestReservationUnread, setLatestReservationUnread] = useState<ReservationAlertEvent | null>(null);
   const [alerts, setAlerts] = useState<AdminAlertEvent[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -140,8 +142,10 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
     if (!preferencesRef.current.desktopNotificationsEnabled || !("Notification" in window)) return;
     if (Notification.permission !== "granted") return;
     try {
-      const notification = new Notification(isReservationAlert(event) ? "HannaDVC reservation request" : "HannaDVC Inbox", {
-        body: isReservationAlert(event) ? reservationAlertCopy(event.isTestBooking) : "A customer message needs your attention.",
+      const notification = new Notification(isReservationAlert(event)
+        ? event.source === "ready_stay" ? "HannaDVC Ready Stay submission" : "HannaDVC reservation request"
+        : "HannaDVC Inbox", {
+        body: isReservationAlert(event) ? reservationAlertCopy(event.isTestBooking, event.source) : "A customer message needs your attention.",
         icon: "/favicon.ico",
         tag: `hanna-${alertKey(event)}`,
       });
@@ -234,6 +238,7 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
       if (message.type === "badge" && Number.isFinite(message.count)) setUnreadCount(Math.max(0, message.count));
       if (message.type === "reservation_badge" && Number.isFinite(message.count)) {
         setReservationUnreadCount(Math.max(0, message.count));
+        setPendingReadyStayReviewCount(Math.max(0, message.pendingReviewCount));
         setLatestReservationUnread(message.latest);
       }
       if (message.type === "alert" && message.event?.id && alertUrl(message.event)) {
@@ -275,10 +280,11 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
       broadcast({ type: "badge", count, nonce: `${Date.now()}-${tabId}` });
     };
 
-    const announceReservationBadge = (count: number, latest: ReservationAlertEvent | null) => {
+    const announceReservationBadge = (count: number, pendingReviewCount: number, latest: ReservationAlertEvent | null) => {
       setReservationUnreadCount(count);
+      setPendingReadyStayReviewCount(pendingReviewCount);
       setLatestReservationUnread(latest);
-      broadcast({ type: "reservation_badge", count, latest, nonce: `${Date.now()}-${tabId}` });
+      broadcast({ type: "reservation_badge", count, pendingReviewCount, latest, nonce: `${Date.now()}-${tabId}` });
     };
 
     const poll = async () => {
@@ -334,14 +340,14 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
         const reservationResponse = await fetch(`/api/admin/reservations/alerts${reservationQuery}`, { cache: "no-store", credentials: "same-origin" });
         if (reservationResponse.status === 401 || reservationResponse.status === 403) {
           reservationAuthorized = false;
-          announceReservationBadge(0, null);
+          announceReservationBadge(0, 0, null);
         } else {
           const reservationPayload = await reservationResponse.json().catch(() => null) as ReservationAlertsPayload | null;
           if (!reservationResponse.ok || !reservationPayload?.ok || !reservationPayload.cursor) throw new Error(reservationPayload?.error ?? "Reservation alerts are unavailable.");
-          announceReservationBadge(reservationPayload.unreadCount ?? 0, reservationPayload.latestUnread ?? null);
+          announceReservationBadge(reservationPayload.unreadCount ?? 0, reservationPayload.pendingReadyStayReviewCount ?? 0, reservationPayload.latestUnread ?? null);
           const checkedAt = Date.now();
           for (const incoming of reservationPayload.events ?? []) {
-              if (!incoming?.id || !incoming.requestId || !["booking", "renter"].includes(incoming.source)) continue;
+              if (!incoming?.id || !incoming.requestId || !["booking", "renter", "ready_stay"].includes(incoming.source)) continue;
               const key = alertKey(incoming);
               if (seen.has(key)) continue;
               seen.add(key);
@@ -526,6 +532,10 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
         Requests
         {reservationUnreadCount > 0 ? <span aria-label={`${reservationUnreadCount} unread reservation requests`} className="inline-flex min-w-5 items-center justify-center rounded-full bg-amber-400 px-1.5 py-0.5 text-[11px] font-bold text-[#15171d]">{reservationUnreadCount > 99 ? "99+" : reservationUnreadCount}</span> : null}
       </Link>
+      <Link href="/admin/ready-stays" className="inline-flex items-center gap-2 text-slate-300 hover:text-white">
+        Ready Stays
+        {pendingReadyStayReviewCount > 0 ? <span aria-label={`${pendingReadyStayReviewCount} Ready Stays pending review`} className="inline-flex min-w-5 items-center justify-center rounded-full bg-sky-400 px-1.5 py-0.5 text-[11px] font-bold text-[#15171d]">{pendingReadyStayReviewCount > 99 ? "99+" : pendingReadyStayReviewCount}</span> : null}
+      </Link>
       <button
         type="button"
         onClick={() => {
@@ -589,9 +599,9 @@ export default function AdminInboxAlerts({ staffUserId }: { staffUserId: string 
       <div aria-live="polite" aria-label="Admin alerts" className="fixed right-4 top-20 z-[100] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2">
         {alerts.map((alert) => (
           <div key={alertKey(alert)} className="rounded-xl border border-[#d8b65c]/60 bg-[#20232a] p-4 text-sm text-white shadow-2xl">
-            <p className="font-semibold">{isReservationAlert(alert) ? reservationAlertCopy(alert.isTestBooking) : "New customer message"}</p>
+            <p className="font-semibold">{isReservationAlert(alert) ? reservationAlertCopy(alert.isTestBooking, alert.source) : "New customer message"}</p>
             <div className="mt-3 flex items-center justify-between gap-3">
-              <Link href={alertUrl(alert)} onClick={() => setAlerts((current) => current.filter((item) => alertKey(item) !== alertKey(alert)))} className="rounded-md bg-[#d8b65c] px-3 py-1.5 text-xs font-semibold text-[#15171d]">{isReservationAlert(alert) ? "Review dates" : "Open conversation"}</Link>
+              <Link href={alertUrl(alert)} onClick={() => setAlerts((current) => current.filter((item) => alertKey(item) !== alertKey(alert)))} className="rounded-md bg-[#d8b65c] px-3 py-1.5 text-xs font-semibold text-[#15171d]">{isReservationAlert(alert) ? alert.source === "ready_stay" ? "Review submission" : "Review dates" : "Open conversation"}</Link>
               <button type="button" onClick={() => setAlerts((current) => current.filter((item) => alertKey(item) !== alertKey(alert)))} aria-label={isReservationAlert(alert) ? "Dismiss reservation alert" : "Dismiss new message alert"} className="text-xs text-slate-300 underline">Dismiss</button>
             </div>
           </div>

@@ -911,6 +911,9 @@ export async function retryOutboundEmail(id: string): Promise<RetryResult> {
   if (!row) {
     return { ok: false, status: 404, error: "Outbound email log not found.", row: null };
   }
+  if (row.metadata?.durableQueue === true) {
+    return { ok: false, status: 409, error: "This email is managed by the scheduled delivery worker. Reconcile expired idempotency windows with Resend before recovery.", row };
+  }
   if (row.status !== "failed") {
     return { ok: false, status: 400, error: "Only failed emails can be retried.", row };
   }

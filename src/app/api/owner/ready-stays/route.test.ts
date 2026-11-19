@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { PATCH, POST } from "./route";
 
 const readyStaysInsertMock = vi.fn();
+const notificationMock = vi.hoisted(() => ({ run: vi.fn(async () => undefined) }));
 
 let supabaseMock: {
   auth: { getUser: ReturnType<typeof vi.fn> };
@@ -29,9 +30,14 @@ vi.mock("@/lib/ready-stays/pricing", () => ({
   })),
 }));
 
+vi.mock("@/lib/ready-stays/submission-notifications", () => ({
+  runReadyStaySubmissionEmails: notificationMock.run,
+}));
+
 describe("POST /api/owner/ready-stays", () => {
   beforeEach(() => {
     readyStaysInsertMock.mockReset();
+    notificationMock.run.mockReset();
     readyStaysInsertMock.mockReturnValue({
       select: vi.fn(() => ({
         single: vi.fn().mockResolvedValue({
@@ -100,7 +106,7 @@ describe("POST /api/owner/ready-stays", () => {
     supabaseMock = {
       auth: {
         getUser: vi.fn().mockResolvedValue({
-          data: { user: { id: "owner-1" } },
+          data: { user: { id: "owner-1", email: "owner@example.test" } },
           error: null,
         }),
       },
@@ -247,6 +253,51 @@ describe("POST /api/owner/ready-stays", () => {
     expect(body).toEqual({ error: "Upload reservation proof before listing this Ready Stay." });
   });
 
+  test("returns success after the DB save without dispatching email in the request", async () => {
+    notificationMock.run.mockRejectedValueOnce(new Error("mail transport unavailable"));
+    const request = new NextRequest("http://localhost/api/owner/ready-stays", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rental_id: "rental-1", owner_price_per_point_cents: 2100 }),
+    });
+    const response = await POST(request);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ ok: true, id: "ready-1" });
+    expect(notificationMock.run).not.toHaveBeenCalled();
+  });
+
+  test("returns a retryable error when the transactional notification trigger fails", async () => {
+    readyStaysInsertMock.mockReturnValue({ select: () => ({ single: async () => ({
+      data: null, error: { code: "P0001", message: "injected alert trigger error" },
+    }) }) });
+    const response = await POST(new NextRequest("http://localhost/api/owner/ready-stays", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rental_id: "rental-1", owner_price_per_point_cents: 2100 }),
+    }));
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: "Unable to save your Ready Stay submission. Please try again or contact concierge." });
+    expect(notificationMock.run).not.toHaveBeenCalled();
+  });
+
+  test.each([null, "existing-ready-stay"])("reports a duplicate as success only if the existing submission can be loaded (%s)", async existingId => {
+    readyStaysInsertMock.mockReturnValue({ select: () => ({ single: async () => ({
+      data: null, error: { code: "23505", message: "duplicate key" },
+    }) }) });
+    const from = supabaseMock.from.getMockImplementation()!;
+    supabaseMock.from.mockImplementation((table: string) => table !== "ready_stays" ? from(table) : {
+      insert: readyStaysInsertMock,
+      select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({
+        data: existingId ? { id: existingId } : null, error: null,
+      }) }) }) }),
+    });
+    const response = await POST(new NextRequest("http://localhost/api/owner/ready-stays", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rental_id: "rental-1", owner_price_per_point_cents: 2100 }),
+    }));
+    expect(response.status).toBe(existingId ? 200 : 500);
+    if (existingId) expect(await response.json()).toMatchObject({ ok: true, id: existingId, alreadyListed: true });
+  });
+
   test("copies exact calculator accommodation identity from rental to Ready Stay", async () => {
     const rentalsMaybeSingle = vi.fn().mockResolvedValue({
       data: {
@@ -357,6 +408,7 @@ describe("POST /api/owner/ready-stays", () => {
         founding_bonus_per_point_cents: 200,
       }),
     );
+    expect(notificationMock.run).not.toHaveBeenCalled();
   });
 
   test("does not assign calculator identity to legacy rentals during publishing", async () => {

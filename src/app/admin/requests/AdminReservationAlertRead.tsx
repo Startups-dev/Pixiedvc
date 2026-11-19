@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-export default function AdminReservationAlertRead({ requestId, source }: { requestId: string; source: "booking" | "renter" }) {
+export default function AdminReservationAlertRead({ requestId, source }: { requestId: string; source: "booking" | "renter" | "ready_stay" }) {
   useEffect(() => {
     void fetch("/api/admin/reservations/alerts/read", {
       method: "POST",

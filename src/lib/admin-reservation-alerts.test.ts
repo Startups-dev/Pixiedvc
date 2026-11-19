@@ -35,6 +35,26 @@ describe("reservation staff alerts", () => {
     expect(renterAlert?.isTestBooking).toBe(false);
   });
 
+  it("maps Ready Stay submissions to a direct admin review target", () => {
+    const readyStayId = "11111111-1111-4111-8111-111111111111";
+    const readyStay = toReservationAlertEvent({
+      id: "ready-alert", booking_request_id: null, renter_request_id: null, ready_stay_id: readyStayId,
+      created_at: "2026-11-17T10:00:00Z",
+    });
+    expect(readyStay).toMatchObject({ source: "ready_stay", requestId: readyStayId });
+    expect(buildReservationReviewUrl(readyStay!)).toBe(`/admin/ready-stays?review=${readyStayId}#ready-stay-${readyStayId}`);
+    expect(reservationAlertCopy(false, "ready_stay")).toBe("New Ready Stay submission — review needed.");
+  });
+
+  it("adds the Ready Stay trigger without backfilling historical submissions or expanding guest SMS", () => {
+    const migration = readFileSync("supabase/migrations/20261117000001_ready_stay_submission_notifications.sql", "utf8");
+    expect(migration).toContain("on conflict (ready_stay_id) do nothing");
+    expect(migration).toContain("new.verification_submitted_at is not null");
+    expect(migration).toContain("coalesce(new.is_test_listing, false) = false");
+    expect(migration).toContain("if new.booking_request_id is null and new.renter_request_id is null then");
+    expect(migration).not.toMatch(/insert into public\.admin_reservation_request_alerts\s*\(ready_stay_id\)[\s\S]*?select[\s\S]*?from public\.ready_stays/i);
+  });
+
   it("uses the same idempotent submission trigger for real and test bookings", () => {
     const migration = readFileSync("supabase/migrations/20261102000001_admin_test_reservation_alerts.sql", "utf8");
     expect(migration).toMatch(/new\.status::text\s*=\s*'submitted'\s+and\s+\(new\.is_test_booking\s+or\s+new\.accepted_terms\s+is\s+true\)/i);

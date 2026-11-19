@@ -6,6 +6,7 @@ import { READY_STAYS_SHOWCASE_FLAGS } from "@/lib/ready-stays/showcase-config";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import AdminReadyStaysManager from "@/app/admin/ready-stays/AdminReadyStaysManager";
 import { getActiveFoundingOwnerBonusCents } from "@/lib/founding-owner-bonus";
+import AdminReservationAlertRead from "@/app/admin/requests/AdminReservationAlertRead";
 
 export const dynamic = "force-dynamic";
 
@@ -67,8 +68,10 @@ type ReadyStayRow = {
   } | null;
 };
 
-export default async function AdminReadyStaysPage() {
+export default async function AdminReadyStaysPage({ searchParams }: { searchParams: Promise<{ review?: string }> }) {
   await requireAdminUser("/admin/ready-stays");
+  const reviewId = (await searchParams).review;
+  const validReviewId = reviewId && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(reviewId) ? reviewId : null;
 
   if (!READY_STAYS_SHOWCASE_FLAGS.enableReadyStaysAdmin) {
     return (
@@ -225,6 +228,7 @@ export default async function AdminReadyStaysPage() {
 
   return (
     <div className="min-h-screen bg-[#212121]">
+      {validReviewId ? <AdminReservationAlertRead requestId={validReviewId} source="ready_stay" /> : null}
       <div className="mx-auto max-w-6xl space-y-8 px-6 py-12 text-[#ececec]">
         <header className="space-y-2">
           <Link href="/admin" className="text-xs uppercase tracking-[0.3em] text-[#8e8ea0] hover:text-[#ececec]">
