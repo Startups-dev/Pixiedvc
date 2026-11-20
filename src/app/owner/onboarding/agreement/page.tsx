@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase";
@@ -221,7 +221,8 @@ export default function OwnerAgreementPage() {
   const [signedName, setSignedName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false);
-  const agreementBoxRef = useRef<HTMLDivElement | null>(null);
+  const agreementRef = useRef<HTMLElement | null>(null);
+  const agreementEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -279,47 +280,70 @@ export default function OwnerAgreementPage() {
   }, [router, supabase]);
 
   useEffect(() => {
-    if (loading) return;
-    const node = agreementBoxRef.current;
-    if (!node) return;
-    if (node.scrollHeight <= node.clientHeight) {
-      setHasScrolledToEnd(true);
-    }
-  }, [loading]);
+    if (loading || hasScrolledToEnd) return;
+    const end = agreementEndRef.current;
+    const agreement = agreementRef.current;
+    if (!end || !agreement) return;
 
-  function handleAgreementScroll() {
-    const node = agreementBoxRef.current;
-    if (!node || hasScrolledToEnd) return;
-    const isAtBottom = node.scrollTop + node.clientHeight >= node.scrollHeight - 8;
-    if (isAtBottom) {
-      setHasScrolledToEnd(true);
-    }
-  }
+    const checkEnd = () => {
+      const bounds = end.getBoundingClientRect();
+      const viewportHeight = document.documentElement.clientHeight || window.innerHeight;
+      // The owner shell scrolls with the document. Also allow the marker to have
+      // passed above the viewport: End/Tab can jump straight to the form/footer.
+      if (bounds.height > 0 && bounds.bottom <= viewportHeight) {
+        setHasScrolledToEnd(true);
+      }
+    };
+    const intersection = typeof IntersectionObserver === "undefined"
+      ? null
+      : new IntersectionObserver(checkEnd, { root: null });
+    const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(checkEnd);
+    intersection?.observe(end);
+    // Translation, font changes and reflow can move the end without a scroll.
+    resize?.observe(agreement);
+    window.addEventListener("scroll", checkEnd, { passive: true });
+    window.addEventListener("resize", checkEnd);
+    checkEnd();
 
-  async function handleAccept() {
+    return () => {
+      intersection?.disconnect();
+      resize?.disconnect();
+      window.removeEventListener("scroll", checkEnd);
+      window.removeEventListener("resize", checkEnd);
+    };
+  }, [loading, hasScrolledToEnd]);
+
+  async function handleAccept(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!hasScrolledToEnd || !agreed || signedName.trim().length < 3 || submitting) return;
     setSubmitting(true);
     setError(null);
 
-    const response = await fetch("/api/owner/agreement/accept", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ signedName }),
-    });
+    try {
+      const response = await fetch("/api/owner/agreement/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ signedName }),
+      });
 
-    if (response.status === 401) {
-      router.replace("/login?redirect=/owner/onboarding/agreement");
-      return;
-    }
+      if (response.status === 401) {
+        router.replace("/login?redirect=/owner/onboarding/agreement");
+        return;
+      }
 
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({ error: "Unable to accept agreement." }));
-      setError(typeof payload.error === "string" ? payload.error : "Unable to accept agreement.");
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({ error: "Unable to accept agreement." }));
+        setError(typeof payload.error === "string" ? payload.error : "Unable to accept agreement.");
+        return;
+      }
+
+      router.replace("/owner/dashboard");
+    } catch {
+      setError("Unable to accept agreement. Please try again.");
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    router.replace("/owner/dashboard");
   }
 
   if (loading) {
@@ -331,75 +355,87 @@ export default function OwnerAgreementPage() {
     );
   }
 
-  const canSubmit = agreed && signedName.trim().length > 0 && !submitting;
+  const canSubmit = hasScrolledToEnd && agreed && signedName.trim().length >= 3 && !submitting;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-6 py-12">
-      <div className="rounded-3xl bg-gradient-to-br from-[#0C1A37] via-[#10264D] to-[#0A1733] px-6 py-7 shadow-[0_24px_60px_rgba(6,17,40,0.35)]">
-        <h1 className="text-4xl font-semibold tracking-tight !text-white">Owner Platform Agreement</h1>
+    <div className="mx-auto min-w-0 max-w-3xl space-y-6 px-4 py-8 [overflow-wrap:anywhere] sm:px-6 sm:py-12">
+      <div className="rounded-3xl bg-gradient-to-br from-[#0C1A37] via-[#10264D] to-[#0A1733] px-5 py-6 shadow-[0_24px_60px_rgba(6,17,40,0.35)] sm:px-6 sm:py-7">
+        <h1 className="text-3xl font-semibold tracking-tight !text-white sm:text-4xl">Owner Platform Agreement</h1>
         <p className="mt-2 text-sm text-slate-400">
           Before listing points or confirmed reservations, please review and accept this agreement.
         </p>
+        <p className="mt-3 text-sm leading-6 text-slate-300">
+          Read the full agreement below. The acceptance fields follow the final clause.
+        </p>
       </div>
 
-      <div
-        ref={agreementBoxRef}
-        onScroll={handleAgreementScroll}
-        className="max-h-[420px] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5"
+      <article
+        ref={agreementRef}
+        aria-labelledby="owner-agreement-title"
+        className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 sm:p-8"
       >
-        <h2 className="mb-4 text-xl font-semibold text-slate-900">HannaDVC Owner Platform Agreement</h2>
-        <div className="space-y-2 text-sm leading-6">
+        <h2 id="owner-agreement-title" className="mb-6 text-xl font-semibold leading-7 text-slate-900">HannaDVC Owner Platform Agreement</h2>
+        <div className="space-y-3 text-base leading-7">
           {AGREEMENT_TEXT.split("\n").map((line, index) => {
             const trimmed = line.trim();
             const isClauseTitle = /^\d+\.\s/.test(trimmed);
             if (!trimmed) {
-              return <div key={`line-${index}`} className="h-1" />;
+              return <div key={`line-${index}`} className="h-1" aria-hidden="true" />;
             }
+            if (isClauseTitle) return <h3 key={`line-${index}`} className="pt-3 text-lg font-semibold leading-7 text-slate-900">{line}</h3>;
             return (
               <p
                 key={`line-${index}`}
-                className={isClauseTitle ? "text-xl font-semibold text-slate-900" : "text-slate-700"}
+                className="text-slate-700"
               >
                 {line}
               </p>
             );
           })}
         </div>
-      </div>
+        <div ref={agreementEndRef} data-testid="agreement-end" className="h-px" aria-hidden="true" />
+      </article>
 
-      <label className="flex items-start gap-3 text-sm text-slate-700">
-        <input
-          type="checkbox"
-          checked={agreed}
-          onChange={(event) => setAgreed(event.target.checked)}
-          disabled={!hasScrolledToEnd}
-          className="mt-0.5 h-4 w-4 rounded border-slate-300"
-        />
-        <span>I have read and agree to the HannaDVC Owner Platform Agreement.</span>
-      </label>
-      {!hasScrolledToEnd ? <p className="text-xs text-slate-500">Scroll to the end to enable agreement.</p> : null}
+      <form onSubmit={handleAccept} className="min-w-0 space-y-5" aria-label="Accept owner platform agreement">
+        <p id="agreement-reading-status" role="status" className="text-sm leading-6 text-slate-600">
+          {hasScrolledToEnd ? "You have reached the end of the agreement." : "Read to the end of the agreement to enable the checkbox."}
+        </p>
+        <label className="flex min-h-11 cursor-pointer items-start gap-3 py-2 text-sm leading-6 text-slate-700">
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={(event) => setAgreed(event.target.checked)}
+            disabled={!hasScrolledToEnd}
+            required
+            aria-describedby="agreement-reading-status"
+            className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          />
+          <span>I have read and agree to the HannaDVC Owner Platform Agreement.</span>
+        </label>
 
-      <label className="block">
-        <span className="text-sm text-slate-700">Type your full legal name (as shown on your DVC membership)</span>
-        <input
-          type="text"
-          value={signedName}
-          onChange={(event) => setSignedName(event.target.value)}
-          className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900"
-          autoComplete="name"
-        />
-      </label>
+        <label className="block">
+          <span className="text-sm text-slate-700">Type your full legal name (as shown on your DVC membership)</span>
+          <input
+            type="text"
+            value={signedName}
+            onChange={(event) => setSignedName(event.target.value)}
+            className="mt-2 min-h-11 w-full min-w-0 rounded-xl border border-slate-300 px-3 py-2 text-base text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+            autoComplete="name"
+            required
+            minLength={3}
+          />
+        </label>
 
-      {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+        {error ? <p role="alert" className="text-sm text-rose-600">{error}</p> : null}
 
-      <button
-        type="button"
-        onClick={handleAccept}
-        disabled={!canSubmit}
-        className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {submitting ? "Submitting..." : "Accept & Continue"}
-      </button>
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          className="min-h-11 w-full rounded-xl bg-slate-900 px-5 py-3 text-base font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+        >
+          {submitting ? "Submitting..." : "Accept & Continue"}
+        </button>
+      </form>
     </div>
   );
 }

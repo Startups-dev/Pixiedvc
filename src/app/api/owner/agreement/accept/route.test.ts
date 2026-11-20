@@ -84,7 +84,7 @@ describe("POST /api/owner/agreement/accept", () => {
   test("accepting agreement also marks owner onboarding complete for route guards", async () => {
     const request = new Request("http://localhost/api/owner/agreement/accept", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "203.0.113.25, 10.0.0.1" },
       body: JSON.stringify({ signedName: "Jane Owner" }),
     });
 
@@ -96,6 +96,7 @@ describe("POST /api/owner/agreement/accept", () => {
     expect(ownerUpdatePayload).toMatchObject({
       agreement_version: "v1",
       agreement_signed_name: "Jane Owner",
+      agreement_accepted_ip: "203.0.113.25",
     });
     expect(ownerUpdatePayload?.agreement_accepted_at).toEqual(expect.any(String));
     expect(profileUpsertPayload).toMatchObject({
@@ -115,6 +116,26 @@ describe("POST /api/owner/agreement/accept", () => {
       adminClient: expect.objectContaining({ from: expect.any(Function) }),
       ownerId: "owner-1",
     });
+  });
+
+  test("rejects an unauthenticated acceptance without writing an audit record", async () => {
+    createSupabaseServerClient.mockReturnValue({ auth: { getUser: async () => ({ data: { user: null } }) } });
+    const response = await POST(new Request("http://localhost/api/owner/agreement/accept", {
+      method: "POST", body: JSON.stringify({ signedName: "Jane Owner" }),
+    }));
+    expect(response.status).toBe(401);
+    expect(ownerUpdatePayload).toBeNull();
+    expect(profileUpsertPayload).toBeNull();
+    expect(maybeGrantFoundingOwnerBonus).not.toHaveBeenCalled();
+  });
+
+  test.each(["", "  ", "Jo", " J "])("preserves server-side name validation for %j", async signedName => {
+    const response = await POST(new Request("http://localhost/api/owner/agreement/accept", {
+      method: "POST", body: JSON.stringify({ signedName }),
+    }));
+    expect(response.status).toBe(400);
+    expect(ownerUpdatePayload).toBeNull();
+    expect(profileUpsertPayload).toBeNull();
   });
 
   test("does not mark onboarding complete when the Founding Owner grant lookup fails", async () => {
